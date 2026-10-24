@@ -5916,7 +5916,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.05';
+const APP_VER = 'v11.06';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7211,6 +7211,41 @@ function mwDrawSvg(nodes, edges) {
     return groupColor[cat + '|' + a.sub] || '#cbd5e1';
   };
 
+  /* ---------- 链路层级（离费用端有多远） ----------
+     费用类账户本身 = 0 级
+     直接给费用类转过钱的账户 = 1 级
+     再往上一环 = 2 级 ……
+     线宽按「转入账户的层级」取值：6 / 4.8 / 3.6 / 2.4 / 1.2（越靠近支出越粗） */
+  var depthOf = {};
+  (function computeDepth() {
+    var byTo = {};
+    txs.forEach(function (x) { if (x.to && x.f) (byTo[x.to] = byTo[x.to] || []).push(x.f); });
+    var queue = [];
+    Object.keys(accMeta).forEach(function (nm) {
+      if (accMeta[nm].cat === '费用类') { depthOf[nm] = 0; queue.push(nm); }
+    });
+    var guard = 0;
+    while (queue.length && guard++ < 5000) {
+      var cur = queue.shift();
+      (byTo[cur] || []).forEach(function (up) {
+        if (up && depthOf[up] === undefined) { depthOf[up] = depthOf[cur] + 1; queue.push(up); }
+      });
+    }
+    // 没有任何路径通到费用端的（孤立账户 / 纯收入）给一个最深层级
+    var maxD = 0;
+    Object.keys(depthOf).forEach(function (k) { if (depthOf[k] > maxD) maxD = depthOf[k]; });
+    Object.keys(accMeta).forEach(function (nm) {
+      if (depthOf[nm] === undefined) depthOf[nm] = maxD + 1;
+    });
+  })();
+
+  var DEPTH_W = [6, 4.8, 3.6, 2.4, 1.2];   // 0 级 ~ 4 级及以上
+  function widthByDepth(name) {
+    var d = depthOf[name];
+    if (d === undefined) d = 4;
+    return DEPTH_W[Math.min(d, DEPTH_W.length - 1)];
+  }
+
   /* ---------- 细粒度单位 ----------
      总单位 = 流水数 × 2 + 分类数（分类数 = 1 时为 0） */
   var nUnitsTx = txs.length * 2;
@@ -7307,14 +7342,11 @@ function mwDrawSvg(nodes, edges) {
   var txSlotIdx = {};
   slots.forEach(function (sl, i) { txSlotIdx[sl.txIdx + '|' + sl.side] = sl; });
 
-  /* 三档线宽：
-       默认（什么都没选）   → W_MID
-       选中某一条后，那一条 → W_HOT
-       选中某一条后，别的一条 → W_THIN
-     用户的要求：默认是中粗、选中的最粗、其余最细，这样对比最强。 */
-  var W_THIN = 1.5;
-  var W_MID  = 2.4;
-  var W_HOT  = 4;
+  /* 线宽规则：
+       默认      → 按「转入账户的链路层级」：6 / 4.8 / 3.6 / 2.4 / 1.2
+       选中某一条 → 那一条 ×1.35（最粗），其余 ×0.45（瘦下来但不消失） */
+  var PICK_BOOST = 1.35;
+  var PICK_SHRINK = 0.45;
 
   txs.forEach(function (x, i) {
     var sf = txSlotIdx[i + '|f'];
@@ -7353,8 +7385,14 @@ function mwDrawSvg(nodes, edges) {
       + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1) + ', '
       + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1) + '"'
       + ' fill="none" stroke="' + col + '"'
-      + ' stroke-width="' + (!hotTxs ? W_MID : layer === 2 ? W_HOT : layer === 1 ? W_MID : W_THIN) + '"'
-      + ' stroke-opacity="' + (!hotTxs ? '0.5' : layer === 2 ? '0.95' : layer === 1 ? '0.62' : '0.28') + '"'
+      + ' stroke-width="' + (function () {
+          var base = widthByDepth(x.to);
+          if (!hotTxs) return base.toFixed(2);
+          if (layer === 2) return (base * PICK_BOOST).toFixed(2);
+          if (layer === 1) return base.toFixed(2);
+          return (base * PICK_SHRINK).toFixed(2);
+        })() + '"'
+      + ' stroke-opacity="' + (!hotTxs ? '0.52' : layer === 2 ? '0.95' : layer === 1 ? '0.62' : '0.28') + '"'
       + ' stroke-linecap="round"'
       + ' data-tx="' + i + '" class="mw-edge" style="cursor:pointer">'
       + '<title>' + mwEsc(x.f || '（空）') + ' → ' + mwEsc(x.to || '（空）')
