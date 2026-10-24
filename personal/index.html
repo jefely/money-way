@@ -5348,21 +5348,34 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-list-empty { font-size: 12px; color: var(--text-muted); }
 .mw-toggle {
   position: absolute; right: 246px; top: 4px;
-  width: 20px; height: 20px; border-radius: 50%;
-  border: 1px solid var(--border-light); background: #fff; color: var(--text-muted);
-  cursor: pointer; font-size: 9px; padding: 0; line-height: 18px;
+  width: 20px; height: 20px;
+  border: 0; background: transparent; color: var(--text-muted);
+  cursor: pointer; font-size: 11px; padding: 0; line-height: 20px;
+  opacity: .55;
 }
+.mw-toggle:hover { opacity: 1; color: var(--primary); }
 .mw-toggle.shifted { right: 4px; }
 .mw-toggle:hover { background: #ece7ff; color: var(--primary); }
 
 
 .mw-side-head { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
-.mw-side-set { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.mw-side-set {
+  display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;
+  position: sticky; top: 0; z-index: 5;
+  background: var(--bg-main);
+  padding: 8px 0 6px;
+  margin-top: -8px;
+  box-shadow: 0 6px 8px -6px rgba(0,0,0,.18);
+}
 .mw-side-set label { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
 .mw-side-set input[type=date] { height: 26px; font-size: 12px; flex: 1 1 auto; min-width: 0; }
 .mw-side-set select { height: 26px; font-size: 12px; }
 .mw-side-set button { height: 26px; font-size: 12px; }
-.mw-side-stat { font-size: 11.5px; color: var(--text-muted); padding: 6px 0 8px; border-bottom: 1px solid var(--border-light); margin-bottom: 8px; }
+.mw-side-stat {
+  font-size: 11.5px; color: var(--text-muted); padding: 0 0 8px;
+  border-bottom: 1px solid var(--border-light); margin-bottom: 8px;
+  position: sticky; top: 118px; z-index: 5; background: var(--bg-main);
+}
 
 .mw-side-row { display: flex; gap: 6px; }
 .mw-side-row button { flex: 1 1 0; }
@@ -5455,23 +5468,30 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-flow-row.root { background: rgba(139,108,255,.3); font-weight: 700; box-shadow: inset 2px 0 0 var(--primary); }
 .mw-flow-from, .mw-flow-to { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mw-flow-from { color: var(--text-muted); text-align: right; }
-.mw-flow-arrow { flex: 0 0 auto; color: var(--text-muted); font-size: 10px; }
 .mw-flow-row b { flex: 0 0 auto; font-size: 11px; font-variant-numeric: tabular-nums; }
 
-/* 左栏表格化：ID 左、账本居中、金额靠右 */
+/* 左栏表格化：ID 左、账本居中、金额靠右；列宽可拖动调整 */
 .mw-flow-grid {
   display: grid;
-  grid-template-columns: 30px 1fr 12px 1fr 64px;
+  grid-template-columns: var(--mw-col-id, 30px) var(--mw-col-from, 1fr) var(--mw-col-to, 1fr) var(--mw-col-amt, 64px);
   align-items: center;
   column-gap: 0;
 }
+.mw-col-h { position: relative; }
+.mw-col-h::after {
+  content: ''; position: absolute; right: -3px; top: 0; bottom: 0;
+  width: 6px; cursor: col-resize;
+}
+.mw-col-h.resizing { color: var(--primary); }
 .mw-flow-grid .mw-id { flex: none; text-align: left; padding-left: 2px; font-size: 10.5px; }
 .mw-flow-grid .mw-flow-from,
 .mw-flow-grid .mw-flow-to { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mw-flow-grid .mw-flow-arrow { text-align: center; }
 .mw-flow-grid .mw-amt { text-align: right; padding-right: 2px; font-variant-numeric: tabular-nums; }
 .mw-flow-cols.mw-flow-grid { border-bottom: 1px solid var(--border-light); padding-bottom: 4px; margin-bottom: 2px; }
 .mw-flow-row.mw-flow-grid { border-bottom: 1px solid rgba(128,128,128,.07); padding: 4px 3px; }
+
+/* 路径图文字：不可选中、不可点击 */
+.mw-chart text { user-select: none; -webkit-user-select: none; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -5683,7 +5703,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.79';
+const APP_VER = 'v10.80';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7024,9 +7044,14 @@ function mwDrawSvg(nodes, edges) {
   var txSlotIdx = {};
   slots.forEach(function (sl, i) { txSlotIdx[sl.txIdx + '|' + sl.side] = sl; });
 
-  var BASE_W = 1.2;    // 基础线粗（再细就看不清，1.5 刚好）
-  var HOT_W = 2.4;
-  var ROOT_W = 4;
+  /* 三档线宽：
+       默认（什么都没选）   → W_MID
+       选中某一条后，那一条 → W_HOT
+       选中某一条后，别的一条 → W_THIN
+     用户的要求：默认是中粗、选中的最粗、其余最细，这样对比最强。 */
+  var W_THIN = 1.2;
+  var W_MID  = 2.4;
+  var W_HOT  = 4;
 
   txs.forEach(function (x, i) {
     var sf = txSlotIdx[i + '|f'];
@@ -7047,15 +7072,15 @@ function mwDrawSvg(nodes, edges) {
     //   链路外                细而淡
     // 没选中任何东西时，所有线统一基础粗细。
     var layer = 0;                       // 0 = 未选中 / 链路外
-    if (hotTxs) layer = hotTxs[i] ? (mwChainRoot === i ? 2 : 1) : 0;
+    if (hotTxs) layer = (mwChainRoot === i) ? 2 : 0;   // 只有「点中的那一条」是 2
 
     parts.push('<path d="M ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1)
       + ' C ' + c1[0].toFixed(1) + ' ' + c1[1].toFixed(1) + ', '
       + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1) + ', '
       + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1) + '"'
       + ' fill="none" stroke="' + col + '"'
-      + ' stroke-width="' + (layer === 2 ? ROOT_W : layer === 1 ? HOT_W : BASE_W) + '"'
-      + ' stroke-opacity="' + (layer === 2 ? '0.95' : layer === 1 ? '0.62' : hotTxs ? '0.08' : '0.42') + '"'
+      + ' stroke-width="' + (layer === 2 ? W_HOT : (hotTxs ? W_THIN : W_MID)) + '"'
+      + ' stroke-opacity="' + (layer === 2 ? '0.95' : (hotTxs ? '0.10' : '0.5')) + '"'
       + ' stroke-linecap="round"'
       + ' data-tx="' + i + '" class="mw-edge" style="cursor:pointer">'
       + '<title>' + mwEsc(x.f || '（空）') + ' → ' + mwEsc(x.to || '（空）')
@@ -7076,7 +7101,7 @@ function mwDrawSvg(nodes, edges) {
     var dim = mwSelected && !sel;
     parts.push('<path d="' + dd + '" fill="' + colorOfAcc(b.acc) + '"'
       + ' fill-opacity="' + (dim ? '0.3' : sel ? '1' : '0.92') + '"'
-      + ' stroke="#fff" stroke-width="1.2"'
+      + ' stroke="#6b7280" stroke-width="0.6" stroke-opacity="0.55"'
       + ' class="mw-ring" data-node="' + mwEsc(b.acc) + '" style="cursor:pointer"/>');
   });
 
@@ -7121,30 +7146,29 @@ function mwDrawSvg(nodes, edges) {
         + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
     } else {
       // ② 放不下：锥形引线 + 文字外移
-      var CONE_LEN = Math.min(150, 70 + textW * 0.45);
+      // 长度减半
+      var CONE_LEN = Math.max(24, Math.min(64, 34 + textW * 0.22));
       var rText = R_OUT + CONE_LEN;
 
-      // 锥底的半角：让锥底宽度刚好托住文字
-      var halfAngle = Math.min(0.22, (textW * 0.62) / Math.max(1, rText));
+      // 锥底宽度 = 文字宽度（精确匹配字号），换算成角度
+      var halfAngle = Math.min(0.28, (textW * 0.5) / Math.max(1, rText));
 
-      // 锥尖：弧块外沿的两个端点
-      var tipA = pt(R_OUT, b.a1);
-      var tipB = pt(R_OUT, b.a2);
+      // 锥尖：收敛到弧块中点，真正的「尖端」（不再用弧块两端，那样是钝口）
+      var tip = pt(R_OUT, mid);
       // 锥底：文字所在半径上、以 mid 为中心对称的两点
       var baseA = pt(rText, mid - halfAngle);
       var baseB = pt(rText, mid + halfAngle);
 
-      // 锥形（梯形/三角形）
-      parts.push('<path d="M ' + tipA[0].toFixed(1) + ' ' + tipA[1].toFixed(1)
+      // 三角形：尖 → 底左 → 底右
+      parts.push('<path d="M ' + tip[0].toFixed(1) + ' ' + tip[1].toFixed(1)
         + ' L ' + baseA[0].toFixed(1) + ' ' + baseA[1].toFixed(1)
-        + ' L ' + baseB[0].toFixed(1) + ' ' + baseB[1].toFixed(1)
-        + ' L ' + tipB[0].toFixed(1) + ' ' + tipB[1].toFixed(1) + ' Z"'
-        + ' fill="' + color + '" fill-opacity="' + (dim ? '0.16' : '0.34') + '"'
-        + ' stroke="' + color + '" stroke-opacity="' + (dim ? '0.2' : '0.5') + '" stroke-width="0.6"'
+        + ' L ' + baseB[0].toFixed(1) + ' ' + baseB[1].toFixed(1) + ' Z"'
+        + ' fill="' + color + '" fill-opacity="' + (dim ? '0.14' : '0.3') + '"'
+        + ' stroke="none"'
         + ' style="pointer-events:none"/>');
 
       // 文字放在锥底外侧
-      var rp2 = pt(rText + 4, mid);
+      var rp2 = pt(rText + 3, mid);
       parts.push('<text x="' + rp2[0].toFixed(1) + '" y="' + rp2[1].toFixed(1) + '"'
         + ' text-anchor="' + (upsideDown ? 'end' : 'start') + '"'
         + ' dominant-baseline="middle"'
@@ -7214,12 +7238,11 @@ function mwDrawSvg(nodes, edges) {
     });
 
   html += '<div class="mw-in-title">流水 <span>' + flowRows.length + ' 笔（点一行看它的来路）</span></div>';
-  html += '<div class="mw-flow-cols mw-flow-grid">'
+  html += '<div class="mw-flow-cols mw-flow-grid" id="mw-flow-head">'
     + '<i class="mw-id">ID</i>'
-    + '<span class="mw-flow-from">转出</span>'
-    + '<span class="mw-flow-arrow">→</span>'
-    + '<span class="mw-flow-to">转入</span>'
-    + '<b class="mw-amt">金额</b></div>';
+    + '<span class="mw-flow-from mw-col-h" data-col="from">转出</span>'
+    + '<span class="mw-flow-to mw-col-h" data-col="to">转入</span>'
+    + '<b class="mw-amt mw-col-h" data-col="amt">金额</b></div>';
 
   flowRows.forEach(function (o) {
     var on = mwChainOn(o.i);
@@ -7229,7 +7252,6 @@ function mwDrawSvg(nodes, edges) {
       + '" data-tx="' + o.i + '">'
       + '<i class="mw-id">' + mwEsc(String(seq)) + '</i>'
       + '<span class="mw-flow-from">' + mwEsc(o.x.f || '—') + '</span>'
-      + '<span class="mw-flow-arrow">→</span>'
       + '<span class="mw-flow-to">' + mwEsc(o.x.to || '—') + '</span>'
       + '<b class="mw-amt">¥' + o.x.amt.toFixed(0) + '</b></div>';
   });
@@ -7310,6 +7332,50 @@ function mwDrawSvg(nodes, edges) {
       renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
     };
   });
+
+  /* ---------- 列宽拖动 ---------- */
+  (function initMwColResize() {
+    var COLS = { from: ['--mw-col-from', '1fr'], to: ['--mw-col-to', '1fr'], amt: ['--mw-col-amt', '64px'] };
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem('mw_flow_colw') || 'null'); } catch (e) {}
+    var widths = saved || { from: 0, to: 0, amt: 64 };
+    var applyW = function () {
+      var g = sideBox.querySelector('.mw-flow-grid');
+      if (!g) return;
+      g.style.setProperty('--mw-col-from', widths.from > 0 ? widths.from + 'px' : '1fr');
+      g.style.setProperty('--mw-col-to', widths.to > 0 ? widths.to + 'px' : '1fr');
+      g.style.setProperty('--mw-col-amt', widths.amt + 'px');
+    };
+    applyW();
+
+    var head = sideBox.querySelector('#mw-flow-head');
+    if (!head) return;
+    head.querySelectorAll('.mw-col-h').forEach(function (h) {
+      var key = h.getAttribute('data-col');
+      if (key === 'amt') return;
+      h.addEventListener('pointerdown', function (ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        var startX = ev.clientX;
+        var cell = h.getBoundingClientRect();
+        var startW = cell.width;
+        h.classList.add('resizing');
+        try { h.setPointerCapture(ev.pointerId); } catch (e) {}
+        var move = function (e2) {
+          var w = Math.max(40, Math.min(240, startW + (e2.clientX - startX)));
+          widths[key] = Math.round(w);
+          applyW();
+        };
+        var up = function () {
+          h.classList.remove('resizing');
+          document.removeEventListener('pointermove', move);
+          document.removeEventListener('pointerup', up);
+          try { localStorage.setItem('mw_flow_colw', JSON.stringify(widths)); } catch (e) {}
+        };
+        document.addEventListener('pointermove', move);
+        document.addEventListener('pointerup', up);
+      });
+    });
+  })();
 
   /* ---------- 缩放 / 旋转 / 平移 ---------- */
   var svgEl = chartBox.querySelector('svg');
