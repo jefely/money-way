@@ -5431,7 +5431,8 @@ table#summary-table tbody td.col-name { z-index: 6; }
   .mw-side-left {
     position: absolute !important;
     left: 0; top: 0; bottom: 0;
-    width: 240px !important; flex: 0 0 240px !important;
+    width: var(--mw-side-w, 300px) !important;
+    flex: 0 0 var(--mw-side-w, 300px) !important;
     height: 100% !important; min-height: 0 !important;
     max-height: 100% !important;
     z-index: 30;
@@ -5730,9 +5731,7 @@ th.col-range { text-align: left; }
 
 /* ---- 手机/窄屏：路径追踪左栏 ---- */
 @media (max-width: 900px) {
-  .mw-side-left {
-    width: 300px !important; flex: 0 0 300px !important;
-  }
+  /* 宽度由 JS 写进 --mw-side-w，这里不再硬编码，否则三角与拖动手柄会错位 */
   /* 抽屉内部的表格允许横向滚动，5 列不至于被压成竖线 */
   .mw-side-left .mw-flow-grid {
     min-width: 320px;
@@ -5955,7 +5954,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.14';
+const APP_VER = 'v11.15';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7667,14 +7666,17 @@ function mwDrawSvg(nodes, edges) {
     wrap.appendChild(grip);   // 挂在 .mw-split 上，不会被 .mw-side-left 的 overflow 裁掉
     var savedW = 0;
     try { savedW = Number(localStorage.getItem('mw_side_w') || 0) || 0; } catch (e) {}
+    var isNarrow2 = (window.innerWidth || 1200) <= 900;
     if (savedW > 0) wrap.style.setProperty('--mw-side-w', savedW + 'px');
+    else wrap.style.setProperty('--mw-side-w', (isNarrow2 ? 300 : 330) + 'px');
     grip.addEventListener('pointerdown', function (ev) {
       ev.preventDefault(); ev.stopPropagation();
       var startX = ev.clientX;
       var startW = sideBox.getBoundingClientRect().width;
       try { grip.setPointerCapture(ev.pointerId); } catch (e) {}
       var move = function (e2) {
-        var w = Math.max(170, Math.min(520, startW + (e2.clientX - startX)));
+        var maxW = Math.round(window.innerWidth * 0.92);
+        var w = Math.max(200, Math.min(maxW, startW + (e2.clientX - startX)));
         wrap.style.setProperty('--mw-side-w', Math.round(w) + 'px');
       };
       var up = function () {
