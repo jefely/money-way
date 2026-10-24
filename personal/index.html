@@ -5370,7 +5370,7 @@ table#summary-table tbody td.col-name { z-index: 6; }
   height: 100%; color: var(--text-muted); font-size: 14px; text-align: center; gap: 6px; }
 
 :root { --mw-text: #111827; --mw-text-dim: #c9c9c9; }
-[data-theme="dark"] { --mw-text: #ffffff; --mw-text-dim: #4b5563; }
+[data-theme="dark"] { --mw-text: #ffffff; --mw-text-dim: #9ca3af; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) { --mw-text: #ffffff; --mw-text-dim: #4b5563; }
 }
@@ -5457,6 +5457,21 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-flow-from { color: var(--text-muted); text-align: right; }
 .mw-flow-arrow { flex: 0 0 auto; color: var(--text-muted); font-size: 10px; }
 .mw-flow-row b { flex: 0 0 auto; font-size: 11px; font-variant-numeric: tabular-nums; }
+
+/* 左栏表格化：ID 左、账本居中、金额靠右 */
+.mw-flow-grid {
+  display: grid;
+  grid-template-columns: 30px 1fr 12px 1fr 64px;
+  align-items: center;
+  column-gap: 0;
+}
+.mw-flow-grid .mw-id { flex: none; text-align: left; padding-left: 2px; font-size: 10.5px; }
+.mw-flow-grid .mw-flow-from,
+.mw-flow-grid .mw-flow-to { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mw-flow-grid .mw-flow-arrow { text-align: center; }
+.mw-flow-grid .mw-amt { text-align: right; padding-right: 2px; font-variant-numeric: tabular-nums; }
+.mw-flow-cols.mw-flow-grid { border-bottom: 1px solid var(--border-light); padding-bottom: 4px; margin-bottom: 2px; }
+.mw-flow-row.mw-flow-grid { border-bottom: 1px solid rgba(128,128,128,.07); padding: 4px 3px; }
 </style>
 </head>
 <body>
@@ -5668,7 +5683,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.75';
+const APP_VER = 'v10.76';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6850,9 +6865,10 @@ function mwRingPath(cx, cy, rIn, rOut, a1, a2) {
    ============================================================ */
 function mwDrawSvg(nodes, edges) {
   var TAU = Math.PI * 2;
-  var SIZE = 1400;
+  // 画布放大到 1800：同样的弧长在 SVG 内部占用更多坐标，缩放后线条更清晰
+  var SIZE = 1800;
   var cx = SIZE / 2, cy = SIZE / 2;
-  var R_OUT = 500, THICK = 34, R_IN = R_OUT - THICK;
+  var R_OUT = 640, THICK = 44, R_IN = R_OUT - THICK;
 
   /* ---------- 取区间内流水（保留单边） ---------- */
   var txs = [];
@@ -7001,15 +7017,16 @@ function mwDrawSvg(nodes, edges) {
   }
 
   var parts = [];
-  parts.push('<svg viewBox="0 0 ' + SIZE + ' ' + SIZE + '" width="100%" preserveAspectRatio="xMidYMid meet">');
+  parts.push('<svg viewBox="0 0 ' + SIZE + ' ' + SIZE + '" width="100%" preserveAspectRatio="xMidYMid meet"'
+    + ' shape-rendering="geometricPrecision" text-rendering="geometricPrecision">');
 
   /* ---------- 连线（每笔一条，统一粗细） ---------- */
   var txSlotIdx = {};
   slots.forEach(function (sl, i) { txSlotIdx[sl.txIdx + '|' + sl.side] = sl; });
 
-  var BASE_W = 1.5;    // 基础线粗（再细就看不清，1.5 刚好）
-  var HOT_W = 3;
-  var ROOT_W = 5;
+  var BASE_W = 1.2;    // 基础线粗（再细就看不清，1.5 刚好）
+  var HOT_W = 2.4;
+  var ROOT_W = 4;
 
   txs.forEach(function (x, i) {
     var sf = txSlotIdx[i + '|f'];
@@ -7095,7 +7112,8 @@ function mwDrawSvg(nodes, edges) {
       + ' text-anchor="' + (upsideDown ? 'end' : 'start') + '"'
       + ' dominant-baseline="middle"'
       + ' font-size="' + fs.toFixed(1) + '" font-weight="600"'
-      + ' fill="' + (dim ? 'var(--mw-text-dim)' : 'var(--mw-text)') + '"'
+      + ' fill="var(--mw-text)"'
+      + ' fill-opacity="' + (dim ? '0.62' : '1') + '"'
       + ' transform="rotate(' + theta.toFixed(1) + ' ' + rp[0].toFixed(1) + ' ' + rp[1].toFixed(1) + ')"'
       + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
   });
@@ -7159,24 +7177,24 @@ function mwDrawSvg(nodes, edges) {
     });
 
   html += '<div class="mw-in-title">流水 <span>' + flowRows.length + ' 笔（点一行看它的来路）</span></div>';
-  html += '<div class="mw-flow-cols">'
+  html += '<div class="mw-flow-cols mw-flow-grid">'
     + '<i class="mw-id">ID</i>'
     + '<span class="mw-flow-from">转出</span>'
     + '<span class="mw-flow-arrow">→</span>'
     + '<span class="mw-flow-to">转入</span>'
-    + '<b>金额</b></div>';
+    + '<b class="mw-amt">金额</b></div>';
 
   flowRows.forEach(function (o) {
     var on = mwChainOn(o.i);
     var isRoot = (mwChainRoot === o.i);
     var seq = o.x.seq != null ? o.x.seq : (o.x.i + 1);
-    html += '<div class="mw-list-row mw-flow-row' + (on ? ' on' : '') + (isRoot ? ' root' : '')
+    html += '<div class="mw-list-row mw-flow-row mw-flow-grid' + (on ? ' on' : '') + (isRoot ? ' root' : '')
       + '" data-tx="' + o.i + '">'
       + '<i class="mw-id">' + mwEsc(String(seq)) + '</i>'
       + '<span class="mw-flow-from">' + mwEsc(o.x.f || '—') + '</span>'
       + '<span class="mw-flow-arrow">→</span>'
       + '<span class="mw-flow-to">' + mwEsc(o.x.to || '—') + '</span>'
-      + '<b>¥' + o.x.amt.toFixed(0) + '</b></div>';
+      + '<b class="mw-amt">¥' + o.x.amt.toFixed(0) + '</b></div>';
   });
 
   if (!flowRows.length) {
