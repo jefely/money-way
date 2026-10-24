@@ -5668,7 +5668,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.72';
+const APP_VER = 'v10.73';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5997,18 +5997,28 @@ async function checkForUpdate() {
   };
   const pickBigger = (a, b) => (verNum(a) >= verNum(b) ? a : b);
 
+  /* 只拉 sw.js（2.8KB，秒回）就够了 —— 每次发版都会改 CACHE 名。
+     之前同时拉 index.html（733KB），在慢网络下要等好几秒，
+     这就是「点检查更新卡很久」的元凶。
+     只有 sw.js 拿不到版本号时，才退回拉 index.html 兜底。 */
   try {
-    const [swText, htmlText] = await Promise.all([
-      fetch('sw.js?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : '').catch(() => ''),
-      fetch('index.html?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : '').catch(() => '')
-    ]);
+    const swText = await fetch('sw.js?t=' + Date.now(), { cache: 'no-store' })
+      .then(r => r.ok ? r.text() : '').catch(() => '');
     const mSw = swText.match(/mw-personal-(v[\d.]+)/);
-    const mHtml = htmlText.match(/APP_VER\s*=\s*'([^']+)'/);
     if (mSw) remoteVer = mSw[1];
-    if (mHtml) remoteVer = remoteVer ? pickBigger(remoteVer, mHtml[1]) : mHtml[1];
-  } catch (e) {
-    toast('检查失败：网络不通（本地版本 ' + localVer + '）', { type: 'error' });
-    return { updated: false, message: 'network' };
+  } catch (e) {}
+
+  if (!remoteVer) {
+    // 兜底：sw.js 读不到版本号（很旧的部署或网络异常）时，才去读 index.html
+    try {
+      const htmlText = await fetch('index.html?t=' + Date.now(), { cache: 'no-store' })
+        .then(r => r.ok ? r.text() : '').catch(() => '');
+      const mHtml = htmlText.match(/APP_VER\s*=\s*'([^']+)'/);
+      if (mHtml) remoteVer = mHtml[1];
+    } catch (e) {
+      toast('检查失败：网络不通（本地版本 ' + localVer + '）', { type: 'error' });
+      return { updated: false, message: 'network' };
+    }
   }
 
   if (!remoteVer) {
@@ -6024,10 +6034,9 @@ async function checkForUpdate() {
   // 远端和本地版本号不同 → 直接更新（不再弹确认框，用户明确要求去掉）
   toast('正在更新到 ' + remoteVer + '…', { duration: 5000 });
 
-  // ① 清掉所有 Cache Storage（旧 HTML / 旧资源都在里面）
+  // ① 清掉所有 Cache Storage —— 不 await，让它在后台跑，避免多等几百毫秒
   try {
-    const names = await caches.keys();
-    await Promise.all(names.map(n => caches.delete(n)));
+    caches.keys().then(names => Promise.all(names.map(n => caches.delete(n)))).catch(() => {});
   } catch (e) {}
 
   // ② 顺手让 Service Worker 也更新一次
@@ -6044,8 +6053,10 @@ async function checkForUpdate() {
   // ③ 记下这次更新，刷新后由 boot 弹提示
   try { sessionStorage.setItem('nt_updated', remoteVer); } catch (e) {}
 
-  // ④ 强制从网络重载
-  try { location.reload(true); } catch (e) { location.reload(); }
+  // ④ 重载（reload(true) 早已废弃，某些内核上会卡住不返回，改用无参形式）
+  try {
+    setTimeout(function () { location.reload(); }, 60);
+  } catch (e) { location.reload(); }
   return { updated: true, remote: remoteVer };
 }
 
@@ -14929,7 +14940,10 @@ async function requestPersistentStorage() {
     return ok;
   } catch (e) { return null; }
 }
-requestPersistentStorage();
+try {
+  if ('requestIdleCallback' in window) requestIdleCallback(requestPersistentStorage, { timeout: 6000 });
+  else setTimeout(requestPersistentStorage, 4000);
+} catch (e) { setTimeout(requestPersistentStorage, 4000); }
 
 // 「检查更新」刷新后弹出新版本号
 try {
