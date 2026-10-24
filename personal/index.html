@@ -5421,7 +5421,7 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-in-row { font-size: 12px; }
 
 /* ---- 手机：左栏改为覆盖式抽屉，图区占满 ---- */
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .mw-split {
     flex-direction: row !important;
     height: calc(100vh - 96px) !important;
@@ -5483,8 +5483,9 @@ table#summary-table tbody td.col-name { z-index: 6; }
 }
 .mw-col-h { position: relative; }
 .mw-col-h::after {
-  content: ''; position: absolute; right: 0; top: 0; bottom: 0;
-  width: 7px; cursor: col-resize; z-index: 5;
+  content: ''; position: absolute; right: -8px; top: 0; bottom: 0;
+  width: 16px; cursor: col-resize; z-index: 5;
+  touch-action: none;
 }
 .mw-col-h.resizing { color: var(--primary); }
 .mw-flow-grid .mw-id { flex: none; text-align: right; padding-right: 4px; font-size: 10px; letter-spacing: -.2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -5499,12 +5500,17 @@ table#summary-table tbody td.col-name { z-index: 6; }
 
 /* 侧边栏右边缘：宽度拖动手柄 */
 .mw-side-grip {
-  position: absolute; top: 0; bottom: 0; width: 8px;
-  left: calc(var(--mw-side-w, 330px) - 4px);   /* 骑在侧栏右边界上 */
+  position: absolute; top: 0; bottom: 0; width: 22px;      /* 手指热区 22px，视觉上仍是细线 */
+  left: calc(var(--mw-side-w, 330px) - 11px);
   cursor: col-resize; z-index: 60;
   background: transparent;
+  touch-action: none;                                       /* 关键：让浏览器把触摸交给 JS */
 }
-.mw-side-grip:hover { background: rgba(139,108,255,.25); }
+.mw-side-grip::before {
+  content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 3px;
+  margin-left: -1.5px; background: transparent;
+}
+.mw-side-grip:hover::before, .mw-side-grip.active::before { background: var(--primary); opacity: .55; }
 
 /* 侧边栏表格：显示单元格框 */
 .mw-flow-grid > * { border-right: 1px solid rgba(128,128,128,.16); }
@@ -5721,6 +5727,23 @@ th.col-range { text-align: left; }
   background: #fff; image-rendering: pixelated;
 }
 .install-qr-txt { font-size: 13px; line-height: 1.6; min-width: 0; word-break: break-all; }
+
+/* ---- 手机/窄屏：路径追踪左栏 ---- */
+@media (max-width: 900px) {
+  .mw-side-left {
+    width: 300px !important; flex: 0 0 300px !important;
+  }
+  /* 抽屉内部的表格允许横向滚动，5 列不至于被压成竖线 */
+  .mw-side-left .mw-flow-grid {
+    min-width: 320px;
+  }
+  /* 手机上日期列窄一点，把空间让给转出/转入 */
+  .mw-side-left { --mw-col-date: 62px; --mw-col-amt: 48px; }
+  /* 统计行小一号 */
+  .mw-side-stat { font-size: 10.5px !important; line-height: 1.4; }
+  /* 清空按钮大一点，方便点 */
+  .mw-clear-btn { padding: 5px 12px !important; font-size: 13px !important; }
+}
 </style>
 </head>
 <body>
@@ -5932,7 +5955,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.13';
+const APP_VER = 'v11.14';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7660,8 +7683,9 @@ function mwDrawSvg(nodes, edges) {
         var w = Math.round(sideBox.getBoundingClientRect().width);
         try { localStorage.setItem('mw_side_w', String(w)); } catch (e) {}
       };
-      document.addEventListener('pointermove', move);
+      document.addEventListener('pointermove', move, { passive: false });
       document.addEventListener('pointerup', up);
+      document.addEventListener('pointercancel', up);
     });
   })();
   // 恢复上一次的滚动位置（点条目时不要跳回顶部）
@@ -7794,8 +7818,9 @@ function mwDrawSvg(nodes, edges) {
           document.removeEventListener('pointerup', up);
           try { localStorage.setItem('mw_flow_colw', JSON.stringify(widths)); } catch (e) {}
         };
-        document.addEventListener('pointermove', move);
+        document.addEventListener('pointermove', move, { passive: false });
         document.addEventListener('pointerup', up);
+        document.addEventListener('pointercancel', up);
       });
     });
   })();
