@@ -5283,7 +5283,6 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-legend-empty { font-size: 12px; color: var(--text-muted); }
 
 /* 左图右表 + 滚轮缩放 */
-.mw-split { display: flex; align-items: flex-start; gap: 12px; padding: 10px; flex: 1 1 auto; min-height: 0; }
 .mw-chart { flex: 0 0 auto; width: min(56vw, 560px); aspect-ratio: 1 / 1; overflow: hidden; display: flex; align-items: center; justify-content: center; }
 .mw-chart svg { display: block; width: 100%; height: auto; transition: transform .12s ease-out; transform-origin: center; }
 .mw-list { flex: 1 1 auto; min-width: 0; max-height: calc(100vh - 220px); overflow: auto; padding-right: 4px; }
@@ -5298,8 +5297,7 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-pct { font-style: normal; color: var(--text-muted); width: 36px; text-align: right; }
 .mw-list-empty { font-size: 12px; color: var(--text-muted); }
 @media (max-width: 760px) {
-  .mw-split { flex-direction: column; }
-  .mw-chart { width: 100%; }
+    .mw-chart { width: 100%; }
   .mw-list { max-height: 32vh; }
 }
 
@@ -5402,6 +5400,28 @@ table#summary-table tbody td.col-name { z-index: 6; }
   display: flex; align-items: center; gap: 8px; margin: 8px 0 6px; }
 .mw-acc-title button { height: 22px; font-size: 11px; padding: 0 8px; }
 .mw-in-row { font-size: 12px; }
+
+/* ---- 手机：左栏改为覆盖式抽屉，图区占满 ---- */
+@media (max-width: 760px) {
+  .mw-split {
+    flex-direction: row !important;
+    height: calc(100vh - 96px) !important;
+    max-height: calc(100vh - 96px) !important;
+    position: relative;
+  }
+  .mw-side-left {
+    position: absolute !important;
+    left: 0; top: 0; bottom: 0;
+    width: 240px !important; flex: 0 0 240px !important;
+    height: 100% !important;
+    z-index: 30;
+    box-shadow: 2px 0 14px rgba(0,0,0,.12);
+    background: var(--bg-main);
+  }
+  .mw-chart { position: relative; }
+  .mw-toggle-left { left: 246px !important; top: 6px !important; z-index: 40; }
+  .mw-toggle-left.shifted { left: 6px !important; }
+}
 </style>
 </head>
 <body>
@@ -5613,7 +5633,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.64';
+const APP_VER = 'v10.65';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6925,8 +6945,8 @@ function mwDrawSvg(nodes, edges) {
   var txSlotIdx = {};
   slots.forEach(function (sl, i) { txSlotIdx[sl.txIdx + '|' + sl.side] = sl; });
 
-  var BASE_W = 3;      // 未选中也够粗（旧版 1.4~1.5，这里加倍）
-  var HOT_W = 6;
+  var BASE_W = 1.5;    // 基础线粗（再细就看不清，1.5 刚好）
+  var HOT_W = 3;
 
   txs.forEach(function (x, i) {
     var sf = txSlotIdx[i + '|f'];
@@ -6995,8 +7015,9 @@ function mwDrawSvg(nodes, edges) {
     var rStart = R_OUT + 8;
 
     parts.push('<text x="' + (flip ? (cx - rStart) : (cx + rStart)).toFixed(1) + '"'
-      + ' y="' + (cy + fs * 0.34).toFixed(1) + '"'
+      + ' y="' + cy + '"'
       + ' text-anchor="' + (flip ? 'end' : 'start') + '"'
+      + ' dominant-baseline="middle"'
       + ' font-size="' + fs.toFixed(1) + '" font-weight="600"'
       + ' fill="' + (dim ? 'var(--mw-text-dim)' : 'var(--mw-text)') + '"'
       + ' transform="rotate(' + (flip ? deg + 180 : deg).toFixed(1) + ' ' + cx + ' ' + cy + ')"'
@@ -7011,6 +7032,9 @@ function mwDrawSvg(nodes, edges) {
 
   var sideBox = document.createElement('div');
   sideBox.className = 'mw-side mw-side-left';
+  // 手机上左栏默认收起，避免挡住图；桌面常驻
+  var isNarrow = (window.innerWidth || 1200) < 760;
+  if (isNarrow) sideBox.classList.add('collapsed');
   wrap.appendChild(sideBox);
 
   var chartBox = document.createElement('div');
@@ -7087,9 +7111,11 @@ function mwDrawSvg(nodes, edges) {
   tg.className = 'mw-toggle mw-toggle-left';
   tg.title = '收起 / 展开左侧信息栏';
   tg.textContent = '◀';
+  if (isNarrow) { tg.classList.add('shifted'); tg.textContent = '▶'; }
   tg.onclick = function () {
     var hidden = sideBox.classList.toggle('collapsed');
     tg.textContent = hidden ? '▶' : '◀';
+    tg.classList.toggle('shifted', hidden);
   };
   wrap.appendChild(tg);
 
