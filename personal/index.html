@@ -5683,7 +5683,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.76';
+const APP_VER = 'v10.77';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7096,7 +7096,7 @@ function mwDrawSvg(nodes, edges) {
     var arcLen = span * R_OUT;
     var byArc = arcLen / Math.max(1, lb.length) * 1.05;
     var byThick = THICK * 0.58;
-    var fs = Math.max(6, Math.min(24, byArc, byThick));
+    var fs = Math.max(9, Math.min(24, byArc, byThick));   // 最小 9：低于 9 在手机上就看不清了
     var rStart = R_OUT + 8;
 
     // 锚点必须落在「弧块中点所在的那条半径」上：
