@@ -5627,13 +5627,25 @@ th.col-range { text-align: left; }
 [data-theme="dark"] .mw-flow-filter.mw-flow-grid .mw-qf { background-color: #1a1626; border-color: #2a2a2a; }
 
 /* 路径左栏滚动条：细、无边框，去掉左侧那条黑线 */
-.mw-side-left::-webkit-scrollbar { width: 8px; height: 8px; }
+/* 滚动条：滑块和轨道都用背景色融合，杜绝旁边那条深色竖线 */
+.mw-side-left {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128,128,128,.42) transparent;
+}
+.mw-side-left::-webkit-scrollbar { width: 10px; height: 10px; background: transparent; }
 .mw-side-left::-webkit-scrollbar-track { background: transparent; border: 0; box-shadow: none; }
 .mw-side-left::-webkit-scrollbar-thumb {
-  background: rgba(128,128,128,.35); border-radius: 4px; border: 0;
+  background: rgba(128,128,128,.42);
+  border-radius: 5px;
+  border: 2px solid transparent;      /* 用透明边框让滑块视觉变窄 */
+  background-clip: padding-box;
 }
-.mw-side-left::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,.55); }
-.mw-side-left::-webkit-scrollbar-button { display: none; height: 0; }
+.mw-side-left::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,.65); background-clip: padding-box; }
+.mw-side-left::-webkit-scrollbar-corner { background: transparent; }
+.mw-side-left::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
+
+/* 左栏右边界不要任何线条/阴影 */
+.mw-side-left { border-right: 0 !important; outline: 0 !important; box-shadow: none !important; }
 
 /* 路径追踪：用 grid 的 justify-self 做列内对齐（text-align 对收缩宽度的 span 不生效） */
 #mw-flow-head > .mw-date,
@@ -5867,7 +5879,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.99';
+const APP_VER = 'v11.00';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
