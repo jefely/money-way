@@ -608,8 +608,9 @@ table.query-table .q-title-row th { background: #fff; color: var(--text-main); p
 .q-title-inner { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 0; }
 .q-title { font-size: 14px; font-weight: 700; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .q-total { font-size: 14px; font-weight: 700; color: var(--primary); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.q-clear { padding: 2px 8px; background: var(--bg-gray); border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; color: var(--text-muted); cursor: pointer; white-space: nowrap; justify-self: start; }
-.q-clear:active { background: #fee2e2; color: var(--danger); }
+.q-clear { padding: 3px 10px; background: var(--primary); border: 1px solid var(--primary); border-radius: var(--radius); font-size: 12px; font-weight: 600; color: #fff; cursor: pointer; white-space: nowrap; justify-self: start; box-shadow: 0 1px 3px rgba(76,61,128,.25); }
+.q-clear:hover { background: var(--primary-dark, #4c3d80); border-color: var(--primary-dark, #4c3d80); }
+.q-clear:active { transform: translateY(1px); }
 .q-title .q-title-txt { margin-right: 4px; }
 
 /* 查询区筛选行 */
@@ -4977,7 +4978,7 @@ table.install-table thead th.col-month {
 .chk-head { font-size: 15px; font-weight: 700; text-align: center; padding: 10px 0 12px; }
 .chk-head.ok { color: #16a34a; }
 .chk-head.bad { color: #dc2626; }
-.chk-list { display: flex; flex-direction: column; gap: 6px; }
+.chk-list { display: flex; flex-direction: column; gap: 6px; max-width: 500px; width: 100%; }
 .chk-row { display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 7px 10px; border-radius: 8px; background: rgba(139,108,255,.06); font-size: 13px; }
 .chk-name { color: var(--text-main); font-weight: 600; }
@@ -5535,10 +5536,14 @@ th.col-range { text-align: left; }
 }
 .mw-flow-title-txt { font-size: 14px; font-weight: 700; color: var(--primary); }
 .mw-clear-btn {
-  padding: 2px 8px; border: 1px solid var(--border); border-radius: 6px;
-  background: var(--bg-gray); color: var(--text-muted); font-size: 12px; cursor: pointer;
+  padding: 3px 10px; border-radius: 6px;
+  border: 1px solid var(--primary);
+  background: var(--primary); color: #fff;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  box-shadow: 0 1px 3px rgba(76,61,128,.25);
 }
-.mw-clear-btn:hover { color: var(--primary); border-color: var(--primary); }
+.mw-clear-btn:hover { background: var(--primary-dark, #4c3d80); border-color: var(--primary-dark, #4c3d80); }
+.mw-clear-btn:active { transform: translateY(1px); }
 .mw-flow-grid .mw-dto, .mw-flow-grid .mw-note {
   font-weight: 400; text-align: right; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap; padding-right: 3px;
@@ -5707,6 +5712,15 @@ th.col-range { text-align: left; }
 .mw-flow-filter.mw-flow-grid { padding: 2px 0 !important; margin-top: 0 !important; }
 .mw-flow-cols.mw-flow-grid { padding: 3px 0 !important; }
 .mw-flow-row.mw-flow-grid { padding: 2px 0 !important; }
+
+/* 手机安装二维码卡片（校验页 / 账本配置页共用） */
+.install-qr-row { display: flex; align-items: center; gap: 14px; max-width: 500px; }
+.install-qr-img {
+  width: 116px; height: 116px; flex: 0 0 116px;
+  border-radius: 8px; border: 1px solid var(--border-light);
+  background: #fff; image-rendering: pixelated;
+}
+.install-qr-txt { font-size: 13px; line-height: 1.6; min-width: 0; word-break: break-all; }
 </style>
 </head>
 <body>
@@ -5918,7 +5932,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.11';
+const APP_VER = 'v11.13';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -8110,6 +8124,23 @@ function renderAudit(main, footer) {
     tip.textContent = '注意：有 ' + fmt2(orphanBal) + ' 的余额来自「类型」不是五大类的账户，未计入恒等式。';
     wrap.appendChild(tip);
   }
+  // 校验页顶部：手机安装二维码（和「账本配置」页保持一致）
+  {
+    const qrCard = document.createElement('div');
+    qrCard.className = 'audit-card';
+    qrCard.innerHTML = `
+      <div class="audit-title">手机安装</div>
+      <div class="install-qr-row">
+        <img class="install-qr-img" src="${siteQrDataUrl()}" alt="安装二维码">
+        <div class="install-qr-txt">
+          <div>手机扫码打开本账本</div>
+          <div class="sync-hint small" style="margin-top:6px">${SITE_URL}</div>
+          <div class="sync-hint small" style="margin-top:6px">安卓 Chrome / iPhone Safari 打开后，用「添加到主屏幕」装成 App，离线可用。</div>
+        </div>
+      </div>`;
+    wrap.insertBefore(qrCard, wrap.firstChild);
+  }
+
   main.appendChild(wrap);
 
   // —— 简介（精简版）——
@@ -8210,6 +8241,17 @@ function renderAudit(main, footer) {
   vpane.className = 'audit-pane audit-cards';
   vpane.dataset.pane = 'version';
   vpane.innerHTML = `
+    <div class="audit-card">
+      <div class="audit-title">手机安装</div>
+      <div class="install-qr-row">
+        <img class="install-qr-img" src="${siteQrDataUrl()}" alt="安装二维码">
+        <div class="install-qr-txt">
+          <div>手机扫码打开本账本</div>
+          <div class="sync-hint small" style="margin-top:6px">${SITE_URL}</div>
+          <div class="sync-hint small" style="margin-top:6px">安卓 Chrome / iPhone Safari 打开后，用「添加到主屏幕」装成 App，离线可用。</div>
+        </div>
+      </div>
+    </div>
     <div class="audit-card">
       <div class="audit-title">版本</div>
       <div class="chk-list">
