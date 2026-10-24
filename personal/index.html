@@ -5916,7 +5916,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.06';
+const APP_VER = 'v11.07';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6797,6 +6797,21 @@ var mwChainRoot = null;   // 点选链路的起点那笔（用于区分「根」
 var mwView = { zoom: null, rot: 0, tx: 0, ty: 0, scroll: 0 };
 // 路径页自己的查询条件（照搬查询页的三联表：筛选行 + 结果行）
 var mwFilter = { date: null, from: '', to: '', amount: '', note: '' };   // date 为 null 时表示「还没初始化」，首次渲染填成本月
+/* 把输入解析成账户全名：先按简码（大小写不敏感），再按全名精确，都不中就原样返回。 */
+function mwResolveAccount(raw) {
+  var v = String(raw || '').trim();
+  if (!v) return '';
+  var up = v.toUpperCase();
+  var i;
+  for (i = 0; i < state.accounts.length; i++) {
+    if (String(state.accounts[i].code || '').toUpperCase() === up) return String(state.accounts[i].name || '').trim();
+  }
+  for (i = 0; i < state.accounts.length; i++) {
+    if (String(state.accounts[i].name || '').trim() === v) return v;
+  }
+  return v;
+}
+
 function mwDefaultDateRange() {
   var now = new Date();
   var yy = String(now.getFullYear()).slice(2);
@@ -7142,9 +7157,15 @@ function mwDrawSvg(nodes, edges) {
         if (qd && dd8.indexOf(qd) < 0 && dd8.slice(2).indexOf(qd) < 0) continue;
       }
     }
-    if (mwFilter.from && String(f).indexOf(mwFilter.from) < 0) continue;
-    if (mwFilter.to && String(to).indexOf(mwFilter.to) < 0) continue;
-    if (mwFilter.amount && String(amt).indexOf(mwFilter.amount) < 0) continue;
+    // 转出 / 转入：精确匹配账户全名（简码已在确认时解析成全名）
+    if (mwFilter.from && String(f).trim() !== String(mwFilter.from).trim()) continue;
+    if (mwFilter.to && String(to).trim() !== String(mwFilter.to).trim()) continue;
+    // 金额：精确数值匹配
+    if (mwFilter.amount) {
+      var qa = parseFloat(String(mwFilter.amount).replace(/[¥,\s]/g, ''));
+      if (!isNaN(qa)) { if (Math.abs(amt - qa) > 0.005) continue; }
+      else if (String(amt) !== String(mwFilter.amount)) continue;
+    }
     if (mwFilter.note) {
       var noteT = String(t.note || '');
       if (noteT.toLowerCase().indexOf(String(mwFilter.note).toLowerCase()) < 0) continue;
@@ -7345,6 +7366,7 @@ function mwDrawSvg(nodes, edges) {
   /* 线宽规则：
        默认      → 按「转入账户的链路层级」：6 / 4.8 / 3.6 / 2.4 / 1.2
        选中某一条 → 那一条 ×1.35（最粗），其余 ×0.45（瘦下来但不消失） */
+  var W_MID = 2.4;
   var PICK_BOOST = 1.35;
   var PICK_SHRINK = 0.45;
 
@@ -7386,13 +7408,15 @@ function mwDrawSvg(nodes, edges) {
       + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1) + '"'
       + ' fill="none" stroke="' + col + '"'
       + ' stroke-width="' + (function () {
+          // 默认：所有线统一 2.4（原有配置）
+          if (!hotTxs) return W_MID.toFixed(2);
+          // 激活线路追踪后，才临时按「离费用端的层级」调整
           var base = widthByDepth(x.to);
-          if (!hotTxs) return base.toFixed(2);
           if (layer === 2) return (base * PICK_BOOST).toFixed(2);
-          if (layer === 1) return base.toFixed(2);
+          if (layer === 1) return (base * 0.8).toFixed(2);
           return (base * PICK_SHRINK).toFixed(2);
         })() + '"'
-      + ' stroke-opacity="' + (!hotTxs ? '0.52' : layer === 2 ? '0.95' : layer === 1 ? '0.62' : '0.28') + '"'
+      + ' stroke-opacity="' + (!hotTxs ? '0.52' : layer === 2 ? '0.95' : layer === 1 ? '0.55' : '0.25') + '"'
       + ' stroke-linecap="round"'
       + ' data-tx="' + i + '" class="mw-edge" style="cursor:pointer">'
       + '<title>' + mwEsc(x.f || '（空）') + ' → ' + mwEsc(x.to || '（空）')
@@ -7662,20 +7686,28 @@ function mwDrawSvg(nodes, edges) {
     Object.keys(map).forEach(function (id) {
       var el = sideBox.querySelector('#' + id);
       if (!el) return;
-      // 文字随内容长度自动缩放（长内容缩小字号，短内容恢复）
+      // 文字随内容长度自动缩放
       var fit = function () {
         var n = el.value.length;
         el.style.fontSize = n <= 7 ? '11px' : Math.max(8, 11 - (n - 7) * 0.35).toFixed(1) + 'px';
       };
       fit();
-      el.addEventListener('input', function () {
-        fit();
-        mwFilter[map[id]] = el.value;
-        clearTimeout(t);
-        t = setTimeout(function () {
-          mwSelected = null; mwChain = []; mwChainRoot = null;
-          renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
-        }, 260);
+      el.addEventListener('input', function () { fit(); });   // 打字时只调字号，不筛选
+
+      var apply = function () {
+        var raw = el.value.trim();
+        // 转出 / 转入：支持简码（大小写不敏感），匹配到就填成全名
+        if (map[id] === 'from' || map[id] === 'to') raw = mwResolveAccount(raw);
+        mwFilter[map[id]] = raw;
+        if (raw !== el.value.trim()) { el.value = raw; fit(); }
+        mwSelected = null; mwChain = []; mwChainRoot = null;
+        renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
+      };
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); apply(); el.blur(); }
+      });
+      el.addEventListener('blur', function () {
+        if (mwFilter[map[id]] !== el.value.trim()) apply();
       });
     });
   })();
