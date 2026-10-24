@@ -5379,16 +5379,16 @@ table#summary-table tbody td.col-name { z-index: 6; }
 
 /* 左侧信息栏 + 右侧开放图区 */
 .mw-split { display: flex; align-items: stretch; gap: 0; padding: 0; flex: 1 1 auto;
-  min-height: 0; overflow: hidden; position: relative; }
+  height: calc(100vh - 96px); min-height: 0; overflow: hidden; position: relative; }
 .mw-side-left {
   flex: 0 0 250px; width: 250px; box-sizing: border-box;
   overflow: auto; padding: 8px 10px 14px;
   background: var(--bg-main); border-right: 1px solid var(--border-light);
-  max-height: calc(100vh - 170px);
+  height: 100%;
 }
 .mw-side-left.collapsed { display: none; }
 .mw-chart {
-  flex: 1 1 auto; min-width: 0; overflow: hidden;
+  flex: 1 1 auto; min-width: 0; height: 100%; overflow: hidden;
   position: relative;
   cursor: grab; touch-action: none; background: var(--bg-main);
 }
@@ -5613,7 +5613,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.63';
+const APP_VER = 'v10.64';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
