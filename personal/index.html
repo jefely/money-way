@@ -5436,6 +5436,15 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-in-row:hover { background: var(--bg-gray); }
 .mw-in-row.on { background: rgba(139,108,255,.2); font-weight: 700; }
 .mw-list-empty { font-size: 12px; color: var(--text-muted); padding: 10px 0; }
+
+.mw-id { flex: 0 0 34px; text-align: right; font-style: normal;
+  font-size: 10.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.mw-in-to { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mw-in-cols { display: flex; align-items: center; gap: 6px; padding: 0 5px 3px;
+  font-size: 10.5px; color: var(--text-muted); border-bottom: 1px dashed var(--border-light); margin-bottom: 3px; }
+.mw-in-cols b { font-weight: 400; }
+.mw-in-row.root { background: rgba(139,108,255,.28); font-weight: 700;
+  box-shadow: inset 2px 0 0 var(--primary); }
 </style>
 </head>
 <body>
@@ -5647,7 +5656,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.66';
+const APP_VER = 'v10.68';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6500,6 +6509,7 @@ var MW_COLOR = {
 var mwRange = null;
 var mwSelected = null;
 var mwChain = [];
+var mwChainRoot = null;   // 点选链路的起点那笔（用于区分「根」和「上游」）
 var mwShowInternal = true;
 var mwTopN = 12;
 
@@ -6823,7 +6833,8 @@ function mwDrawSvg(nodes, edges) {
     // 单边流水：只填了一侧，另一侧留空接口
     var cf = f ? mwCatOf(f) : '';
     var ct = to ? mwCatOf(to) : '';
-    txs.push({ f: f, to: to, amt: amt, cf: cf, ct: ct, d: d, i: ti });
+    txs.push({ f: f, to: to, amt: amt, cf: cf, ct: ct, d: d, i: ti,
+               seq: (t.seq != null ? t.seq : (ti + 1)) });
   }
 
   var accOf = function (name) {
@@ -6961,6 +6972,7 @@ function mwDrawSvg(nodes, edges) {
 
   var BASE_W = 1.5;    // 基础线粗（再细就看不清，1.5 刚好）
   var HOT_W = 3;
+  var ROOT_W = 5;
 
   txs.forEach(function (x, i) {
     var sf = txSlotIdx[i + '|f'];
@@ -6975,17 +6987,22 @@ function mwDrawSvg(nodes, edges) {
     var c2 = [cx + (p2[0] - cx) * k, cy + (p2[1] - cy) * k];
 
     var col = colorOfAcc(x.to);       // ← 颜色由转入端决定
-    // 没有选中任何东西时，所有线都是基础粗细（统一）；
-    // 选中之后，链路内的线加粗、链路外的线压暗 —— 这样「高亮」才有对比。
-    var on = hotTxs ? !!hotTxs[i] : null;
+    // 三层视觉：
+    //   根（用户点的那一笔）  最粗最亮
+    //   链路内的上游          中等
+    //   链路外                细而淡
+    // 没选中任何东西时，所有线统一基础粗细。
+    var layer = 0;                       // 0 = 未选中 / 链路外
+    if (hotTxs) layer = hotTxs[i] ? (mwChainRoot === i ? 2 : 1) : 0;
 
     parts.push('<path d="M ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1)
       + ' C ' + c1[0].toFixed(1) + ' ' + c1[1].toFixed(1) + ', '
       + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1) + ', '
       + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1) + '"'
       + ' fill="none" stroke="' + col + '"'
-      + ' stroke-width="' + (on === true ? HOT_W : BASE_W) + '"'
-      + ' stroke-opacity="' + (on === true ? '0.72' : on === false ? '0.10' : '0.42') + '" stroke-linecap="round"'
+      + ' stroke-width="' + (layer === 2 ? ROOT_W : layer === 1 ? HOT_W : BASE_W) + '"'
+      + ' stroke-opacity="' + (layer === 2 ? '0.95' : layer === 1 ? '0.62' : hotTxs ? '0.08' : '0.42') + '"'
+      + ' stroke-linecap="round"'
       + ' data-tx="' + i + '" class="mw-edge" style="cursor:pointer">'
       + '<title>' + mwEsc(x.f || '（空）') + ' → ' + mwEsc(x.to || '（空）')
       + '　¥' + x.amt.toFixed(2) + '　' + x.d + '</title></path>');
@@ -7111,6 +7128,7 @@ function mwDrawSvg(nodes, edges) {
   var totalIn = 0;
   toAccNames.forEach(function (n) { totalIn += byToAcc[n].length; });
   html += '<div class="mw-in-title">转入列表 <span>' + totalIn + ' 笔</span></div>';
+  html += '<div class="mw-in-cols"><i class="mw-id">ID</i><span class="mw-in-to">转入账户</span><b>金额</b></div>';
 
   toAccNames.forEach(function (accName) {
     var list = byToAcc[accName].slice().sort(function (A, B) { return A.x.d < B.x.d ? 1 : -1; });
@@ -7122,10 +7140,14 @@ function mwDrawSvg(nodes, edges) {
       + mwEsc(accName) + ' <span class="mw-head-meta">' + mwEsc(sub || cat) + ' · ' + list.length + ' 笔</span></div>';
     list.forEach(function (o) {
       var on = mwChainOn(o.i);
-      html += '<div class="mw-list-row mw-in-row' + (on ? ' on' : '') + '" data-tx="' + o.i + '">'
-        + '<span class="mw-in-from">' + mwEsc(o.x.f || '（空）') + '</span>'
-        + '<b>¥' + o.x.amt.toFixed(0) + '</b>'
-        + '<i class="mw-pct">' + o.x.d.slice(5) + '</i></div>';
+      var isRoot = (mwChainRoot === o.i);
+      // 显示：ID（流水序号，后台主键）+ 转入账户 + 转入金额
+      var seq = o.x.seq != null ? o.x.seq : (o.x.i + 1);
+      html += '<div class="mw-list-row mw-in-row' + (on ? ' on' : '') + (isRoot ? ' root' : '') + '"'
+        + ' data-tx="' + o.i + '">'
+        + '<i class="mw-id">' + mwEsc(String(seq)) + '</i>'
+        + '<span class="mw-in-to">' + mwEsc(o.x.to || '（空）') + '</span>'
+        + '<b>¥' + o.x.amt.toFixed(0) + '</b></div>';
     });
     html += '</div>';
   });
@@ -7161,7 +7183,7 @@ function mwDrawSvg(nodes, edges) {
     var sv = startI.value || '', ev2 = endI.value || '';
     if (sv && ev2 && sv > ev2) { toast('起始日期不能晚于结束日期', { type: 'error' }); return; }
     mwRange = { start: sv, end: ev2 };
-    mwSelected = null; mwChain = [];
+    mwSelected = null; mwChain = []; mwChainRoot = null;
     renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
   };
   if (allB) allB.onclick = function () {
@@ -7173,11 +7195,11 @@ function mwDrawSvg(nodes, edges) {
     if (!ds.length) { toast('还没有流水', { type: 'error' }); return; }
     ds.sort();
     mwRange = { start: ds[0], end: ds[ds.length - 1] };
-    mwSelected = null; mwChain = [];
+    mwSelected = null; mwChain = []; mwChainRoot = null;
     renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
   };
   if (clearB) clearB.onclick = function () {
-    mwSelected = null; mwChain = [];
+    mwSelected = null; mwChain = []; mwChainRoot = null;
     renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
   };
 
@@ -7185,14 +7207,16 @@ function mwDrawSvg(nodes, edges) {
     row.onclick = function () {
       var nm = row.getAttribute('data-acc');
       mwSelected = (mwSelected === nm) ? null : nm;
-      mwChain = [];
+      mwChain = []; mwChainRoot = null;
       renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
     };
   });
   sideBox.querySelectorAll('.mw-in-row').forEach(function (row) {
     row.onclick = function () {
       var idx = Number(row.getAttribute('data-tx'));
-      mwChain = mwTraceChain(txs, idx);
+      // 左栏点一条 = 只看这条 + 它的上游（支出倒推）
+      mwChain = mwTraceUpstream(txs, idx);
+      mwChainRoot = idx;
       renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
     };
   });
@@ -7259,19 +7283,49 @@ function mwDrawSvg(nodes, edges) {
     g2.onclick = function () {
       var nm = g2.getAttribute('data-node');
       mwSelected = (mwSelected === nm) ? null : nm;
-      mwChain = [];
+      mwChain = []; mwChainRoot = null;
       renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
     };
   });
   chartBox.querySelectorAll('.mw-edge').forEach(function (g2) {
     g2.onclick = function () {
       var idx = Number(g2.getAttribute('data-tx'));
+      // 图上点线 = 上下游都看（这条钱从哪来、又去了哪）
       mwChain = mwTraceChain(txs, idx);
+      mwChainRoot = idx;
       renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
     };
   });
 
   return wrap;
+}
+
+/* 只往上追：从某笔流水出发，找「谁给它的转出账户转过钱」，
+   一路倒推到没有上游为止。这是「支出倒推」的核心。
+   返回的数组第 0 个是起点本身。 */
+function mwTraceUpstream(txs, startIdx) {
+  var byTo = {};
+  txs.forEach(function (x, i) {
+    if (x.to) (byTo[x.to] = byTo[x.to] || []).push(i);
+  });
+
+  var out = {};
+  var order = [];
+  var queue = [startIdx];
+  var guard = 0;
+  while (queue.length && guard++ < 4000) {
+    var i = queue.shift();
+    if (out[i]) continue;
+    out[i] = 1;
+    order.push(i);
+    var x = txs[i];
+    if (x.f && byTo[x.f]) {
+      byTo[x.f].forEach(function (j) {
+        if (j !== i && !out[j] && String(txs[j].d) <= String(x.d)) queue.push(j);
+      });
+    }
+  }
+  return order;
 }
 
 /* 由上/下游串成一条链路：从某笔流水出发，
