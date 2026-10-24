@@ -5389,11 +5389,12 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-side-left.collapsed { display: none; }
 .mw-chart {
   flex: 1 1 auto; min-width: 0; overflow: hidden;
-  display: flex; align-items: center; justify-content: center;
+  position: relative;
   cursor: grab; touch-action: none; background: var(--bg-main);
 }
 .mw-chart:active { cursor: grabbing; }
-.mw-chart svg { display: block; flex: 0 0 auto; width: 1400px; height: 1400px;
+.mw-chart svg { display: block; position: absolute; left: 50%; top: 50%;
+  width: 1400px; height: 1400px; margin-left: -700px; margin-top: -700px;
   transform-origin: center center; transition: transform .06s ease-out; }
 .mw-toggle-left { position: absolute; left: 250px; top: 4px; right: auto; }
 .mw-toggle-left.shifted { left: 4px; }
@@ -5612,7 +5613,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.61';
+const APP_VER = 'v10.62';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6940,15 +6941,17 @@ function mwDrawSvg(nodes, edges) {
     var c2 = [cx + (p2[0] - cx) * k, cy + (p2[1] - cy) * k];
 
     var col = colorOfAcc(x.to);       // ← 颜色由转入端决定
-    var on = !hotTxs || hotTxs[i];
+    // 没有选中任何东西时，所有线都是基础粗细（统一）；
+    // 选中之后，链路内的线加粗、链路外的线压暗 —— 这样「高亮」才有对比。
+    var on = hotTxs ? !!hotTxs[i] : null;
 
     parts.push('<path d="M ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1)
       + ' C ' + c1[0].toFixed(1) + ' ' + c1[1].toFixed(1) + ', '
       + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1) + ', '
       + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1) + '"'
       + ' fill="none" stroke="' + col + '"'
-      + ' stroke-width="' + (on ? HOT_W : BASE_W) + '"'
-      + ' stroke-opacity="' + (on ? '0.62' : '0.14') + '" stroke-linecap="round"'
+      + ' stroke-width="' + (on === true ? HOT_W : BASE_W) + '"'
+      + ' stroke-opacity="' + (on === true ? '0.72' : on === false ? '0.10' : '0.42') + '" stroke-linecap="round"'
       + ' data-tx="' + i + '" class="mw-edge" style="cursor:pointer">'
       + '<title>' + mwEsc(x.f || '（空）') + ' → ' + mwEsc(x.to || '（空）')
       + '　¥' + x.amt.toFixed(2) + '　' + x.d + '</title></path>');
