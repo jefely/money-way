@@ -5365,6 +5365,11 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-side-set select { height: 26px; font-size: 12px; }
 .mw-side-set button { height: 26px; font-size: 12px; }
 .mw-side-stat { font-size: 11.5px; color: var(--text-muted); padding: 6px 0 8px; border-bottom: 1px solid var(--border-light); margin-bottom: 8px; }
+
+.mw-side-row { display: flex; gap: 6px; }
+.mw-side-row button { flex: 1 1 0; }
+.mw-empty { display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; color: var(--text-muted); font-size: 14px; text-align: center; gap: 6px; }
 </style>
 </head>
 <body>
@@ -5576,7 +5581,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.59';
+const APP_VER = 'v10.60';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6533,9 +6538,22 @@ function renderMoneyWay(main, footer) {
   main.style.padding = '0';
 
   if (!mwRange) {
-    var now = new Date();
-    var mm = String(now.getMonth() + 1).padStart(2, '0');
-    mwRange = { start: now.getFullYear() + '-' + mm + '-01', end: todayISO() };
+    // 默认区间取「全部流水的最早 ~ 最晚日期」。
+    // 之前用「本月」，一旦流水不是当月（比如导入的是去年的账），
+    // 打开钱路就是一片空白，而且没地方改 —— 这次修掉。
+    var dates = [];
+    for (var qi = 0; qi < state.transactions.length; qi++) {
+      var qd = String(state.transactions[qi].date || '');
+      if (qd) dates.push(qd);
+    }
+    if (dates.length) {
+      dates.sort();
+      mwRange = { start: dates[0], end: dates[dates.length - 1] };
+    } else {
+      var now = new Date();
+      var mm = String(now.getMonth() + 1).padStart(2, '0');
+      mwRange = { start: now.getFullYear() + '-' + mm + '-01', end: todayISO() };
+    }
   }
 
   // 设置项已搬到右侧栏顶部，这里不再单独出工具条
@@ -6712,12 +6730,9 @@ function mwDrawSvg(nodes, edges) {
     if (cf === '未知' || ct === '未知') continue;
     txs.push({ f: f, to: to, amt: amt, cf: cf, ct: ct, d: d });
   }
-  if (!txs.length) {
-    var empty = document.createElement('div');
-    empty.className = 'mw-empty';
-    empty.textContent = '这个区间里没有可画的流水';
-    return empty;
-  }
+  // 注意：这里不能直接 return —— 否则右栏（日期设置）也没了，
+  // 用户看到「没有可画的流水」却没有任何地方能改区间，等于死路。
+  var mwEmpty = !txs.length;
 
   var accOf = function (name) {
     for (var i = 0; i < state.accounts.length; i++) {
@@ -6916,7 +6931,12 @@ function mwDrawSvg(nodes, edges) {
 
   var chartBox = document.createElement('div');
   chartBox.className = 'mw-chart';
-  chartBox.innerHTML = parts.join('');
+  if (mwEmpty) {
+    chartBox.innerHTML = '<div class="mw-empty">这个区间里没有可画的流水'
+      + '<br><span style="font-size:12px;color:#9ca3af">把右侧的日期范围放宽试试</span></div>';
+  } else {
+    chartBox.innerHTML = parts.join('');
+  }
   wrap.appendChild(chartBox);
 
   var listBox = document.createElement('div');
@@ -6928,7 +6948,10 @@ function mwDrawSvg(nodes, edges) {
     + '  <label>从 <input type="date" id="mw-start" value="' + mwRange.start + '"></label>'
     + '  <label>到 <input type="date" id="mw-end" value="' + mwRange.end + '"></label>'
     + '  <label>只看前 <select id="mw-topn"><option>8</option><option selected>12</option><option>20</option><option>36</option><option value="999">全部</option></select> 笔/账户</label>'
-    + '  <button type="button" class="ghost" id="mw-apply">应用</button>'
+    + '  <div class="mw-side-row">'
+    + '    <button type="button" class="ghost" id="mw-apply">应用</button>'
+    + '    <button type="button" class="ghost" id="mw-allrange">全部</button>'
+    + '  </div>'
     + '</div>'
     + '<div class="mw-side-stat">' + txs.length + ' 笔流水 · ' + subKeys.length + ' 个分类 · '
     + Object.keys(accAgg).length + ' 个账户 · ' + (txs.length * 2) + ' 段</div>';
@@ -6968,6 +6991,19 @@ function mwDrawSvg(nodes, edges) {
     var sv = startI.value || '', ev2 = endI.value || '';
     if (sv && ev2 && sv > ev2) { toast('起始日期不能晚于结束日期', { type: 'error' }); return; }
     mwRange = { start: sv, end: ev2 };
+    mwSelected = null;
+    renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
+  };
+  var allB = listBox.querySelector('#mw-allrange');
+  if (allB) allB.onclick = function () {
+    var ds = [];
+    for (var qi = 0; qi < state.transactions.length; qi++) {
+      var qd = String(state.transactions[qi].date || '');
+      if (qd) ds.push(qd);
+    }
+    if (!ds.length) { toast('还没有流水', { type: 'error' }); return; }
+    ds.sort();
+    mwRange = { start: ds[0], end: ds[ds.length - 1] };
     mwSelected = null;
     renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
   };
