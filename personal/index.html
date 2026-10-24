@@ -5445,6 +5445,18 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-in-cols b { font-weight: 400; }
 .mw-in-row.root { background: rgba(139,108,255,.28); font-weight: 700;
   box-shadow: inset 2px 0 0 var(--primary); }
+
+.mw-flow-cols { display: flex; align-items: center; gap: 4px; padding: 0 5px 3px;
+  font-size: 10.5px; color: var(--text-muted); border-bottom: 1px dashed var(--border-light); margin-bottom: 3px; }
+.mw-flow-row { display: flex; align-items: center; gap: 4px; font-size: 11.5px;
+  padding: 3px 5px; border-radius: 5px; cursor: pointer; }
+.mw-flow-row:hover { background: var(--bg-gray); }
+.mw-flow-row.on { background: rgba(139,108,255,.14); }
+.mw-flow-row.root { background: rgba(139,108,255,.3); font-weight: 700; box-shadow: inset 2px 0 0 var(--primary); }
+.mw-flow-from, .mw-flow-to { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mw-flow-from { color: var(--text-muted); text-align: right; }
+.mw-flow-arrow { flex: 0 0 auto; color: var(--text-muted); font-size: 10px; }
+.mw-flow-row b { flex: 0 0 auto; font-size: 11px; font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
@@ -5656,7 +5668,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.68';
+const APP_VER = 'v10.69';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6510,6 +6522,9 @@ var mwRange = null;
 var mwSelected = null;
 var mwChain = [];
 var mwChainRoot = null;   // 点选链路的起点那笔（用于区分「根」和「上游」）
+// 视图状态：点条目 / 点弧块都**不应该**重置缩放与滚动，
+// 只有「清空」按钮才把视图恢复到默认。
+var mwView = { zoom: null, rot: 0, tx: 0, ty: 0, scroll: 0 };
 var mwShowInternal = true;
 var mwTopN = 12;
 
@@ -7045,13 +7060,21 @@ function mwDrawSvg(nodes, edges) {
     var fs = Math.max(6, Math.min(24, byArc, byThick));
     var rStart = R_OUT + 8;
 
-    parts.push('<text x="' + (flip ? (cx - rStart) : (cx + rStart)).toFixed(1) + '"'
-      + ' y="' + cy + '"'
-      + ' text-anchor="' + (flip ? 'end' : 'start') + '"'
+    // 锚点必须落在「弧块中点所在的那条半径」上：
+    //   pt() 的角度从 12 点起算，而 SVG rotate 从 3 点起算，所以文字旋转角 = mid - 90°。
+    //   之前错写成 rotate(mid)，导致文字整体偏了 90°。
+    var rp = pt(rStart, mid);
+    var theta = mid * 180 / Math.PI - 90;
+    var upsideDown = (theta > 90 || theta < -90);
+    if (upsideDown) theta += 180;
+
+    parts.push('<text x="' + rp[0].toFixed(1) + '"'
+      + ' y="' + rp[1].toFixed(1) + '"'
+      + ' text-anchor="' + (upsideDown ? 'end' : 'start') + '"'
       + ' dominant-baseline="middle"'
       + ' font-size="' + fs.toFixed(1) + '" font-weight="600"'
       + ' fill="' + (dim ? 'var(--mw-text-dim)' : 'var(--mw-text)') + '"'
-      + ' transform="rotate(' + (flip ? deg + 180 : deg).toFixed(1) + ' ' + cx + ' ' + cy + ')"'
+      + ' transform="rotate(' + theta.toFixed(1) + ' ' + rp[0].toFixed(1) + ' ' + rp[1].toFixed(1) + ')"'
       + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
   });
 
@@ -7100,63 +7123,51 @@ function mwDrawSvg(nodes, edges) {
     + '<div class="mw-side-stat">' + txs.length + ' 笔流水 · ' + groupList.length + ' 个分类 · '
     + Object.keys(accMeta).length + ' 个账户 · ' + UNITS + ' 个细粒度单位</div>';
 
-  if (mwSelected) {
-    html += '<div class="mw-acc-title">' + mwEsc(mwSelected)
-      + ' <button type="button" class="ghost" id="mw-clear">清除</button></div>';
-  }
+  html += '<div class="mw-acc-title">'
+    + (mwSelected ? mwEsc(mwSelected) + ' ' : '')
+    + '<button type="button" class="ghost" id="mw-clear">清空</button></div>';
 
-  /* 左栏主体 = 「转入列表」：按转入账户分组，每组下列出每一笔转入。
-     点其中一条 → 该笔所在的资金链路高亮（从来源一路倒推 + 顺流到去处）。
-     选中某个账户时，只保留那个账户的转入列表。 */
-  var byToAcc = {};
-  txs.forEach(function (x, i) {
-    if (!x.to) return;                       // 没有转入端的（单边流水）不进转入列表
-    (byToAcc[x.to] = byToAcc[x.to] || []).push({ x: x, i: i });
-  });
-
-  var toAccNames = Object.keys(byToAcc);
-  if (mwSelected) toAccNames = toAccNames.filter(function (n) { return n === mwSelected; });
-
-  // 分组顺序跟环上一致：按 (类型, 分类) 排，再按笔数降序
-  toAccNames.sort(function (A, B) {
-    var aA = accMeta[A], aB = accMeta[B];
-    var ia = CAT_ORDER.indexOf(aA && aA.cat), ib = CAT_ORDER.indexOf(aB && aB.cat);
-    if (ia !== ib) return ia - ib;
-    return byToAcc[B].length - byToAcc[A].length;
-  });
-
-  var totalIn = 0;
-  toAccNames.forEach(function (n) { totalIn += byToAcc[n].length; });
-  html += '<div class="mw-in-title">转入列表 <span>' + totalIn + ' 笔</span></div>';
-  html += '<div class="mw-in-cols"><i class="mw-id">ID</i><span class="mw-in-to">转入账户</span><b>金额</b></div>';
-
-  toAccNames.forEach(function (accName) {
-    var list = byToAcc[accName].slice().sort(function (A, B) { return A.x.d < B.x.d ? 1 : -1; });
-    var cat = accMeta[accName] ? accMeta[accName].cat : '';
-    var sub = accMeta[accName] ? accMeta[accName].sub : '';
-    var color = colorOfAcc(accName);
-    html += '<div class="mw-list-sec">';
-    html += '<div class="mw-list-head"><i class="mw-dot" style="background:' + color + '"></i>'
-      + mwEsc(accName) + ' <span class="mw-head-meta">' + mwEsc(sub || cat) + ' · ' + list.length + ' 笔</span></div>';
-    list.forEach(function (o) {
-      var on = mwChainOn(o.i);
-      var isRoot = (mwChainRoot === o.i);
-      // 显示：ID（流水序号，后台主键）+ 转入账户 + 转入金额
-      var seq = o.x.seq != null ? o.x.seq : (o.x.i + 1);
-      html += '<div class="mw-list-row mw-in-row' + (on ? ' on' : '') + (isRoot ? ' root' : '') + '"'
-        + ' data-tx="' + o.i + '">'
-        + '<i class="mw-id">' + mwEsc(String(seq)) + '</i>'
-        + '<span class="mw-in-to">' + mwEsc(o.x.to || '（空）') + '</span>'
-        + '<b>¥' + o.x.amt.toFixed(0) + '</b></div>';
+  /* 左栏 = 完整流水列表（每一笔都成对显示：转出 → 转入）。
+     点任意一行 → 点亮「这一条 + 它的上游」。 */
+  var flowRows = txs.map(function (x, i) { return { x: x, i: i }; })
+    .sort(function (A, B) {
+      var da = String(A.x.d), db = String(B.x.d);
+      if (da !== db) return da < db ? 1 : -1;      // 日期倒序
+      return (B.x.seq || 0) - (A.x.seq || 0);
     });
-    html += '</div>';
+
+  html += '<div class="mw-in-title">流水 <span>' + flowRows.length + ' 笔（点一行看它的来路）</span></div>';
+  html += '<div class="mw-flow-cols">'
+    + '<i class="mw-id">ID</i>'
+    + '<span class="mw-flow-from">转出</span>'
+    + '<span class="mw-flow-arrow">→</span>'
+    + '<span class="mw-flow-to">转入</span>'
+    + '<b>金额</b></div>';
+
+  flowRows.forEach(function (o) {
+    var on = mwChainOn(o.i);
+    var isRoot = (mwChainRoot === o.i);
+    var seq = o.x.seq != null ? o.x.seq : (o.x.i + 1);
+    html += '<div class="mw-list-row mw-flow-row' + (on ? ' on' : '') + (isRoot ? ' root' : '')
+      + '" data-tx="' + o.i + '">'
+      + '<i class="mw-id">' + mwEsc(String(seq)) + '</i>'
+      + '<span class="mw-flow-from">' + mwEsc(o.x.f || '—') + '</span>'
+      + '<span class="mw-flow-arrow">→</span>'
+      + '<span class="mw-flow-to">' + mwEsc(o.x.to || '—') + '</span>'
+      + '<b>¥' + o.x.amt.toFixed(0) + '</b></div>';
   });
 
-  if (!totalIn) {
-    html += '<div class="mw-list-empty">这个区间里没有转入记录</div>';
+  if (!flowRows.length) {
+    html += '<div class="mw-list-empty">这个区间里没有流水</div>';
   }
+
 
   sideBox.innerHTML = html;
+  // 恢复上一次的滚动位置（点条目时不要跳回顶部）
+  if (mwView.scroll) {
+    requestAnimationFrame(function () { sideBox.scrollTop = mwView.scroll; });
+  }
+  sideBox.addEventListener('scroll', function () { mwView.scroll = sideBox.scrollTop; }, { passive: true });
 
   /* ---------- 图区右上角的收起 / 展开三角 ---------- */
   var tg = document.createElement('button');
@@ -7200,6 +7211,8 @@ function mwDrawSvg(nodes, edges) {
   };
   if (clearB) clearB.onclick = function () {
     mwSelected = null; mwChain = []; mwChainRoot = null;
+    // 清空 = 连视图一起复位（这是唯一会重置缩放/滚动的地方）
+    mwView = { zoom: null, rot: 0, tx: 0, ty: 0, scroll: 0 };
     renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
   };
 
@@ -7211,7 +7224,7 @@ function mwDrawSvg(nodes, edges) {
       renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
     };
   });
-  sideBox.querySelectorAll('.mw-in-row').forEach(function (row) {
+  sideBox.querySelectorAll('.mw-flow-row').forEach(function (row) {
     row.onclick = function () {
       var idx = Number(row.getAttribute('data-tx'));
       // 左栏点一条 = 只看这条 + 它的上游（支出倒推）
@@ -7222,14 +7235,19 @@ function mwDrawSvg(nodes, edges) {
   });
 
   /* ---------- 缩放 / 旋转 / 平移 ---------- */
-  var zoom = 1, rot = 0, tx0 = 0, ty0 = 0;
   var svgEl = chartBox.querySelector('svg');
+  var defZoom = 1;
   try {
     var cw = chartBox.clientWidth || 900;
     var ch = chartBox.clientHeight || 700;
-    zoom = Math.min(1, (cw * 0.96) / SIZE, (ch * 0.96) / SIZE);
+    defZoom = Math.min(1, (cw * 0.96) / SIZE, (ch * 0.96) / SIZE);
   } catch (zz) {}
+  // 首次进入用默认缩放；之后一直沿用用户调过的视图
+  if (mwView.zoom == null) mwView.zoom = defZoom;
+  var zoom = mwView.zoom, rot = mwView.rot, tx0 = mwView.tx, ty0 = mwView.ty;
+
   var applyT = function () {
+    mwView.zoom = zoom; mwView.rot = rot; mwView.tx = tx0; mwView.ty = ty0;
     if (svgEl) svgEl.style.transform =
       'translate(' + tx0.toFixed(1) + 'px,' + ty0.toFixed(1) + 'px) rotate(' + rot.toFixed(2) + 'deg) scale(' + zoom.toFixed(3) + ')';
   };
