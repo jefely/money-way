@@ -5482,12 +5482,24 @@ table#summary-table tbody td.col-name { z-index: 6; }
   align-items: center;
   column-gap: 0;
 }
-.mw-col-h { position: relative; }
+/* 列宽拖动手柄：
+   · 之前 right:-8px 让它伸出单元格，被单元格的 overflow:hidden 裁掉 → 手机完全点不到
+   · 现在改成 inside（right:0、16px 宽），并且把单元格的 overflow 放开 */
+.mw-col-h { position: relative; overflow: visible !important; }
 .mw-col-h::after {
-  content: ''; position: absolute; right: -8px; top: 0; bottom: 0;
-  width: 16px; cursor: col-resize; z-index: 5;
+  content: ''; position: absolute; right: 0; top: 0; bottom: 0;
+  width: 16px; cursor: col-resize; z-index: 8;
   touch-action: none;
+  background: transparent;
 }
+.mw-col-h::before {
+  content: ''; position: absolute; right: 7px; top: 15%; bottom: 15%;
+  width: 2px; background: transparent; z-index: 9; pointer-events: none;
+}
+.mw-col-h:hover::before, .mw-col-h.resizing::before {
+  background: var(--primary); opacity: .5;
+}
+.mw-col-h { touch-action: none; }
 .mw-col-h.resizing { color: var(--primary); }
 .mw-flow-grid .mw-id { flex: none; text-align: right; padding-right: 4px; font-size: 10px; letter-spacing: -.2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .mw-flow-grid .mw-flow-from,
@@ -5675,6 +5687,8 @@ th.col-range { text-align: left; }
   align-self: stretch;
   text-align: center !important;
   position: relative;
+  overflow: visible !important;   /* 手柄要伸出一点才抓得住 */
+  touch-action: none;             /* 触摸交给 JS 处理 */
 }
 
 /* 数据行也撑满整列：这样每个单元格的右边框能从上贯到下，
@@ -5954,7 +5968,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.15';
+const APP_VER = 'v11.16';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7818,6 +7832,7 @@ function mwDrawSvg(nodes, edges) {
           h.classList.remove('resizing');
           document.removeEventListener('pointermove', move);
           document.removeEventListener('pointerup', up);
+          document.removeEventListener('pointercancel', up);
           try { localStorage.setItem('mw_flow_colw', JSON.stringify(widths)); } catch (e) {}
         };
         document.addEventListener('pointermove', move, { passive: false });
