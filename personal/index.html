@@ -608,9 +608,10 @@ table.query-table .q-title-row th { background: #fff; color: var(--text-main); p
 .q-title-inner { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 0; }
 .q-title { font-size: 14px; font-weight: 700; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .q-total { font-size: 14px; font-weight: 700; color: var(--primary); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.q-clear { padding: 3px 10px; background: var(--primary); border: 1px solid var(--primary); border-radius: var(--radius); font-size: 12px; font-weight: 600; color: #fff; cursor: pointer; white-space: nowrap; justify-self: start; box-shadow: 0 1px 3px rgba(76,61,128,.25); }
-.q-clear:hover { background: var(--primary-dark, #4c3d80); border-color: var(--primary-dark, #4c3d80); }
-.q-clear:active { transform: translateY(1px); }
+.q-clear { height: 26px; padding: 0 12px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; white-space: nowrap; justify-self: start; }
+.q-clear:hover { color: var(--primary); border-color: var(--primary); }
+[data-theme="dark"] .q-clear { background: #241b3a !important; color: var(--text-main) !important; border-color: #3d3159 !important; }
+[data-theme="dark"] .q-clear:hover { border-color: var(--primary) !important; }
 .q-title .q-title-txt { margin-right: 4px; }
 
 /* 查询区筛选行 */
@@ -5006,7 +5007,11 @@ table.install-table thead th.col-month {
 [data-theme="dark"] .thanks-tip b { color: #c3b2ff; }
 
 /* ===== 校验页：分页标签（v17.5）===== */
-.audit-tabs { gap: 6px; }
+.audit-tabs {
+  gap: 6px;
+  position: sticky; top: 0; z-index: 20;
+  background: var(--bg-main);
+}
 /* 注意要压过 .toolbar button 的紫底，所以带上 .toolbar 前缀 */
 .toolbar .audit-tab {
   height: 26px; padding: 0 12px; border-radius: 8px; cursor: pointer;
@@ -5555,14 +5560,17 @@ th.col-range { text-align: left; }
 }
 .mw-flow-title-txt { font-size: 14px; font-weight: 700; color: var(--text-main); }
 .mw-clear-btn {
-  padding: 3px 10px; border-radius: 6px;
-  border: 1px solid var(--primary);
-  background: var(--primary); color: #fff;
-  font-size: 12px; font-weight: 600; cursor: pointer;
-  box-shadow: 0 1px 3px rgba(76,61,128,.25);
+  height: 26px; padding: 0 12px; border-radius: var(--radius);
+  background: #fff; color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-size: 14px; font-weight: 600; cursor: pointer;
 }
-.mw-clear-btn:hover { background: var(--primary-dark, #4c3d80); border-color: var(--primary-dark, #4c3d80); }
-.mw-clear-btn:active { transform: translateY(1px); }
+.mw-clear-btn:hover { color: var(--primary); border-color: var(--primary); }
+[data-theme="dark"] .mw-clear-btn {
+  background: #241b3a !important; color: var(--text-main) !important;
+  border-color: #3d3159 !important;
+}
+[data-theme="dark"] .mw-clear-btn:hover { border-color: var(--primary) !important; }
 .mw-flow-grid .mw-dto, .mw-flow-grid .mw-note {
   font-weight: 400; text-align: right; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap; padding-right: 3px;
@@ -5771,6 +5779,14 @@ th.col-range { text-align: left; }
 }
 .intro-install button:hover { background: var(--primary-dark, #4c3d80); }
 .intro-install button:disabled { opacity: .6; cursor: default; }
+
+/* 说明页里「检查更新」下面的版本号：两排小字 */
+.ver-mini {
+  margin-top: 6px;
+  font-size: 11px; line-height: 1.45;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
 </style>
 </head>
 <body>
@@ -5982,7 +5998,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.18';
+const APP_VER = 'v11.19';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6806,7 +6822,7 @@ async function openThanksDialog() {
 
 /* 校验页的分页状态（跨重渲染保留） */
 let auditTabBar = null;
-let auditCurTab = 'verify';
+let auditCurTab = 'help';
 /* 感谢墙：每次切到「赞助感谢」都重新拉一次，保证手动改的 thanks.json 立刻可见 */
 async function loadThanksWall() {
   const wall = document.querySelector('.audit-pane[data-pane="thanks"] #thanks-wall');
@@ -8204,6 +8220,10 @@ function renderAudit(main, footer) {
           <div class="sync-hint small" style="margin-top:6px">${SITE_URL}</div>
           <div class="sync-hint small" style="margin-top:6px">安卓 Chrome / iPhone Safari 打开后，用「添加到主屏幕」装成 App，离线可用。</div>
           <div style="margin-top:10px"><button type="button" id="ver-update-help">检查更新</button></div>
+          <div class="ver-mini">
+            <div>当前 ${APP_VER}</div>
+            <div id="ver-mini-remote">远端 读取中…</div>
+          </div>
         </div>
       </div>
     </div>
@@ -8294,6 +8314,17 @@ function renderAudit(main, footer) {
   `;
   main.appendChild(intro);
 
+  // 说明页两排小字里的「远端版本」：静默读一次 sw.js
+  (async function fillMiniRemote() {
+    const el = intro.querySelector('#ver-mini-remote');
+    if (!el) return;
+    try {
+      const t = await (await fetch('sw.js?probe=' + Date.now(), { cache: 'no-store' })).text();
+      const m = /const CACHE = '([^']+)'/.exec(t);
+      el.textContent = '远端 ' + (m ? m[1] : '读取失败');
+    } catch (e) { el.textContent = '远端 读取失败'; }
+  })();
+
   // 账本说明页顶部的「检查更新」按钮：复用 version 页同一套逻辑
   {
     const b = intro.querySelector('#ver-update-help');
@@ -8312,18 +8343,6 @@ function renderAudit(main, footer) {
   vpane.className = 'audit-pane audit-cards';
   vpane.dataset.pane = 'version';
   vpane.innerHTML = `
-    <div class="audit-card">
-      <div class="audit-title">版本</div>
-      <div class="chk-list">
-        <div class="chk-row"><span class="chk-name">当前版本</span><span class="chk-val">${APP_VER}</span></div>
-        <div class="chk-row"><span class="chk-name">远端版本</span><span class="chk-val" id="ver-remote">检查中…</span></div>
-        <div class="chk-row"><span class="chk-name">离线缓存</span><span class="chk-val" id="ver-cache">读取中…</span></div>
-      </div>
-      <div class="sync-hint small" id="ver-note" style="margin-top:10px">
-        启动一律用本地版本，只有点下面的按钮才会联网取新版。更新只替换程序，不碰账本数据。
-      </div>
-      <div style="margin-top:12px"><button type="button" id="ver-update">检查更新</button></div>
-    </div>
 
     <div class="audit-card">
       <div class="audit-title">账本密码</div>
@@ -8397,26 +8416,8 @@ function renderAudit(main, footer) {
     </div>`;
   main.appendChild(tpane);
 
-  // 版本 pane 的异步填充
+  // 版本相关的内容已移到「账本说明」页；这里只绑账本配置页剩下的按钮
   (async () => {
-    const $r = vpane.querySelector('#ver-remote');
-    const $c = vpane.querySelector('#ver-cache');
-    const $n = vpane.querySelector('#ver-note');
-    const $b = vpane.querySelector('#ver-update');
-    let remote = '';
-    try {
-      const res = await fetch('sw.js?probe=' + Date.now(), { cache: 'no-store' });
-      const m = (await res.text()).match(/const CACHE = '([^']+)'/);
-      remote = m ? m[1] : '';
-    } catch (e) {}
-    $r.textContent = remote || '取不到（离线？）';
-    let localHas = false;
-    try {
-      const keys = await caches.keys();
-      localHas = remote ? keys.includes(remote) : false;
-      $c.textContent = localHas ? ('已含 ' + remote) : '待更新';
-    } catch (e) { $c.textContent = '—'; }
-    if (remote && localHas) $n.textContent = '已是最新，无需更新。';
     const $rt = vpane.querySelector('#ver-reset');
     if ($rt) $rt.onclick = () => openResetDialog('wipe');
     const $rk = vpane.querySelector('#ver-reset-keep');
@@ -8429,26 +8430,12 @@ function renderAudit(main, footer) {
     if ($ae) $ae.onclick = () => openExtractAccountsDialog();
     const $pc = vpane.querySelector('#pw-change');
     if ($pc) $pc.onclick = () => openChangePasswordDialog();
-    $b.onclick = async () => {
-      if ($b.disabled) return;
-      $b.disabled = true; $b.textContent = '检查中…';
-      try {
-        const r = await checkForUpdate();
-        $b.textContent = r.updated ? '更新中…' : '已是最新';
-      } catch (e) {
-        toast('更新失败：' + (e && e.message ? e.message : e), { type: 'error' });
-        $b.textContent = '检查更新';
-      } finally {
-        $b.disabled = false;
-        setTimeout(() => { try { $b.textContent = '检查更新'; } catch (e) {} }, 2000);
-      }
-    };
   })();
 
 
 
   // 恢复上次看的分页（默认「账本校验」）
-  switchAuditTab(auditCurTab || 'verify', true);
+  switchAuditTab(auditCurTab || 'help', true);
 
   setFooterText(nTx + ' 笔流水 · ' + state.accounts.length + ' 个账户 · 校验完成');
 }
