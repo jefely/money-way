@@ -5916,7 +5916,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.03';
+const APP_VER = 'v11.04';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7508,15 +7508,15 @@ function mwDrawSvg(nodes, edges) {
     });
 
   html += '<div class="mw-flow-cols mw-flow-grid mw-flow-filter">'
-    + '<input class="mw-qf" id="mw-qf-date" placeholder="日期区间" value="' + mwEsc(mwFilter.date) + '">'
-    + '<input class="mw-qf" id="mw-qf-from" placeholder="转出" value="' + mwEsc(mwFilter.from) + '">'
-    + '<input class="mw-qf" id="mw-qf-to" placeholder="转入" value="' + mwEsc(mwFilter.to) + '">'
-    + '<input class="mw-qf" id="mw-qf-amount" placeholder="金额" value="' + mwEsc(mwFilter.amount) + '">'
-    + '<input class="mw-qf" id="mw-qf-note" placeholder="备注" value="' + mwEsc(mwFilter.note) + '">'
+    + '<input class="mw-qf" id="mw-qf-date" value="' + mwEsc(mwFilter.date) + '">'
+    + '<input class="mw-qf" id="mw-qf-from" value="' + mwEsc(mwFilter.from) + '">'
+    + '<input class="mw-qf" id="mw-qf-to" value="' + mwEsc(mwFilter.to) + '">'
+    + '<input class="mw-qf" id="mw-qf-amount" value="' + mwEsc(mwFilter.amount) + '">'
+    + '<input class="mw-qf" id="mw-qf-note" value="' + mwEsc(mwFilter.note) + '">'
     + '</div>';
 
   html += '<div class="mw-flow-cols mw-flow-grid" id="mw-flow-head">'
-    + '<span class="mw-date mw-col-h" data-col="date" style="text-align:center">日期</span>'
+    + '<span class="mw-date mw-col-h" data-col="date" style="text-align:center">\u3000\u3000\u3000日期</span>'
     + '<span class="mw-cfrom mw-col-h" data-col="from" style="text-align:center">转出</span>'
     + '<span class="mw-cto mw-col-h" data-col="to" style="text-align:center">转入</span>'
     + '<b class="mw-amt mw-col-h" data-col="amt" style="text-align:center">金额</b>'
@@ -7599,7 +7599,8 @@ function mwDrawSvg(nodes, edges) {
 
   if (clearB) clearB.onclick = function () {
     mwSelected = null; mwChain = []; mwChainRoot = null;
-    mwFilter = { date: mwDefaultDateRange(), from: '', to: '', amount: '', note: '' };
+    // 清空 = 连日期区间也不保留（旧版会重置回"本月"）
+    mwFilter = { date: '', from: '', to: '', amount: '', note: '' };
     // 清空 = 连视图一起复位（这是唯一会重置缩放/滚动的地方）
     mwView = { zoom: null, rot: 0, tx: 0, ty: 0, scroll: 0 };
     renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
