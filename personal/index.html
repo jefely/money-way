@@ -5398,13 +5398,14 @@ table#summary-table tbody td.col-name { z-index: 6; }
   align-self: stretch; position: relative;
   overflow-y: auto; overflow-x: hidden;
   padding: 0 12px 22px 8px;
-  background: var(--bg-main); border-right: 0;
+  background: var(--bg-main); border: 0 !important; outline: 0 !important;
+  box-shadow: none;
   height: auto; min-height: 100%;
 }
 .mw-side-left.collapsed { display: none; }
 .mw-chart {
   flex: 1 1 auto; min-width: 0; height: 100%; overflow: hidden;
-  position: relative;
+  position: relative; border-left: 0 !important; outline: none !important; box-shadow: none;
   cursor: grab; touch-action: none; background: var(--bg-main);
 }
 .mw-chart:active { cursor: grabbing; }
@@ -5627,12 +5628,34 @@ th.col-range { text-align: left; }
 
 /* 路径左栏滚动条：细、无边框，去掉左侧那条黑线 */
 .mw-side-left::-webkit-scrollbar { width: 8px; height: 8px; }
-.mw-side-left::-webkit-scrollbar-track { background: transparent; border: 0; }
+.mw-side-left::-webkit-scrollbar-track { background: transparent; border: 0; box-shadow: none; }
 .mw-side-left::-webkit-scrollbar-thumb {
   background: rgba(128,128,128,.35); border-radius: 4px; border: 0;
 }
 .mw-side-left::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,.55); }
 .mw-side-left::-webkit-scrollbar-button { display: none; height: 0; }
+
+/* 路径追踪：用 grid 的 justify-self 做列内对齐（text-align 对收缩宽度的 span 不生效） */
+#mw-flow-head > .mw-date,
+#mw-flow-head > .mw-cfrom,
+#mw-flow-head > .mw-cto,
+#mw-flow-head > .mw-amt,
+#mw-flow-head > .mw-note { justify-self: center; text-align: center !important; }
+
+.mw-flow-row.mw-flow-grid > .mw-date { justify-self: end;    text-align: right; }
+.mw-flow-row.mw-flow-grid > .mw-cfrom { justify-self: end;   text-align: right; }
+.mw-flow-row.mw-flow-grid > .mw-cto { justify-self: end;     text-align: right; }
+.mw-flow-row.mw-flow-grid > .mw-amt { justify-self: end;     text-align: right; }
+.mw-flow-row.mw-flow-grid > .mw-note { justify-self: start;  text-align: left; }
+
+/* 长内容（日期 8 位、备注较长）需要能撑满整列，否则会被裁 */
+.mw-flow-row.mw-flow-grid > .mw-date,
+.mw-flow-row.mw-flow-grid > .mw-cfrom,
+.mw-flow-row.mw-flow-grid > .mw-cto { max-width: 100%; }
+
+/* 左栏：彻底去掉外轮廓（那条黑线是 3px 的 outline） */
+.mw-side-left { outline: none !important; }
+.mw-side-left:focus, .mw-side-left:focus-visible { outline: none !important; }
 </style>
 </head>
 <body>
@@ -5844,7 +5867,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.98';
+const APP_VER = 'v10.99';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
