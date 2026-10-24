@@ -5366,7 +5366,8 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-side-frozen {
   position: sticky; top: 0; z-index: 6;
   background: var(--bg-main);
-  padding-bottom: 4px;
+  padding: 0 0 3px;
+  margin-top: 0;
   box-shadow: 0 6px 10px -8px rgba(0,0,0,.22);
 }
 .mw-side-set label { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
@@ -5396,7 +5397,7 @@ table#summary-table tbody td.col-name { z-index: 6; }
   flex: 0 0 var(--mw-side-w, 330px); width: var(--mw-side-w, 330px); box-sizing: border-box;
   align-self: stretch; position: relative;
   overflow-y: auto; overflow-x: hidden;
-  padding: 8px 10px 20px;
+  padding: 0 12px 22px 8px;
   background: var(--bg-main); border-right: 1px solid var(--border-light);
   height: auto; min-height: 100%;
 }
@@ -5496,8 +5497,9 @@ table#summary-table tbody td.col-name { z-index: 6; }
 
 /* 侧边栏右边缘：宽度拖动手柄 */
 .mw-side-grip {
-  position: absolute; right: -3px; top: 0; bottom: 0; width: 6px;
-  cursor: col-resize; z-index: 20;
+  position: absolute; right: -7px; top: 0; bottom: 0; width: 7px;
+  cursor: col-resize; z-index: 60;
+  background: transparent;
 }
 .mw-side-grip:hover { background: rgba(139,108,255,.25); }
 
@@ -5550,7 +5552,7 @@ th.col-range { text-align: left; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   padding-right: 4px; font-variant-numeric: tabular-nums;
 }
-.mw-flow-grid .mw-date { text-align: right; font-size: 10.5px; letter-spacing: -.2px; }
+.mw-flow-row.mw-flow-grid .mw-date { text-align: right; font-size: 10.5px; letter-spacing: -.2px; }
 .mw-flow-grid .mw-cfrom { text-align: right; }
 .mw-flow-grid .mw-cto { text-align: right; }
 .mw-flow-grid .mw-amt { text-align: right; }
@@ -5576,6 +5578,10 @@ th.col-range { text-align: left; }
   padding: 4px 0;
 }
 .mw-flow-cols.mw-flow-grid > * { text-align: center !important; padding: 0 3px !important; }
+#mw-flow-head > *, #mw-flow-head > .mw-date, #mw-flow-head > .mw-cfrom, #mw-flow-head > .mw-cto,
+#mw-flow-head > .mw-amt, #mw-flow-head > .mw-note {
+  text-align: center !important;
+}
 
 /* 数据行：沿用流水表的斑马纹 + 单元格边框 */
 .mw-flow-row.mw-flow-grid {
@@ -5826,7 +5832,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.95';
+const APP_VER = 'v10.96';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
