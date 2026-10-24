@@ -5370,6 +5370,37 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-side-row button { flex: 1 1 0; }
 .mw-empty { display: flex; flex-direction: column; align-items: center; justify-content: center;
   height: 100%; color: var(--text-muted); font-size: 14px; text-align: center; gap: 6px; }
+
+:root { --mw-text: #111827; --mw-text-dim: #c9c9c9; }
+[data-theme="dark"] { --mw-text: #ffffff; --mw-text-dim: #4b5563; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --mw-text: #ffffff; --mw-text-dim: #4b5563; }
+}
+
+/* 左侧信息栏 + 右侧开放图区 */
+.mw-split { display: flex; align-items: stretch; gap: 0; padding: 0; flex: 1 1 auto;
+  min-height: 0; overflow: hidden; position: relative; }
+.mw-side-left {
+  flex: 0 0 250px; width: 250px; box-sizing: border-box;
+  overflow: auto; padding: 8px 10px 14px;
+  background: var(--bg-main); border-right: 1px solid var(--border-light);
+  max-height: calc(100vh - 170px);
+}
+.mw-side-left.collapsed { display: none; }
+.mw-chart {
+  flex: 1 1 auto; min-width: 0; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  cursor: grab; touch-action: none; background: var(--bg-main);
+}
+.mw-chart:active { cursor: grabbing; }
+.mw-chart svg { display: block; flex: 0 0 auto; width: 1400px; height: 1400px;
+  transform-origin: center center; transition: transform .06s ease-out; }
+.mw-toggle-left { position: absolute; left: 250px; top: 4px; right: auto; }
+.mw-toggle-left.shifted { left: 4px; }
+.mw-acc-title { font-size: 13px; font-weight: 700; color: var(--primary);
+  display: flex; align-items: center; gap: 8px; margin: 8px 0 6px; }
+.mw-acc-title button { height: 22px; font-size: 11px; padding: 0 8px; }
+.mw-in-row { font-size: 12px; }
 </style>
 </head>
 <body>
@@ -5382,7 +5413,7 @@ table#summary-table tbody td.col-name { z-index: 6; }
   <button data-tab="install">分期</button>
   <button data-tab="fixed">固定</button>
   <button data-tab="audit">校验</button>
-  <button data-tab="money">钱路</button>
+  <button data-tab="money">路径</button>
 </div>
 
 <main id="main"></main>
@@ -5581,7 +5612,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.60';
+const APP_VER = 'v10.61';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6433,6 +6464,7 @@ var MW_COLOR = {
 };
 var mwRange = null;
 var mwSelected = null;
+var mwChain = [];
 var mwShowInternal = true;
 var mwTopN = 12;
 
@@ -6708,31 +6740,56 @@ function mwRingPath(cx, cy, rIn, rOut, a1, a2) {
    · 连线颜色 = **转出端所属分类**的颜色
    · 文字只标分类名，每个弧块一个，不会再重复
    ============================================================ */
+/* Money Way · 路径（细粒度弧块图）
+   ------------------------------------------------------------
+   ① 细粒度单位
+      总单位 = 流水笔数 × 2 + 分类数（分类数 = 1 时加 0）
+      每笔流水占 2 个单位（转出端一个、转入端一个），
+      单边流水（只有转出或只有转入）仍然占位，留一个空的线接口。
+      每个统计分类之间额外占 1 个单位作为间隔。
+
+   ② 排列
+      9 点钟是「收入 / 权益」的分界线：
+        9 点往下（顺时针）依次：权益类 → 负债类 → 费用类 → 资产类 → 收入类 → 回到 9 点
+        所以 9 点到 12 点之间是收入类，符合「上面收入，下面权益」。
+
+   ③ 弧块
+      每个账户一个弧块，颜色 = 该账户所属统计分类的颜色。
+      同一分类的账户紧挨着，中间一条细分割线；
+      不同分类之间空 1 个细粒度单位。
+
+   ④ 连线
+      颜色 = 转入账户所属分类的颜色；
+      粗细全局统一，未选中时也是「粗」的（比旧版加一倍），选中时更粗并提高不透明度。
+
+   ⑤ 文字
+      从弧块外沿沿半径向外辐射，字号按弧长自动缩放（差异可以很大）；
+      深色主题白字、浅色主题黑字。
+   ============================================================ */
 function mwDrawSvg(nodes, edges) {
   var TAU = Math.PI * 2;
-  var SIZE = 1300;
+  var SIZE = 1400;
   var cx = SIZE / 2, cy = SIZE / 2;
-  var R_OUT = 470, THICK = 26, R_IN = R_OUT - THICK;
+  var R_OUT = 500, THICK = 34, R_IN = R_OUT - THICK;
 
-  /* ---------- 区间内逐笔流水 ---------- */
+  /* ---------- 取区间内流水（保留单边） ---------- */
   var txs = [];
   for (var ti = 0; ti < state.transactions.length; ti++) {
     var t = state.transactions[ti];
     var d = String(t.date || '');
+    if (!d) continue;
     if (mwRange.start && d < mwRange.start) continue;
     if (mwRange.end && d > mwRange.end) continue;
-    var f = String(t.from || '').trim();
-    var to = String(t.to || '').trim();
-    if (!f || !to || f === to) continue;
     var amt = Number(t.amount) || 0;
     if (!amt) continue;
-    var cf = mwCatOf(f), ct = mwCatOf(to);
-    if (cf === '未知' || ct === '未知') continue;
-    txs.push({ f: f, to: to, amt: amt, cf: cf, ct: ct, d: d });
+    var f = String(t.from || '').trim();
+    var to = String(t.to || '').trim();
+    if (!f && !to) continue;
+    // 单边流水：只填了一侧，另一侧留空接口
+    var cf = f ? mwCatOf(f) : '';
+    var ct = to ? mwCatOf(to) : '';
+    txs.push({ f: f, to: to, amt: amt, cf: cf, ct: ct, d: d, i: ti });
   }
-  // 注意：这里不能直接 return —— 否则右栏（日期设置）也没了，
-  // 用户看到「没有可画的流水」却没有任何地方能改区间，等于死路。
-  var mwEmpty = !txs.length;
 
   var accOf = function (name) {
     for (var i = 0; i < state.accounts.length; i++) {
@@ -6746,132 +6803,155 @@ function mwDrawSvg(nodes, edges) {
     return sb || '未分类';
   };
 
-  /* ---------- 分类（弧块）与颜色 ---------- */
-  // 环上的排布顺序（从 2 点钟开始顺时针）：费用 → 资产 → 收入(含权益) → 负债
-  var CAT_ORDER = ['费用类', '资产类', '收入类', '权益类', '负债类', '其它'];
-  var subMeta = {};        // key = cat + '|' + sub
-  var subKeys = [];
-  function ensureSub(cat, sub) {
-    var key = cat + '|' + sub;
-    if (!subMeta[key]) {
-      subMeta[key] = { key: key, cat: cat, sub: sub, n: 0, sum: 0 };
-      subKeys.push(key);
-    }
-    return subMeta[key];
-  }
-
-  var accAgg = {};         // 账户 → { n, sum }
+  /* ---------- 账户汇总（含单边端） ---------- */
+  var accMeta = {};   // name -> { name, cat, sub, n }
   txs.forEach(function (x) {
-    [[x.f, x.cf], [x.to, x.ct]].forEach(function (pair) {
-      var nm = pair[0], cat = pair[1];
-      var sub = subOf(nm);
-      var m = ensureSub(cat, sub);
-      m.n += 1; m.sum += x.amt;
-      var a = accAgg[nm] || (accAgg[nm] = { name: nm, cat: cat, sub: sub, n: 0, sum: 0 });
-      a.n += 1; a.sum += x.amt;
-    });
+    if (x.f) {
+      var a1 = accMeta[x.f] || (accMeta[x.f] = { name: x.f, cat: x.cf, sub: subOf(x.f), n: 0 });
+      a1.n++;
+    }
+    if (x.to) {
+      var a2 = accMeta[x.to] || (accMeta[x.to] = { name: x.to, cat: x.ct, sub: subOf(x.to), n: 0 });
+      a2.n++;
+    }
   });
-  // 排序：类型 → 分类（按笔数降序）
-  subKeys.sort(function (a, b) {
-    var A = subMeta[a], B = subMeta[b];
+
+  /* ---------- 分类聚合（颜色按统计分类） ---------- */
+  // 9 点起顺时针：权益 → 负债 → 费用 → 资产 → 收入
+  var CAT_ORDER = ['权益类', '负债类', '费用类', '资产类', '收入类', '其它'];
+  var groups = {};
+  Object.keys(accMeta).forEach(function (nm) {
+    var a = accMeta[nm];
+    var cat = CAT_ORDER.indexOf(a.cat) >= 0 ? a.cat : '其它';
+    var key = cat + '|' + a.sub;
+    if (!groups[key]) groups[key] = { key: key, cat: cat, sub: a.sub, accs: [], units: 0 };
+    groups[key].accs.push(a);
+  });
+
+  var groupList = Object.keys(groups).map(function (k) { return groups[k]; });
+  groupList.sort(function (A, B) {
     var ia = CAT_ORDER.indexOf(A.cat), ib = CAT_ORDER.indexOf(B.cat);
     if (ia !== ib) return ia - ib;
-    return B.n - A.n;
+    if (A.sub !== B.sub) return A.sub < B.sub ? -1 : 1;
+    return 0;
   });
 
-  // 颜色：每个分类一个色相（黄金角），全图颜色数 = 分类数
-  var subColor = {};
-  subKeys.forEach(function (k, i) {
-    subColor[k] = 'hsl(' + ((i * 137.508) % 360).toFixed(0) + ', 62%, 58%)';
+  // 每个分类一个颜色（黄金角，保证相邻不同）
+  var groupColor = {};
+  groupList.forEach(function (g, i) {
+    groupColor[g.key] = 'hsl(' + ((i * 137.508) % 360).toFixed(0) + ', 60%, 56%)';
   });
-  var colorOfName = function (nm) {
-    var a = accAgg[nm];
+  var colorOfAcc = function (nm) {
+    var a = accMeta[nm];
     if (!a) return '#cbd5e1';
-    return subColor[a.cat + '|' + a.sub] || '#cbd5e1';
+    var cat = CAT_ORDER.indexOf(a.cat) >= 0 ? a.cat : '其它';
+    return groupColor[cat + '|' + a.sub] || '#cbd5e1';
   };
 
-  /* ---------- 槽位：每笔两个，按 分类 → 账户 → 时间 排 ---------- */
-  var subRank = {};
-  subKeys.forEach(function (k, i) { subRank[k] = i; });
-  function rankOf(name) {
-    var a = accAgg[name];
-    if (!a) return 9999;
-    return subRank[a.cat + '|' + a.sub] || 9999;
-  }
+  /* ---------- 细粒度单位 ----------
+     总单位 = 流水数 × 2 + 分类数（分类数 = 1 时为 0） */
+  var nUnitsTx = txs.length * 2;
+  var nUnitsGap = groupList.length >= 2 ? groupList.length : 0;
+  var UNITS = nUnitsTx + nUnitsGap;
+  var unit = TAU / Math.max(1, UNITS);
 
-  var slots = [], txSlot = [];
+  /* ---------- 给每笔流水分配槽位 ----------
+     槽位按「分类 → 账户 → 流水」的顺序连续排布 */
+  var slots = [];            // { acc, cat, sub, txIdx, side }
   txs.forEach(function (x, i) {
-    var fs = { acc: x.f, idx: i, side: 'f' };
-    var ts = { acc: x.to, idx: i, side: 't' };
-    txSlot.push({ f: fs, t: ts });
-    slots.push(fs, ts);
-  });
-  slots.sort(function (a, b) {
-    var ra = rankOf(a.acc), rb = rankOf(b.acc);
-    if (ra !== rb) return ra - rb;
-    if (a.acc !== b.acc) return a.acc < b.acc ? -1 : 1;
-    return a.idx - b.idx;
+    slots.push({ acc: x.f || null, cat: x.cf, sub: x.f ? subOf(x.f) : '', txIdx: i, side: 'f', empty: !x.f });
+    slots.push({ acc: x.to || null, cat: x.ct, sub: x.to ? subOf(x.to) : '', txIdx: i, side: 't', empty: !x.to });
   });
 
-  var unit = TAU / slots.length;
-  var GAP_BLOCK = Math.min(unit * 3, 0.016);   // 分类块之间的间隔
-  var GAP_ACC = Math.min(unit * 1.2, 0.004);   // 账户之间的细分隔
+  // 入组的键
+  function keyOf(sl) {
+    if (sl.empty) return '\u0000EMPTY';      // 空接口单独归到最后
+    var cat = CAT_ORDER.indexOf(sl.cat) >= 0 ? sl.cat : '其它';
+    return cat + '|' + sl.sub;
+  }
+  var gRank = {};
+  groupList.forEach(function (g, i) { gRank[g.key] = i; });
 
-  var ang = Math.PI / 3;        // 从 2 点钟开始顺时针排
-  var prevSub = null, prevAcc = null;
+  slots.sort(function (A, B) {
+    var ka = A.empty ? 9999 : (gRank[keyOf(A)] !== undefined ? gRank[keyOf(A)] : 9998);
+    var kb = B.empty ? 9999 : (gRank[keyOf(B)] !== undefined ? gRank[keyOf(B)] : 9998);
+    if (ka !== kb) return ka - kb;
+    if ((A.acc || '') !== (B.acc || '')) return (A.acc || '') < (B.acc || '') ? -1 : 1;
+    return A.txIdx - B.txIdx;
+  });
+
+  /* ---------- 分配角度 ---------- */
+  var START_ANG = -Math.PI / 2;     // 9 点钟
+  var ang = START_ANG;
+  var prevKey = null;
   slots.forEach(function (sl) {
-    var a = accAgg[sl.acc];
-    var key = a.cat + '|' + a.sub;
-    if (prevSub !== null && key !== prevSub) ang += GAP_BLOCK;
-    else if (prevAcc !== null && sl.acc !== prevAcc) ang += GAP_ACC;
+    var k = keyOf(sl);
+    if (prevKey !== null && k !== prevKey) ang += unit;    // 跨分类：空 1 个细粒度单位
     sl.a1 = ang; sl.a2 = ang + unit; sl.mid = ang + unit / 2;
     ang += unit;
-    prevSub = key; prevAcc = sl.acc;
+    prevKey = k;
   });
 
-  /* ---------- 分类块（弧块）---------- */
+  // 每个账户在环上的连续区间
   var blocks = [];
   slots.forEach(function (sl) {
-    var a = accAgg[sl.acc];
-    var key = a.cat + '|' + a.sub;
+    if (!sl.acc) return;
     var last = blocks[blocks.length - 1];
-    if (last && last.key === key) { last.a2 = sl.a2; last.n++; }
-    else blocks.push({ key: key, cat: a.cat, sub: a.sub, a1: sl.a1, a2: sl.a2, n: 1 });
+    if (last && last.acc === sl.acc) { last.a2 = sl.a2; last.n++; }
+    else blocks.push({ acc: sl.acc, cat: sl.cat, sub: sl.sub, a1: sl.a1, a2: sl.a2, n: 1 });
   });
 
   var pt = function (r, a) { return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; };
 
-  /* ---------- 高亮 ---------- */
-  var mwHotEdges = null;
+  /* ---------- 链路高亮 ---------- */
+  var hotTxs = null;
   if (mwSelected) {
-    mwHotEdges = {};
-    txs.forEach(function (x) {
-      if (x.f === mwSelected || x.to === mwSelected) mwHotEdges[x.f + '\u0001' + x.to] = 1;
+    hotTxs = {};
+    // 选中账户 → 点亮所有触及它的流水
+    txs.forEach(function (x, i) {
+      if (x.f === mwSelected || x.to === mwSelected) hotTxs[i] = 1;
     });
+  }
+  if (mwChain && mwChain.length) {
+    hotTxs = hotTxs || {};
+    mwChain.forEach(function (i) { hotTxs[i] = 1; });
   }
 
   var parts = [];
   parts.push('<svg viewBox="0 0 ' + SIZE + ' ' + SIZE + '" width="100%" preserveAspectRatio="xMidYMid meet">');
 
-  /* ---------- 逐笔引线（颜色 = 转出端分类色） ---------- */
+  /* ---------- 连线（每笔一条，统一粗细） ---------- */
+  var txSlotIdx = {};
+  slots.forEach(function (sl, i) { txSlotIdx[sl.txIdx + '|' + sl.side] = sl; });
+
+  var BASE_W = 3;      // 未选中也够粗（旧版 1.4~1.5，这里加倍）
+  var HOT_W = 6;
+
   txs.forEach(function (x, i) {
-    var fs = txSlot[i].f, ts = txSlot[i].t;
-    var p1 = pt(R_IN, fs.mid);
-    var p2 = pt(R_IN, ts.mid);
+    var sf = txSlotIdx[i + '|f'];
+    var st = txSlotIdx[i + '|t'];
+    if (!sf || !st) return;
+    if (sf.empty || st.empty) return;   // 单边流水：槽位已占，但不画线
+
+    var p1 = pt(R_IN, sf.mid);
+    var p2 = pt(R_IN, st.mid);
     var k = 0.34;
     var c1 = [cx + (p1[0] - cx) * k, cy + (p1[1] - cy) * k];
     var c2 = [cx + (p2[0] - cx) * k, cy + (p2[1] - cy) * k];
 
-    var col = colorOfName(x.f);       // ← 由转出账户所属分类决定
-    var w = Math.min(5, Math.max(0.45, 0.4 + x.amt / 2400));
-    var isHot = !mwHotEdges || mwHotEdges[x.f + '\u0001' + x.to];
+    var col = colorOfAcc(x.to);       // ← 颜色由转入端决定
+    var on = !hotTxs || hotTxs[i];
 
     parts.push('<path d="M ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1)
       + ' C ' + c1[0].toFixed(1) + ' ' + c1[1].toFixed(1) + ', '
       + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1) + ', '
       + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1) + '"'
-      + ' fill="none" stroke="' + col + '" stroke-width="' + w.toFixed(2)
-      + '" stroke-opacity="' + (isHot ? '0.32' : '0.05') + '" stroke-linecap="round"/>');
+      + ' fill="none" stroke="' + col + '"'
+      + ' stroke-width="' + (on ? HOT_W : BASE_W) + '"'
+      + ' stroke-opacity="' + (on ? '0.62' : '0.14') + '" stroke-linecap="round"'
+      + ' data-tx="' + i + '" class="mw-edge" style="cursor:pointer">'
+      + '<title>' + mwEsc(x.f || '（空）') + ' → ' + mwEsc(x.to || '（空）')
+      + '　¥' + x.amt.toFixed(2) + '　' + x.d + '</title></path>');
   });
 
   /* ---------- 弧块 ---------- */
@@ -6884,117 +6964,141 @@ function mwDrawSvg(nodes, edges) {
     var x4 = cx + R_IN * Math.sin(b.a1), y4 = cy - R_IN * Math.cos(b.a1);
     var dd = 'M ' + x1 + ' ' + y1 + ' A ' + R_OUT + ' ' + R_OUT + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2
       + ' L ' + x3 + ' ' + y3 + ' A ' + R_IN + ' ' + R_IN + ' 0 ' + large + ' 0 ' + x4 + ' ' + y4 + ' Z';
-    var sel = (mwSelected && accAgg[mwSelected] &&
-      (accAgg[mwSelected].cat + '|' + accAgg[mwSelected].sub) === b.key);
+    var sel = (mwSelected === b.acc);
     var dim = mwSelected && !sel;
-    parts.push('<path d="' + dd + '" fill="' + (subColor[b.key] || '#cbd5e1') + '"'
-      + ' fill-opacity="' + (dim ? '0.28' : sel ? '1' : '0.92') + '"'
-      + ' stroke="#fff" stroke-width="1.3"'
-      + ' class="mw-ring" data-node="' + mwEsc(b.sub) + '" style="cursor:pointer"/>');
+    parts.push('<path d="' + dd + '" fill="' + colorOfAcc(b.acc) + '"'
+      + ' fill-opacity="' + (dim ? '0.3' : sel ? '1' : '0.92') + '"'
+      + ' stroke="#fff" stroke-width="1.2"'
+      + ' class="mw-ring" data-node="' + mwEsc(b.acc) + '" style="cursor:pointer"/>');
   });
 
-  /* ---------- 文字：每个弧块只标一个分类名，从弧外沿开始 ---------- */
+  /* ---------- 文字：向外辐射 + 字号随弧长缩放 ---------- */
   blocks.forEach(function (b) {
     var span = b.a2 - b.a1;
     var mid = (b.a1 + b.a2) / 2;
     var deg = mid * 180 / Math.PI;
     var flip = (mid > Math.PI / 2 && mid < Math.PI * 1.5);
-    var dim = mwSelected && !(accAgg[mwSelected] && (accAgg[mwSelected].cat + '|' + accAgg[mwSelected].sub) === b.key);
-    var lb = b.sub || '未分类';
+    var dim = mwSelected && !(mwSelected === b.acc);
+    var lb = b.acc;
 
-    var arcPx = span * (R_OUT + 14);
-    var fs = Math.max(7, Math.min(12, arcPx / Math.max(3, lb.length) * 1.15));
-    var rStart = R_OUT + 8;
+    // 弧长（像素）→ 字号：允许很大差异
+    var arcPx = span * (R_OUT + 18);
+    var fs = Math.max(5, Math.min(30, arcPx / Math.max(2.2, lb.length)));
+    var rStart = R_OUT + 10;
 
-    var px = cx + rStart, py = cy + fs * 0.36;
-    if (flip) {
-      // 翻转的那半边用 end 锚点，避免文字跑到环里
-      parts.push('<text x="' + (cx - rStart).toFixed(1) + '" y="' + py.toFixed(1) + '"'
-        + ' text-anchor="end" font-size="' + fs.toFixed(1) + '" font-weight="700"'
-        + ' fill="' + (dim ? '#c9c9c9' : '#374151') + '"'
-        + ' transform="rotate(' + (deg + 180).toFixed(1) + ' ' + cx + ' ' + cy + ')"'
-        + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
-    } else {
-      parts.push('<text x="' + px.toFixed(1) + '" y="' + py.toFixed(1) + '"'
-        + ' text-anchor="start" font-size="' + fs.toFixed(1) + '" font-weight="700"'
-        + ' fill="' + (dim ? '#c9c9c9' : '#374151') + '"'
-        + ' transform="rotate(' + deg.toFixed(1) + ' ' + cx + ' ' + cy + ')"'
-        + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
-    }
+    parts.push('<text x="' + (flip ? (cx - rStart) : (cx + rStart)).toFixed(1) + '"'
+      + ' y="' + (cy + fs * 0.34).toFixed(1) + '"'
+      + ' text-anchor="' + (flip ? 'end' : 'start') + '"'
+      + ' font-size="' + fs.toFixed(1) + '" font-weight="600"'
+      + ' fill="' + (dim ? 'var(--mw-text-dim)' : 'var(--mw-text)') + '"'
+      + ' transform="rotate(' + (flip ? deg + 180 : deg).toFixed(1) + ' ' + cx + ' ' + cy + ')"'
+      + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
   });
 
   parts.push('</svg>');
 
-  /* ---------- 左图 + 右栏（唯一的数据区） ---------- */
+  /* ---------- 外壳：左侧信息栏 + 右侧开放图区 ---------- */
   var wrap = document.createElement('div');
   wrap.className = 'mw-split';
 
+  var sideBox = document.createElement('div');
+  sideBox.className = 'mw-side mw-side-left';
+  wrap.appendChild(sideBox);
+
   var chartBox = document.createElement('div');
   chartBox.className = 'mw-chart';
-  if (mwEmpty) {
-    chartBox.innerHTML = '<div class="mw-empty">这个区间里没有可画的流水'
-      + '<br><span style="font-size:12px;color:#9ca3af">把右侧的日期范围放宽试试</span></div>';
-  } else {
-    chartBox.innerHTML = parts.join('');
-  }
+  chartBox.innerHTML = parts.join('');
   wrap.appendChild(chartBox);
 
-  var listBox = document.createElement('div');
-  listBox.className = 'mw-list';
+  /* ---------- 左栏内容 ---------- */
+  var groups2 = {};
+  Object.keys(accMeta).forEach(function (nm) {
+    var a = accMeta[nm];
+    var cat = CAT_ORDER.indexOf(a.cat) >= 0 ? a.cat : '其它';
+    var key = cat + '|' + a.sub;
+    (groups2[key] = groups2[key] || { cat: cat, sub: a.sub, list: [] }).list.push(a);
+  });
+  var gkeys = Object.keys(groups2).sort(function (A, B) {
+    var ia = CAT_ORDER.indexOf(groups2[A].cat), ib = CAT_ORDER.indexOf(groups2[B].cat);
+    if (ia !== ib) return ia - ib;
+    return groups2[A].sub < groups2[B].sub ? -1 : 1;
+  });
 
-  listBox.innerHTML = ''
-    + '<div class="mw-side-head">Money Way</div>'
+  var html = ''
+    + '<div class="mw-side-head">路径</div>'
     + '<div class="mw-side-set">'
     + '  <label>从 <input type="date" id="mw-start" value="' + mwRange.start + '"></label>'
     + '  <label>到 <input type="date" id="mw-end" value="' + mwRange.end + '"></label>'
-    + '  <label>只看前 <select id="mw-topn"><option>8</option><option selected>12</option><option>20</option><option>36</option><option value="999">全部</option></select> 笔/账户</label>'
     + '  <div class="mw-side-row">'
     + '    <button type="button" class="ghost" id="mw-apply">应用</button>'
     + '    <button type="button" class="ghost" id="mw-allrange">全部</button>'
     + '  </div>'
     + '</div>'
-    + '<div class="mw-side-stat">' + txs.length + ' 笔流水 · ' + subKeys.length + ' 个分类 · '
-    + Object.keys(accAgg).length + ' 个账户 · ' + (txs.length * 2) + ' 段</div>';
+    + '<div class="mw-side-stat">' + txs.length + ' 笔流水 · ' + groupList.length + ' 个分类 · '
+    + Object.keys(accMeta).length + ' 个账户 · ' + UNITS + ' 个细粒度单位</div>';
 
-  // 列表按分类列出
-  subKeys.forEach(function (key) {
-    var meta = subMeta[key];
-    var box = document.createElement('div');
-    box.className = 'mw-list-sec';
-    var head = document.createElement('div');
-    head.className = 'mw-list-head';
-    head.innerHTML = '<i class="mw-dot" style="background:' + subColor[key] + '"></i>'
-      + meta.cat + ' · ' + meta.sub + '（' + meta.n + ' 笔 · ¥' + Math.round(meta.sum) + '）';
-    box.appendChild(head);
-    listBox.appendChild(box);
+  if (mwSelected) {
+    html += '<div class="mw-acc-title">' + mwEsc(mwSelected)
+      + ' <button type="button" class="ghost" id="mw-clear">清除</button></div>';
+  }
+
+  gkeys.forEach(function (k) {
+    var g = groups2[k];
+    var color = groupColor[k] || '#cbd5e1';
+    html += '<div class="mw-list-sec">';
+    html += '<div class="mw-list-head"><i class="mw-dot" style="background:' + color + '"></i>'
+      + mwEsc(g.cat) + ' · ' + mwEsc(g.sub) + '</div>';
+    g.list.sort(function (A, B) { return B.n - A.n; }).forEach(function (a) {
+      html += '<div class="mw-list-row' + (mwSelected === a.name ? ' on' : '') + '" data-acc="' + mwEsc(a.name) + '">'
+        + '<i class="mw-dot" style="background:' + color + '"></i>'
+        + '<span>' + mwEsc(a.name) + '</span>'
+        + '<b>' + a.n + ' 笔</b></div>';
+    });
+    html += '</div>';
   });
-  wrap.appendChild(listBox);
 
+  // 选中账户时的「转入列表」（用于倒推链路）
+  if (mwSelected) {
+    var ins = txs.map(function (x, i) { return { x: x, i: i }; })
+      .filter(function (o) { return o.x.to === mwSelected; })
+      .sort(function (A, B) { return (B.x.d > A.x.d) ? 1 : -1; });
+    html += '<div class="mw-list-sec"><div class="mw-list-head">转入 ' + mwSelected + '（' + ins.length + '）</div>';
+    ins.forEach(function (o) {
+      html += '<div class="mw-list-row mw-in-row' + (mwChainOn(o.i) ? ' on' : '') + '" data-tx="' + o.i + '">'
+        + '<span>' + mwEsc(o.x.f || '（空）') + '</span>'
+        + '<b>¥' + o.x.amt.toFixed(0) + '</b><i class="mw-pct">' + o.x.d.slice(5) + '</i></div>';
+    });
+    html += '</div>';
+  }
+
+  sideBox.innerHTML = html;
+
+  /* ---------- 图区右上角的收起 / 展开三角 ---------- */
   var tg = document.createElement('button');
   tg.type = 'button';
-  tg.className = 'mw-toggle';
-  tg.title = '收起 / 展开右侧栏';
-  tg.textContent = '▶';
+  tg.className = 'mw-toggle mw-toggle-left';
+  tg.title = '收起 / 展开左侧信息栏';
+  tg.textContent = '◀';
   tg.onclick = function () {
-    var hidden = listBox.classList.toggle('collapsed');
-    tg.textContent = hidden ? '◀' : '▶';
-    tg.classList.toggle('shifted', hidden);
+    var hidden = sideBox.classList.toggle('collapsed');
+    tg.textContent = hidden ? '▶' : '◀';
   };
   wrap.appendChild(tg);
 
-  var startI = listBox.querySelector('#mw-start');
-  var endI = listBox.querySelector('#mw-end');
-  var selTop = listBox.querySelector('#mw-topn');
-  var applyB = listBox.querySelector('#mw-apply');
-  if (selTop) selTop.value = String(mwTopN > 40 ? 999 : mwTopN);
+  /* ---------- 绑定 ---------- */
+  var startI = sideBox.querySelector('#mw-start');
+  var endI = sideBox.querySelector('#mw-end');
+  var applyB = sideBox.querySelector('#mw-apply');
+  var allB = sideBox.querySelector('#mw-allrange');
+  var clearB = sideBox.querySelector('#mw-clear');
+
   if (applyB) applyB.onclick = function () {
     var sv = startI.value || '', ev2 = endI.value || '';
     if (sv && ev2 && sv > ev2) { toast('起始日期不能晚于结束日期', { type: 'error' }); return; }
     mwRange = { start: sv, end: ev2 };
-    mwSelected = null;
+    mwSelected = null; mwChain = [];
     renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
   };
-  var allB = listBox.querySelector('#mw-allrange');
   if (allB) allB.onclick = function () {
     var ds = [];
     for (var qi = 0; qi < state.transactions.length; qi++) {
@@ -7004,45 +7108,66 @@ function mwDrawSvg(nodes, edges) {
     if (!ds.length) { toast('还没有流水', { type: 'error' }); return; }
     ds.sort();
     mwRange = { start: ds[0], end: ds[ds.length - 1] };
-    mwSelected = null;
+    mwSelected = null; mwChain = [];
     renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
   };
-  if (selTop) selTop.onchange = function () {
-    mwTopN = Number(selTop.value) || 12;
-    mwSelected = null;
+  if (clearB) clearB.onclick = function () {
+    mwSelected = null; mwChain = [];
     renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
   };
 
-  /* ---------- 缩放平移 ---------- */
-  var zoom = 1, tx = 0, ty = 0;
+  sideBox.querySelectorAll('.mw-list-row[data-acc]').forEach(function (row) {
+    row.onclick = function () {
+      var nm = row.getAttribute('data-acc');
+      mwSelected = (mwSelected === nm) ? null : nm;
+      mwChain = [];
+      renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
+    };
+  });
+  sideBox.querySelectorAll('.mw-in-row').forEach(function (row) {
+    row.onclick = function () {
+      var idx = Number(row.getAttribute('data-tx'));
+      mwChain = mwTraceChain(txs, idx);
+      renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
+    };
+  });
+
+  /* ---------- 缩放 / 旋转 / 平移 ---------- */
+  var zoom = 1, rot = 0, tx0 = 0, ty0 = 0;
   var svgEl = chartBox.querySelector('svg');
   try {
     var cw = chartBox.clientWidth || 900;
     var ch = chartBox.clientHeight || 700;
-    zoom = Math.min(1, (cw * 0.94) / SIZE, (ch * 0.94) / SIZE);
+    zoom = Math.min(1, (cw * 0.96) / SIZE, (ch * 0.96) / SIZE);
   } catch (zz) {}
   var applyT = function () {
-    if (svgEl) svgEl.style.transform = 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px) scale(' + zoom.toFixed(2) + ')';
+    if (svgEl) svgEl.style.transform =
+      'translate(' + tx0.toFixed(1) + 'px,' + ty0.toFixed(1) + 'px) rotate(' + rot.toFixed(2) + 'deg) scale(' + zoom.toFixed(3) + ')';
   };
-  if (svgEl) { svgEl.style.willChange = 'transform'; }
+  if (svgEl) svgEl.style.willChange = 'transform';
   applyT();
 
   chartBox.addEventListener('wheel', function (ev) {
     ev.preventDefault();
-    zoom = Math.min(4, Math.max(0.4, zoom + (ev.deltaY > 0 ? -0.1 : 0.1)));
+    zoom = Math.min(6, Math.max(0.3, zoom + (ev.deltaY > 0 ? -0.1 : 0.1)));
     applyT();
   }, { passive: false });
 
   var drag = null, pinch = null;
   chartBox.addEventListener('pointerdown', function (ev) {
-    if (ev.target.classList && ev.target.classList.contains('mw-ring')) return;
-    drag = { x: ev.clientX, y: ev.clientY, tx: tx, ty: ty };
+    if (ev.target.classList && (ev.target.classList.contains('mw-ring') || ev.target.classList.contains('mw-edge'))) return;
+    drag = { x: ev.clientX, y: ev.clientY, tx: tx0, ty: ty0, shift: ev.shiftKey };
     try { chartBox.setPointerCapture(ev.pointerId); } catch (e) {}
   });
   chartBox.addEventListener('pointermove', function (ev) {
     if (!drag) return;
-    tx = drag.tx + (ev.clientX - drag.x);
-    ty = drag.ty + (ev.clientY - drag.y);
+    if (ev.shiftKey) {
+      rot = rot + (ev.clientX - drag.x) * 0.3;
+      drag.x = ev.clientX;
+    } else {
+      tx0 = drag.tx + (ev.clientX - drag.x);
+      ty0 = drag.ty + (ev.clientY - drag.y);
+    }
     applyT();
   });
   chartBox.addEventListener('pointerup', function () { drag = null; });
@@ -7058,13 +7183,68 @@ function mwDrawSvg(nodes, edges) {
     if (ev.touches.length === 2 && pinch) {
       ev.preventDefault();
       var d2 = Math.hypot(ev.touches[0].clientX - ev.touches[1].clientX, ev.touches[0].clientY - ev.touches[1].clientY);
-      zoom = Math.min(4, Math.max(0.4, pinch.z * (d2 / Math.max(1, pinch.d))));
+      zoom = Math.min(6, Math.max(0.3, pinch.z * (d2 / Math.max(1, pinch.d))));
       applyT();
     }
   }, { passive: false });
   chartBox.addEventListener('touchend', function () { pinch = null; }, { passive: true });
 
+  /* ---------- 点弧块 / 点线 = 选中 ---------- */
+  chartBox.querySelectorAll('.mw-ring').forEach(function (g2) {
+    g2.onclick = function () {
+      var nm = g2.getAttribute('data-node');
+      mwSelected = (mwSelected === nm) ? null : nm;
+      mwChain = [];
+      renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
+    };
+  });
+  chartBox.querySelectorAll('.mw-edge').forEach(function (g2) {
+    g2.onclick = function () {
+      var idx = Number(g2.getAttribute('data-tx'));
+      mwChain = mwTraceChain(txs, idx);
+      renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
+    };
+  });
+
   return wrap;
+}
+
+/* 由上/下游串成一条链路：从某笔流水出发，
+   反向找「谁给它所在的转出账户转过钱」，再往前追，直到没有上游。
+   同时把下游也带上（这笔钱后来去了哪）。 */
+function mwTraceChain(txs, startIdx) {
+  var byTo = {}, byFrom = {};
+  txs.forEach(function (x, i) {
+    if (x.to) (byTo[x.to] = byTo[x.to] || []).push(i);
+    if (x.f) (byFrom[x.f] = byFrom[x.f] || []).push(i);
+  });
+
+  var out = {};
+  var queue = [startIdx];
+  var guard = 0;
+  while (queue.length && guard++ < 4000) {
+    var i = queue.shift();
+    if (out[i]) continue;
+    out[i] = 1;
+    var x = txs[i];
+    // 上游：谁往 x.f 转钱（时间不晚于本笔）
+    if (x.f && byTo[x.f]) {
+      byTo[x.f].forEach(function (j) {
+        if (j !== i && !out[j] && String(txs[j].d) <= String(x.d)) queue.push(j);
+      });
+    }
+    // 下游：x.to 又转去了哪里
+    if (x.to && byFrom[x.to]) {
+      byFrom[x.to].forEach(function (j) {
+        if (j !== i && !out[j] && String(txs[j].d) >= String(x.d)) queue.push(j);
+      });
+    }
+  }
+  return Object.keys(out).map(Number);
+}
+
+function mwChainOn(i) {
+  return mwChain && mwChain.indexOf(i) >= 0;
 }
 
 function mwRenderSide(side, nodes, edges) {
