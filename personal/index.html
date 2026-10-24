@@ -5349,23 +5349,25 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-toggle {
   position: absolute; right: 246px; top: 4px;
   width: 20px; height: 20px;
-  border: 0; background: transparent; color: var(--text-muted);
+  border: none !important; outline: none !important; background: none !important;
+  box-shadow: none !important; -webkit-appearance: none; appearance: none;
+  color: var(--text-muted);
   cursor: pointer; font-size: 11px; padding: 0; line-height: 20px;
   opacity: .55;
 }
+.mw-toggle:focus, .mw-toggle:active { outline: none !important; box-shadow: none !important; }
 .mw-toggle:hover { opacity: 1; color: var(--primary); }
 .mw-toggle.shifted { right: 4px; }
 .mw-toggle:hover { background: #ece7ff; color: var(--primary); }
 
 
 .mw-side-head { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
-.mw-side-set {
-  display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;
-  position: sticky; top: 0; z-index: 5;
+.mw-side-set { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.mw-side-frozen {
+  position: sticky; top: 0; z-index: 6;
   background: var(--bg-main);
-  padding: 8px 0 6px;
-  margin-top: -8px;
-  box-shadow: 0 6px 8px -6px rgba(0,0,0,.18);
+  padding-bottom: 4px;
+  box-shadow: 0 6px 10px -8px rgba(0,0,0,.22);
 }
 .mw-side-set label { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
 .mw-side-set input[type=date] { height: 26px; font-size: 12px; flex: 1 1 auto; min-width: 0; }
@@ -5374,7 +5376,6 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-side-stat {
   font-size: 11.5px; color: var(--text-muted); padding: 0 0 8px;
   border-bottom: 1px solid var(--border-light); margin-bottom: 8px;
-  position: sticky; top: 118px; z-index: 5; background: var(--bg-main);
 }
 
 .mw-side-row { display: flex; gap: 6px; }
@@ -5473,7 +5474,7 @@ table#summary-table tbody td.col-name { z-index: 6; }
 /* 左栏表格化：ID 左、账本居中、金额靠右；列宽可拖动调整 */
 .mw-flow-grid {
   display: grid;
-  grid-template-columns: var(--mw-col-id, 30px) var(--mw-col-from, 1fr) var(--mw-col-to, 1fr) var(--mw-col-amt, 64px);
+  grid-template-columns: var(--mw-col-id, 62px) var(--mw-col-from, 1fr) var(--mw-col-to, 1fr) var(--mw-col-amt, 58px);
   align-items: center;
   column-gap: 0;
 }
@@ -5483,7 +5484,7 @@ table#summary-table tbody td.col-name { z-index: 6; }
   width: 6px; cursor: col-resize;
 }
 .mw-col-h.resizing { color: var(--primary); }
-.mw-flow-grid .mw-id { flex: none; text-align: left; padding-left: 2px; font-size: 10.5px; }
+.mw-flow-grid .mw-id { flex: none; text-align: left; padding-left: 2px; font-size: 10px; letter-spacing: -.2px; font-variant-numeric: tabular-nums; }
 .mw-flow-grid .mw-flow-from,
 .mw-flow-grid .mw-flow-to { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mw-flow-grid .mw-amt { text-align: right; padding-right: 2px; font-variant-numeric: tabular-nums; }
@@ -5703,7 +5704,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.81';
+const APP_VER = 'v10.82';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7157,12 +7158,12 @@ function mwDrawSvg(nodes, edges) {
         + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
     } else {
       // ② 放不下：锥形引线 + 文字外移
-      // 长度减半
-      var CONE_LEN = Math.max(24, Math.min(64, 34 + textW * 0.22));
+      // 长度：在上一版基础上再 +30%
+      var CONE_LEN = Math.max(32, Math.min(84, (34 + textW * 0.22) * 1.3));
       var rText = R_OUT + CONE_LEN;
 
-      // 锥底宽度 = 文字宽度（精确匹配字号），换算成角度
-      var halfAngle = Math.min(0.28, (textW * 0.5) / Math.max(1, rText));
+      // 锥底固定 10px 宽（半宽 5px），不再随文字长度变宽
+      var halfAngle = 5 / Math.max(1, rText);
 
       // 锥尖：收敛到弧块中点，真正的「尖端」（不再用弧块两端，那样是钝口）
       var tip = pt(R_OUT, mid);
@@ -7198,6 +7199,7 @@ function mwDrawSvg(nodes, edges) {
 
   var sideBox = document.createElement('div');
   sideBox.className = 'mw-side mw-side-left';
+  sideBox.id = 'mw-side-wrap';
   // 手机上左栏默认收起，避免挡住图；桌面常驻
   var isNarrow = (window.innerWidth || 1200) < 760;
   if (isNarrow) sideBox.classList.add('collapsed');
@@ -7223,6 +7225,7 @@ function mwDrawSvg(nodes, edges) {
   });
 
   var html = ''
+    + '<div class="mw-side-frozen">'
     + '<div class="mw-side-head">路径</div>'
     + '<div class="mw-side-set">'
     + '  <label>从 <input type="date" id="mw-start" value="' + mwRange.start + '"></label>'
@@ -7233,11 +7236,11 @@ function mwDrawSvg(nodes, edges) {
     + '  </div>'
     + '</div>'
     + '<div class="mw-side-stat">' + txs.length + ' 笔流水 · ' + groupList.length + ' 个分类 · '
-    + Object.keys(accMeta).length + ' 个账户 · ' + UNITS + ' 个细粒度单位</div>';
-
-  html += '<div class="mw-acc-title">'
+    + Object.keys(accMeta).length + ' 个账户 · ' + UNITS + ' 个细粒度单位</div>'
+    + '<div class="mw-acc-title">'
     + (mwSelected ? mwEsc(mwSelected) + ' ' : '')
-    + '<button type="button" class="ghost" id="mw-clear">清空</button></div>';
+    + '<button type="button" class="ghost" id="mw-clear">清空</button></div>'
+    + '</div>';   // ← 冻结区到此结束，下面（流水表格）随页面滚动
 
   /* 左栏 = 完整流水列表（每一笔都成对显示：转出 → 转入）。
      点任意一行 → 点亮「这一条 + 它的上游」。 */
@@ -7250,7 +7253,7 @@ function mwDrawSvg(nodes, edges) {
 
   html += '<div class="mw-in-title">流水 <span>' + flowRows.length + ' 笔（点一行看它的来路）</span></div>';
   html += '<div class="mw-flow-cols mw-flow-grid" id="mw-flow-head">'
-    + '<i class="mw-id">ID</i>'
+    + '<i class="mw-id">日期</i>'
     + '<span class="mw-flow-from mw-col-h" data-col="from">转出</span>'
     + '<span class="mw-flow-to mw-col-h" data-col="to">转入</span>'
     + '<b class="mw-amt mw-col-h" data-col="amt">金额</b></div>';
@@ -7258,10 +7261,13 @@ function mwDrawSvg(nodes, edges) {
   flowRows.forEach(function (o) {
     var on = mwChainOn(o.i);
     var isRoot = (mwChainRoot === o.i);
-    var seq = o.x.seq != null ? o.x.seq : (o.x.i + 1);
+    // 日期列：YYMMDD + 两位流水号，例如 26080503
+    var dstr = String(o.x.d || '').replace(/-/g, '');       // 20260805
+    var ymd = dstr.length >= 8 ? dstr.slice(2, 8) : dstr;    // 260805
+    var seq2 = String(o.x.seq != null ? o.x.seq : (o.x.i + 1)).padStart(2, '0');
     html += '<div class="mw-list-row mw-flow-row mw-flow-grid' + (on ? ' on' : '') + (isRoot ? ' root' : '')
       + '" data-tx="' + o.i + '">'
-      + '<i class="mw-id">' + mwEsc(String(seq)) + '</i>'
+      + '<i class="mw-id">' + mwEsc(ymd + seq2) + '</i>'
       + '<span class="mw-flow-from">' + mwEsc(o.x.f || '—') + '</span>'
       + '<span class="mw-flow-to">' + mwEsc(o.x.to || '—') + '</span>'
       + '<b class="mw-amt">¥' + o.x.amt.toFixed(0) + '</b></div>';
@@ -7350,12 +7356,13 @@ function mwDrawSvg(nodes, edges) {
     var saved = null;
     try { saved = JSON.parse(localStorage.getItem('mw_flow_colw') || 'null'); } catch (e) {}
     var widths = saved || { from: 0, to: 0, amt: 64 };
+    // 注意：变量必须设在 **容器** 上，因为每一行都是独立的 .mw-flow-grid，
+    // 只给表头设变量的话，下面每一行都读不到 —— 这就是「只有标题栏能调」的原因。
     var applyW = function () {
-      var g = sideBox.querySelector('.mw-flow-grid');
-      if (!g) return;
-      g.style.setProperty('--mw-col-from', widths.from > 0 ? widths.from + 'px' : '1fr');
-      g.style.setProperty('--mw-col-to', widths.to > 0 ? widths.to + 'px' : '1fr');
-      g.style.setProperty('--mw-col-amt', widths.amt + 'px');
+      var host = document.getElementById('mw-side-wrap') || sideBox;
+      host.style.setProperty('--mw-col-from', widths.from > 0 ? widths.from + 'px' : '1fr');
+      host.style.setProperty('--mw-col-to', widths.to > 0 ? widths.to + 'px' : '1fr');
+      host.style.setProperty('--mw-col-amt', widths.amt + 'px');
     };
     applyW();
 
@@ -7462,8 +7469,9 @@ function mwDrawSvg(nodes, edges) {
   chartBox.querySelectorAll('.mw-edge').forEach(function (g2) {
     g2.onclick = function () {
       var idx = Number(g2.getAttribute('data-tx'));
-      // 图上点线 = 上下游都看（这条钱从哪来、又去了哪）
-      mwChain = mwTraceChain(txs, idx);
+      // 图上点线 = 与左栏点条目一致：只看「这一条 + 它的上游」
+      // （之前用双向追溯，链路常常覆盖全部流水，导致「其它线没变细」）
+      mwChain = mwTraceUpstream(txs, idx);
       mwChainRoot = idx;
       renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
     };
