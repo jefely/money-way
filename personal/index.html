@@ -5482,8 +5482,8 @@ table#summary-table tbody td.col-name { z-index: 6; }
 }
 .mw-col-h { position: relative; }
 .mw-col-h::after {
-  content: ''; position: absolute; right: -3px; top: 0; bottom: 0;
-  width: 6px; cursor: col-resize;
+  content: ''; position: absolute; right: 0; top: 0; bottom: 0;
+  width: 7px; cursor: col-resize; z-index: 5;
 }
 .mw-col-h.resizing { color: var(--primary); }
 .mw-flow-grid .mw-id { flex: none; text-align: right; padding-right: 4px; font-size: 10px; letter-spacing: -.2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -5648,11 +5648,19 @@ th.col-range { text-align: left; }
 .mw-side-left { border-right: 0 !important; outline: 0 !important; box-shadow: none !important; }
 
 /* 路径追踪：用 grid 的 justify-self 做列内对齐（text-align 对收缩宽度的 span 不生效） */
+/* 表头单元格必须 **撑满整列**（justify-self: stretch），
+   否则 span 会收缩到文字宽度，挂在它右边缘的列宽拖动手柄就跟着跑偏。
+   文本居中仍由 text-align 负责。 */
 #mw-flow-head > .mw-date,
 #mw-flow-head > .mw-cfrom,
 #mw-flow-head > .mw-cto,
 #mw-flow-head > .mw-amt,
-#mw-flow-head > .mw-note { justify-self: center; text-align: center !important; }
+#mw-flow-head > .mw-note {
+  justify-self: stretch !important;
+  align-self: stretch;
+  text-align: center !important;
+  position: relative;
+}
 
 .mw-flow-row.mw-flow-grid > .mw-date { justify-self: end;    text-align: right; }
 .mw-flow-row.mw-flow-grid > .mw-cfrom { justify-self: end;   text-align: right; }
@@ -5879,7 +5887,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.00';
+const APP_VER = 'v11.01';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
