@@ -5410,8 +5410,8 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-chart svg { display: block; position: absolute; left: 50%; top: 50%;
   width: 1400px; height: 1400px; margin-left: -700px; margin-top: -700px;
   transform-origin: center center; transition: transform .06s ease-out; }
-.mw-toggle-left { position: absolute; left: 250px; top: 4px; right: auto; }
-.mw-toggle-left.shifted { left: 4px; }
+.mw-toggle-left { position: absolute; left: calc(var(--mw-side-w, 250px) + 4px); top: 4px; right: auto; z-index: 25; }
+.mw-toggle-left.shifted { left: 4px !important; }
 .mw-acc-title { font-size: 13px; font-weight: 700; color: var(--primary);
   display: flex; align-items: center; gap: 8px; margin: 8px 0 6px; }
 .mw-acc-title button { height: 22px; font-size: 11px; padding: 0 8px; }
@@ -5436,8 +5436,8 @@ table#summary-table tbody td.col-name { z-index: 6; }
     background: var(--bg-main);
   }
   .mw-chart { position: relative; }
-  .mw-toggle-left { left: 246px !important; top: 6px !important; z-index: 40; }
-  .mw-toggle-left.shifted { left: 6px !important; }
+  .mw-toggle-left { left: calc(var(--mw-side-w, 250px) + 2px) !important; top: 6px !important; z-index: 40; }
+  .mw-toggle-left.shifted { left: 4px !important; }
 }
 
 .mw-in-title { font-size: 12px; font-weight: 700; color: var(--primary);
@@ -5500,6 +5500,14 @@ table#summary-table tbody td.col-name { z-index: 6; }
   cursor: col-resize; z-index: 20;
 }
 .mw-side-grip:hover { background: rgba(139,108,255,.25); }
+
+/* 侧边栏表格：显示单元格框 */
+.mw-flow-grid > * { border-right: 1px solid rgba(128,128,128,.16); }
+.mw-flow-grid > *:last-child { border-right: 0; }
+.mw-flow-cols.mw-flow-grid { border-top: 1px solid rgba(128,128,128,.22); border-bottom: 1px solid rgba(128,128,128,.28); }
+.mw-flow-cols.mw-flow-grid > * { padding: 3px 4px; }
+.mw-flow-row.mw-flow-grid { border-bottom: 1px solid rgba(128,128,128,.10); }
+.mw-flow-row.mw-flow-grid > * { padding: 3px 4px; }
 </style>
 </head>
 <body>
@@ -5711,7 +5719,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.83';
+const APP_VER = 'v10.84';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6984,6 +6992,25 @@ function mwDrawSvg(nodes, edges) {
 
   /* ---------- 给每笔流水分配槽位 ----------
      槽位按「分类 → 账户 → 流水」的顺序连续排布 */
+  /* 先算出每笔是「当天的第几笔」。这个序号和列表排序方向无关，正序倒序都不会变。 */
+  (function assignDayNo() {
+    var order = txs.map(function (x, i) { return i; });
+    order.sort(function (a, b) {
+      var da = String(txs[a].d), db = String(txs[b].d);
+      if (da !== db) return da < db ? -1 : 1;
+      var ra = state.transactions[txs[a].i] || {}, rb = state.transactions[txs[b].i] || {};
+      var ta = String(ra.at || ''), tb = String(rb.at || '');
+      if (ta !== tb) return ta < tb ? -1 : 1;
+      return a - b;
+    });
+    var dayCount = {};
+    order.forEach(function (i) {
+      var d = String(txs[i].d);
+      dayCount[d] = (dayCount[d] || 0) + 1;
+      txs[i].dayNo = dayCount[d];
+    });
+  })();
+
   var slots = [];            // { acc, cat, sub, txIdx, side }
   txs.forEach(function (x, i) {
     slots.push({ acc: x.f || null, cat: x.cf, sub: x.f ? subOf(x.f) : '', txIdx: i, side: 'f', empty: !x.f });
@@ -7117,9 +7144,10 @@ function mwDrawSvg(nodes, edges) {
     var dd = 'M ' + x1 + ' ' + y1 + ' A ' + R_OUT + ' ' + R_OUT + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2
       + ' L ' + x3 + ' ' + y3 + ' A ' + R_IN + ' ' + R_IN + ' 0 ' + large + ' 0 ' + x4 + ' ' + y4 + ' Z';
     var sel = (mwSelected === b.acc);
-    var dim = mwSelected && !sel;
+    // 只有「选中弧块」才压暗其它弧块；点线时不启用遮罩
+    var dim = mwSelected && !mwChainRoot && !sel;
     parts.push('<path d="' + dd + '" fill="' + colorOfAcc(b.acc) + '"'
-      + ' fill-opacity="' + (dim ? '0.3' : sel ? '1' : '0.92') + '"'
+      + ' fill-opacity="' + (dim ? '0.55' : '1') + '"'
       + ' stroke="#6b7280" stroke-width="0.6" stroke-opacity="0.55"'
       + ' class="mw-ring" data-node="' + mwEsc(b.acc) + '" style="cursor:pointer"/>');
   });
@@ -7128,13 +7156,14 @@ function mwDrawSvg(nodes, edges) {
      弧块够宽 → 文字直接从弧块外沿沿半径排出去；
      弧块太窄（放不下这串字）→ 画一个**尖锥形引线**把弧块和文字连起来，
      锥尖贴着弧块、锥底托住文字，文字退到更外面，不再挤在弧块上。 */
+  var prevVeryNarrow = false;
   blocks.forEach(function (b) {
     var span = b.a2 - b.a1;
     var mid = (b.a1 + b.a2) / 2;
     var theta = mid * 180 / Math.PI - 90;
     var upsideDown = (theta > 90 || theta < -90);
     if (upsideDown) theta += 180;
-    var dim = mwSelected && !(mwSelected === b.acc);
+    var dim = mwSelected && !mwChainRoot && !(mwSelected === b.acc);
     var lb = b.acc;
     var color = colorOfAcc(b.acc);
 
@@ -7165,8 +7194,11 @@ function mwDrawSvg(nodes, edges) {
         + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
     } else {
       // ② 放不下：锥形引线 + 文字外移
-      // 锥形尺寸统一：长 50、宽 10（不再随文字长度变化）
-      var CONE_LEN = 50;
+      /* 锥形默认长 50、宽 10。
+         若连续两个弧块都极窄（弧长 < 12），第二个加长到 120，把标签错开。 */
+      var veryNarrow = (arcLen < 12);
+      var CONE_LEN = (veryNarrow && prevVeryNarrow) ? 120 : 50;
+      prevVeryNarrow = veryNarrow;
       var rText = R_OUT + CONE_LEN;
       var halfAngle = 5 / Math.max(1, rText);   // 半宽 5px → 总宽 10px
 
@@ -7266,10 +7298,10 @@ function mwDrawSvg(nodes, edges) {
   flowRows.forEach(function (o) {
     var on = mwChainOn(o.i);
     var isRoot = (mwChainRoot === o.i);
-    // 日期列：YYMMDD + 当天第几笔（两位），例如 26080503
-    var dstr = String(o.x.d || '').replace(/[^0-9]/g, '');   // 20260805
+    // 日期列：YYMMDD + 当天第几笔（两位）
+    var dstr = String(o.x.d || '').replace(/[^0-9]/g, '');
     var ymd = dstr.length >= 8 ? dstr.slice(2, 8) : (dstr.length >= 6 ? dstr.slice(-6) : dstr.padStart(6, '0'));
-    var seq2 = String(o.x.seq != null ? o.x.seq : (o.x.i + 1)).padStart(2, '0').slice(-2);
+    var seq2 = String(o.x.dayNo || 1).padStart(2, '0').slice(-2);
     html += '<div class="mw-list-row mw-flow-row mw-flow-grid' + (on ? ' on' : '') + (isRoot ? ' root' : '')
       + '" data-tx="' + o.i + '">'
       + '<i class="mw-id">' + mwEsc(ymd + seq2) + '</i>'
