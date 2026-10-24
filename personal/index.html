@@ -5918,7 +5918,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.10';
+const APP_VER = 'v11.11';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7269,12 +7269,19 @@ function mwDrawSvg(nodes, edges) {
     return DEPTH_W[Math.min(d, DEPTH_W.length - 1)];
   }
 
-  /* ---------- 细粒度单位 ----------
-     总单位 = 流水数 × 2 + 分类数（分类数 = 1 时为 0） */
-  var nUnitsTx = txs.length * 2;
-  var nUnitsGap = groupList.length >= 2 ? groupList.length : 0;
-  var UNITS = nUnitsTx + nUnitsGap;
-  var unit = TAU / Math.max(1, UNITS);
+  /* ---------- 细粒度单位（角度制） ----------
+     一圈 360°，每个「统计分类」之间留固定 0.8° 的缝，
+     剩下的角度平均分给所有细粒度单位。
+     单位数 = 流水笔数 × 2（每笔在转出端、转入端各占一个单位）
+     单个单位角度 = (360 − 分类数 × 0.8) ÷ (笔数 × 2) */
+  var GAP_DEG = 0.8;                       // 分类间隙固定 0.8 度
+  var N_UNITS = txs.length * 2;            // 细粒度单位数
+  var availDeg = 360 - groupList.length * GAP_DEG;
+  if (availDeg < 60) availDeg = 60;        // 分类特别多时兜个底，避免单位角度为负
+  var unitDeg = availDeg / Math.max(1, N_UNITS);
+  var unit = unitDeg * Math.PI / 180;      // 单个单位对应的弧度
+  var gapRad = GAP_DEG * Math.PI / 180;    // 分类间隙对应的弧度
+  var UNITS = N_UNITS;                     // 供统计文案使用
 
   /* ---------- 给每笔流水分配槽位 ----------
      槽位按「分类 → 账户 → 流水」的顺序连续排布 */
@@ -7326,7 +7333,7 @@ function mwDrawSvg(nodes, edges) {
   var prevKey = null;
   slots.forEach(function (sl) {
     var k = keyOf(sl);
-    if (prevKey !== null && k !== prevKey) ang += unit;    // 跨分类：空 1 个细粒度单位
+    if (prevKey !== null && k !== prevKey) ang += gapRad;   // 跨分类：固定 0.8°
     sl.a1 = ang; sl.a2 = ang + unit; sl.mid = ang + unit / 2;
     ang += unit;
     prevKey = k;
@@ -7565,7 +7572,7 @@ function mwDrawSvg(nodes, edges) {
     + '  <button type="button" class="mw-clear-btn" id="mw-clear">清空</button>'
     + '</div>'
     + '<div class="mw-side-stat">' + txs.length + ' 笔 · ' + groupList.length + ' 类 · '
-    + Object.keys(accMeta).length + ' 账户 · ' + UNITS + ' 单位</div>';
+    + Object.keys(accMeta).length + ' 账户 · ' + UNITS + ' 单位 · ' + unitDeg.toFixed(2) + '°/单位</div>';
 
   /* 左栏 = 完整流水列表（每一笔都成对显示：转出 → 转入）。
      点任意一行 → 点亮「这一条 + 它的上游」。 */
