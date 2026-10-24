@@ -5668,7 +5668,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.69';
+const APP_VER = 'v10.70';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6021,7 +6021,25 @@ async function checkForUpdate() {
 
   // ② 顺手让 Service Worker 也更新一次
   try {
-    if ('serviceWorker' in navigator) {
+    /* 自愈：如果上一次 SW 缓存里存了非 200 的页面（早期版本会把 404 缓存下来），
+   这里主动把它清掉，避免「打开就 404」且用户无从下手。 */
+(function mwSelfHeal() {
+  try {
+    if (!('caches' in window)) return;
+    caches.keys().then(function (keys) {
+      keys.forEach(function (k) {
+        if (k.indexOf('ledger-') !== 0 && k.indexOf('mw-personal-') !== 0) return;
+        caches.open(k).then(function (c) {
+          c.match('./index.html').then(function (r) {
+            if (r && r.status !== 200) c.delete('./index.html');
+          });
+        });
+      });
+    });
+  } catch (e) {}
+})();
+
+if ('serviceWorker' in navigator) {
       const reg = await navigator.serviceWorker.getRegistration();
       if (reg) {
         await reg.update();
