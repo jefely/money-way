@@ -5668,7 +5668,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.71';
+const APP_VER = 'v10.72';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5986,11 +5986,26 @@ async function checkForUpdate() {
   const localVer = APP_VER;
   let remoteVer = null;
 
+  /* 版本探测走两条路，取「更大」的那个版本号：
+     ① sw.js 里的 CACHE 名（形如 mw-personal-v10.72，文件小、CDN 缓存窗口短）
+     ② index.html 里的 APP_VER（兜底）
+     只用 ① 或只用 ② 都可能被 GitHub Pages 的 CDN（max-age=600）喂回旧版，
+     于是出现「第一次点说已是最新、第二次点才更新」的怪现象。 */
+  const verNum = (v) => {
+    const m = String(v || '').match(/v?(\d+)\.(\d+)/);
+    return m ? Number(m[1]) * 1000 + Number(m[2]) : -1;
+  };
+  const pickBigger = (a, b) => (verNum(a) >= verNum(b) ? a : b);
+
   try {
-    const res = await fetch('index.html?t=' + Date.now(), { cache: 'no-store' });
-    const html = await res.text();
-    const m = html.match(/APP_VER\s*=\s*'([^']+)'/);
-    if (m) remoteVer = m[1];
+    const [swText, htmlText] = await Promise.all([
+      fetch('sw.js?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : '').catch(() => ''),
+      fetch('index.html?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : '').catch(() => '')
+    ]);
+    const mSw = swText.match(/mw-personal-(v[\d.]+)/);
+    const mHtml = htmlText.match(/APP_VER\s*=\s*'([^']+)'/);
+    if (mSw) remoteVer = mSw[1];
+    if (mHtml) remoteVer = remoteVer ? pickBigger(remoteVer, mHtml[1]) : mHtml[1];
   } catch (e) {
     toast('检查失败：网络不通（本地版本 ' + localVer + '）', { type: 'error' });
     return { updated: false, message: 'network' };
@@ -6001,7 +6016,7 @@ async function checkForUpdate() {
     return { updated: false, message: 'no-version' };
   }
 
-  if (remoteVer === localVer) {
+  if (verNum(remoteVer) <= verNum(localVer)) {
     toast('已是最新版本 ' + localVer);
     return { updated: false, message: '已是最新版本 ' + localVer, remote: remoteVer };
   }
@@ -14857,12 +14872,12 @@ applyTheme();
 try { applyLayout(); } catch (e) {}
 try { document.getElementById('footer').dataset.ver = APP_VER; } catch (e) {}
 
-/* 自愈：早期版本的 SW 会把非 200 的响应（包括 404）缓存成页面，
-   一旦发生就「打开必 404」且用户无从下手。这里在启动时主动把坏缓存清掉。 */
-(function mwSelfHeal() {
+/* 自愈：早期版本的 SW 会把非 200 的响应（包括 404）缓存成页面。
+   放到首屏渲染之后再跑 —— 之前写成启动时同步执行，会在低端机上
+   和白屏/密码框竞争主线程，表现为「卡很久才出密码框」。 */
+function mwSelfHeal() {
   try {
     if (!('caches' in window)) return;
-    var bad = [];
     caches.keys().then(function (keys) {
       keys.forEach(function (k) {
         if (k.indexOf('ledger-') !== 0 && k.indexOf('mw-personal-') !== 0) return;
@@ -14874,10 +14889,16 @@ try { document.getElementById('footer').dataset.ver = APP_VER; } catch (e) {}
       });
     }).catch(function () {});
   } catch (e) {}
-})();
+}
 
 // —— 启动：先过锁，再渲染 ——
 bootWithLock();
+
+// 空闲时再做缓存自愈，不抢首屏
+try {
+  if ('requestIdleCallback' in window) requestIdleCallback(mwSelfHeal, { timeout: 4000 });
+  else setTimeout(mwSelfHeal, 3000);
+} catch (e) { setTimeout(mwSelfHeal, 3000); }
 
 // 启动后静默比对远端 SW 版本号：有新版就提示去「校验」页更新（不自动更新）
 setTimeout(async () => {
