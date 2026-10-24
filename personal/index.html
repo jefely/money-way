@@ -5542,7 +5542,7 @@ th.col-range { text-align: left; }
   font-weight: 400; text-align: right; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap; padding-right: 3px;
 }
-.mw-flow-filter .mw-note { text-align: right; }
+.mw-flow-filter .mw-note { text-align: left; }
 
 /* 路径追踪表：5 列 */
 .mw-flow-grid .mw-date,
@@ -5557,7 +5557,7 @@ th.col-range { text-align: left; }
 .mw-flow-grid .mw-cfrom { text-align: right; }
 .mw-flow-grid .mw-cto { text-align: right; }
 .mw-flow-grid .mw-amt { text-align: right; }
-.mw-flow-grid .mw-note { text-align: right; font-weight: 400; color: var(--text-muted); }
+.mw-flow-grid .mw-note { text-align: left; font-weight: 400; color: var(--text-muted); padding-left: 4px; }
 
 /* 筛选行：一排输入框，文字随内容长短自动缩放 */
 .mw-flow-filter .mw-qf {
@@ -5580,6 +5580,7 @@ th.col-range { text-align: left; }
 }
 .mw-flow-cols.mw-flow-grid > * { text-align: center !important; padding: 0 3px !important; }
 #mw-flow-head > *, #mw-flow-head > .mw-date, #mw-flow-head > .mw-cfrom, #mw-flow-head > .mw-cto,
+#mw-flow-head > .mw-note { text-align: center !important; }
 #mw-flow-head > .mw-amt, #mw-flow-head > .mw-note {
   text-align: center !important;
 }
@@ -5620,6 +5621,7 @@ th.col-range { text-align: left; }
 .mw-flow-filter.mw-flow-grid .mw-qf::placeholder { color: var(--text-muted); opacity: .55; }
 /* 日期框：内容靠右（与数据行日期列对齐） */
 #mw-qf-date { text-align: right !important; font-size: 9.5px !important; letter-spacing: -.4px; }
+#mw-qf-note { text-align: left !important; }
 [data-theme="dark"] .mw-flow-filter.mw-flow-grid { background-color: #141414 !important; }
 [data-theme="dark"] .mw-flow-filter.mw-flow-grid .mw-qf { background-color: #1a1626; border-color: #2a2a2a; }
 
@@ -5842,7 +5844,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.97';
+const APP_VER = 'v10.98';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
