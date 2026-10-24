@@ -5668,7 +5668,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.70';
+const APP_VER = 'v10.71';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6006,11 +6006,7 @@ async function checkForUpdate() {
     return { updated: false, message: '已是最新版本 ' + localVer, remote: remoteVer };
   }
 
-  // 远端和本地版本号不同 → 真的要更新
-  const ok = confirm('发现新版本 ' + remoteVer + '\n当前版本 ' + localVer + '\n\n现在更新？'
-    + '\n\n更新会清掉离线缓存并重新载入，账本数据不受影响。');
-  if (!ok) return { updated: false, message: '已取消', remote: remoteVer };
-
+  // 远端和本地版本号不同 → 直接更新（不再弹确认框，用户明确要求去掉）
   toast('正在更新到 ' + remoteVer + '…', { duration: 5000 });
 
   // ① 清掉所有 Cache Storage（旧 HTML / 旧资源都在里面）
@@ -6021,25 +6017,7 @@ async function checkForUpdate() {
 
   // ② 顺手让 Service Worker 也更新一次
   try {
-    /* 自愈：如果上一次 SW 缓存里存了非 200 的页面（早期版本会把 404 缓存下来），
-   这里主动把它清掉，避免「打开就 404」且用户无从下手。 */
-(function mwSelfHeal() {
-  try {
-    if (!('caches' in window)) return;
-    caches.keys().then(function (keys) {
-      keys.forEach(function (k) {
-        if (k.indexOf('ledger-') !== 0 && k.indexOf('mw-personal-') !== 0) return;
-        caches.open(k).then(function (c) {
-          c.match('./index.html').then(function (r) {
-            if (r && r.status !== 200) c.delete('./index.html');
-          });
-        });
-      });
-    });
-  } catch (e) {}
-})();
-
-if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator) {
       const reg = await navigator.serviceWorker.getRegistration();
       if (reg) {
         await reg.update();
@@ -14879,6 +14857,25 @@ applyTheme();
 try { applyLayout(); } catch (e) {}
 try { document.getElementById('footer').dataset.ver = APP_VER; } catch (e) {}
 
+/* 自愈：早期版本的 SW 会把非 200 的响应（包括 404）缓存成页面，
+   一旦发生就「打开必 404」且用户无从下手。这里在启动时主动把坏缓存清掉。 */
+(function mwSelfHeal() {
+  try {
+    if (!('caches' in window)) return;
+    var bad = [];
+    caches.keys().then(function (keys) {
+      keys.forEach(function (k) {
+        if (k.indexOf('ledger-') !== 0 && k.indexOf('mw-personal-') !== 0) return;
+        caches.open(k).then(function (c) {
+          c.match('./index.html').then(function (r) {
+            if (r && r.status !== 200) c.delete('./index.html');
+          });
+        }).catch(function () {});
+      });
+    }).catch(function () {});
+  } catch (e) {}
+})();
+
 // —— 启动：先过锁，再渲染 ——
 bootWithLock();
 
@@ -14895,7 +14892,8 @@ setTimeout(async () => {
     const reg = await navigator.serviceWorker.getRegistration();
     const localCache = await (await caches.keys()).join(',');
     if (remote && localCache && !localCache.includes(remote)) {
-      toast('有新版本可用：到「校验」页点「检查更新」', { duration: 6000 });
+      // 静默记下即可，不打扰用户。想更新时到「校验」页点按钮。
+      try { sessionStorage.setItem('nt_has_update', remote); } catch (e) {}
     }
   } catch (e) {}
 }, 4000);
