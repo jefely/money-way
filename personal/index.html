@@ -5380,9 +5380,11 @@ table#summary-table tbody td.col-name { z-index: 6; }
   height: calc(100vh - 96px); min-height: 0; overflow: hidden; position: relative; }
 .mw-side-left {
   flex: 0 0 250px; width: 250px; box-sizing: border-box;
-  overflow: auto; padding: 8px 10px 14px;
+  align-self: stretch;
+  overflow-y: auto; overflow-x: hidden;
+  padding: 8px 10px 20px;
   background: var(--bg-main); border-right: 1px solid var(--border-light);
-  height: 100%;
+  height: auto; min-height: 100%;
 }
 .mw-side-left.collapsed { display: none; }
 .mw-chart {
@@ -5413,7 +5415,8 @@ table#summary-table tbody td.col-name { z-index: 6; }
     position: absolute !important;
     left: 0; top: 0; bottom: 0;
     width: 240px !important; flex: 0 0 240px !important;
-    height: 100% !important;
+    height: 100% !important; min-height: 0 !important;
+    max-height: 100% !important;
     z-index: 30;
     box-shadow: 2px 0 14px rgba(0,0,0,.12);
     background: var(--bg-main);
@@ -5422,6 +5425,17 @@ table#summary-table tbody td.col-name { z-index: 6; }
   .mw-toggle-left { left: 246px !important; top: 6px !important; z-index: 40; }
   .mw-toggle-left.shifted { left: 6px !important; }
 }
+
+.mw-in-title { font-size: 12px; font-weight: 700; color: var(--primary);
+  margin: 10px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-light);
+  display: flex; justify-content: space-between; align-items: baseline; }
+.mw-in-title span { font-weight: 400; color: var(--text-muted); font-size: 11px; }
+.mw-head-meta { font-weight: 400; color: var(--text-muted); font-size: 10.5px; }
+.mw-in-from { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mw-in-row { font-size: 12px; padding: 3px 5px; border-radius: 5px; cursor: pointer; }
+.mw-in-row:hover { background: var(--bg-gray); }
+.mw-in-row.on { background: rgba(139,108,255,.2); font-weight: 700; }
+.mw-list-empty { font-size: 12px; color: var(--text-muted); padding: 10px 0; }
 </style>
 </head>
 <body>
@@ -5633,7 +5647,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.65';
+const APP_VER = 'v10.66';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7074,33 +7088,50 @@ function mwDrawSvg(nodes, edges) {
       + ' <button type="button" class="ghost" id="mw-clear">清除</button></div>';
   }
 
-  gkeys.forEach(function (k) {
-    var g = groups2[k];
-    var color = groupColor[k] || '#cbd5e1';
+  /* 左栏主体 = 「转入列表」：按转入账户分组，每组下列出每一笔转入。
+     点其中一条 → 该笔所在的资金链路高亮（从来源一路倒推 + 顺流到去处）。
+     选中某个账户时，只保留那个账户的转入列表。 */
+  var byToAcc = {};
+  txs.forEach(function (x, i) {
+    if (!x.to) return;                       // 没有转入端的（单边流水）不进转入列表
+    (byToAcc[x.to] = byToAcc[x.to] || []).push({ x: x, i: i });
+  });
+
+  var toAccNames = Object.keys(byToAcc);
+  if (mwSelected) toAccNames = toAccNames.filter(function (n) { return n === mwSelected; });
+
+  // 分组顺序跟环上一致：按 (类型, 分类) 排，再按笔数降序
+  toAccNames.sort(function (A, B) {
+    var aA = accMeta[A], aB = accMeta[B];
+    var ia = CAT_ORDER.indexOf(aA && aA.cat), ib = CAT_ORDER.indexOf(aB && aB.cat);
+    if (ia !== ib) return ia - ib;
+    return byToAcc[B].length - byToAcc[A].length;
+  });
+
+  var totalIn = 0;
+  toAccNames.forEach(function (n) { totalIn += byToAcc[n].length; });
+  html += '<div class="mw-in-title">转入列表 <span>' + totalIn + ' 笔</span></div>';
+
+  toAccNames.forEach(function (accName) {
+    var list = byToAcc[accName].slice().sort(function (A, B) { return A.x.d < B.x.d ? 1 : -1; });
+    var cat = accMeta[accName] ? accMeta[accName].cat : '';
+    var sub = accMeta[accName] ? accMeta[accName].sub : '';
+    var color = colorOfAcc(accName);
     html += '<div class="mw-list-sec">';
     html += '<div class="mw-list-head"><i class="mw-dot" style="background:' + color + '"></i>'
-      + mwEsc(g.cat) + ' · ' + mwEsc(g.sub) + '</div>';
-    g.list.sort(function (A, B) { return B.n - A.n; }).forEach(function (a) {
-      html += '<div class="mw-list-row' + (mwSelected === a.name ? ' on' : '') + '" data-acc="' + mwEsc(a.name) + '">'
-        + '<i class="mw-dot" style="background:' + color + '"></i>'
-        + '<span>' + mwEsc(a.name) + '</span>'
-        + '<b>' + a.n + ' 笔</b></div>';
+      + mwEsc(accName) + ' <span class="mw-head-meta">' + mwEsc(sub || cat) + ' · ' + list.length + ' 笔</span></div>';
+    list.forEach(function (o) {
+      var on = mwChainOn(o.i);
+      html += '<div class="mw-list-row mw-in-row' + (on ? ' on' : '') + '" data-tx="' + o.i + '">'
+        + '<span class="mw-in-from">' + mwEsc(o.x.f || '（空）') + '</span>'
+        + '<b>¥' + o.x.amt.toFixed(0) + '</b>'
+        + '<i class="mw-pct">' + o.x.d.slice(5) + '</i></div>';
     });
     html += '</div>';
   });
 
-  // 选中账户时的「转入列表」（用于倒推链路）
-  if (mwSelected) {
-    var ins = txs.map(function (x, i) { return { x: x, i: i }; })
-      .filter(function (o) { return o.x.to === mwSelected; })
-      .sort(function (A, B) { return (B.x.d > A.x.d) ? 1 : -1; });
-    html += '<div class="mw-list-sec"><div class="mw-list-head">转入 ' + mwSelected + '（' + ins.length + '）</div>';
-    ins.forEach(function (o) {
-      html += '<div class="mw-list-row mw-in-row' + (mwChainOn(o.i) ? ' on' : '') + '" data-tx="' + o.i + '">'
-        + '<span>' + mwEsc(o.x.f || '（空）') + '</span>'
-        + '<b>¥' + o.x.amt.toFixed(0) + '</b><i class="mw-pct">' + o.x.d.slice(5) + '</i></div>';
-    });
-    html += '</div>';
+  if (!totalIn) {
+    html += '<div class="mw-list-empty">这个区间里没有转入记录</div>';
   }
 
   sideBox.innerHTML = html;
