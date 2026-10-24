@@ -5683,7 +5683,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.77';
+const APP_VER = 'v10.78';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7080,42 +7080,78 @@ function mwDrawSvg(nodes, edges) {
       + ' class="mw-ring" data-node="' + mwEsc(b.acc) + '" style="cursor:pointer"/>');
   });
 
-  /* ---------- 文字：向外辐射 + 字号随弧长缩放 ---------- */
+  /* ---------- 文字：向外辐射 ----------
+     弧块够宽 → 文字直接从弧块外沿沿半径排出去；
+     弧块太窄（放不下这串字）→ 画一个**尖锥形引线**把弧块和文字连起来，
+     锥尖贴着弧块、锥底托住文字，文字退到更外面，不再挤在弧块上。 */
   blocks.forEach(function (b) {
     var span = b.a2 - b.a1;
     var mid = (b.a1 + b.a2) / 2;
-    var deg = mid * 180 / Math.PI;
-    var flip = (mid > Math.PI / 2 && mid < Math.PI * 1.5);
-    var dim = mwSelected && !(mwSelected === b.acc);
-    var lb = b.acc;
-
-    // 字号受两个约束：
-    //   ① 径向向外排，字高不能超过环厚（否则压到隔壁弧块）
-    //   ② 文字总长不能超过弧块弧长（否则压到相邻账户）
-    // 两个约束里取小的，所以块越大字越大、名字越长字越小。
-    var arcLen = span * R_OUT;
-    var byArc = arcLen / Math.max(1, lb.length) * 1.05;
-    var byThick = THICK * 0.58;
-    var fs = Math.max(9, Math.min(24, byArc, byThick));   // 最小 9：低于 9 在手机上就看不清了
-    var rStart = R_OUT + 8;
-
-    // 锚点必须落在「弧块中点所在的那条半径」上：
-    //   pt() 的角度从 12 点起算，而 SVG rotate 从 3 点起算，所以文字旋转角 = mid - 90°。
-    //   之前错写成 rotate(mid)，导致文字整体偏了 90°。
-    var rp = pt(rStart, mid);
     var theta = mid * 180 / Math.PI - 90;
     var upsideDown = (theta > 90 || theta < -90);
     if (upsideDown) theta += 180;
+    var dim = mwSelected && !(mwSelected === b.acc);
+    var lb = b.acc;
+    var color = colorOfAcc(b.acc);
 
-    parts.push('<text x="' + rp[0].toFixed(1) + '"'
-      + ' y="' + rp[1].toFixed(1) + '"'
-      + ' text-anchor="' + (upsideDown ? 'end' : 'start') + '"'
-      + ' dominant-baseline="middle"'
-      + ' font-size="' + fs.toFixed(1) + '" font-weight="600"'
-      + ' fill="var(--mw-text)"'
-      + ' fill-opacity="' + (dim ? '0.62' : '1') + '"'
-      + ' transform="rotate(' + theta.toFixed(1) + ' ' + rp[0].toFixed(1) + ' ' + rp[1].toFixed(1) + ')"'
-      + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
+    // 字号：受环厚与弧块弧长双重约束，下限 12
+    var arcLen = span * R_OUT;
+    var byArc = arcLen / Math.max(1, lb.length) * 1.05;
+    var byThick = THICK * 0.58;
+    var fs = Math.max(12, Math.min(24, byArc, byThick));
+
+    // 这串字大概要多宽（中文按 1em 估，西文按 0.55em）
+    var textW = 0;
+    for (var ci = 0; ci < lb.length; ci++) {
+      textW += (lb.charCodeAt(ci) > 255 ? 1.0 : 0.55) * fs;
+    }
+    var crowded = (arcLen < textW * 0.92);   // 弧块放不下 → 需要锥形
+
+    if (!crowded) {
+      // ① 放得下：文字直接贴弧块外沿
+      var rStart1 = R_OUT + 8;
+      var rp1 = pt(rStart1, mid);
+      parts.push('<text x="' + rp1[0].toFixed(1) + '" y="' + rp1[1].toFixed(1) + '"'
+        + ' text-anchor="' + (upsideDown ? 'end' : 'start') + '"'
+        + ' dominant-baseline="middle"'
+        + ' font-size="' + fs.toFixed(1) + '" font-weight="600"'
+        + ' fill="var(--mw-text)" fill-opacity="' + (dim ? '0.62' : '1') + '"'
+        + ' transform="rotate(' + theta.toFixed(1) + ' ' + rp1[0].toFixed(1) + ' ' + rp1[1].toFixed(1) + ')"'
+        + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
+    } else {
+      // ② 放不下：锥形引线 + 文字外移
+      var CONE_LEN = Math.min(120, 46 + textW * 0.35);
+      var rText = R_OUT + CONE_LEN;
+
+      // 锥底的半角：让锥底宽度刚好托住文字
+      var halfAngle = Math.min(0.22, (textW * 0.62) / Math.max(1, rText));
+
+      // 锥尖：弧块外沿的两个端点
+      var tipA = pt(R_OUT, b.a1);
+      var tipB = pt(R_OUT, b.a2);
+      // 锥底：文字所在半径上、以 mid 为中心对称的两点
+      var baseA = pt(rText, mid - halfAngle);
+      var baseB = pt(rText, mid + halfAngle);
+
+      // 锥形（梯形/三角形）
+      parts.push('<path d="M ' + tipA[0].toFixed(1) + ' ' + tipA[1].toFixed(1)
+        + ' L ' + baseA[0].toFixed(1) + ' ' + baseA[1].toFixed(1)
+        + ' L ' + baseB[0].toFixed(1) + ' ' + baseB[1].toFixed(1)
+        + ' L ' + tipB[0].toFixed(1) + ' ' + tipB[1].toFixed(1) + ' Z"'
+        + ' fill="' + color + '" fill-opacity="' + (dim ? '0.16' : '0.34') + '"'
+        + ' stroke="' + color + '" stroke-opacity="' + (dim ? '0.2' : '0.5') + '" stroke-width="0.6"'
+        + ' style="pointer-events:none"/>');
+
+      // 文字放在锥底外侧
+      var rp2 = pt(rText + 4, mid);
+      parts.push('<text x="' + rp2[0].toFixed(1) + '" y="' + rp2[1].toFixed(1) + '"'
+        + ' text-anchor="' + (upsideDown ? 'end' : 'start') + '"'
+        + ' dominant-baseline="middle"'
+        + ' font-size="' + fs.toFixed(1) + '" font-weight="600"'
+        + ' fill="var(--mw-text)" fill-opacity="' + (dim ? '0.62' : '1') + '"'
+        + ' transform="rotate(' + theta.toFixed(1) + ' ' + rp2[0].toFixed(1) + ' ' + rp2[1].toFixed(1) + ')"'
+        + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
+    }
   });
 
   parts.push('</svg>');
