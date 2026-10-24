@@ -5778,7 +5778,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.91';
+const APP_VER = 'v10.92';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6991,11 +6991,18 @@ function mwDrawSvg(nodes, edges) {
     // 单边流水：只填了一侧，另一侧留空接口
     var cf = f ? mwCatOf(f) : '';
     var ct = to ? mwCatOf(to) : '';
-    // 套用路径页自己的筛选条件（照搬查询页：日期 / 转出 / 转入 / 金额）
+    // 套用路径页自己的筛选条件（和查询页同一套：日期区间 / 转出 / 转入 / 金额 / 备注）
     if (mwFilter.date) {
-      var qd = String(mwFilter.date).replace(/[^0-9]/g, '');
-      var dd8 = d.replace(/[^0-9]/g, '');
-      if (qd && dd8.indexOf(qd) < 0 && dd8.slice(2).indexOf(qd) < 0) continue;
+      var rg = (typeof qParseRange === 'function') ? qParseRange(mwFilter.date) : null;
+      if (rg) {
+        if (rg.from && d < rg.from) continue;
+        if (rg.to && d > rg.to) continue;
+      } else {
+        // 解析不了就退回「子串包含」的模糊匹配
+        var qd = String(mwFilter.date).replace(/[^0-9]/g, '');
+        var dd8 = d.replace(/[^0-9]/g, '');
+        if (qd && dd8.indexOf(qd) < 0 && dd8.slice(2).indexOf(qd) < 0) continue;
+      }
     }
     if (mwFilter.from && String(f).indexOf(mwFilter.from) < 0) continue;
     if (mwFilter.to && String(to).indexOf(mwFilter.to) < 0) continue;
@@ -7481,7 +7488,7 @@ function mwDrawSvg(nodes, edges) {
       // 文字随内容长度自动缩放（长内容缩小字号，短内容恢复）
       var fit = function () {
         var n = el.value.length;
-        el.style.fontSize = n <= 6 ? '' : Math.max(8, 11 - (n - 6) * 0.32).toFixed(1) + 'px';
+        el.style.fontSize = n <= 7 ? '11px' : Math.max(8, 11 - (n - 7) * 0.35).toFixed(1) + 'px';
       };
       fit();
       el.addEventListener('input', function () {
