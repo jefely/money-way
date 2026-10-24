@@ -5679,6 +5679,32 @@ th.col-range { text-align: left; }
 /* 左栏：彻底去掉外轮廓（那条黑线是 3px 的 outline） */
 .mw-side-left { outline: none !important; }
 .mw-side-left:focus, .mw-side-left:focus-visible { outline: none !important; }
+
+/* 数据行：inline text-align 已指定对齐方向，这里只保证每格撑满整列 */
+.mw-flow-row.mw-flow-grid > .mw-date,
+.mw-flow-row.mw-flow-grid > .mw-cfrom,
+.mw-flow-row.mw-flow-grid > .mw-cto,
+.mw-flow-row.mw-flow-grid > .mw-amt,
+.mw-flow-row.mw-flow-grid > .mw-note {
+  justify-self: stretch !important;
+  align-self: stretch;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 4px;
+  line-height: 20px;
+}
+
+/* 压缩：统计行与筛选行的上下间距 */
+.mw-side-stat { padding: 0 0 4px !important; margin-bottom: 4px !important; }
+.mw-flow-title { padding: 2px 2px 2px !important; }
+.mw-side-frozen { padding-bottom: 1px !important; }
+.mw-flow-filter.mw-flow-grid { padding: 2px 0 !important; margin-top: 0 !important; }
+.mw-flow-cols.mw-flow-grid { padding: 3px 0 !important; }
+.mw-flow-row.mw-flow-grid { padding: 2px 0 !important; }
 </style>
 </head>
 <body>
@@ -5890,7 +5916,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.02';
+const APP_VER = 'v11.03';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7507,11 +7533,11 @@ function mwDrawSvg(nodes, edges) {
     var noteTxt = (state.transactions[o.x.i] || {}).note || '';
     html += '<div class="mw-list-row mw-flow-row mw-flow-grid' + (on ? ' on' : '') + (isRoot ? ' root' : '')
       + '" data-tx="' + o.i + '">'
-      + '<span class="mw-date">' + mwEsc(ymd + seq2) + '</span>'
-      + '<span class="mw-cfrom">' + mwEsc(o.x.f || '—') + '</span>'
-      + '<span class="mw-cto">' + mwEsc(o.x.to || '—') + '</span>'
-      + '<b class="mw-amt">' + o.x.amt.toFixed(0) + '</b>'
-      + '<b class="mw-note">' + mwEsc(noteTxt) + '</b></div>';
+      + '<span class="mw-date" style="text-align:right">' + mwEsc(ymd + seq2) + '</span>'
+      + '<span class="mw-cfrom" style="text-align:right">' + mwEsc(o.x.f || '—') + '</span>'
+      + '<span class="mw-cto" style="text-align:right">' + mwEsc(o.x.to || '—') + '</span>'
+      + '<b class="mw-amt" style="text-align:right">' + o.x.amt.toFixed(0) + '</b>'
+      + '<b class="mw-note" style="text-align:left">' + mwEsc(noteTxt) + '</b></div>';
   });
 
   if (!flowRows.length) {
