@@ -5474,7 +5474,7 @@ table#summary-table tbody td.col-name { z-index: 6; }
 /* 左栏表格化：ID 左、账本居中、金额靠右；列宽可拖动调整 */
 .mw-flow-grid {
   display: grid;
-  grid-template-columns: var(--mw-col-date, 62px) var(--mw-col-from, 1fr) var(--mw-col-to, 1fr) var(--mw-col-amt, 54px) var(--mw-col-note, 1fr);
+  grid-template-columns: var(--mw-col-date, 78px) var(--mw-col-from, 1fr) var(--mw-col-to, 1fr) var(--mw-col-amt, 56px) var(--mw-col-note, 1fr);
   align-items: center;
   column-gap: 0;
 }
@@ -5567,6 +5567,52 @@ th.col-range { text-align: left; }
 }
 .mw-flow-filter .mw-qf:focus { border-color: var(--primary); background: rgba(139,108,255,.08); }
 .mw-flow-filter .mw-qf::placeholder { color: var(--text-muted); opacity: .55; }
+
+/* 路径追踪：列标行 */
+.mw-flow-cols.mw-flow-grid {
+  text-align: center; font-weight: 700; color: var(--text-main);
+  background: var(--bg-gray);
+  border-bottom: 1px solid var(--border);
+  padding: 4px 0;
+}
+.mw-flow-cols.mw-flow-grid > * { text-align: center !important; padding: 0 3px !important; }
+
+/* 数据行：沿用流水表的斑马纹 + 单元格边框 */
+.mw-flow-row.mw-flow-grid {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-main);
+}
+.mw-flow-row.mw-flow-grid > * {
+  border-right: 1px solid var(--border-light);
+  padding: 0 3px !important;
+}
+.mw-flow-row.mw-flow-grid > *:last-child { border-right: 0; }
+.mw-flow-row.mw-flow-grid:nth-child(even) { background: var(--bg-gray-light); }
+.mw-flow-row.mw-flow-grid:hover { background: #f3f1fb; }
+.mw-flow-row.mw-flow-grid.on { background: rgba(139,108,255,.14); }
+.mw-flow-row.mw-flow-grid.root { background: rgba(139,108,255,.3); font-weight: 700; box-shadow: inset 2px 0 0 var(--primary); }
+
+/* 深色主题：斑马纹与边框跟流水表一致 */
+[data-theme="dark"] .mw-flow-row.mw-flow-grid:nth-child(even) { background-color: #121212 !important; }
+[data-theme="dark"] .mw-flow-cols.mw-flow-grid { background-color: #141414 !important; }
+[data-theme="dark"] .mw-flow-row.mw-flow-grid > * { border-right-color: #2a2a2a; }
+[data-theme="dark"] .mw-flow-row.mw-flow-grid { border-bottom-color: #2a2a2a; }
+[data-theme="dark"] .mw-flow-row.mw-flow-grid:hover { background-color: #1a1626 !important; }
+
+/* 筛选行：与表头列宽严格一致（同样的 padding / box-sizing） */
+.mw-flow-filter.mw-flow-grid { padding: 3px 0; background: var(--bg-gray-light); }
+.mw-flow-filter.mw-flow-grid .mw-qf {
+  width: 100%; box-sizing: border-box; height: 22px;
+  margin: 0; padding: 0 3px;
+  text-align: center; border: 1px solid var(--border); border-radius: 3px;
+  background: var(--bg-main); color: inherit; outline: none;
+  font-size: 11px; letter-spacing: -.2px;
+}
+.mw-flow-filter.mw-flow-grid .mw-qf:focus { border-color: var(--primary); background: #f3f1fb; }
+.mw-flow-filter.mw-flow-grid .mw-qf::placeholder { color: var(--text-muted); opacity: .55; }
+[data-theme="dark"] .mw-flow-filter.mw-flow-grid { background-color: #141414 !important; }
+[data-theme="dark"] .mw-flow-filter.mw-flow-grid .mw-qf { background-color: #1a1626; border-color: #2a2a2a; }
 </style>
 </head>
 <body>
@@ -5778,7 +5824,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.92';
+const APP_VER = 'v10.93';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7358,8 +7404,7 @@ function mwDrawSvg(nodes, edges) {
     + '  <button type="button" class="mw-clear-btn" id="mw-clear">清空</button>'
     + '</div>'
     + '<div class="mw-side-stat">' + txs.length + ' 笔 · ' + groupList.length + ' 类 · '
-    + Object.keys(accMeta).length + ' 账户 · ' + UNITS + ' 单位</div>'
-    + '</div>';   // ← 冻结区到此结束，下面（查询表）随页面滚动
+    + Object.keys(accMeta).length + ' 账户 · ' + UNITS + ' 单位</div>';
 
   /* 左栏 = 完整流水列表（每一笔都成对显示：转出 → 转入）。
      点任意一行 → 点亮「这一条 + 它的上游」。 */
@@ -7383,7 +7428,8 @@ function mwDrawSvg(nodes, edges) {
     + '<span class="mw-cfrom mw-col-h" data-col="from">转出</span>'
     + '<span class="mw-cto mw-col-h" data-col="to">转入</span>'
     + '<b class="mw-amt mw-col-h" data-col="amt">金额</b>'
-    + '<b class="mw-note">备注</b></div>';
+    + '<b class="mw-note mw-col-h" data-col="note">备注</b></div>'
+    + '</div>';   // ← 冻结区到此结束（标题 + 统计 + 筛选行 + 列标行 全部钉住），下面是滚动区
 
   flowRows.forEach(function (o) {
     var on = mwChainOn(o.i);
@@ -7515,17 +7561,20 @@ function mwDrawSvg(nodes, edges) {
 
   /* ---------- 列宽拖动 ---------- */
   (function initMwColResize() {
-    var COLS = { from: ['--mw-col-from', '1fr'], to: ['--mw-col-to', '1fr'], amt: ['--mw-col-amt', '64px'] };
+    var COLS = { date: 1, from: 1, to: 1, amt: 1, note: 1 };
     var saved = null;
     try { saved = JSON.parse(localStorage.getItem('mw_flow_colw') || 'null'); } catch (e) {}
-    var widths = saved || { from: 0, to: 0, amt: 64 };
+    var widths = saved || { date: 78, from: 0, to: 0, amt: 56, note: 0 };
+    if (widths.date == null) widths.date = 78;
     // 注意：变量必须设在 **容器** 上，因为每一行都是独立的 .mw-flow-grid，
     // 只给表头设变量的话，下面每一行都读不到 —— 这就是「只有标题栏能调」的原因。
     var applyW = function () {
       var host = document.getElementById('mw-side-wrap') || sideBox;
+      host.style.setProperty('--mw-col-date', (widths.date || 78) + 'px');
       host.style.setProperty('--mw-col-from', widths.from > 0 ? widths.from + 'px' : '1fr');
       host.style.setProperty('--mw-col-to', widths.to > 0 ? widths.to + 'px' : '1fr');
-      host.style.setProperty('--mw-col-amt', widths.amt + 'px');
+      host.style.setProperty('--mw-col-amt', (widths.amt || 56) + 'px');
+      host.style.setProperty('--mw-col-note', widths.note > 0 ? widths.note + 'px' : '1fr');
     };
     applyW();
 
@@ -7533,7 +7582,7 @@ function mwDrawSvg(nodes, edges) {
     if (!head) return;
     head.querySelectorAll('.mw-col-h').forEach(function (h) {
       var key = h.getAttribute('data-col');
-      // 金额列也可以拖（它是右边界，方向相反）
+      if (!(key in COLS)) return;
       var invert = (key === 'amt');
       h.addEventListener('pointerdown', function (ev) {
         ev.preventDefault(); ev.stopPropagation();
