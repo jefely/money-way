@@ -5615,7 +5615,9 @@ th.col-range { text-align: left; }
   justify-self: stretch;
   width: 100%; box-sizing: border-box; height: 22px;
   margin: 0; padding: 0 3px;
-  text-align: center; border: 1px solid var(--border); border-radius: 3px;
+  text-align: center; border-radius: 4px;
+  border-width: 1px !important; border-style: solid !important;
+  border-color: var(--border) !important;
   background: var(--bg-main); color: inherit; outline: none;
   font-size: 11px; letter-spacing: -.2px;
 }
@@ -5625,7 +5627,7 @@ th.col-range { text-align: left; }
 #mw-qf-date { text-align: right !important; font-size: 9.5px !important; letter-spacing: -.4px; }
 #mw-qf-note { text-align: left !important; }
 [data-theme="dark"] .mw-flow-filter.mw-flow-grid { background-color: #141414 !important; }
-[data-theme="dark"] .mw-flow-filter.mw-flow-grid .mw-qf { background-color: #1e1a2e; border-color: #5b5570 !important; }
+[data-theme="dark"] .mw-flow-filter.mw-flow-grid .mw-qf { background-color: #1e1a2e !important; border-color: #6b6580 !important; }
 
 /* 路径左栏滚动条：细、无边框，去掉左侧那条黑线 */
 /* 滚动条：滑块和轨道都用背景色融合，杜绝旁边那条深色竖线 */
@@ -5916,7 +5918,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.08';
+const APP_VER = 'v11.09';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
