@@ -5703,7 +5703,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.80';
+const APP_VER = 'v10.81';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7071,16 +7071,27 @@ function mwDrawSvg(nodes, edges) {
     //   链路内的上游          中等
     //   链路外                细而淡
     // 没选中任何东西时，所有线统一基础粗细。
-    var layer = 0;                       // 0 = 未选中 / 链路外
-    if (hotTxs) layer = (mwChainRoot === i) ? 2 : 0;   // 只有「点中的那一条」是 2
+    /* 三种状态，四个显示档：
+         ① 什么都没选                 → 全部 W_MID(2.4)
+         ② 选中了，且是「点中的那一条」  → W_HOT(4)    ← 只有一条
+         ③ 选中了，且与选中项相关        → W_MID(2.4)  ← 点弧块时=所有触及该账户的线
+         ④ 选中了，但无关               → W_THIN(1.2)
+       之前点弧块时 mwChainRoot 为 null，②永不成立、③又没实现，
+       结果全部掉到 ④，看起来「点了没反应」。 */
+    var layer = 0;
+    if (hotTxs) {
+      if (mwChainRoot === i) layer = 2;
+      else if (hotTxs[i]) layer = 1;
+      else layer = 0;
+    }
 
     parts.push('<path d="M ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1)
       + ' C ' + c1[0].toFixed(1) + ' ' + c1[1].toFixed(1) + ', '
       + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1) + ', '
       + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1) + '"'
       + ' fill="none" stroke="' + col + '"'
-      + ' stroke-width="' + (layer === 2 ? W_HOT : (hotTxs ? W_THIN : W_MID)) + '"'
-      + ' stroke-opacity="' + (layer === 2 ? '0.95' : (hotTxs ? '0.10' : '0.5')) + '"'
+      + ' stroke-width="' + (!hotTxs ? W_MID : layer === 2 ? W_HOT : layer === 1 ? W_MID : W_THIN) + '"'
+      + ' stroke-opacity="' + (!hotTxs ? '0.5' : layer === 2 ? '0.95' : layer === 1 ? '0.62' : '0.08') + '"'
       + ' stroke-linecap="round"'
       + ' data-tx="' + i + '" class="mw-edge" style="cursor:pointer">'
       + '<title>' + mwEsc(x.f || '（空）') + ' → ' + mwEsc(x.to || '（空）')
