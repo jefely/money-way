@@ -5625,7 +5625,7 @@ th.col-range { text-align: left; }
 #mw-qf-date { text-align: right !important; font-size: 9.5px !important; letter-spacing: -.4px; }
 #mw-qf-note { text-align: left !important; }
 [data-theme="dark"] .mw-flow-filter.mw-flow-grid { background-color: #141414 !important; }
-[data-theme="dark"] .mw-flow-filter.mw-flow-grid .mw-qf { background-color: #1a1626; border-color: #2a2a2a; }
+[data-theme="dark"] .mw-flow-filter.mw-flow-grid .mw-qf { background-color: #1e1a2e; border-color: #5b5570 !important; }
 
 /* 路径左栏滚动条：细、无边框，去掉左侧那条黑线 */
 /* 滚动条：滑块和轨道都用背景色融合，杜绝旁边那条深色竖线 */
@@ -5916,7 +5916,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.07';
+const APP_VER = 'v11.08';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7457,11 +7457,16 @@ function mwDrawSvg(nodes, edges) {
     var lb = b.acc;
     var color = colorOfAcc(b.acc);
 
-    // 字号：受环厚与弧块弧长双重约束，下限 12
+    /* 字号：
+       · 普通弧块 —— 受「环厚」和「弧块能放下多长的字」双重约束
+       · 走锥形引线的窄块 —— 文字已经被拉到环外，横向不受环厚限制，按线宽/层级给一个更大的下限 */
     var arcLen = span * R_OUT;
     var byArc = arcLen / Math.max(1, lb.length) * 1.05;
     var byThick = THICK * 0.58;
-    var fs = Math.max(12, Math.min(24, byArc, byThick));
+    var baseFs = Math.max(12, Math.min(24, byArc, byThick));
+    // 窄块（会走锥形）额外放大：层级越靠近费用（线越粗）字越大
+    var depthBonus = Math.max(0, 3 - (depthOf[b.acc] || 0)) * 0.8;
+    var fs = baseFs;
 
     // 这串字大概要多宽（中文按 1em 估，西文按 0.55em）
     var textW = 0;
