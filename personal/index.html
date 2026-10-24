@@ -5612,7 +5612,7 @@ th.col-range { text-align: left; }
 .mw-flow-filter.mw-flow-grid .mw-qf:focus { border-color: var(--primary); background: #f3f1fb; }
 .mw-flow-filter.mw-flow-grid .mw-qf::placeholder { color: var(--text-muted); opacity: .55; }
 /* 日期框：内容靠右（与数据行日期列对齐） */
-#mw-qf-date { text-align: right; }
+#mw-qf-date { text-align: right !important; font-size: 9.5px !important; letter-spacing: -.4px; }
 [data-theme="dark"] .mw-flow-filter.mw-flow-grid { background-color: #141414 !important; }
 [data-theme="dark"] .mw-flow-filter.mw-flow-grid .mw-qf { background-color: #1a1626; border-color: #2a2a2a; }
 </style>
@@ -5826,7 +5826,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.94';
+const APP_VER = 'v10.95';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
