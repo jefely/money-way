@@ -5734,7 +5734,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.88';
+const APP_VER = 'v10.89';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -12533,46 +12533,24 @@ const queryForm = Array.from({ length: QUERY_PANELS }, () => ({ range: '', from:
 function qExpandStart(tok) {
   const q = String(tok || '').replace(/\D/g, '');
   if (!q) return null;
-  const now = new Date();
-  const yyyy = now.getFullYear();
-  if (q.length === 8) return q.slice(0, 4) + '-' + q.slice(4, 6) + '-' + q.slice(6, 8);
-  if (q.length === 6) return '20' + q.slice(0, 2) + '-' + q.slice(2, 4) + '-' + q.slice(4, 6);
-  if (q.length === 4) {
-    const m0 = Number(q.slice(0, 2));
-    if (m0 >= 1 && m0 <= 12) return yyyy + '-' + q.slice(0, 2) + '-' + q.slice(2, 4);   // MMDD
-    if (Number(q) > 1900) return q + '-01-01';                                          // YYYY
-    return '20' + q.slice(0, 2) + '-' + q.slice(2, 4) + '-01';                          // YYMM
-  }
-  if (q.length === 2) {
-    if (Number(q) > 31) return '20' + q + '-01-01';   // 26 → 2026 年
-    return yyyy + '-' + q + '-01';                    // 07 → 今年 7 月
-  }
+  if (q.length === 8) return q.slice(0, 4) + '-' + q.slice(4, 6) + '-' + q.slice(6, 8);          // YYYYMMDD
+  if (q.length === 6) return '20' + q.slice(0, 2) + '-' + q.slice(2, 4) + '-' + q.slice(4, 6);   // YYMMDD
+  if (q.length === 4) return '20' + q.slice(0, 2) + '-' + q.slice(2, 4) + '-01';                  // YYMM
+  if (q.length === 2) return '20' + q + '-01-01';                                                 // YY
   return null;
 }
 
 function qExpandEnd(tok) {
   const q = String(tok || '').replace(/\D/g, '');
   if (!q) return null;
-  const now = new Date();
-  const yyyy = now.getFullYear();
   const lastDay = (y, m) => new Date(y, m, 0).getDate();
   if (q.length === 8) return q.slice(0, 4) + '-' + q.slice(4, 6) + '-' + q.slice(6, 8);
   if (q.length === 6) return '20' + q.slice(0, 2) + '-' + q.slice(2, 4) + '-' + q.slice(4, 6);
   if (q.length === 4) {
-    const m0 = Number(q.slice(0, 2));
-    if (m0 >= 1 && m0 <= 12) {
-      const mm = q.slice(0, 2), dd = q.slice(2, 4);
-      return yyyy + '-' + mm + '-' + dd;
-    }
-    if (Number(q) > 1900) return q + '-12-31';        // YYYY → 该年最后一天
-    const yy = '20' + q.slice(0, 2), mm = q.slice(2, 4);   // YYMM → 该月最后一天
+    const yy = '20' + q.slice(0, 2), mm = q.slice(2, 4);
     return yy + '-' + mm + '-' + String(lastDay(Number(yy), Number(mm))).padStart(2, '0');
   }
-  if (q.length === 2) {
-    if (Number(q) > 31) return '20' + q + '-12-31';   // 26 → 2026 年末
-    const mm = q;
-    return yyyy + '-' + mm + '-' + String(lastDay(yyyy, Number(mm))).padStart(2, '0');
-  }
+  if (q.length === 2) return '20' + q + '-12-31';
   return null;
 }
 
