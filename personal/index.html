@@ -5918,7 +5918,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.09';
+const APP_VER = 'v11.10';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7465,7 +7465,7 @@ function mwDrawSvg(nodes, edges) {
     var arcLen = span * R_OUT;
     var byArc = arcLen / Math.max(1, lb.length) * 1.05;
     var byThick = THICK * 0.58;
-    var baseFs = Math.max(12, Math.min(24, byArc, byThick));
+    var baseFs = Math.max(14, Math.min(26, byArc, byThick));
     // 窄块（会走锥形）额外放大：层级越靠近费用（线越粗）字越大
     var depthBonus = Math.max(0, 3 - (depthOf[b.acc] || 0)) * 0.8;
     var fs = baseFs;
