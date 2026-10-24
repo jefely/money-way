@@ -5683,7 +5683,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.78';
+const APP_VER = 'v10.79';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7105,7 +7105,8 @@ function mwDrawSvg(nodes, edges) {
     for (var ci = 0; ci < lb.length; ci++) {
       textW += (lb.charCodeAt(ci) > 255 ? 1.0 : 0.55) * fs;
     }
-    var crowded = (arcLen < textW * 0.92);   // 弧块放不下 → 需要锥形
+    // 触发锥形的条件放宽：弧块外沿如果有明显的「挤压感」（弧长不足文字宽的 1.5 倍）， 就用锥形把文字推到更外面，形成一圈整齐的标签
+    var crowded = (arcLen < textW * 1.5);
 
     if (!crowded) {
       // ① 放得下：文字直接贴弧块外沿
@@ -7120,7 +7121,7 @@ function mwDrawSvg(nodes, edges) {
         + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
     } else {
       // ② 放不下：锥形引线 + 文字外移
-      var CONE_LEN = Math.min(120, 46 + textW * 0.35);
+      var CONE_LEN = Math.min(150, 70 + textW * 0.45);
       var rText = R_OUT + CONE_LEN;
 
       // 锥底的半角：让锥底宽度刚好托住文字
