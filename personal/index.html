@@ -5613,7 +5613,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.62';
+const APP_VER = 'v10.63';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6984,10 +6984,15 @@ function mwDrawSvg(nodes, edges) {
     var dim = mwSelected && !(mwSelected === b.acc);
     var lb = b.acc;
 
-    // 弧长（像素）→ 字号：允许很大差异
-    var arcPx = span * (R_OUT + 18);
-    var fs = Math.max(5, Math.min(30, arcPx / Math.max(2.2, lb.length)));
-    var rStart = R_OUT + 10;
+    // 字号受两个约束：
+    //   ① 径向向外排，字高不能超过环厚（否则压到隔壁弧块）
+    //   ② 文字总长不能超过弧块弧长（否则压到相邻账户）
+    // 两个约束里取小的，所以块越大字越大、名字越长字越小。
+    var arcLen = span * R_OUT;
+    var byArc = arcLen / Math.max(1, lb.length) * 1.05;
+    var byThick = THICK * 0.58;
+    var fs = Math.max(6, Math.min(24, byArc, byThick));
+    var rStart = R_OUT + 8;
 
     parts.push('<text x="' + (flip ? (cx - rStart) : (cx + rStart)).toFixed(1) + '"'
       + ' y="' + (cy + fs * 0.34).toFixed(1) + '"'
