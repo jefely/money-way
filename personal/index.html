@@ -5612,6 +5612,7 @@ th.col-range { text-align: left; }
 /* 筛选行：与表头列宽严格一致（同样的 padding / box-sizing） */
 .mw-flow-filter.mw-flow-grid { padding: 3px 0; background: var(--bg-gray-light); }
 .mw-flow-filter.mw-flow-grid .mw-qf {
+  justify-self: stretch;
   width: 100%; box-sizing: border-box; height: 22px;
   margin: 0; padding: 0 3px;
   text-align: center; border: 1px solid var(--border); border-radius: 3px;
@@ -5662,11 +5663,13 @@ th.col-range { text-align: left; }
   position: relative;
 }
 
-.mw-flow-row.mw-flow-grid > .mw-date { justify-self: end;    text-align: right; }
-.mw-flow-row.mw-flow-grid > .mw-cfrom { justify-self: end;   text-align: right; }
-.mw-flow-row.mw-flow-grid > .mw-cto { justify-self: end;     text-align: right; }
-.mw-flow-row.mw-flow-grid > .mw-amt { justify-self: end;     text-align: right; }
-.mw-flow-row.mw-flow-grid > .mw-note { justify-self: start;  text-align: left; }
+/* 数据行也撑满整列：这样每个单元格的右边框能从上贯到下，
+   而列内对齐改由 text-align 负责（span 有了整列宽度，text-align 才真正起作用）。 */
+.mw-flow-row.mw-flow-grid > .mw-date { justify-self: stretch !important; text-align: right; }
+.mw-flow-row.mw-flow-grid > .mw-cfrom { justify-self: stretch !important; text-align: right; }
+.mw-flow-row.mw-flow-grid > .mw-cto { justify-self: stretch !important; text-align: right; }
+.mw-flow-row.mw-flow-grid > .mw-amt { justify-self: stretch !important; text-align: right; }
+.mw-flow-row.mw-flow-grid > .mw-note { justify-self: stretch !important; text-align: left; }
 
 /* 长内容（日期 8 位、备注较长）需要能撑满整列，否则会被裁 */
 .mw-flow-row.mw-flow-grid > .mw-date,
@@ -5887,7 +5890,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.01';
+const APP_VER = 'v11.02';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
