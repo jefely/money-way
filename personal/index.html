@@ -5393,7 +5393,7 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-split { display: flex; align-items: stretch; gap: 0; padding: 0; flex: 1 1 auto;
   height: calc(100vh - 96px); min-height: 0; overflow: hidden; position: relative; }
 .mw-side-left {
-  flex: 0 0 var(--mw-side-w, 250px); width: var(--mw-side-w, 250px); box-sizing: border-box;
+  flex: 0 0 var(--mw-side-w, 330px); width: var(--mw-side-w, 330px); box-sizing: border-box;
   align-self: stretch; position: relative;
   overflow-y: auto; overflow-x: hidden;
   padding: 8px 10px 20px;
@@ -5410,7 +5410,7 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-chart svg { display: block; position: absolute; left: 50%; top: 50%;
   width: 1400px; height: 1400px; margin-left: -700px; margin-top: -700px;
   transform-origin: center center; transition: transform .06s ease-out; }
-.mw-toggle-left { position: absolute; left: calc(var(--mw-side-w, 250px) + 4px); top: 4px; right: auto; z-index: 25; }
+.mw-toggle-left { position: absolute; left: calc(var(--mw-side-w, 330px) + 4px); top: 4px; right: auto; z-index: 25; }
 .mw-toggle-left.shifted { left: 4px !important; }
 .mw-acc-title { font-size: 13px; font-weight: 700; color: var(--primary);
   display: flex; align-items: center; gap: 8px; margin: 8px 0 6px; }
@@ -5436,7 +5436,7 @@ table#summary-table tbody td.col-name { z-index: 6; }
     background: var(--bg-main);
   }
   .mw-chart { position: relative; }
-  .mw-toggle-left { left: calc(var(--mw-side-w, 250px) + 2px) !important; top: 6px !important; z-index: 40; }
+  .mw-toggle-left { left: calc(var(--mw-side-w, 330px) + 2px) !important; top: 6px !important; z-index: 40; }
   .mw-toggle-left.shifted { left: 4px !important; }
 }
 
@@ -5474,7 +5474,7 @@ table#summary-table tbody td.col-name { z-index: 6; }
 /* 左栏表格化：ID 左、账本居中、金额靠右；列宽可拖动调整 */
 .mw-flow-grid {
   display: grid;
-  grid-template-columns: var(--mw-col-id, 58px) var(--mw-col-from, 1fr) var(--mw-col-to, 1fr) var(--mw-col-amt, 54px);
+  grid-template-columns: 22px 46px var(--mw-col-from, 1fr) var(--mw-col-to, 1fr) var(--mw-col-amt, 52px) var(--mw-col-note, 1fr);
   align-items: center;
   column-gap: 0;
 }
@@ -5523,6 +5523,23 @@ table#summary-table tbody td.col-name { z-index: 6; }
 /* 日期区间：单框，支持 "26-27" / "2601-2602" / "260101-260107" */
 th.col-range { text-align: left; }
 .qf-range { width: 100%; letter-spacing: .2px; }
+
+/* 路径追踪 标题行 */
+.mw-flow-title {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 2px 4px;
+}
+.mw-flow-title-txt { font-size: 14px; font-weight: 700; color: var(--primary); }
+.mw-clear-btn {
+  padding: 2px 8px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-gray); color: var(--text-muted); font-size: 12px; cursor: pointer;
+}
+.mw-clear-btn:hover { color: var(--primary); border-color: var(--primary); }
+.mw-flow-grid .mw-dto, .mw-flow-grid .mw-note {
+  font-weight: 400; text-align: right; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; padding-right: 3px;
+}
+.mw-flow-filter .mw-note { text-align: right; }
 </style>
 </head>
 <body>
@@ -5734,7 +5751,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.89';
+const APP_VER = 'v10.90';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6614,7 +6631,7 @@ var mwChainRoot = null;   // 点选链路的起点那笔（用于区分「根」
 // 只有「清空」按钮才把视图恢复到默认。
 var mwView = { zoom: null, rot: 0, tx: 0, ty: 0, scroll: 0 };
 // 路径页自己的查询条件（照搬查询页的三联表：筛选行 + 结果行）
-var mwFilter = { date: '', from: '', to: '', amount: '' };
+var mwFilter = { date: '', from: '', to: '', amount: '', note: '' };
 var mwShowInternal = true;
 var mwTopN = 12;
 
@@ -6948,6 +6965,10 @@ function mwDrawSvg(nodes, edges) {
     if (mwFilter.from && String(f).indexOf(mwFilter.from) < 0) continue;
     if (mwFilter.to && String(to).indexOf(mwFilter.to) < 0) continue;
     if (mwFilter.amount && String(amt).indexOf(mwFilter.amount) < 0) continue;
+    if (mwFilter.note) {
+      var noteT = String(t.note || '');
+      if (noteT.toLowerCase().indexOf(String(mwFilter.note).toLowerCase()) < 0) continue;
+    }
 
     txs.push({ f: f, to: to, amt: amt, cf: cf, ct: ct, d: d, i: ti,
                seq: (t.seq != null ? t.seq : (ti + 1)) });
@@ -7290,21 +7311,13 @@ function mwDrawSvg(nodes, edges) {
 
   var html = ''
     + '<div class="mw-side-frozen">'
-    + '<div class="mw-side-head">路径</div>'
-    + '<div class="mw-side-set">'
-    + '  <label>从 <input type="date" id="mw-start" value="' + mwRange.start + '"></label>'
-    + '  <label>到 <input type="date" id="mw-end" value="' + mwRange.end + '"></label>'
-    + '  <div class="mw-side-row">'
-    + '    <button type="button" class="ghost" id="mw-apply">应用</button>'
-    + '    <button type="button" class="ghost" id="mw-allrange">全部</button>'
-    + '  </div>'
+    + '<div class="mw-flow-title">'
+    + '  <span class="mw-flow-title-txt">路径追踪</span>'
+    + '  <button type="button" class="mw-clear-btn" id="mw-clear">清空</button>'
     + '</div>'
-    + '<div class="mw-side-stat">' + txs.length + ' 笔流水 · ' + groupList.length + ' 个分类 · '
-    + Object.keys(accMeta).length + ' 个账户 · ' + UNITS + ' 个细粒度单位</div>'
-    + '<div class="mw-acc-title">'
-    + (mwSelected ? mwEsc(mwSelected) + ' ' : '')
-    + '<button type="button" class="ghost" id="mw-clear">清空</button></div>'
-    + '</div>';   // ← 冻结区到此结束，下面（流水表格）随页面滚动
+    + '<div class="mw-side-stat">' + txs.length + ' 笔 · ' + groupList.length + ' 类 · '
+    + Object.keys(accMeta).length + ' 账户 · ' + UNITS + ' 单位</div>'
+    + '</div>';   // ← 冻结区到此结束，下面（查询表）随页面滚动
 
   /* 左栏 = 完整流水列表（每一笔都成对显示：转出 → 转入）。
      点任意一行 → 点亮「这一条 + 它的上游」。 */
@@ -7315,22 +7328,21 @@ function mwDrawSvg(nodes, edges) {
       return (B.x.seq || 0) - (A.x.seq || 0);
     });
 
-  html += '<div class="mw-in-title">流水 <span>' + flowRows.length + ' 笔（点一行看它的来路）</span></div>';
-
-  // ── 筛选行（照搬查询页：日期 / 转出 / 转入 / 金额 四个输入框）
   html += '<div class="mw-flow-cols mw-flow-grid mw-flow-filter">'
-    + '<input class="mw-qf mw-id" id="mw-qf-date" placeholder="日期" inputmode="numeric" value="' + mwEsc(mwFilter.date) + '">'
-    + '<input class="mw-qf mw-flow-from" id="mw-qf-from" placeholder="转出" value="' + mwEsc(mwFilter.from) + '">'
-    + '<input class="mw-qf mw-flow-to" id="mw-qf-to" placeholder="转入" value="' + mwEsc(mwFilter.to) + '">'
-    + '<input class="mw-qf mw-amt" id="mw-qf-amount" placeholder="金额" inputmode="decimal" value="' + mwEsc(mwFilter.amount) + '">'
+    + '<input class="mw-qf" id="mw-qf-date" placeholder="日期区间" value="' + mwEsc(mwFilter.date) + '">'
+    + '<input class="mw-qf" id="mw-qf-from" placeholder="转出" value="' + mwEsc(mwFilter.from) + '">'
+    + '<input class="mw-qf" id="mw-qf-to" placeholder="转入" value="' + mwEsc(mwFilter.to) + '">'
+    + '<input class="mw-qf" id="mw-qf-amount" placeholder="金额" value="' + mwEsc(mwFilter.amount) + '">'
+    + '<input class="mw-qf mw-note" id="mw-qf-note" placeholder="备注" value="' + mwEsc(mwFilter.note) + '">'
     + '</div>';
 
-  // ── 表头行
   html += '<div class="mw-flow-cols mw-flow-grid" id="mw-flow-head">'
-    + '<i class="mw-id">日期</i>'
-    + '<span class="mw-flow-from mw-col-h" data-col="from">转出</span>'
-    + '<span class="mw-flow-to mw-col-h" data-col="to">转入</span>'
-    + '<b class="mw-amt mw-col-h" data-col="amt">金额</b></div>';
+    + '<i class="mw-id">序</i>'
+    + '<span class="mw-flow-from mw-col-h" data-col="from">日期</span>'
+    + '<span class="mw-flow-to mw-col-h" data-col="to">转出</span>'
+    + '<b class="mw-dto">转入</b>'
+    + '<b class="mw-amt mw-col-h" data-col="amt">金额</b>'
+    + '<b class="mw-note">备注</b></div>';
 
   flowRows.forEach(function (o) {
     var on = mwChainOn(o.i);
@@ -7339,16 +7351,19 @@ function mwDrawSvg(nodes, edges) {
     var dstr = String(o.x.d || '').replace(/[^0-9]/g, '');
     var ymd = dstr.length >= 8 ? dstr.slice(2, 8) : (dstr.length >= 6 ? dstr.slice(-6) : dstr.padStart(6, '0'));
     var seq2 = String(o.x.dayNo || 1).padStart(2, '0').slice(-2);
+    var noteTxt = (state.transactions[o.x.i] || {}).note || '';
     html += '<div class="mw-list-row mw-flow-row mw-flow-grid' + (on ? ' on' : '') + (isRoot ? ' root' : '')
       + '" data-tx="' + o.i + '">'
-      + '<i class="mw-id">' + mwEsc(ymd + seq2) + '</i>'
-      + '<span class="mw-flow-from">' + mwEsc(o.x.f || '—') + '</span>'
-      + '<span class="mw-flow-to">' + mwEsc(o.x.to || '—') + '</span>'
-      + '<b class="mw-amt">¥' + o.x.amt.toFixed(0) + '</b></div>';
+      + '<i class="mw-id">' + mwEsc(seq2) + '</i>'
+      + '<span class="mw-flow-from">' + mwEsc(ymd) + '</span>'
+      + '<span class="mw-flow-to">' + mwEsc(o.x.f || '—') + '</span>'
+      + '<b class="mw-dto">' + mwEsc(o.x.to || '—') + '</b>'
+      + '<b class="mw-amt">' + o.x.amt.toFixed(0) + '</b>'
+      + '<b class="mw-note">' + mwEsc(noteTxt) + '</b></div>';
   });
 
   if (!flowRows.length) {
-    html += '<div class="mw-list-empty">这个区间里没有流水</div>';
+    html += '<div class="mw-list-empty">没有符合条件的流水</div>';
   }
 
 
@@ -7402,34 +7417,11 @@ function mwDrawSvg(nodes, edges) {
   wrap.appendChild(tg);
 
   /* ---------- 绑定 ---------- */
-  var startI = sideBox.querySelector('#mw-start');
-  var endI = sideBox.querySelector('#mw-end');
-  var applyB = sideBox.querySelector('#mw-apply');
-  var allB = sideBox.querySelector('#mw-allrange');
   var clearB = sideBox.querySelector('#mw-clear');
 
-  if (applyB) applyB.onclick = function () {
-    var sv = startI.value || '', ev2 = endI.value || '';
-    if (sv && ev2 && sv > ev2) { toast('起始日期不能晚于结束日期', { type: 'error' }); return; }
-    mwRange = { start: sv, end: ev2 };
-    mwSelected = null; mwChain = []; mwChainRoot = null;
-    renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
-  };
-  if (allB) allB.onclick = function () {
-    var ds = [];
-    for (var qi = 0; qi < state.transactions.length; qi++) {
-      var qd = String(state.transactions[qi].date || '');
-      if (qd) ds.push(qd);
-    }
-    if (!ds.length) { toast('还没有流水', { type: 'error' }); return; }
-    ds.sort();
-    mwRange = { start: ds[0], end: ds[ds.length - 1] };
-    mwSelected = null; mwChain = []; mwChainRoot = null;
-    renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
-  };
   if (clearB) clearB.onclick = function () {
     mwSelected = null; mwChain = []; mwChainRoot = null;
-    mwFilter = { date: '', from: '', to: '', amount: '' };
+    mwFilter = { date: '', from: '', to: '', amount: '', note: '' };
     // 清空 = 连视图一起复位（这是唯一会重置缩放/滚动的地方）
     mwView = { zoom: null, rot: 0, tx: 0, ty: 0, scroll: 0 };
     renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
@@ -7446,7 +7438,8 @@ function mwDrawSvg(nodes, edges) {
   /* 筛选输入：改一个字符就重算（和查询页一致） */
   (function bindMwFilter() {
     var map = {
-      'mw-qf-date': 'date', 'mw-qf-from': 'from', 'mw-qf-to': 'to', 'mw-qf-amount': 'amount'
+      'mw-qf-date': 'date', 'mw-qf-from': 'from', 'mw-qf-to': 'to',
+      'mw-qf-amount': 'amount', 'mw-qf-note': 'note'
     };
     var t = null;
     Object.keys(map).forEach(function (id) {
