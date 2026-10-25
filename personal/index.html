@@ -7247,6 +7247,17 @@ html:not([data-theme="dark"]) body table#summary-table td.col-del,
 html:not([data-theme="dark"]) body table#summary-table th.col-del {
   background: transparent !important;
 }
+
+/* ============================================================
+   查询页右边那 15px 空隙：#main 的 scrollbar-gutter 预留了整个滚动条宽度。
+   主滚动容器不需要预留 —— 内容区各自滚动，滚动条覆盖式出现即可。
+   ============================================================ */
+html body #main { scrollbar-gutter: auto !important; }
+/* 查询三栏要铺满，各栏自己的滚动槽也取消 */
+html body .query-dual,
+html body .query-dual > * { scrollbar-gutter: auto !important; }
+
+/* 固定页「跟流水」勾选/取消：静默处理，不弹提示 */
 </style>
 </head>
 <body>
@@ -7458,7 +7469,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.76';
+const APP_VER = 'v12.77';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -13911,10 +13922,10 @@ function bindFlowEvents(tbody) {
     const tr = chk.closest('tr');
     const id = tr && tr.dataset ? tr.dataset.id : '';
     if (!id) return;
+    // 勾选/取消都是「方便添加」的操作，后台静默处理即可，不打扰
     if (chk.checked) addFixedFromTx(id);
     else removeFixedBySource(id);
     save();
-    toast(chk.checked ? '已加入固定收支' : '已取消固定收支');
   });
 
 tbody.addEventListener('paste', e => {
