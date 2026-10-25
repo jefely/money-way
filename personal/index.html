@@ -6102,48 +6102,6 @@ html body .toolbar.bar2 > input.year-input {
    （它带有 toolbar + flow-bar 两个 class，会被流水的按钮规则钉成 56×26，
      所以这里用更高特异性压回去：等分、满高、无圆角、右侧分隔线）
    ============================================================ */
-html body .toolbar.flow-bar.audit-tabs {
-  height: 40px !important;
-  min-height: 40px !important;
-  padding: 0 !important;
-  gap: 0 !important;
-  background: var(--bg-gray) !important;
-  border-bottom: 1px solid var(--primary) !important;
-  flex-wrap: nowrap !important;
-  overflow-x: auto !important;
-  align-items: stretch !important;
-}
-html body .toolbar.flow-bar.audit-tabs > button.audit-tab {
-  flex: 1 1 0 !important;
-  width: auto !important;
-  min-width: 0 !important;
-  max-width: none !important;
-  height: 40px !important;
-  line-height: 40px !important;
-  padding: 0 6px !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
-  border: none !important;
-  border-right: 1px solid var(--border-light) !important;
-  background: transparent !important;
-  color: var(--text-muted) !important;
-  font-size: 15px !important;
-  font-weight: 600 !important;
-  white-space: nowrap;
-  box-sizing: border-box !important;
-}
-html body .toolbar.flow-bar.audit-tabs > button.audit-tab:last-child { border-right: none !important; }
-html body .toolbar.flow-bar.audit-tabs > button.audit-tab.active {
-  background: var(--primary) !important;
-  color: #fff !important;
-  border-right-color: var(--primary) !important;
-}
-[data-theme="dark"] html body .toolbar.flow-bar.audit-tabs { background: #1a1a1a !important; }
-[data-theme="dark"] html body .toolbar.flow-bar.audit-tabs > button.audit-tab {
-  color: #d8d2e8 !important; border-right-color: #2a2a2a !important;
-}
-[data-theme="dark"] html body .toolbar.flow-bar.audit-tabs > button.audit-tab.active { color: #fff !important; }
-
 /* ============================================================
    所有弹窗内的按钮统一成「添加账本 / 载入.txt / 另存.txt」那套样板
    · 主按钮（无 .ghost）：紫渐变底 + 白字
@@ -6239,6 +6197,85 @@ html body .confirm-mask .sync-box .sync-actions button.ghost:not(.sync-tab):not(
 html body .confirm-mask .sync-box .sync-actions button.danger-btn:not(.sync-tab):not(.row-del):not(.rowmenu-item) {
   border-radius: 7px !important;
   border-radius: 7px !important;
+}
+
+/* ============================================================
+   校验页分页签：真正铺满 + 行高收窄到 34px
+   之前的 height:40px 被 .toolbar button 的 height:26px 覆盖，
+   容器还有 padding-bottom:4px，所以紫底上下都留缝。
+   ============================================================ */
+html body .toolbar.flow-bar.audit-tabs {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+  flex-wrap: nowrap !important;
+  overflow: hidden !important;
+  background: var(--bg-gray) !important;
+  border-bottom: 1px solid var(--primary) !important;
+}
+html body .toolbar.flow-bar.audit-tabs > button.audit-tab {
+  flex: 1 1 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 100% !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  align-self: stretch !important;
+  line-height: 1 !important;
+  padding: 0 6px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  border-right: 1px solid var(--border-light) !important;
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  white-space: nowrap;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html body .toolbar.flow-bar.audit-tabs > button.audit-tab:last-child {
+  border-right: none !important;
+}
+html body .toolbar.flow-bar.audit-tabs > button.audit-tab.active {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border-right-color: var(--primary) !important;
+}
+html body .toolbar.flow-bar.audit-tabs > button.audit-tab:hover {
+  color: var(--primary) !important;
+}
+html body .toolbar.flow-bar.audit-tabs > button.audit-tab.active:hover {
+  color: #fff !important;
+}
+[data-theme="dark"] html body .toolbar.flow-bar.audit-tabs { background: #1a1a1a !important; }
+[data-theme="dark"] html body .toolbar.flow-bar.audit-tabs > button.audit-tab {
+  color: #d8d2e8 !important; border-right-color: #2a2a2a !important;
+}
+[data-theme="dark"] html body .toolbar.flow-bar.audit-tabs > button.audit-tab.active {
+  color: #fff !important; background: var(--primary) !important;
+}
+
+/* 弹窗里的按钮：不要「默认激活」的样子 —— 去掉焦点环和常亮高亮 */
+html body .confirm-mask .sync-box button:focus,
+html body .confirm-mask .sync-box button:focus-visible,
+html body .confirm-mask .sync-box button:active {
+  outline: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+html body .confirm-mask .sync-box button:disabled {
+  opacity: .55 !important;
+  filter: none !important;
 }
 </style>
 </head>
@@ -6451,7 +6488,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.71';
+const APP_VER = 'v11.75';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7347,7 +7384,11 @@ function switchAuditTab(key, silent) {
   });
   if (auditTabBar) {
     auditTabBar.querySelectorAll('.audit-tab').forEach(b => {
-      b.classList.toggle('active', b.dataset.tab === key);
+      const on = b.dataset.tab === key;
+      b.classList.toggle('active', on);
+      // 直接写 inline：CSS 里那些 !important 抢得太凶，只有 inline 稳
+      b.style.setProperty('background', on ? 'var(--primary)' : 'transparent', 'important');
+      b.style.setProperty('color', on ? '#ffffff' : 'var(--text-muted)', 'important');
     });
   }
   main.scrollTop = 0;
@@ -8568,6 +8609,19 @@ function renderAudit(main, footer) {
     // 分页标签：四个标签切换四块内容，不再用弹窗
     const ubar = document.createElement('div');
     ubar.className = 'toolbar flow-bar audit-tabs';
+    // 用 inline style 钉住：CSS 里 .toolbar.flow-bar 那条 padding/height !important
+    // 一直抢在前面，普通规则压不住。
+    ubar.style.setProperty('height', '34px', 'important');
+    ubar.style.setProperty('min-height', '34px', 'important');
+    ubar.style.setProperty('max-height', '34px', 'important');
+    ubar.style.setProperty('padding', '0', 'important');
+    ubar.style.setProperty('margin', '0', 'important');
+    ubar.style.setProperty('box-sizing', 'border-box', 'important');
+    ubar.style.setProperty('align-items', 'stretch', 'important');
+    ubar.style.setProperty('gap', '0', 'important');
+    ubar.style.setProperty('flex-wrap', 'nowrap', 'important');
+    ubar.style.setProperty('overflow', 'hidden', 'important');
+    ubar.style.setProperty('border-bottom', '1px solid var(--primary)', 'important');
     const TABS = [
       ['help', '账本说明'],
       ['verify', '账本校验'],
@@ -8576,6 +8630,31 @@ function renderAudit(main, footer) {
     ];
     ubar.innerHTML = TABS.map(([k, label]) =>
       `<button type="button" class="audit-tab" data-tab="${k}">${label}</button>`).join('');
+    ubar.querySelectorAll('.audit-tab').forEach(function (b) {
+      b.style.setProperty('flex', '1 1 0', 'important');
+      b.style.setProperty('width', 'auto', 'important');
+      b.style.setProperty('min-width', '0', 'important');
+      b.style.setProperty('max-width', 'none', 'important');
+      b.style.setProperty('height', '100%', 'important');
+      b.style.setProperty('max-height', 'none', 'important');
+      b.style.setProperty('min-height', '0', 'important');
+      b.style.setProperty('align-self', 'stretch', 'important');
+      b.style.setProperty('padding', '0 6px', 'important');
+      b.style.setProperty('margin', '0', 'important');
+      b.style.setProperty('border-radius', '0', 'important');
+      b.style.setProperty('border', 'none', 'important');
+      b.style.setProperty('border-right', '1px solid var(--border-light)', 'important');
+      b.style.setProperty('font-size', '14px', 'important');
+      b.style.setProperty('font-weight', '600', 'important');
+      b.style.setProperty('box-sizing', 'border-box', 'important');
+      b.style.setProperty('display', 'flex', 'important');
+      b.style.setProperty('align-items', 'center', 'important');
+      b.style.setProperty('justify-content', 'center', 'important');
+      b.style.setProperty('line-height', '1', 'important');
+    });
+    ubar.querySelectorAll('.audit-tab').forEach(function (b) { b.style.setProperty('border-right-color', 'var(--border-light)', 'important'); });
+    var lastTab = ubar.querySelector('.audit-tab:last-child');
+    if (lastTab) lastTab.style.setProperty('border-right', 'none', 'important');
     main.appendChild(ubar);
     auditTabBar = ubar;
     auditTabBar.querySelectorAll('.audit-tab').forEach(btn => {
