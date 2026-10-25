@@ -7771,18 +7771,21 @@ html:not([data-theme="dark"]) body table.grid > tbody > tr:last-child > td:last-
    浅色 / 深色各一套，边框分别是亮紫与暗紫。
    ============================================================ */
 html:not([data-theme="dark"]) .confirm-mask .sync-box {
-  background: rgba(255, 255, 255, .25) !important;
+  background: rgba(255, 255, 255, .16) !important;
   -webkit-backdrop-filter: blur(26px) saturate(170%);
   backdrop-filter: blur(26px) saturate(170%);
   border: 1px solid rgba(139, 108, 255, .30) !important;
   border-radius: 18px !important;
+  /* 内侧再加一层光（灯箱感）：从内部边缘往里散，而不是从外面投 */
   box-shadow:
     0 0 0 1px rgba(139, 108, 255, .06),
     0 0 34px rgba(139, 108, 255, .14),
+    inset 0 0 60px rgba(255, 255, 255, .55),
+    inset 0 1px 0 rgba(255, 255, 255, .90),
     0 24px 56px -18px rgba(76, 61, 128, .40) !important;
 }
 [data-theme="dark"] .confirm-mask .sync-box {
-  background: rgba(20, 16, 32, .25) !important;
+  background: rgba(20, 16, 32, .16) !important;
   -webkit-backdrop-filter: blur(26px) saturate(160%);
   backdrop-filter: blur(26px) saturate(160%);
   border: 1px solid rgba(155, 138, 210, .38) !important;
@@ -7790,6 +7793,8 @@ html:not([data-theme="dark"]) .confirm-mask .sync-box {
   box-shadow:
     0 0 0 1px rgba(139, 108, 255, .10),
     0 0 40px rgba(139, 108, 255, .18),
+    inset 0 0 70px rgba(139, 108, 255, .16),
+    inset 0 1px 0 rgba(255, 255, 255, .12),
     0 26px 64px rgba(0, 0, 0, .70) !important;
 }
 /* 输入框：半透明底，压在磨砂上不突兀 */
@@ -7840,20 +7845,14 @@ html[data-theme="dark"] .confirm-mask .sync-box > .sync-sticky {
 /* × 提到最上层，任何头部/吸顶层都盖不住它 */
 html body .confirm-mask .dlg-x { z-index: 30 !important; }
 
-/* ---- 弹窗滚动条：不许压到头部 ---- 
-   .sync-box 自己滚动，滚动条贯穿整块卡片高度，于是从 NT 字标那一带就开始，
-   视觉上像一根棍子戳穿标题。给滑块加一段透明上边框（配合 background-clip），
-   可见部分就从头部下方开始 —— 头部约 96px 高，这里留 79px。 */
-.confirm-mask .sync-box::-webkit-scrollbar { width: 3px !important; height: 3px !important; }
-.confirm-mask .sync-box::-webkit-scrollbar-track { background: transparent !important; }
-.confirm-mask .sync-box::-webkit-scrollbar-thumb {
-  background: rgba(139, 108, 255, .55) !important;
-  background-clip: padding-box !important;
-  border: 0 !important;
-  border-top: 79px solid transparent !important;
-  border-radius: 3px !important;
-}
-.confirm-mask .sync-box::-webkit-scrollbar-thumb:hover { background: rgba(139, 108, 255, .8) !important; background-clip: padding-box !important; }
+/* ---- 弹窗滚动条：直接不显示 ----
+   `.sync-box` 自己滚动，滚动条贯穿整块卡片高度，从 NT 那一带就开始画，
+   像一根棍子把标题戳穿。试过给 thumb 加透明 border-top 想让它从头部下方开始，
+   但 Chrome 对 scrollbar 伪元素的 border 不按预期生效（实测仍然从顶边画）。
+   滚动条本身没法只从某处开始，所以干脆隐藏：
+   手机上本来就是触摸滚动，桌面端鼠标滚轮照样能滚，只是看不到滚动条。 */
+.confirm-mask .sync-box::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none !important; }
+.confirm-mask .sync-box { scrollbar-width: none !important; -ms-overflow-style: none !important; }
 </style>
 </head><body>
 
@@ -8064,7 +8063,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.32';
+const APP_VER = 'v13.34';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
