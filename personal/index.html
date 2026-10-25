@@ -5971,6 +5971,36 @@ html body .toolbar.bar1 > .bar-title {
 .stats-sub button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 [data-theme="dark"] .stats-sub button { background: #241b3a; border-color: #3d3159; color: var(--text-main); }
 [data-theme="dark"] .stats-sub button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+/* 设置页：类型 / 分类 / 简码 / 账户名称 居中；期初靠右；行尾删除按钮 */
+table.set-table td.col-cat,
+table.set-table td.col-sub,
+table.set-table td.col-code,
+table.set-table td.col-name { text-align: center; }
+table.set-table td.col-open {
+  text-align: right; padding-right: 10px;
+  font-variant-numeric: tabular-nums; font-weight: 600;
+}
+table.set-table th.col-open { text-align: right; padding-right: 10px; }
+table.set-table td.col-del, table.set-table th.col-del { width: 40px; text-align: center; }
+table.set-table .row-del {
+  width: 22px; height: 22px; line-height: 1; padding: 0;
+  border: 1px solid var(--border); border-radius: 4px;
+  background: #fff; color: var(--text-muted); cursor: pointer; font-size: 14px;
+}
+table.set-table .row-del:hover { color: var(--danger); border-color: var(--danger); }
+[data-theme="dark"] table.set-table .row-del { background: #241b3a; border-color: #3d3159; color: var(--text-main); }
+/* 统计页的子按钮组：并进 bar1，跟在按钮后面 */
+span.stats-sub { display: inline-flex; gap: 4px; align-items: center; flex: 0 0 auto; margin-left: 2px; }
+span.stats-sub button {
+  height: 26px; padding: 0 10px; border-radius: 6px;
+  border: 1px solid var(--border); background: #fff; color: var(--text-muted);
+  font-size: 13px; font-weight: 600; cursor: pointer; flex: 0 0 auto;
+}
+span.stats-sub button:hover { color: var(--primary); border-color: var(--primary); }
+span.stats-sub button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+[data-theme="dark"] span.stats-sub button { background: #241b3a; border-color: #3d3159; color: var(--text-main); }
+[data-theme="dark"] span.stats-sub button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 </style>
 </head>
 <body>
@@ -5978,11 +6008,11 @@ html body .toolbar.bar1 > .bar-title {
 <div class="tabbar">
   <button data-tab="flow" class="active">流水</button>
   <button data-tab="cat">统计</button>
-  <button data-tab="settings">设置</button>
   <button data-tab="query">查询</button>
   <button data-tab="money">路径</button>
   <button data-tab="install">分期</button>
   <button data-tab="fixed">固定</button>
+  <button data-tab="settings">设置</button>
   <button data-tab="audit">校验</button>
 </div>
 
@@ -6182,7 +6212,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.45';
+const APP_VER = 'v11.46';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -9002,7 +9032,7 @@ function renderSettings(main, footer) {
   const wrap = document.createElement('div');
   wrap.className = 'grid-wrap';
   const table = document.createElement('table');
-  table.className = 'grid'; table.id = 'settings-table';
+  table.className = 'grid set-table'; table.id = 'settings-table';
   table.innerHTML = `
     <thead><tr>
       <th class="col-seq">序</th>
@@ -9011,6 +9041,7 @@ function renderSettings(main, footer) {
       <th class="col-code">简码</th>
       <th class="col-name">账户名称</th>
       <th class="col-open">期初</th>
+      <th class="col-del"></th>
     </tr></thead>
     <tbody></tbody>`;
   const tbody = table.querySelector('tbody');
@@ -9022,32 +9053,46 @@ function renderSettings(main, footer) {
   let n = 1;
   for (const a of list) {
     const tr = document.createElement('tr');
+    tr.dataset.acc = a.name || '';
     tr.innerHTML =
       '<td class="col-seq">' + (n++) + '</td>' +
       '<td class="col-cat">' + mwEsc(a.cat || '') + '</td>' +
       '<td class="col-sub">' + mwEsc(a.sub || '') + '</td>' +
       '<td class="col-code">' + mwEsc(a.code || '') + '</td>' +
       '<td class="col-name">' + mwEsc(a.name || '') + '</td>' +
-      '<td class="col-open">' + (Number(a.opening) || 0).toFixed(2) + '</td>';
+      '<td class="col-open">' + (Number(a.opening) || 0).toFixed(2) + '</td>' +
+      '<td class="col-del"><button type="button" class="row-del" title="删除账户">×</button></td>';
+    const del = tr.querySelector('.row-del');
+    if (del) del.onclick = () => {
+      if (!confirm('删除账户「' + (a.name || '') + '」？\n流水里用到这个名字的行会变成对不上的名称。')) return;
+      state.accounts = state.accounts.filter(x => x !== a);
+      save(); render(); toast('已删除账户 ' + (a.name || ''));
+    };
     tbody.appendChild(tr);
   }
   wrap.appendChild(table);
   main.appendChild(wrap);
 }
 
-/* 统计页：一个壳，里面两个子标签 —— 分类 / 汇总 */
+/* 统计页：分类 / 汇总 两个子按钮，直接并入 bar1（排在「清空」前面） */
 function renderStats(main, footer) {
-  const sub = document.createElement('div');
-  sub.className = 'stats-sub';
-  sub.innerHTML =
-    '<button type="button" data-s="cat"' + (statsSub === 'cat' ? ' class="active"' : '') + '>分类</button>' +
-    '<button type="button" data-s="sum"' + (statsSub === 'sum' ? ' class="active"' : '') + '>汇总</button>';
-  main.appendChild(sub);
-  sub.querySelectorAll('button').forEach(b => {
-    b.onclick = () => { statsSub = b.dataset.s; render(); };
-  });
   if (statsSub === 'sum') renderSummary(main, footer);
   else renderCat(main, footer);
+
+  const bar1 = main.querySelector('.toolbar.bar1');
+  if (!bar1) return;
+  const grp = document.createElement('span');
+  grp.className = 'stats-sub';
+  grp.innerHTML =
+    '<button type="button" data-s="cat"' + (statsSub === 'cat' ? ' class="active"' : '') + '>分类</button>' +
+    '<button type="button" data-s="sum"' + (statsSub === 'sum' ? ' class="active"' : '') + '>汇总</button>';
+  const clearBtn = [].slice.call(bar1.querySelectorAll('button'))
+    .find(b => /清空/.test(b.textContent || ''));
+  if (clearBtn) bar1.insertBefore(grp, clearBtn);
+  else bar1.appendChild(grp);
+  grp.querySelectorAll('button').forEach(b => {
+    b.onclick = () => { statsSub = b.dataset.s; render(); };
+  });
 }
 
 function renderCat(main, footer) {
