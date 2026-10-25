@@ -7842,19 +7842,26 @@ html body .confirm-mask .dlg-x { z-index: 30 !important; }
 
 /* ---- 弹窗里的多行输入框 ----
    ① 去掉右下角的拖拽手柄（那个斜线会把卡片撑变形，手机上还会误触）；
-   ② 内部滚动条也收细到 2px，和整体一致。 */
+   ② 内部滚动条退到「下层」：细到 1px、透明度压到 .22，贴着边框内侧走，
+      不再是原来那根抢眼的紫条。滚动条是浏览器自绘的，改不了 z-index，
+      所以用「足够细 + 足够淡」来达到视觉上退后的效果。 */
 .confirm-mask .sync-box textarea {
   resize: none !important;
   scrollbar-width: thin !important;
+  scrollbar-color: rgba(139, 108, 255, .22) transparent !important;
 }
-.confirm-mask .sync-box textarea::-webkit-scrollbar { width: 2px !important; height: 2px !important; }
-.confirm-mask .sync-box textarea::-webkit-scrollbar-track { background: transparent !important; }
+.confirm-mask .sync-box textarea::-webkit-scrollbar { width: 1px !important; height: 1px !important; }
+.confirm-mask .sync-box textarea::-webkit-scrollbar-track { background: transparent !important; border: 0 !important; }
 .confirm-mask .sync-box textarea::-webkit-scrollbar-thumb {
-  background: rgba(139, 108, 255, .55) !important;
-  border-radius: 2px !important;
+  background: rgba(139, 108, 255, .22) !important;
+  border-radius: 1px !important;
   border: 0 !important;
-  min-height: 30px !important;
+  min-height: 24px !important;
 }
+.confirm-mask .sync-box textarea::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 108, 255, .45) !important;
+}
+.confirm-mask .sync-box textarea::-webkit-scrollbar-corner { background: transparent !important; }
 
 /* ---- 弹窗头部：不加背景，跟着内容一起滚 ----
    头部在卡片顶部、受卡片圆角裁切，加任何底色都会露出一块「板」；
@@ -8087,7 +8094,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.36';
+const APP_VER = 'v13.37';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
