@@ -7113,6 +7113,37 @@ html body table#summary-table td.col-del {
   box-shadow: none !important;
 }
 html body table#summary-table thead th.col-del { background: transparent !important; }
+
+/* ============================================================
+   设置页「上移」「删除」两列：连表格网格线一起去掉，彻底融进页面
+   ============================================================ */
+html body table#summary-table th.col-move,
+html body table#summary-table td.col-move,
+html body table#summary-table th.col-del,
+html body table#summary-table td.col-del {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+}
+/* 相邻的「期初」列右边那条线也去掉，否则会贴着 ▲ 出现一条竖线 */
+html body table#summary-table th.col-bal,
+html body table#summary-table td.col-bal {
+  border-right: 0 !important;
+}
+/* 按钮本身：无框无底，只留符号 */
+html body table#summary-table td.col-move > .pin-btn,
+html body table#summary-table td.col-del > .row-del {
+  width: 20px !important; min-width: 20px !important; max-width: 20px !important;
+  height: 20px !important; min-height: 20px !important; max-height: 20px !important;
+  margin: 0 auto !important; padding: 0 !important;
+  border: 0 !important; border-radius: 0 !important;
+  background: transparent !important; background-image: none !important;
+  box-shadow: none !important; outline: none !important;
+  display: inline-flex !important; align-items: center !important; justify-content: center !important;
+}
 </style>
 </head>
 <body>
@@ -7324,7 +7355,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.51';
+const APP_VER = 'v12.52';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
