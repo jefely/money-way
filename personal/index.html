@@ -4262,11 +4262,11 @@ table#fixed-table tbody td select { text-align: center; text-align-last: center;
    applySummarySticky() 逐格写入（累加偏移）。这里不要再写 !important 的 left，
    否则会把内联值压掉 —— 之前就是这条把「账户名称」锁死在序号列宽上。 */
 
-/* ⑬ 深色主题：序号列表头与其它表头同色（原来它是 #0d0d0d，旁边是 #141414，看着更黑） */
-html[data-theme="dark"] table.grid thead th.col-seq,
-html[data-theme="dark"] table#summary-table thead th.col-seq {
-  background-color: #141414 !important;
-}
+/* ⑬ 深色主题：序号列表头与其它表头同色。
+   这条原先把 col-seq 表头钉成 #141414(20,20,20)，而其它表头已提到 #262626(38,38,38)，
+   于是「序」那一格比右边暗一档 —— 用户看到的就是「序的表头和右边不统一」。
+   高特异性（1,2,4）让它静默压过了文件末尾那条统一提亮规则，所以只在设置页露出来。
+   现在删掉：颜色交给文件末尾「让最近数据的表头一眼认得出来」那一节统一管。 */
 /* 功能块：圆角卡片，套主题紫（原来是一条虚线分隔，看着像文档不像界面） */
 .sync-sec {
   padding: 13px 14px 14px;
@@ -6262,8 +6262,10 @@ html body .toolbar.flow-bar.audit-tabs > button.audit-tab {
   align-items: center !important;
   justify-content: center !important;
 }
+/* 最右一个标签也保留右边线：整条标签栏要和下面内容区的右缘对齐，
+   最后一个没有线时右端会看着「缺口」。 */
 html body .toolbar.flow-bar.audit-tabs > button.audit-tab:last-child {
-  border-right: none !important;
+  border-right: 1px solid var(--border-light) !important;
 }
 html body .toolbar.flow-bar.audit-tabs > button.audit-tab.active {
   background: var(--primary) !important;
@@ -7438,12 +7440,24 @@ html[data-theme="dark"] body table.query-table > thead > tr.q-head-row > th {
   border-bottom: 1px solid #4a4a4a !important;
 }
 
+/* 固定页「操作」列（col-op / col-ops）的表头**不参与提亮**：
+   那一列是空的、只放删除 ×，它跟表格右边那片留白是同一块区域，
+   给它一个表头底色会在表头行右端多出一小块，与右侧对不上。
+   这一条比上面那条多两个 class（1,2,8 > 1,1,8），所以压得住。 */
+html[data-theme="dark"] body table#fixed-table > thead > tr > th.col-op,
+html[data-theme="dark"] body table#fixed-table > thead > tr > th.col-ops {
+  background-color: var(--bg-main) !important;
+  background-image: none !important;
+  border-bottom: 0 !important;
+}
+
 /* 右端那几列（固定页「操作」/ 设置页「上移·删除·账单日·还款日」）的表头：
    数据行里它们跟页面底色同色（不跟斑马纹），但表头是一整行，不能在中间断开成两种深浅，
    所以表头这几格也一起用提亮后的颜色。这一条比上面那条多一个 class，压过
-   `html body table#summary-table th.col-move` 那组（它们把表头也设成了 --bg-main）。 */
-html[data-theme="dark"] body table#fixed-table thead th.col-op,
-html[data-theme="dark"] body table#fixed-table thead th.col-ops,
+   `html body table#summary-table th.col-move` 那组（它们把表头也设成了 --bg-main）。
+   **固定页「操作」列（col-op/col-ops）例外**：它连表头一起保持页面底色 ——
+   那一列是空的、只放删除 ×，给它一个表头底色反而在表头行右端多出一块，
+   和右边的页面留白对不上。 */
 html[data-theme="dark"] body table#summary-table thead th.col-move,
 html[data-theme="dark"] body table#summary-table thead th.col-del,
 html[data-theme="dark"] body table#summary-table thead th.col-bill,
@@ -7663,7 +7677,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.04';
+const APP_VER = 'v13.05';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -9837,8 +9851,7 @@ function renderAudit(main, footer) {
       b.style.setProperty('line-height', '1', 'important');
     });
     ubar.querySelectorAll('.audit-tab').forEach(function (b) { b.style.setProperty('border-right-color', 'var(--border-light)', 'important'); });
-    var lastTab = ubar.querySelector('.audit-tab:last-child');
-    if (lastTab) lastTab.style.setProperty('border-right', 'none', 'important');
+    // 最后一个标签的右边线不再清掉 —— 保留它，标签栏右端才不是缺口（CSS 侧同步改了）。
     main.appendChild(ubar);
     auditTabBar = ubar;
     auditTabBar.querySelectorAll('.audit-tab').forEach(btn => {
