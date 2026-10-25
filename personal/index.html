@@ -5959,14 +5959,26 @@ html body .toolbar.bar1 > .bar-title {
   flex: 0 0 auto !important;
   white-space: nowrap !important;
 }
+
+/* 统计页子标签：分类 / 汇总 */
+.stats-sub { display: flex; gap: 6px; align-items: center; padding: 6px 6px 0; }
+.stats-sub button {
+  height: 26px; padding: 0 14px; border-radius: 6px;
+  border: 1px solid var(--border); background: #fff; color: var(--text-muted);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.stats-sub button:hover { color: var(--primary); border-color: var(--primary); }
+.stats-sub button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+[data-theme="dark"] .stats-sub button { background: #241b3a; border-color: #3d3159; color: var(--text-main); }
+[data-theme="dark"] .stats-sub button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 </style>
 </head>
 <body>
 
 <div class="tabbar">
   <button data-tab="flow" class="active">流水</button>
-  <button data-tab="cat">分类</button>
-  <button data-tab="summary">汇总</button>
+  <button data-tab="cat">统计</button>
+  <button data-tab="settings">设置</button>
   <button data-tab="query">查询</button>
   <button data-tab="money">路径</button>
   <button data-tab="install">分期</button>
@@ -6170,7 +6182,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.42';
+const APP_VER = 'v11.45';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6994,6 +7006,7 @@ async function openThanksDialog() {
 
 /* 校验页的分页状态（跨重渲染保留） */
 let auditTabBar = null;
+let statsSub = 'cat';
 let auditCurTab = 'help';
 /* 感谢墙：每次切到「赞助感谢」都重新拉一次，保证手动改的 thanks.json 立刻可见 */
 async function loadThanksWall() {
@@ -8977,6 +8990,64 @@ function catRangeLabel() {
   if (catMode === 'year') return catYear + ' 年';
   if (catMode === 'range') return fmtRangeShort(catRange.start, catRange.end);
   return summaryMonth.year + ' 年 ' + summaryMonth.month + ' 月';
+}
+
+/* 设置页：账本设置（账户的类型 / 分类 / 简码 / 名称 / 期初） */
+function renderSettings(main, footer) {
+  const bar1 = document.createElement('div');
+  bar1.className = 'toolbar flow-bar';
+  bar1.innerHTML = '<span class="flow-title">账本设置</span>';
+  main.appendChild(bar1);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'grid-wrap';
+  const table = document.createElement('table');
+  table.className = 'grid'; table.id = 'settings-table';
+  table.innerHTML = `
+    <thead><tr>
+      <th class="col-seq">序</th>
+      <th class="col-cat">类型</th>
+      <th class="col-sub">分类</th>
+      <th class="col-code">简码</th>
+      <th class="col-name">账户名称</th>
+      <th class="col-open">期初</th>
+    </tr></thead>
+    <tbody></tbody>`;
+  const tbody = table.querySelector('tbody');
+  const order = ['资产类', '负债类', '收入类', '权益类', '费用类'];
+  const list = state.accounts.slice().sort((a, b) => {
+    const ia = order.indexOf(a.cat || ''), ib = order.indexOf(b.cat || '');
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+  let n = 1;
+  for (const a of list) {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="col-seq">' + (n++) + '</td>' +
+      '<td class="col-cat">' + mwEsc(a.cat || '') + '</td>' +
+      '<td class="col-sub">' + mwEsc(a.sub || '') + '</td>' +
+      '<td class="col-code">' + mwEsc(a.code || '') + '</td>' +
+      '<td class="col-name">' + mwEsc(a.name || '') + '</td>' +
+      '<td class="col-open">' + (Number(a.opening) || 0).toFixed(2) + '</td>';
+    tbody.appendChild(tr);
+  }
+  wrap.appendChild(table);
+  main.appendChild(wrap);
+}
+
+/* 统计页：一个壳，里面两个子标签 —— 分类 / 汇总 */
+function renderStats(main, footer) {
+  const sub = document.createElement('div');
+  sub.className = 'stats-sub';
+  sub.innerHTML =
+    '<button type="button" data-s="cat"' + (statsSub === 'cat' ? ' class="active"' : '') + '>分类</button>' +
+    '<button type="button" data-s="sum"' + (statsSub === 'sum' ? ' class="active"' : '') + '>汇总</button>';
+  main.appendChild(sub);
+  sub.querySelectorAll('button').forEach(b => {
+    b.onclick = () => { statsSub = b.dataset.s; render(); };
+  });
+  if (statsSub === 'sum') renderSummary(main, footer);
+  else renderCat(main, footer);
 }
 
 function renderCat(main, footer) {
@@ -11627,8 +11698,8 @@ function render() {
   footer.innerHTML = '<span id="footer-text"></span>';
 
   if (currentTab === 'flow') renderFlow(main, footer);
-  else if (currentTab === 'cat') renderCat(main, footer);
-  else if (currentTab === 'summary') renderSummary(main, footer);
+  else if (currentTab === 'cat') renderStats(main, footer);
+  else if (currentTab === 'settings') renderSettings(main, footer);
   else if (currentTab === 'install') renderInstall(main, footer);
   else if (currentTab === 'fixed') renderFixed(main, footer);
   else if (currentTab === 'query') renderQuery(main, footer);
@@ -11636,7 +11707,7 @@ function render() {
   else if (currentTab === 'money') renderMoneyWay(main, footer);
 
   // 数据体检：标红重复/异常项（flow 和 summary 页才有可标的地方）
-  if (currentTab === 'flow' || currentTab === 'summary') {
+  if (currentTab === 'flow' || (currentTab === 'cat' && statsSub === 'sum')) {
     try { applyDataIssues(); } catch (e) {}
   }
   // ③ 还原：本页每个滚动容器逐个还原（查询页有 3 个各带滚动条的面板）
@@ -13164,7 +13235,7 @@ window.addEventListener('resize', () => {
   const nowNarrow = window.innerWidth < 768;
   if (nowNarrow !== _wasNarrow) { _wasNarrow = nowNarrow; render(); return; }
   if (currentTab === 'flow') syncFlowTitleWidth();
-  if (currentTab === 'summary') { syncGridRight(); applySummarySticky(); }
+  if (currentTab === 'cat' && statsSub === 'sum') { syncGridRight(); applySummarySticky(); }
 });
 
 function bindQuerySection(sec, idx, footer) {
