@@ -7492,6 +7492,70 @@ html body table.query-table > thead > tr.q-head-row > th {
   padding-bottom: 0 !important;
   line-height: var(--layout-head-h, 26px) !important;
 }
+
+/* ============================================================
+   浅色主题 · 表格质感（方案 C「紫玉顶带」）
+   ------------------------------------------------------------
+   只作用于浅色；深色那套（#262626 表头 + #4a4a4a 底线）完全不受影响。
+   · 表头：深紫渐变底 + 白字 —— 顺带把浅色下「表头与奇数行同色、
+     对比度 1.000（等于没有表头）」那个毛病一起解决
+   · 表格外框：淡紫描边 + 12px 圆角 + 向下投影（浮起感）
+     **不给 .grid-wrap 加 overflow:hidden** —— sticky 表头和冻结列要求
+     祖先不裁剪，一加就全废
+   · 斑马纹：极淡紫 #f9f7ff；hover 再深一档
+   表头这几条都用「id + body + thead」抬特异性，才能压过设置页
+   `table#summary-table thead th.col-name` 那类单列规则。
+   ============================================================ */
+html:not([data-theme="dark"]) .grid-wrap {
+  border: 1px solid #d9d0f2 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 22px -10px rgba(76, 61, 128, .32) !important;
+}
+html:not([data-theme="dark"]) body table#flow-table > thead > tr > th,
+html:not([data-theme="dark"]) body table#cat-table > thead > tr > th,
+html:not([data-theme="dark"]) body table#fixed-table > thead > tr > th,
+html:not([data-theme="dark"]) body table#summary-table > thead > tr > th,
+html:not([data-theme="dark"]) body table#stats-sum-table > thead > tr > th,
+html:not([data-theme="dark"]) body table.query-table > thead > tr.q-head-row > th {
+  background: linear-gradient(180deg, #6b5bc4, #584a9e) !important;
+  color: #ffffff !important;
+  border-bottom: 1px solid #4c3d80 !important;
+  border-right: 1px solid #6e60bf !important;
+}
+/* 右端那几列（固定页「操作」/ 设置页「上移·删除·账单日·还款日」）的表头
+   不参与紫色顶带：它们在数据行里就是页面底色，表头也保持页面底色，
+   否则表头行右端会多出一块紫，跟右边留白断开。 */
+html:not([data-theme="dark"]) body table#fixed-table > thead > tr > th.col-op,
+html:not([data-theme="dark"]) body table#fixed-table > thead > tr > th.col-ops,
+html:not([data-theme="dark"]) body table#summary-table > thead > tr > th.col-move,
+html:not([data-theme="dark"]) body table#summary-table > thead > tr > th.col-del,
+html:not([data-theme="dark"]) body table#summary-table > thead > tr > th.col-bill,
+html:not([data-theme="dark"]) body table#summary-table > thead > tr > th.col-repay {
+  background: var(--bg-main) !important;
+  color: var(--text-muted) !important;
+  border-right: 1px solid #f2eefb !important;
+  border-bottom: 1px solid #e6ddf6 !important;
+}
+/* 表头里的冻结列（序 / 账户名称）：跟顶带同色，否则吸顶滚动时透出后面的字 */
+html:not([data-theme="dark"]) body table#flow-table > thead > tr > th.col-seq,
+html:not([data-theme="dark"]) body table#summary-table > thead > tr > th.col-seq,
+html:not([data-theme="dark"]) body table#summary-table > thead > tr > th.col-name,
+html:not([data-theme="dark"]) body table.query-table > thead > tr.q-head-row > th.col-seq {
+  background: linear-gradient(180deg, #6b5bc4, #584a9e) !important;
+  color: #ffffff !important;
+}
+/* 数据区：白底 + 极淡紫斑马纹 + 更淡的网格线 */
+html:not([data-theme="dark"]) body table.grid tbody td {
+  background: #ffffff !important;
+  border-right: 1px solid #f2eefb !important;
+  border-bottom: 1px solid #f2eefb !important;
+}
+html:not([data-theme="dark"]) body table.grid tbody tr:nth-child(even) td {
+  background: #f9f7ff !important;
+}
+html:not([data-theme="dark"]) body table.grid tbody tr:hover td {
+  background: #f3eeff !important;
+}
 </style>
 </head>
 <body>
@@ -7703,7 +7767,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.07';
+const APP_VER = 'v13.08';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
