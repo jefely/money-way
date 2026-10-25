@@ -4513,6 +4513,10 @@ table#summary-table td input {
 }
 .lock-title { font-size: 22px !important; font-weight: 700; color: #fff !important; letter-spacing: .08em; }
 .lock-sub { margin-top: 0; font-size: 13px !important; line-height: 1.65; color: rgba(255, 255, 255, .6) !important; }
+/* 空副标题不占位（解锁状态没有那行说明，只剩「提示：…」） */
+.lock-sub:empty { display: none !important; }
+/* 「提示：xxx」靠左，不跟着卡片居中 */
+#lock-hint-show { text-align: left !important; }
 .lock-field { position: relative; margin: 20px 0 4px; }
 .lock-field input {
   width: 100%; height: 48px; padding: 0 14px; box-sizing: border-box;
@@ -8201,7 +8205,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.50';
+const APP_VER = 'v13.51';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -19641,7 +19645,7 @@ function showLockScreen(mode, payload) {
       <div class="lock-card">
         <div class="lock-logo">NT</div>
         <div class="lock-title">${isSetup ? '设置账本密码' : '解锁账本'}</div>
-        <div class="lock-sub">${isSetup ? '密码用于加密本机数据与同步文件' : '输入密码进入账本'}</div>
+        <div class="lock-sub">${isSetup ? '密码用于加密本机数据与同步文件' : ''}</div>
         <div class="lock-field">
           <input id="lock-pw" type="password" autocomplete="off" placeholder="${isSetup ? '设置密码（至少 1 个字符）' : '密码'}">
         </div>
@@ -19652,7 +19656,7 @@ function showLockScreen(mode, payload) {
         <div class="lock-field">
           <input id="lock-hint" type="text" autocomplete="off" maxlength="60" placeholder="密码提示（可选）">
         </div>` : ''}
-        ${!isSetup ? `<div id="lock-hint-show" class="lock-sub" style="min-height:18px;margin-top:10px"></div>` : ''}
+        ${!isSetup ? `<div id="lock-hint-show" class="lock-sub" style="min-height:18px;margin-top:10px;text-align:left"></div>` : ''}
         <div id="lock-err" class="lock-err"></div>
         <button type="button" id="lock-go" class="lock-btn">${isSetup ? '设置并进入' : '解锁'}</button>
         ${isSetup ? '<div class="lock-warn">忘记密码 = 数据永久无法恢复，请务必记住</div>' : ''}
