@@ -7411,7 +7411,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.60';
+const APP_VER = 'v12.62';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -8266,8 +8266,8 @@ async function openThanksDialog() {
 
   try {
     const res = await fetch('thanks.json?t=' + Date.now(), { cache: 'no-store' });
-    const data = await res.json();
-    const list = Array.isArray(data.donors) ? data.donors : [];
+    const text = await res.text();
+    const list = parseDonors(text);
     mask.querySelector('#thanks-wall').innerHTML = list.length
       ? list.map(d => `<span class="thanks-chip" style="${thanksChipStyle(thanksName(d))}">${thanksWrap(thanksName(d))}</span>`).join('')
       : '<span class="sync-hint small">还没有人，等第一位朋友。</span>';
@@ -8287,8 +8287,8 @@ async function loadThanksWall() {
   if (!wall) return;
   try {
     const res = await fetch('thanks.json?t=' + Date.now(), { cache: 'no-store' });
-    const data = await res.json();
-    const list = Array.isArray(data.donors) ? data.donors : [];
+    const text = await res.text();
+    const list = parseDonors(text);
     wall.innerHTML = list.length
       ? list.map(d => `<span class="thanks-chip" style="${thanksChipStyle(thanksName(d))}">${thanksWrap(thanksName(d))}</span>`).join('')
       : '<span class="sync-hint small">还没有人，等第一位朋友。</span>';
@@ -10649,6 +10649,31 @@ function buildLayoutText() {
        · 纯字符串数组（推荐）：["NT", "jefely"]
        · 对象数组（旧写法，兼容）：[{ "name": "NT" }]
      对象里的字段名 name / 姓名 / nick / nickname 都认。 */
+  /* 解析感谢墙名单，尽量不因为漏个逗号就整墙失效：
+     ① 先按标准 JSON 解析
+     ② 失败就把所有 "..." 字符串抓出来，过滤掉 updated / note 这类键名 */
+  function parseDonors(text) {
+    var out = [];
+    try {
+      var d = JSON.parse(text);
+      var list = Array.isArray(d.donors) ? d.donors : (Array.isArray(d) ? d : []);
+      list.forEach(function (x) { out.push(thanksName(x)); });
+      return out;
+    } catch (e) {}
+    // 兜底：抓 donors 数组里的引号字符串
+    var m = text.match(/"donors"\s*:\s*\[([\s\S]*?)\]/);
+    var body = m ? m[1] : text;
+    var re = /"((?:[^"\\]|\\.)*)"/g, hit;
+    var skip = { 'updated': 1, 'note': 1, 'name': 1, '\u59d3\u540d': 1 };
+    while ((hit = re.exec(body))) {
+      var v = hit[1];
+      if (skip[v]) continue;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) continue;
+      if (v) out.push(v.trim());
+    }
+    return out;
+  }
+
   function thanksName(d) {
     if (d == null) return '匿名';
     if (typeof d === 'string') return d.trim() || '匿名';
