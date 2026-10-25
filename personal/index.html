@@ -6942,6 +6942,17 @@ html body table.grid input.fixed-chk[type="checkbox"]:checked::after {
 /* 方框移到输入框左边，添加行用同样宽度的占位保持对齐 */
 .book-pick-ghost { flex: 0 0 11px !important; width: 11px !important; height: 11px !important; }
 .book-row > .book-pick { margin-right: 0 !important; }
+
+/* 校验页子标签栏：粗紫线下面再压一条细深灰线，
+   这样「标签栏（紫）」和「内容区上沿」粘在一起时能分开 */
+html body .toolbar.flow-bar.audit-tabs {
+  border-bottom: none !important;
+  box-shadow: 0 1px 0 0 rgba(90, 90, 100, .85) !important;
+  margin-bottom: 1px !important;
+}
+[data-theme="dark"] html body .toolbar.flow-bar.audit-tabs {
+  box-shadow: 0 1px 0 0 rgba(0, 0, 0, .9) !important;
+}
 </style>
 </head>
 <body>
@@ -7153,7 +7164,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.23';
+const APP_VER = 'v12.24';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -11991,6 +12002,13 @@ async function switchBook(id) {
     state = { accounts: JSON.parse(JSON.stringify(defaultAccounts)), transactions: [], installments: [], fixed: [] };
     _lastSaved = JSON.stringify(state);
     _savePending = true;
+  // 路径页的区间和筛选是按「上一个账本」算的，切过来必须重置，否则一片空白
+  try {
+    mwRange = null;
+    if (typeof mwFilter === 'object' && mwFilter) { mwFilter.date = null; }
+    mwPicked = null;
+  } catch (e) {}
+
     try { await flushDiskWrite(); } catch (e) {}
     refreshBookSections();render();
     toast('已切到「' + target.name + '」（空账本）');
@@ -12011,6 +12029,12 @@ async function switchBook(id) {
     if (!loadStateFromDisk(pt)) throw new Error('格式异常');
     bookState.current = id; saveBooks();
     _lastSaved = pt;
+  // 路径页的区间和筛选是按「上一个账本」算的，切过来必须重置，否则一片空白
+  try {
+    mwRange = null;
+    if (typeof mwFilter === 'object' && mwFilter) { mwFilter.date = null; }
+    mwPicked = null;
+  } catch (e) {}
     render();
     toast('已切到「' + target.name + '」');
   } catch (e) {
