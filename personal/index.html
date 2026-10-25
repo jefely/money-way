@@ -4461,13 +4461,38 @@ table#summary-table td input {
 .lock-logo {
   /* NT 字标：无外框方块，和其他弹窗标题前那个保持一致（渐变文字） */
   width: auto; height: auto; margin: 0 auto 8px;
-  background: none !important;
+  /* 这里原来写的是 `background: none !important` —— 它是简写，会把下面那行
+     background-image 的渐变一起清成 none，而文字又是 background-clip:text + 透明色，
+     结果就是「NT 完全看不见」。只清背景色即可。 */
+  background-color: transparent !important;
+  background-image: linear-gradient(135deg, #c3b2ff, #8b6cff) !important;
   box-shadow: none;
   font-size: 30px; font-weight: 800; letter-spacing: .06em;
   line-height: 1.15;
-  background-image: linear-gradient(135deg, #c3b2ff, #8b6cff);
   -webkit-background-clip: text; background-clip: text;
   color: transparent;
+}
+/* 锁屏（密码弹窗）套同一套表头：NT 字标 + 一条贯穿线 + 标题。
+   锁屏本身是紫色底，所以线用白色半透明（在紫底上紫线看不见）。 */
+.lock-card > .lock-logo {
+  width: calc(100% + 52px) !important;
+  box-sizing: border-box !important;
+  margin: 0 -26px 12px !important;
+  padding: 0 26px 10px !important;
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  letter-spacing: .16em !important;
+  text-indent: .16em !important;      /* 字间距会让文字视觉左偏，补回来 */
+  line-height: 1.2 !important;
+  text-align: center !important;
+  border-bottom: 1px solid rgba(255, 255, 255, .22) !important;
+}
+.lock-card > .lock-title {
+  font-size: 21px !important;
+  font-weight: 700 !important;
+  letter-spacing: .06em !important;
+  text-align: center !important;
+  margin-top: 2px !important;
 }
 .lock-title { font-size: 22px !important; font-weight: 700; color: #fff !important; letter-spacing: .08em; }
 .lock-sub { margin-top: 7px; font-size: 13px !important; line-height: 1.65; color: rgba(255, 255, 255, .6) !important; }
@@ -7731,35 +7756,9 @@ html:not([data-theme="dark"]) .confirm-mask .sync-box button.ghost {
 /* × 提到最上层，任何头部/吸顶层都盖不住它 */
 html body .confirm-mask .dlg-x { z-index: 30 !important; }
 
-/* ---- 头部三段式精修：NT 字标 / 一条细紫线 / 标题 ---- */
-.confirm-mask .sync-box .sync-title::before {
-  content: 'NT' !important;
-  display: block !important;
-  position: static !important;
-  width: calc(100% + 52px) !important;
-  box-sizing: border-box !important;
-  margin: 0 -26px 10px !important;
-  /* 右侧多留 46px：紫线不穿到 × 下面，字标也不会贴到关闭按钮 */
-  padding: 0 46px 9px 26px !important;
-  font-size: 26px !important;
-  font-weight: 800 !important;
-  letter-spacing: .16em !important;
-  text-indent: .16em !important;      /* 字间距会让文字视觉左偏，补回来 */
-  line-height: 1.2 !important;
-  text-align: center !important;
-  background: linear-gradient(135deg, #8b6cff, #5b4ea8) !important;
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  color: transparent !important;
-  border-bottom: 1px solid rgba(139, 108, 255, .45) !important;
-  pointer-events: none !important;
-}
-.confirm-mask .sync-box .sync-title {
-  font-size: 20px !important;
-  font-weight: 700 !important;
-  letter-spacing: .06em !important;
-  text-align: center !important;
-}
+/* ---- 头部回退：不再自定义 NT / 紫线 / 标题（用户要求保持原样）。
+   只留一条：× 必须在最上层，任何吸顶层都盖不住它。 ---- */
+html body .confirm-mask .dlg-x { z-index: 30 !important; }
 </style>
 </head><body>
 
@@ -7970,7 +7969,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.21';
+const APP_VER = 'v13.22';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
