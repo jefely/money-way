@@ -5937,24 +5937,22 @@ html body .toolbar.bar2 > .month-row .m-btn {
 
 /* bar1（分类/汇总上面那排按钮）在窄屏时不要再被压缩 ——
    按钮保持固定大小，放不下就让这一排横向滚动。 */
+/* bar1 / bar2：不用横向滚动，按钮自己在 36~56px 之间伸缩（与流水页同一套） */
 html body .toolbar.bar1,
 html body .toolbar.bar2 {
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  scrollbar-width: none;
+  flex-wrap: nowrap !important;
 }
-html body .toolbar.bar1::-webkit-scrollbar,
-html body .toolbar.bar2::-webkit-scrollbar { display: none; }
-
 html body .toolbar.bar1 > button {
-  flex: 0 0 auto !important;
-  width: 56px !important;
-  min-width: 56px !important;
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 36px !important;
   max-width: 56px !important;
 }
 html body .toolbar.bar1 > .year-input {
   flex: 0 0 52px !important;
   width: 52px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
 }
 html body .toolbar.bar1 > .flow-title,
 html body .toolbar.bar1 > .bar-title {
@@ -6172,7 +6170,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.41';
+const APP_VER = 'v11.42';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -15797,14 +15795,13 @@ function mwSelfHeal() {
   function applyBar1(root) {
     var scope = root || document;
     scope.querySelectorAll('.toolbar.bar1').forEach(function (bar) {
-      bar.style.setProperty('overflow-x', 'auto', 'important');
-      bar.style.setProperty('overflow-y', 'hidden', 'important');
+      // 和流水页 flow-bar 完全同一套：不放横向滚动，靠按钮自身在 36~56px 之间伸缩
       bar.style.setProperty('flex-wrap', 'nowrap', 'important');
       [].slice.call(bar.children).forEach(function (c) {
         if (c.tagName === 'BUTTON') {
-          c.style.setProperty('flex', '0 0 56px', 'important');
-          c.style.setProperty('width', '56px', 'important');
-          c.style.setProperty('min-width', '56px', 'important');
+          c.style.setProperty('flex', '1 1 auto', 'important');
+          c.style.setProperty('width', 'auto', 'important');
+          c.style.setProperty('min-width', '36px', 'important');
           c.style.setProperty('max-width', '56px', 'important');
           c.style.setProperty('padding', '0 4px', 'important');
           c.style.setProperty('font-size', '13px', 'important');
@@ -15813,12 +15810,16 @@ function mwSelfHeal() {
         } else if (c.classList && c.classList.contains('year-input')) {
           c.style.setProperty('flex', '0 0 52px', 'important');
           c.style.setProperty('width', '52px', 'important');
+          c.style.setProperty('min-width', '52px', 'important');
+          c.style.setProperty('max-width', '52px', 'important');
           c.style.setProperty('padding', '0 4px', 'important');
           c.style.setProperty('font-size', '13px', 'important');
           c.style.setProperty('height', '26px', 'important');
         } else if (c.classList && (c.classList.contains('flow-title') || c.classList.contains('bar-title'))) {
           c.style.setProperty('flex', '0 0 auto', 'important');
           c.style.setProperty('white-space', 'nowrap', 'important');
+          c.style.setProperty('font-size', '14px', 'important');
+          c.style.setProperty('font-weight', '700', 'important');
         }
       });
     });
