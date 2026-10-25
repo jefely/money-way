@@ -8222,7 +8222,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.55';
+const APP_VER = 'v13.56';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -18314,7 +18314,13 @@ function colHeadRow(table) {
 function ensureColgroup(table) {
   const headRow = colHeadRow(table);
   if (!headRow) return null;
-  const n = headRow.querySelectorAll('th').length;
+  /* 折叠的列（display:none 的 .folded）不参与列宽分配：
+     它还在 thead 里，但已经不占位了。如果 colgroup 仍按「所有 th」的数量建，
+     就会多出几个没有宽度的 <col>，table-layout:fixed 会拿剩余宽度乱分 ——
+     表现就是拖动列宽时列「乱跳、被压进左边消失」。 */
+  const ths = Array.from(headRow.querySelectorAll('th'))
+    .filter(th => !th.classList.contains('folded'));
+  const n = ths.length;
   let cg = table.querySelector('colgroup');
   if (cg && cg.children.length === n) return cg;
   if (cg) cg.remove();
