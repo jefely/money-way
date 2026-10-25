@@ -5934,6 +5934,33 @@ html body .toolbar.bar2 > .month-row .m-btn {
     max-width: none !important;
   }
 }
+
+/* bar1（分类/汇总上面那排按钮）在窄屏时不要再被压缩 ——
+   按钮保持固定大小，放不下就让这一排横向滚动。 */
+html body .toolbar.bar1,
+html body .toolbar.bar2 {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none;
+}
+html body .toolbar.bar1::-webkit-scrollbar,
+html body .toolbar.bar2::-webkit-scrollbar { display: none; }
+
+html body .toolbar.bar1 > button {
+  flex: 0 0 auto !important;
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
+}
+html body .toolbar.bar1 > .year-input {
+  flex: 0 0 52px !important;
+  width: 52px !important;
+}
+html body .toolbar.bar1 > .flow-title,
+html body .toolbar.bar1 > .bar-title {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
 </style>
 </head>
 <body>
@@ -6145,7 +6172,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.39';
+const APP_VER = 'v11.41';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -15765,9 +15792,42 @@ function mwSelfHeal() {
       b.style.setProperty('box-sizing', 'border-box', 'important');
     });
   }
+  // bar1（分类 / 汇总 上面那排）的按钮：<=767px 还有更优先的规则会把它们压到 34px，
+  // 这里用 inline style 钉住固定尺寸，放不下就让这一排横向滚动。
+  function applyBar1(root) {
+    var scope = root || document;
+    scope.querySelectorAll('.toolbar.bar1').forEach(function (bar) {
+      bar.style.setProperty('overflow-x', 'auto', 'important');
+      bar.style.setProperty('overflow-y', 'hidden', 'important');
+      bar.style.setProperty('flex-wrap', 'nowrap', 'important');
+      [].slice.call(bar.children).forEach(function (c) {
+        if (c.tagName === 'BUTTON') {
+          c.style.setProperty('flex', '0 0 56px', 'important');
+          c.style.setProperty('width', '56px', 'important');
+          c.style.setProperty('min-width', '56px', 'important');
+          c.style.setProperty('max-width', '56px', 'important');
+          c.style.setProperty('padding', '0 4px', 'important');
+          c.style.setProperty('font-size', '13px', 'important');
+          c.style.setProperty('height', '26px', 'important');
+          c.style.setProperty('box-sizing', 'border-box', 'important');
+        } else if (c.classList && c.classList.contains('year-input')) {
+          c.style.setProperty('flex', '0 0 52px', 'important');
+          c.style.setProperty('width', '52px', 'important');
+          c.style.setProperty('padding', '0 4px', 'important');
+          c.style.setProperty('font-size', '13px', 'important');
+          c.style.setProperty('height', '26px', 'important');
+        } else if (c.classList && (c.classList.contains('flow-title') || c.classList.contains('bar-title'))) {
+          c.style.setProperty('flex', '0 0 auto', 'important');
+          c.style.setProperty('white-space', 'nowrap', 'important');
+        }
+      });
+    });
+  }
+
+  applyBar1(document);
   apply(document);
   try {
-    new MutationObserver(function () { apply(document); })
+    new MutationObserver(function () { applyBar1(document); apply(document); })
       .observe(document.getElementById('main') || document.body, { childList: true, subtree: true });
   } catch (e) {}
 })();
