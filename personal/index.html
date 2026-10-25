@@ -4164,6 +4164,25 @@ table#summary-table.sum-cols-folded .sum-fold-toggle::before {
 }
 [data-theme="dark"] table#summary-table.sum-cols-folded .sum-fold-toggle::before { border-left-color: #ffffff; }
 
+/* ⑤-b 冻结列的 position 必须显式给 sticky。
+    表头 th 本来就是 sticky（吸顶），所以表头看起来是冻住的；
+    而 tbody td 默认 position:static —— applySummarySticky 写进去的 left 对它**完全不生效**，
+    于是横滑时数据行照样跑、只有表头不动。这就是「冻结的前两列会跑」的真因。
+    这里把可能被冻结的几列统一设成 sticky；left 仍由 applySummarySticky 决定，
+    没被冻结的列收不到 left，就不会横向吸附。 */
+table#summary-table thead th.col-seq,
+table#summary-table tbody td.col-seq,
+table#summary-table thead th.col-cat,
+table#summary-table tbody td.col-cat,
+table#summary-table thead th.col-code,
+table#summary-table tbody td.col-code { position: sticky; }
+table#summary-table thead th.col-seq,
+table#summary-table tbody td.col-seq { z-index: 5; }
+table#summary-table thead th.col-cat,
+table#summary-table tbody td.col-cat { z-index: 4; }
+table#summary-table thead th.col-code,
+table#summary-table tbody td.col-code { z-index: 6; }
+
 /* ⑥ 列宽手柄：命中区收在本列内，平时完全透明，只在悬停/拖动时露一条 1px 竖线。
    以前手柄 right:-16px / width:32px，有 16px 盖在右边那一格上 —— 看起来像一层
    1.5mm 的遮罩把紧挨着的文字挡住，其实那一小条也确实点不到。 */
@@ -8175,7 +8194,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.63';
+const APP_VER = 'v13.64';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
