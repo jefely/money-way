@@ -6464,10 +6464,15 @@ html body .toolbar.flow-bar.audit-tabs {
   max-width: none !important;
 }
 
-/* ③ 功能页按钮行：背景铺满整行（按钮仍受单按钮上限约束） */
+/* ③ 功能页按钮行：背景铺满整行（按钮仍受单按钮上限约束）。
+   上面 @media(min-width:768px) 里那条 `body .toolbar…{ max-width:420px }` 是
+   「按钮区最宽 420」，它把 install-bar 也圈了进去；这条修复当初只补了
+   bar1 / bar2 / flow-bar，**漏了分期页的 install-bar** ——
+   于是分期页那条暗紫底色只铺到 420px，右边一截是页面的黑。这里补上。 */
 html body .toolbar.bar1,
 html body .toolbar.bar2,
-html body .toolbar.flow-bar {
+html body .toolbar.flow-bar,
+html body .toolbar.install-bar {
   width: 100% !important;
   max-width: none !important;
 }
@@ -7698,7 +7703,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.06';
+const APP_VER = 'v13.07';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
