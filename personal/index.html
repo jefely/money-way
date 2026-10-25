@@ -7881,11 +7881,10 @@ table.install-table tbody td.col-name { box-shadow: inset -1px 0 0 var(--border-
    ============================================================ */
 table#stats-sum-table th.folded,
 table#stats-sum-table td.folded {
-  width: 0 !important; min-width: 0 !important; max-width: 0 !important;
-  padding: 0 !important; border: 0 !important;
-  overflow: hidden !important;
-  font-size: 0 !important; line-height: 0 !important;
-  color: transparent !important;
+  /* 用 display:none 真正把列去掉。
+     之前试过 width:0 —— table-layout:fixed 下浏览器仍会给它留最小宽度，
+     省下来的空间被重新分配给最宽的「账户名称」，看起来就是「列宽保存不住」。 */
+  display: none !important;
 }
 table#stats-sum-table thead th.col-seq,
 table#stats-sum-table tbody td.col-seq {
@@ -7904,10 +7903,9 @@ table#stats-sum-table tbody td.col-name { box-shadow: inset -1px 0 0 var(--borde
 [data-theme="dark"] table#stats-sum-table thead th.col-name,
 [data-theme="dark"] table#stats-sum-table tbody td.col-name { box-shadow: inset -1px 0 0 #343434; }
 /* 折叠按钮：**绝对贴住这一格的左边缘**，不随列宽变化跑位置。
-   原来它是行内元素，跟着表头文字一起受 text-align 和列宽影响 ——
-   折叠/展开、拖列宽时按钮会跟着平移。改成 absolute 钉在左边缘，
-   再给 th 留出左侧内距放它。 */
-table#stats-sum-table thead th.col-name { padding-left: 22px !important; }
+   注意 th 不要再加 padding-left —— 表头是 text-align:center，
+   加了左内距会把「账户名称」整体往右推，看起来就不居中了；
+   按钮用 absolute 定位，本来就不占文档流。 */
 table#stats-sum-table th.col-name .stats-fold-toggle {
   position: absolute !important;
   left: 4px !important;
@@ -8203,7 +8201,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.48';
+const APP_VER = 'v13.50';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -11098,6 +11096,24 @@ function toggleStatsFold() {
   render();
 }
 
+/* 统计·汇总的冻结列「账户名称」的 left 必须跟着「序」列的实际宽度走。
+   只在渲染时算一次不够 —— 拖动列宽后「序」变窄，left 还是旧值，
+   两列之间就会裂出一道底色（深色主题下就是黑缝）。拖完/双击自适应后要重算。 */
+function syncStatsFreezeLeft() {
+  try {
+    const t = document.getElementById('stats-sum-table');
+    if (!t) return;
+    const seq = t.querySelector('thead th.col-seq');
+    if (!seq) return;
+    const w = Math.round(seq.getBoundingClientRect().width);
+    if (w > 0) {
+      t.querySelectorAll('thead th.col-name, tbody td.col-name')
+        .forEach(el => { el.style.left = w + 'px'; });
+    }
+  } catch (e) {}
+}
+window.syncStatsFreezeLeft = syncStatsFreezeLeft;
+
 function renderStatsSum(main, footer) {
   const range = catRangeOf();
 
@@ -11184,16 +11200,10 @@ function renderStatsSum(main, footer) {
   }
   wrap.appendChild(table);
   main.appendChild(wrap);
-  try { initColResize(table, 'statsSum'); } catch (e) {}
-  /* 折叠必须同时改 <colgroup>：表格布局里 <col> 的宽度优先于单元格自身的 width，
-     只给 th/td 加 width:0 会被 initColResize 写回的列宽盖掉（实测折叠后仍 84px）。 */
-  if (statsFold) {
-    try {
-      const cols = table.querySelectorAll('colgroup > col');
-      if (cols[1]) cols[1].style.width = '0px';
-      if (cols[2]) cols[2].style.width = '0px';
-    } catch (e) {}
-  }
+  /* 折叠态只有 7 列，用独立的存档 key（statsSumFold），别和 9 列的 statsSum 混。
+     混在一起时折叠会写 7 个值，展开时 9 列对不上就回落默认。 */
+  try { initColResize(table, statsFold ? 'statsSumFold' : 'statsSum'); } catch (e) {}
+
   const foldBtn = table.querySelector('.stats-fold-toggle');
   if (foldBtn) foldBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); toggleStatsFold(); };
   /* 冻结「账户名称」的 left 要按「序」列的**实际**宽度来算：
@@ -18056,7 +18066,10 @@ const DEFAULT_COL_WIDTHS = {
   installFixed: [113, 60, 99],   // 分期表前三列（账户名称/账单日/每月合计）
   // 设置页 7 列：序 / 类型 / 分类 / 简码 / 账户名称 / 期初 / 删除
   settings: [52, 96, 96, 84, 168, 110, 46, 44],
-  statsSum: [52, 84, 84, 150, 120, 100, 100, 100, 100]
+  statsSum: [52, 84, 84, 150, 120, 100, 100, 100, 100],
+  /* 折叠态是 7 列（去掉类型/分类），单独一套存档 key，避免和 9 列的那份互相覆盖 ——
+     混在一起时折叠会写入 7 个值、展开时 9 列对不上就回落默认（账户名称被压成 84）。 */
+  statsSumFold: [52, 150, 120, 100, 100, 100, 100]
 };
 
 // 列宽的 localStorage 键。v3 统一存像素；v1 同格式可直接用；v2 曾经存过比例（×1000 折算）。
@@ -18233,6 +18246,14 @@ function snapshotClassWidths(table, key) {
     saveColWByClass();
   } catch (e) {}
 }
+/* 每张表「完整列序」的类名，用于在列数变化（折叠/展开）时按名字查默认宽度。
+   classWidthsFor 里如果按索引取 DEFAULT_COL_WIDTHS，折叠后列序变了就会错位 ——
+   统计表折叠后「账户名称」会拿到「分类」的默认宽度（84 而不是 150）。 */
+const DEFAULT_CLASS_ORDER = {
+  statsSum: ['col-seq', 'col-cat', 'col-sub', 'col-name', 'col-bal', 'col-out', 'col-in', 'col-hout', 'col-hin'],
+  summary:  ['col-seq', 'col-cat', 'col-sub', 'col-code', 'col-name', 'col-open', 'col-open', 'col-open', 'col-open', 'col-open', 'col-bal', 'col-move', 'col-del', 'col-open']
+};
+
 /* 按列名还原出一组宽度；一条都对不上就返回 null，交给调用方走默认逻辑 */
 function classWidthsFor(table, key) {
   const m = colWByClass[key];
@@ -18241,13 +18262,18 @@ function classWidthsFor(table, key) {
   if (!headRow) return null;
   const ths = Array.from(headRow.querySelectorAll('th'));
   const dft = DEFAULT_COL_WIDTHS[key] || [];
+  const order = DEFAULT_CLASS_ORDER[key] || null;
   let hit = 0;
   const px = ths.map((th, i) => {
     const k = colKeyOf(th);
     if (k && m[k] != null) { hit++; return m[k]; }
+    if (k && order) {
+      const oi = order.indexOf(k);
+      if (oi >= 0 && dft[oi] != null) return dft[oi];
+    }
     return dft[i] != null ? dft[i] : (dft[dft.length - 1] || 100);
   });
-  return hit ? px : null;
+  return px;
 }
 
 // 列头行：流水/汇总就是 thead 唯一一行；查询页是蓝色那行（thead 最后一行）
@@ -18367,10 +18393,20 @@ function initColResize(table, key) {
   } else if (Array.isArray(colWidths[key]) && colWidths[key].length === ths.length) {
     applyWidths(table, key, colWidths[key]);
   } else if (Array.isArray(DEFAULT_COL_WIDTHS[key])) {
-    // 存的列宽数量和当前表结构对不上（比如表加了/删了一列）。
+    // 存的列宽数量和当前表结构对不上（比如表加了/删了一列，或统计表折叠了两列）。
     // 以前这里静默跳过 → 拖完列宽看起来「保存不了」。现在按默认值重建并落盘。
+    // 注意要**按列名**查默认值：折叠后列序变了，按索引取会把「账户名称」
+    // 拿到「分类」的默认宽度（84 而不是 150）。
     const dft = DEFAULT_COL_WIDTHS[key];
-    colWidths[key] = ths.map((_, i) => dft[i] != null ? dft[i] : (dft[dft.length - 1] || 100));
+    const order = DEFAULT_CLASS_ORDER[key] || null;
+    colWidths[key] = ths.map((th, i) => {
+      const k = colKeyOf(th);
+      if (k && order) {
+        const oi = order.indexOf(k);
+        if (oi >= 0 && dft[oi] != null) return dft[oi];
+      }
+      return dft[i] != null ? dft[i] : (dft[dft.length - 1] || 100);
+    });
     applyWidths(table, key, colWidths[key]);
     saveColWidths();
   }
@@ -18434,6 +18470,7 @@ function initColResize(table, key) {
             if (_pendingWidths) { paintWidths(key, _pendingWidths); _pendingWidths = null; }
             // 列宽一变，冻结列的 left 必须同一帧跟着重算，否则拖动时「撕裂」
             if (key === 'summary') { try { applySummarySticky(); } catch (e) {} }
+            if (key === 'statsSum') { try { syncStatsFreezeLeft(); } catch (e) {} }
           });
         }
       };
@@ -18452,6 +18489,7 @@ function initColResize(table, key) {
           snapshotClassWidths(table, key);
           saveColWidths(); syncFlowTitleWidth(); syncGridRight();
           try { applySummarySticky(); } catch (e) {}
+          if (key === 'statsSum') { try { syncStatsFreezeLeft(); } catch (e) {} }
         }
       };
       grip.addEventListener('pointermove', onMove);
@@ -18479,6 +18517,7 @@ function initColResize(table, key) {
       snapshotClassWidths(table, key);   // 双击自动适应也按列名记一份
       saveColWidths();
       syncFlowTitleWidth();
+      if (key === 'statsSum') { try { syncStatsFreezeLeft(); } catch (e) {} }
     });
   });
 }
