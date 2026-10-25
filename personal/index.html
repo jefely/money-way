@@ -6686,8 +6686,8 @@ html body .confirm-mask .book-section .book-pick.on {
 /* 弹窗右上角的关闭 × */
 .dlg-x {
   position: absolute;
-  top: 8px; right: 10px;
-  width: 28px; height: 28px;
+  top: 6px; right: 8px;
+  width: 32px; height: 32px;
   display: flex; align-items: center; justify-content: center;
   padding: 0; margin: 0;
   border: 0 !important; border-radius: 8px !important;
@@ -7419,6 +7419,7 @@ html body .query-section .grid-wrap { scrollbar-gutter: auto !important; }
   top: 0 !important;
   z-index: 4 !important;              /* 必须低于 .dlg-x，否则盖住右上角关闭按钮 */
   background: transparent !important;
+  margin-top: -5px !important;        /* 头部整体上移 5px，贴近卡片上沿 */
   /* 左右各撑出去，盖住 .sync-box 的 padding，不留缝 */
   margin-left: -40px !important;
   margin-right: -40px !important;
@@ -7999,7 +8000,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.25';
+const APP_VER = 'v13.26';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -18378,8 +18379,8 @@ function mwSelfHeal() {
       x.style.setProperty('border-radius', '0', 'important');
       x.style.setProperty('box-shadow', 'none', 'important');
       x.style.setProperty('color', ink, 'important');
-      x.style.setProperty('font-size', '20px', 'important');
-      x.style.setProperty('font-weight', '400', 'important');
+      x.style.setProperty('font-size', '22px', 'important');
+      x.style.setProperty('font-weight', '700', 'important');
       x.style.setProperty('line-height', '1', 'important');
     })();
     x.onclick = function () {
