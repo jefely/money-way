@@ -6013,9 +6013,7 @@ table.set-table tbody td.col-del > .row-del:active {
   color: var(--danger) !important;
   background: transparent !important; border: 0 !important;
 }
-/* 统计页的子按钮组：并进 bar1，跟在按钮后面 */
-span.stats-sub { display: inline-flex; gap: 4px; align-items: center; flex: 0 0 auto; margin-left: 2px; }
-span.stats-sub button { flex: 0 0 auto; }
+
 
 /* 设置页：隐藏 5 个金额列（当前结余/转出/转入/转出历史/转入历史）
    —— 只是不显示，computeStats 的计算与数据一律不动 */
@@ -6240,7 +6238,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.58';
+const APP_VER = 'v11.59';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -9156,19 +9154,25 @@ function renderStats(main, footer) {
 
   const bar1 = main.querySelector('.toolbar.bar1');
   if (!bar1) return;
-  const grp = document.createElement('span');
-  grp.className = 'stats-sub';
-  grp.innerHTML =
-    '<button type="button" class="ghost plan-btn" data-s="cat"'
-      + (statsSub === 'cat' ? ' data-active="true"' : '') + '>分类</button>' +
-    '<button type="button" class="ghost plan-btn" data-s="sum"'
-      + (statsSub === 'sum' ? ' data-active="true"' : '') + '>汇总</button>';
   const clearBtn = [].slice.call(bar1.querySelectorAll('button'))
     .find(b => /清空/.test(b.textContent || ''));
-  if (clearBtn) bar1.insertBefore(grp, clearBtn);
-  else bar1.appendChild(grp);
-  grp.querySelectorAll('button').forEach(b => {
-    b.onclick = () => { statsSub = b.dataset.s; render(); };
+
+  // 两个按钮**直接**作为 bar1 的子元素插入（不套 span），
+  // 这样它们和「清空/区间/年份/月份」共享同一套宽度、边距、缩放规则。
+  [
+    { s: 'cat', label: '分类' },
+    { s: 'sum', label: '汇总' }
+  ].forEach(function (d) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ghost plan-btn';
+    btn.textContent = d.label;
+    btn.dataset.sub = d.s;
+    // 当前选中的那个保持激活（紫底）
+    if (statsSub === d.s) btn.setAttribute('data-active', 'true');
+    btn.onclick = () => { statsSub = d.s; render(); };
+    if (clearBtn) bar1.insertBefore(btn, clearBtn);
+    else bar1.appendChild(btn);
   });
 }
 
