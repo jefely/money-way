@@ -5832,6 +5832,38 @@ html body .toolbar.flow-bar > button {
     min-width: 34px !important;
   }
 }
+
+/* ============================================================
+   工具栏按钮：全站统一成「流水记录」页的样式
+   —— 流水页定稿：padding 0 4px、字号 13px、高 26px、圆角 6px，
+      有富余宽度时按 flex 拉伸，最多 56px（2 个汉字 + 内边距的舒适宽度）。
+      用 :not(.m-btn):not(.audit-tab) 排除月份格子和校验页分页签。
+   ============================================================ */
+html body .toolbar button:not(.m-btn):not(.audit-tab) {
+  padding: 0 4px !important;
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 36px !important;
+  max-width: 56px !important;
+  font-size: 13px !important;
+  height: 26px !important;
+  line-height: 24px !important;
+  border-radius: 6px !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+}
+/* 月份格子、年份格子这类密集小按钮不参与拉伸 */
+html body .toolbar .m-btn {
+  flex: 0 0 auto !important;
+  max-width: none !important;
+}
+/* 标题（流水记录 / 分期统计 / 分类统计 等）：全站同字号同字重 */
+html body .toolbar > .flow-title,
+html body .toolbar > .bar-title,
+html body .toolbar > .fixed-title {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
 </style>
 </head>
 <body>
@@ -6043,7 +6075,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.28';
+const APP_VER = 'v11.30';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
