@@ -6414,6 +6414,63 @@ html body .confirm-mask .sync-box button.danger-btn:not(.sync-tab):not(.row-del)
 [data-theme="dark"] .book-name-inp { background: #1b1630; border-color: #3a2f66; }
 [data-theme="dark"] .book-ops button { background: #1b1630 !important; border-color: #3a2f66 !important; color: #cfc4f5 !important; }
 [data-theme="dark"] .book-add-btn { background: #241d3d !important; }
+
+/* ============================================================
+   本轮 UI 修正
+   ============================================================ */
+
+/* ① 路径页：三角下移，和「Money Way」文字同一水平线 */
+.mw-toggle-left { top: 10px !important; }
+.mw-toggle-label { top: 10px !important; line-height: 22px; }
+
+/* ② 校验页：底部紫线贯通整行（容器要撑满宽度） */
+html body .toolbar.flow-bar.audit-tabs {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* ③ 功能页按钮行：背景铺满整行（按钮仍受单按钮上限约束） */
+html body .toolbar.bar1,
+html body .toolbar.bar2,
+html body .toolbar.flow-bar {
+  width: 100% !important;
+  max-width: none !important;
+}
+/* 深色主题下这条底色一直延到右边缘 */
+[data-theme="dark"] html body .toolbar,
+[data-theme="dark"] html body .toolbar.bar1,
+[data-theme="dark"] html body .toolbar.bar2 {
+  background-color: #141414 !important;
+}
+/* 月份格子仍然最多 900px，不要因为工具栏变宽就拉长 */
+html body .toolbar.bar2 > .month-row.plan-months,
+html body .toolbar.bar2 > .month-row.plan-years {
+  max-width: 900px !important;
+}
+
+/* ④ 统计·汇总表：类型 / 分类 / 账户名称 居中，金额列全部靠右 */
+table#stats-sum-table th.col-cat,
+table#stats-sum-table td.col-cat,
+table#stats-sum-table th.col-sub,
+table#stats-sum-table td.col-sub,
+table#stats-sum-table th.col-name,
+table#stats-sum-table td.col-name {
+  text-align: center !important;
+}
+table#stats-sum-table th.col-bal,
+table#stats-sum-table td.col-bal,
+table#stats-sum-table th.col-out,
+table#stats-sum-table td.col-out,
+table#stats-sum-table th.col-in,
+table#stats-sum-table td.col-in,
+table#stats-sum-table th.col-hout,
+table#stats-sum-table td.col-hout,
+table#stats-sum-table th.col-hin,
+table#stats-sum-table td.col-hin {
+  text-align: right !important;
+  padding-right: 8px !important;
+  font-variant-numeric: tabular-nums;
+}
 </style>
 </head>
 <body>
@@ -6625,7 +6682,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.87';
+const APP_VER = 'v11.88';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
