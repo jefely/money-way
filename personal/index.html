@@ -7877,12 +7877,29 @@ table.install-table tbody td.col-name { box-shadow: inset -1px 0 0 var(--border-
 /* ============================================================
    统计·汇总表：折叠「类型 / 分类」+ 冻结「序 / 账户名称」
    ------------------------------------------------------------
-   · 折叠：两列收成 0 宽（不是 display:none —— 那样 colgroup 的列数和 th 对不上，
-     initColResize 会把后面所有列的宽度整体错位）。
-   · 冻结：序 + 账户名称。账户名称的 left 等于序的宽度（52px），
-     两列都 sticky，右边那列盖左边那列。
-   · 折叠按钮贴在「账户名称」表头左上角，跟着列一起冻结。
+   · 折叠：用 display:none 真正去掉这两列（width:0 在 table-layout:fixed 下
+     浏览器仍会给最小宽度，省下的空间被重分配给最宽的列）。
+   · 冻结：序 + 账户名称。账户名称的 left 等于序的实际宽度，
+     由 syncStatsFreezeLeft() 算，拖列宽时每帧重算。
+   · 折叠按钮绝对定位贴住「账户名称」格左边缘（见文件末尾）。
+   · **单元格不换行 + 行高固定**：统计表每格是纯文本，不锁死的话把列拖窄，
+     文字就折行、行高一路涨上去，相邻列的金额还会和账户名叠在一起
+     （用户截图里「交行储8380」竖成四行、金额压在字上）。
+     设置页那边每格是定高输入框，天生不换行，所以没这问题。
+   · 表格宽度不能被压缩：width:auto + min-width:100%。
+     否则列宽之和小于容器时，浏览器会按比例把所有列压一遍，
+     拖出来的宽度当场失效。
    ============================================================ */
+table#stats-sum-table { width: auto !important; min-width: 100% !important; }
+table#stats-sum-table thead th,
+table#stats-sum-table tbody td {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+table#stats-sum-table thead th { height: var(--layout-head-h, 26px) !important; }
+table#stats-sum-table tbody td { height: var(--layout-row-h, 32px) !important; }
+
 table#stats-sum-table th.folded,
 table#stats-sum-table td.folded {
   /* 用 display:none 真正把列去掉。
@@ -8205,7 +8222,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.51';
+const APP_VER = 'v13.52';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
