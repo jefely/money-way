@@ -8222,7 +8222,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.56';
+const APP_VER = 'v13.57';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -18354,8 +18354,16 @@ function applyWidths(table, key, px) {
     w.forEach((v, i) => { if (cols[i]) cols[i].style.width = (v / sum * 100).toFixed(4) + '%'; });
     table.style.width = '100%';
   } else {
-    w.forEach((v, i) => { if (cols[i]) cols[i].style.width = v + 'px'; });
-    table.style.width = w.reduce((a, b) => a + b, 0) + 'px';
+    /* 表格总宽必须等于**实际写进去的列宽之和**。
+       之前直接用 w.reduce(...)，而 w 可能比 colgroup 的 <col> 多
+       （统计表折叠后 colgroup 只有 7 个 col，w 仍有 9 个值）——
+       于是表格宽 922px、列宽只写了 722px，多出的 200px 被
+       table-layout:fixed 按比例摊回各列：拖动任意一列，每一列都跟着动。 */
+    let sum = 0;
+    w.forEach((v, i) => {
+      if (cols[i]) { cols[i].style.width = v + 'px'; sum += v; }
+    });
+    table.style.width = Math.round(sum) + 'px';
   }
   table.classList.add('cols-custom');
   colWidths[key] = w;
