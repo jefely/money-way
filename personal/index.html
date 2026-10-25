@@ -6981,6 +6981,27 @@ html body table#fixed-table td.col-del .row-del {
   display: inline-flex !important; align-items: center !important; justify-content: center !important;
   opacity: 1 !important;
 }
+
+/* ============================================================
+   账本行：方框在输入框盒子外面
+   ============================================================ */
+.book-line {
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  width: 100% !important;
+  margin: 0 0 8px 0 !important;
+}
+.book-line > .book-row {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+.book-line > .book-pick {
+  flex: 0 0 11px !important;
+  margin: 0 !important;
+}
+.book-line-add > .book-row { flex: 1 1 auto !important; }
 </style>
 </head>
 <body>
@@ -7192,7 +7213,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.26';
+const APP_VER = 'v12.29';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -11864,17 +11885,28 @@ function openImportXlsxDialog(preFile) {
       const list = box.querySelector('.book-list');
 
       for (const b of bookState.list) {
+        const line = document.createElement('div');
+        line.className = 'book-line';
         const row = document.createElement('div');
         row.className = 'book-row' + (b.id === cur.id ? ' active' : '');
         const on = b.id === cur.id;
         row.innerHTML = `
-          <button type="button" class="book-pick${on ? ' on' : ''}" data-op="pick"
-                  title="${on ? '当前账本' : '点一下加载这个账本'}"><i></i></button>
           <input class="book-name-inp" type="text" value="${esc(b.name)}" maxlength="24">
           <span class="book-ops">
             ${bookState.list.length > 1 ? '<button type="button" class="book-x" data-op="del" title="删除这个账本">×</button>' : ''}
             <button type="button" data-op="rename">改名</button>
           </span>`;
+        // 方框放到输入框盒子外面
+        {
+          var pkBtn = document.createElement('button');
+          pkBtn.type = 'button';
+          pkBtn.className = 'book-pick' + (on ? ' on' : '');
+          pkBtn.dataset.op = 'pick';
+          pkBtn.title = on ? '当前账本' : '点一下加载这个账本';
+          pkBtn.innerHTML = '<i></i>';
+          line.appendChild(pkBtn);
+          line.appendChild(row);
+        }
         // 账本区按钮的样式用 inline 钉住 —— 弹窗里那批 !important 规则太霸道
         const dark = document.documentElement.getAttribute('data-theme') === 'dark';
         row.querySelectorAll('.book-ops button').forEach(function (bb) {
@@ -11914,7 +11946,7 @@ function openImportXlsxDialog(preFile) {
         inp.addEventListener('keydown', (e) => {
           if (e.key === 'Enter') { e.preventDefault(); row.querySelector('[data-op="rename"]').click(); }
         });
-        row.querySelectorAll('[data-op]').forEach(btn => {
+        line.querySelectorAll('[data-op]').forEach(btn => {
           btn.onclick = async (ev) => {
             ev.stopPropagation();
             const op = btn.dataset.op;
@@ -11940,9 +11972,11 @@ function openImportXlsxDialog(preFile) {
             }
           };
         });
-        list.appendChild(row);
+        list.appendChild(line);
       }
 
+      const addLine = document.createElement('div');
+      addLine.className = 'book-line book-line-add';
       const addRow = document.createElement('div');
       addRow.className = 'book-row book-row-add';
       addRow.innerHTML = `
@@ -11984,7 +12018,8 @@ function openImportXlsxDialog(preFile) {
       addRow.querySelector('[data-op="add"]').onclick = (ev) => { ev.stopPropagation(); doAdd(); };
       const clrBtn = addRow.querySelector('[data-op="clr"]');
       if (clrBtn) clrBtn.onclick = (ev) => { ev.stopPropagation(); newInp.value = ''; newInp.focus(); };
-      list.appendChild(addRow);
+      addLine.appendChild(addRow);
+      list.appendChild(addLine);
     };
 
     render();
@@ -17408,6 +17443,14 @@ function mwSelfHeal() {
       pk.style.setProperty('border', '1px solid ' + ink, 'important');
       pk.style.setProperty('background', on ? ink : 'transparent', 'important');
       pk.style.setProperty('background-image', 'none', 'important');
+      // 内部的 <i> 是淡紫色的填充块，必须彻底关掉
+      var inner = pk.querySelector('i');
+      if (inner) {
+        inner.style.setProperty('display', 'none', 'important');
+        inner.style.setProperty('width', '0', 'important');
+        inner.style.setProperty('height', '0', 'important');
+        inner.style.setProperty('background', 'transparent', 'important');
+      }
     });
 
     // 流水表的 ☑ 固定/计划 复选框
