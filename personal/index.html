@@ -4508,8 +4508,11 @@ table#summary-table td input {
 .lock-field { position: relative; margin: 20px 0 4px; }
 .lock-field input {
   width: 100%; height: 48px; padding: 0 14px; box-sizing: border-box;
-  border-radius: 12px; border: 1px solid rgba(255, 255, 255, .18);
-  background: rgba(255, 255, 255, .06); color: #fff !important; font-size: 17px !important;
+  /* 原来只有 6% 白底 + 18% 白边，压在紫色页面上不聚焦时几乎看不见，
+     看起来像「输入框一下在一下不在」（聚焦才显出紫边和光）。
+     现在常态就有紫边 + 10% 白底，聚焦再加强。 */
+  border-radius: 12px; border: 1px solid rgba(160, 140, 255, .45);
+  background: rgba(255, 255, 255, .10); color: #fff !important; font-size: 17px !important;
   outline: none; transition: border-color .18s, background .18s, box-shadow .18s;
 }
 .lock-field input::placeholder { color: rgba(255, 255, 255, .36); }
@@ -7153,15 +7156,33 @@ html body table#fixed-table td.col-del .row-del {
 }
 .book-line-add > .book-row { flex: 1 1 auto !important; }
 
-/* 「更新」按钮 + 版本号同一行 */
+/* 「更新」按钮 + 版本号 */
 .ver-line {
   display: flex !important;
-  align-items: center !important;
-  flex-wrap: wrap !important;
-  gap: 14px !important;
+  align-items: flex-start !important;
+  flex-wrap: nowrap !important;      /* 不换行：换行会让整块内容上下跳 */
+  gap: 10px !important;
   margin-top: 10px !important;
 }
-.ver-line .ver-mini { display: inline-flex !important; gap: 16px !important; align-items: center !important; }
+/* 「当前：」「远端：」各占一行，竖排在按钮右侧 ——
+   并排时文字一变长（读取中… / 读取失败）就会折行，整页跟着上下窜。 */
+.ver-line .ver-mini {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  align-items: flex-start !important;
+  line-height: 1.5 !important;
+}
+.ver-line .ver-mini > span { white-space: nowrap !important; }
+/* 按钮宽度按 3 个字定死：文案在「更新 / 检查中… / 已是最新」之间切换时宽度不变 */
+html body #ver-update-help {
+  flex: 0 0 auto !important;
+  min-width: 3.6em !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+}
 
 /* 添加行：左侧占位宽度与上面的方框列严格一致（11px + 9px gap） */
 .book-line-add > .book-pick-ghost {
@@ -8018,7 +8039,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.28';
+const APP_VER = 'v13.29';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
