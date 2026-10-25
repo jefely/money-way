@@ -7757,22 +7757,26 @@ html:not([data-theme="dark"]) .confirm-mask .sync-box button.ghost {
   background: rgba(255, 255, 255, .08) !important;
   border-color: rgba(139, 108, 255, .30) !important;
 }
-/* ---- 弹窗头：wrapper 必须半透明，否则 36% 透窗里会横着一条实色 ---- */
+/* ---- 弹窗头：取消色块，与弹窗同一层 ---- 
+   原来这里是「半透明白 + 自己的 blur」，等于在 36% 的透窗上又叠了一块玻璃，
+   两层模糊/两层底色对不齐，看着像贴了一块色块。现在直接透明：
+   头部不再自带背景，直接透出弹窗本身那一层，颜色与模糊自然一致。
+   代价：内容很长、弹窗需要滚动时，头部不再挡住下面滚上来的内容
+   （弹窗 max-height 88vh，绝大多数弹窗不用滚，先按视觉一致优先）。 */
 .confirm-mask .sync-box > .sync-sticky {
-  background: rgba(255, 255, 255, .30) !important;
-  -webkit-backdrop-filter: blur(26px) saturate(170%);
-  backdrop-filter: blur(26px) saturate(170%);
+  background: transparent !important;
+  background-color: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
   /* 原来是 z-index: 8，比右上角 × 的 5 高，于是头部把关闭按钮压在底下点不到 */
   z-index: 4 !important;
 }
 [data-theme="dark"] .confirm-mask .sync-box > .sync-sticky {
-  background: rgba(20, 16, 32, .36) !important;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 /* × 提到最上层，任何头部/吸顶层都盖不住它 */
-html body .confirm-mask .dlg-x { z-index: 30 !important; }
-
-/* ---- 头部回退：不再自定义 NT / 紫线 / 标题（用户要求保持原样）。
-   只留一条：× 必须在最上层，任何吸顶层都盖不住它。 ---- */
 html body .confirm-mask .dlg-x { z-index: 30 !important; }
 </style>
 </head><body>
@@ -7984,7 +7988,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.23';
+const APP_VER = 'v13.24';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
