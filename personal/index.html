@@ -7850,6 +7850,69 @@ html:not([data-theme="dark"]) .confirm-mask .sync-box button.ghost {
 /* × 提到最上层，任何头部/吸顶层都盖不住它 */
 html body .confirm-mask .dlg-x { z-index: 30 !important; }
 
+/* ============================================================
+   分期表：表头吸顶 + 「账户名称 / 分期金额」整列水平冻结
+   ------------------------------------------------------------
+   · 表头是两行（账户名称·账单日·每月合计 rowspan=2 + 月份两行），
+     所以对整个 thead 做 sticky（跟查询页同一招），两行一起吸顶；
+     逐个 th 设 sticky 反而会让第二行叠在第一行上面。
+   · col-name 这一列竖向看是「账户名称」+「分期金额」两行，
+     横向滚动时整列都要钉住，所以 td/th 都要 sticky left: 0。
+     这一列的单元格本来就有实心背景（分组色/斑马色），不会透出后面的内容。
+   ============================================================ */
+table.install-table thead { position: sticky; top: 0; z-index: 6; }
+table.install-table thead th { position: sticky; top: 0; z-index: 6; }
+table.install-table thead th.col-name { left: 0; z-index: 8; }
+table.install-table tbody td.col-name { position: sticky; left: 0; z-index: 4; }
+/* 冻结列右缘加一条竖线，滚动时能看出边界 */
+table.install-table thead th.col-name,
+table.install-table tbody td.col-name { box-shadow: inset -1px 0 0 var(--border-light); }
+[data-theme="dark"] table.install-table thead th.col-name,
+[data-theme="dark"] table.install-table tbody td.col-name { box-shadow: inset -1px 0 0 #343434; }
+
+/* ============================================================
+   统计·汇总表：折叠「类型 / 分类」+ 冻结「序 / 账户名称」
+   ------------------------------------------------------------
+   · 折叠：两列收成 0 宽（不是 display:none —— 那样 colgroup 的列数和 th 对不上，
+     initColResize 会把后面所有列的宽度整体错位）。
+   · 冻结：序 + 账户名称。账户名称的 left 等于序的宽度（52px），
+     两列都 sticky，右边那列盖左边那列。
+   · 折叠按钮贴在「账户名称」表头左上角，跟着列一起冻结。
+   ============================================================ */
+table#stats-sum-table th.folded,
+table#stats-sum-table td.folded {
+  width: 0 !important; min-width: 0 !important; max-width: 0 !important;
+  padding: 0 !important; border: 0 !important;
+  overflow: hidden !important;
+  font-size: 0 !important; line-height: 0 !important;
+  color: transparent !important;
+}
+table#stats-sum-table thead th.col-seq,
+table#stats-sum-table tbody td.col-seq {
+  position: sticky; left: 0;
+}
+table#stats-sum-table thead th.col-seq { z-index: 6; }
+table#stats-sum-table tbody td.col-seq { z-index: 3; }
+table#stats-sum-table thead th.col-name,
+table#stats-sum-table tbody td.col-name {
+  position: sticky; left: 52px;
+}
+table#stats-sum-table thead th.col-name { z-index: 6; }
+table#stats-sum-table tbody td.col-name { z-index: 3; }
+table#stats-sum-table thead th.col-name,
+table#stats-sum-table tbody td.col-name { box-shadow: inset -1px 0 0 var(--border-light); }
+[data-theme="dark"] table#stats-sum-table thead th.col-name,
+[data-theme="dark"] table#stats-sum-table tbody td.col-name { box-shadow: inset -1px 0 0 #343434; }
+/* 折叠按钮：贴着账户名称左侧，不改变行高 */
+table#stats-sum-table th.col-name .stats-fold-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px; margin: 0 6px 0 0; padding: 0;
+  background: none !important; border: 0 !important; border-radius: 0 !important;
+  box-shadow: none !important;
+  color: inherit !important; font-size: 10px !important; line-height: 1 !important;
+  vertical-align: middle; cursor: pointer;
+}
+
 /* 「重置」弹窗：每个危险按钮靠左，紧贴它自己那段说明的上方。
    竖排、左对齐，说明与按钮成为一个整体，不用在上下之间来回找对应关系。 */
 .confirm-mask .reset-item {
@@ -8132,7 +8195,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.45';
+const APP_VER = 'v13.46';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -11014,6 +11077,19 @@ function fmtOpening(v) {
    ------------------------------------------------------------
    顺序 = state.accounts 的原始顺序（就是设置页看到的顺序），
    只剔除「这一段区间里一点数据都没有」的账户。 */
+/* 统计·汇总：折叠「类型 / 分类」两列。
+   思路跟设置页那套一样（折叠按钮挂在关键列上、点一下收起次级信息），
+   区别是这里的冻结列是「账户名称」（设置页是简码），按钮就贴在账户名称左边。 */
+const STATS_FOLD_KEY = 'flow_stats_fold_v1';
+let statsFold = (() => {
+  try { const v = localStorage.getItem(STATS_FOLD_KEY); return v === null ? true : v === '1'; } catch (e) { return true; }
+})();
+function toggleStatsFold() {
+  statsFold = !statsFold;
+  try { localStorage.setItem(STATS_FOLD_KEY, statsFold ? '1' : '0'); } catch (e) {}
+  render();
+}
+
 function renderStatsSum(main, footer) {
   const range = catRangeOf();
 
@@ -11061,12 +11137,13 @@ function renderStatsSum(main, footer) {
   wrap.className = 'grid-wrap';
   const table = document.createElement('table');
   table.className = 'grid'; table.id = 'stats-sum-table';
+  const foldCls = statsFold ? ' folded' : '';
   table.innerHTML = `
     <thead><tr>
       <th class="col-seq">序</th>
-      <th class="col-cat">类型</th>
-      <th class="col-sub">分类</th>
-      <th class="col-name">账户名称</th>
+      <th class="col-cat${foldCls}">类型</th>
+      <th class="col-sub${foldCls}">分类</th>
+      <th class="col-name"><button type="button" class="stats-fold-toggle" title="${statsFold ? '展开类型 / 分类' : '收起类型 / 分类'}">${statsFold ? '▶' : '◀'}</button>账户名称</th>
       <th class="col-bal">当前结余</th>
       <th class="col-out">转出</th>
       <th class="col-in">转入</th>
@@ -11086,8 +11163,8 @@ function renderStatsSum(main, footer) {
       const tr = document.createElement('tr');
       tr.innerHTML =
         '<td class="col-seq">' + (n++) + '</td>' +
-        '<td class="col-cat">' + mwEsc(a.cat || '') + '</td>' +
-        '<td class="col-sub">' + mwEsc(a.sub || '') + '</td>' +
+        '<td class="col-cat' + foldCls + '">' + mwEsc(a.cat || '') + '</td>' +
+        '<td class="col-sub' + foldCls + '">' + mwEsc(a.sub || '') + '</td>' +
         '<td class="col-name">' + mwEsc(a.name || '') + '</td>' +
         '<td class="col-bal">' + f2(st.balance) + '</td>' +
         '<td class="col-out">' + f2(st.mOut) + '</td>' +
@@ -11100,6 +11177,27 @@ function renderStatsSum(main, footer) {
   wrap.appendChild(table);
   main.appendChild(wrap);
   try { initColResize(table, 'statsSum'); } catch (e) {}
+  /* 折叠必须同时改 <colgroup>：表格布局里 <col> 的宽度优先于单元格自身的 width，
+     只给 th/td 加 width:0 会被 initColResize 写回的列宽盖掉（实测折叠后仍 84px）。 */
+  if (statsFold) {
+    try {
+      const cols = table.querySelectorAll('colgroup > col');
+      if (cols[1]) cols[1].style.width = '0px';
+      if (cols[2]) cols[2].style.width = '0px';
+    } catch (e) {}
+  }
+  const foldBtn = table.querySelector('.stats-fold-toggle');
+  if (foldBtn) foldBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); toggleStatsFold(); };
+  /* 冻结「账户名称」的 left 要按「序」列的**实际**宽度来算：
+     写死 52px 时，一旦序列表头被内容撑宽（折叠后实测 64px），
+     横向滚动就会让账户名称压在序上面 10 多像素。 */
+  try {
+    const seqW = Math.round(table.querySelector('thead th.col-seq').getBoundingClientRect().width);
+    if (seqW > 0) {
+      table.querySelectorAll('thead th.col-name, tbody td.col-name')
+        .forEach(el => { el.style.left = seqW + 'px'; });
+    }
+  } catch (e) {}
 }
 
 /* 统计页壳：分类 / 汇总 两个子按钮挂到 bar1（清空之前） */
