@@ -7200,6 +7200,27 @@ html body table#summary-table th.col-move,
 html body table#summary-table td.col-move {
   border-left: 0 !important;
 }
+
+/* 感谢墙图标：正方形外框 + 内部若干条「横向文字容器」竖着叠 */
+html body .thanks-chip {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  line-height: 1 !important;
+  overflow: hidden !important;
+}
+html body .thanks-chip .thanks-txt {
+  display: block !important;
+  white-space: nowrap !important;
+  line-height: 1.05 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  max-width: 100% !important;
+}
 </style>
 </head>
 <body>
@@ -7411,7 +7432,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.64';
+const APP_VER = 'v12.67';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10716,60 +10737,68 @@ function buildLayoutText() {
   function thanksPlan(name) {
     var raw = String(name || '');
     var n = [...raw].length;
-    // 三档高度：46（NT 基准）/ 92（2 倍）/ 138（3 倍）
-    // 宽度 = 高度 + 一个字高，保证横向永远比纵向宽，版面看起来是横的
-    var rows, boxH;
-    if (n <= 2) { rows = 1; boxH = 46; }
-    else if (n <= 6) { rows = 2; boxH = 92; }
-    else { rows = 3; boxH = 138; }
+    // 外框正方形：46（NT 基准）/ 92（2 倍）/ 138（3 倍）
+    var rows, box;
+    if (n <= 2) { rows = 1; box = 46; }
+    else if (n <= 6) { rows = 2; box = 92; }
+    else { rows = 3; box = 138; }
+
     var isLatin = !/[\u4e00-\u9fa5]/.test(raw);
-    // 先按高度和行数估个字号，宽度依赖字号，所以迭代一次
-    var perRow = Math.ceil(n / rows);
-    var cap = boxH === 46 ? 30 : (boxH === 92 ? 21 : 25);
-    var fs = Math.min((boxH - 8) / rows / 1.15, cap);
-    var boxW = Math.round(boxH + fs);
-    // 纯英文带空格：按词断行
     var words = isLatin && /\s/.test(raw) ? raw.split(/\s+/).filter(Boolean) : null;
+    var perRow, textRows;
+
     if (words && words.length > 1) {
       var perLine = Math.ceil(words.length / rows);
-      rows = Math.ceil(words.length / perLine);
-      var longestWord = words.reduce(function (a, b) { return b.length > a.length ? b : a; }, '');
-      perRow = perLine * longestWord.length;
-      fs = Math.min((boxH - 8) / rows / 1.15, (boxH - 18) / (perRow * 0.72 + 0.15), cap);
-      boxW = Math.round(boxH + fs);
-      return { n: n, rows: rows, perRow: perRow, boxW: boxW, boxH: boxH, fs: Math.max(9, Math.floor(fs)), raw: raw, words: words };
+      textRows = Math.ceil(words.length / perLine);
+      var longest = words.reduce(function (a, b) { return b.length > a.length ? b : a; }, '');
+      perRow = perLine * longest.length;
+    } else {
+      perRow = Math.ceil(n / rows);
+      textRows = Math.min(rows, Math.ceil(n / perRow));
     }
-    var fsW = (boxW - 18) / ((isLatin ? perRow * 0.72 : perRow) + 0.15);
-    var fsH = (boxH - 8) / rows / 1.15;
-    fs = Math.floor(Math.min(fsW, fsH, cap));
-    boxW = Math.round(boxH + fs);
-    return { n: n, rows: rows, perRow: perRow, boxW: boxW, boxH: boxH, fs: Math.max(9, fs), raw: raw };
+
+    // 比例对齐 App 图标（nt-512.png 量出来的）：
+    //   文字视觉宽 ≈ 方块 54%（英文按 0.54，中文放宽到 0.82 才不显小）
+    //   文字总高  ≈ 方块 30%~62%（行数越多越高，但上下各留一点）
+    //   字母平均视觉宽 ≈ 0.62em，汉字 ≈ 1em
+    var charW = isLatin ? 0.62 : 1;
+    var widthRatio = isLatin ? 0.54 : 0.82;
+    var fsW = (box * widthRatio) / (perRow * charW);
+    var fsH = (box * 0.74) / textRows / 1.16;
+    var fs = Math.floor(Math.min(fsW, fsH));
+    fs = Math.max(9, Math.min(fs, 40));
+
+    return { n: n, rows: textRows, perRow: perRow, box: box, fs: fs, raw: raw, words: words };
   }
   function thanksWrap(name) {
     var p = thanksPlan(name);
-    if (p.rows === 1) return esc(p.raw);
+    var esc2 = function (v) { return esc(v); };
+    var lines = [];
     if (p.words) {
       var perLine = Math.ceil(p.words.length / p.rows);
-      var rows2 = [];
       for (var w = 0; w < p.words.length; w += perLine) {
-        rows2.push(esc(p.words.slice(w, w + perLine).join(' ')));
+        lines.push(p.words.slice(w, w + perLine).join(' '));
       }
-      return rows2.join('<br>');
+    } else if (p.rows === 1) {
+      lines.push(p.raw);
+    } else {
+      var chars = [...p.raw];
+      for (var i = 0; i < chars.length; i += p.perRow) {
+        lines.push(chars.slice(i, i + p.perRow).join(''));
+      }
     }
-    var chars = [...p.raw];
-    var out = [];
-    for (var i = 0; i < chars.length; i += p.perRow) {
-      out.push(esc(chars.slice(i, i + p.perRow).join('')));
-    }
-    return out.join('<br>');
+    // 每行一个「横向长条」小容器，宽 = 100% - 内边距，高 = 一个字号
+    return lines.map(function (line) {
+      return '<span class="thanks-txt">' + esc2(line) + '</span>';
+    }).join('');
   }
   function thanksChipStyle(name) {
     var p = thanksPlan(name);
     var h = thanksHash(p.raw);
     var bg = THANKS_PALETTE[h % THANKS_PALETTE.length];
-    return 'width:' + p.boxW + 'px;height:' + p.boxH + 'px;font-size:' + p.fs + 'px;'
+    return 'width:' + p.box + 'px;height:' + p.box + 'px;font-size:' + p.fs + 'px;'
          + 'background:' + bg + '!important;color:#ffffff!important;'
-         + 'border-radius:0!important;padding:0 9px!important;line-height:1.08';
+         + 'border-radius:0!important;';
   }
 
 function buildImportText() {
