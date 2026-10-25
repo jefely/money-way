@@ -5841,7 +5841,6 @@ html body .toolbar.flow-bar > button {
    ============================================================ */
 html body .toolbar button:not(.m-btn):not(.audit-tab) {
   padding: 0 4px !important;
-  /* 有空间时长到 56px，空间不够就等比缩小（36px 底线），所以不会把同排的年份框挤到下一行 */
   flex: 1 1 auto !important;
   width: auto !important;
   min-width: 36px !important;
@@ -5865,52 +5864,6 @@ html body .toolbar > .fixed-title {
   font-size: 14px !important;
   font-weight: 700 !important;
 }
-
-/* 年份输入框（26年）：和同排按钮同高同字号同内边距。
-   注意要写 .toolbar.bar1 这一层，才能压过文件里已有的 .toolbar.bar1 .year-input（0,3,0）。 */
-html body .toolbar.bar1 .year-input,
-html body .toolbar.bar2 .year-input,
-html body .toolbar .year-input {
-  height: 26px !important;
-  line-height: 24px !important;
-  padding: 0 4px !important;
-  font-size: 13px !important;
-  border-radius: 6px !important;
-  box-sizing: border-box !important;
-  flex: 0 0 auto !important;
-  width: 52px !important;
-  min-width: 52px !important;
-  max-width: 52px !important;
-  text-align: center !important;
-}
-/* 月份格子行（1~12）也不参与拉伸，保持紧凑 */
-html body .toolbar .month-row .m-btn {
-  flex: 0 0 auto !important;
-}
-
-/* 流水页按钮也必须和其它页一样宽 56px（它有一条更靠后的 .toolbar.flow-bar > button 规则
-   把 flex 拉回 1 1 auto，导致只有 53px） */
-html body .toolbar.flow-bar > button {
-  flex: 1 1 auto !important;
-  width: auto !important;
-  min-width: 36px !important;
-  max-width: 56px !important;
-}
-
-/* 所有工具栏一律单行；放不下时按钮先缩小（36px 底线），再不够才横向滚动 */
-html body .toolbar.flow-bar,
-html body .toolbar.bar1,
-html body .toolbar.bar2,
-html body .toolbar.install-bar {
-  flex-wrap: nowrap !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  scrollbar-width: none;
-}
-html body .toolbar.flow-bar::-webkit-scrollbar,
-html body .toolbar.bar1::-webkit-scrollbar,
-html body .toolbar.bar2::-webkit-scrollbar,
-html body .toolbar.install-bar::-webkit-scrollbar { display: none; }
 </style>
 </head>
 <body>
@@ -6122,7 +6075,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.36';
+const APP_VER = 'v11.37';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
