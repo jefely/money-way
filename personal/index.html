@@ -4449,8 +4449,9 @@ table#summary-table td input {
 .lock-glow.g2 { width: 420px; height: 420px; background: #4c3d80; right: -90px; bottom: -110px; }
 .lock-card {
   position: relative; width: min(92vw, 356px);
-  /* padding-top 必须与 .sync-box 一致（25px），否则锁屏和弹窗的头部距顶边不一样 */
-  padding: 25px 26px 26px;
+  /* padding-top 必须与 .sync-box 一致，否则锁屏和弹窗的头部距顶边不一样。
+     20px：头部再往上贴一点，把空间让给「正文离头部」的间距。 */
+  padding: 20px 26px 26px;
   border-radius: 22px;
   background: rgba(255, 255, 255, .075);
   backdrop-filter: blur(26px) saturate(160%);
@@ -4495,8 +4496,8 @@ table#summary-table td input {
   letter-spacing: .04em !important;
   line-height: 1.2 !important;
   text-align: center !important;
-  /* 与弹窗标题同一套间距：正文从标题下 18px 开始 */
-  margin: 0 0 18px 0 !important;
+  /* 与弹窗标题同一套间距：正文从标题下 28px 开始（原来 18 太挤） */
+  margin: 0 0 28px 0 !important;
   /* 与其它弹窗一样：紫渐变标题（深紫底上整体提亮一档） */
   background: linear-gradient(135deg, #d9ccff, #9b7fff) !important;
   -webkit-background-clip: text !important;
@@ -4809,7 +4810,8 @@ table#summary-table td input {
   width: min(94vw, 420px) !important;
   max-width: min(94vw, 420px) !important;
   max-height: 86vh; overflow-y: auto;
-  padding: 25px 26px 26px !important;
+  /* 20px：与 .lock-card 的 padding-top 保持一致 */
+  padding: 20px 26px 26px !important;
   border-radius: 18px !important;
   background: #fff !important;
   background-image: none !important;
@@ -4840,9 +4842,9 @@ table#summary-table td input {
   filter: none !important;
 }
 .confirm-mask .sync-box .sync-title {
-  /* 与锁屏统一：标题下留 18px，正文才不贴着脸。
+  /* 与锁屏统一：标题下留 28px（原 18 太挤），正文不再贴着脸。
      原来这条被更早的规则算成 margin-bottom: 0（实测），正文直接顶上来。 */
-  margin: 0 0 18px 0 !important;
+  margin: 0 0 28px 0 !important;
   padding: 0 !important;
   font-size: 22px !important;
   font-weight: 700 !important;
@@ -7159,7 +7161,8 @@ html body table#fixed-table td.col-del .row-del {
 /* 「更新」按钮 + 版本号 */
 .ver-line {
   display: flex !important;
-  align-items: flex-start !important;
+  /* 按钮中线与右侧两行文字的**中线对齐**（原来 flex-start，按钮吊在顶上） */
+  align-items: center !important;
   flex-wrap: nowrap !important;      /* 不换行：换行会让整块内容上下跳 */
   gap: 10px !important;
   margin-top: 10px !important;
@@ -7472,7 +7475,7 @@ html[data-theme="dark"] .confirm-mask .sync-box > .sync-sticky {
 .confirm-mask .sync-sticky > .sync-brand,
 .confirm-mask .sync-sticky > .sync-title {
   position: static !important;
-  margin: 0 0 18px 0 !important;
+  margin: 0 0 28px 0 !important;
 }
 .confirm-mask .sync-sticky > .sync-brand { margin: 0 !important; }
 
@@ -8039,7 +8042,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.29';
+const APP_VER = 'v13.30';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
