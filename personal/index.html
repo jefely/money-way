@@ -7516,7 +7516,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.92';
+const APP_VER = 'v12.93';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -18017,15 +18017,39 @@ function mwSelfHeal() {
       }
     })();
 
-    // 设置页右端「上移 / 删除」两列：深色主题用纯黑，浅色主题透明
-    var colBg = isDark() ? '#000000' : 'transparent';
-    document.querySelectorAll('table#summary-table td.col-move, table#summary-table th.col-move, table#summary-table td.col-del, table#summary-table th.col-del').forEach(function (el) {
-      el.style.setProperty('background', colBg, 'important');
-      el.style.setProperty('background-color', colBg, 'important');
-      el.style.setProperty('background-image', 'none', 'important');
-      el.style.setProperty('border', '0', 'important');
-      el.style.setProperty('box-shadow', 'none', 'important');
+    // 设置页「上移 / 删除」两列：背景直接抄同一行「期初」那格的实际颜色
+    // —— 写死颜色或 transparent 永远和邻格对不上，只有读实际值才逐像素一致。
+    document.querySelectorAll('table#summary-table tbody tr').forEach(function (tr) {
+      var ref = tr.querySelector('td.col-bal') || tr.querySelector('td.col-name') || tr.querySelector('td.col-seq');
+      if (!ref) return;
+      var bg = getComputedStyle(ref).backgroundColor;
+      tr.querySelectorAll('td.col-move, td.col-del').forEach(function (td) {
+        if (bg && bg !== 'rgba(0, 0, 0, 0)') {
+          td.style.setProperty('background', bg, 'important');
+          td.style.setProperty('background-color', bg, 'important');
+        } else {
+          td.style.removeProperty('background');
+          td.style.removeProperty('background-color');
+        }
+        td.style.setProperty('background-image', 'none', 'important');
+        td.style.setProperty('border', '0', 'important');
+        td.style.setProperty('box-shadow', 'none', 'important');
+      });
     });
+    // 表头两格跟「期初」表头一致
+    (function () {
+      var refTh = document.querySelector('table#summary-table thead th.col-bal');
+      if (!refTh) return;
+      var b = getComputedStyle(refTh).backgroundColor;
+      document.querySelectorAll('table#summary-table thead th.col-move, table#summary-table thead th.col-del').forEach(function (th) {
+        if (b && b !== 'rgba(0, 0, 0, 0)') {
+          th.style.setProperty('background', b, 'important');
+          th.style.setProperty('background-color', b, 'important');
+        }
+        th.style.setProperty('border', '0', 'important');
+        th.style.setProperty('box-shadow', 'none', 'important');
+      });
+    })();
     document.querySelectorAll('table#summary-table td.col-bal, table#summary-table th.col-bal').forEach(function (el) {
       el.style.setProperty('border-right', '0', 'important');
       el.style.setProperty('box-shadow', 'none', 'important');
