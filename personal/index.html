@@ -5028,24 +5028,25 @@ table.install-table thead th.col-month {
 .thanks-name-row button { height: 32px; padding: 0 16px; border: none; border-radius: 8px;
   background: var(--primary); color: #fff; font-weight: 600; cursor: pointer; }
 .thanks-wall { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; min-height: 52px; }
-  /* 感谢墙：每个名字是一个正方形 App 图标（紫底白字，圆角像应用图标） */
+  /* 感谢墙：每个名字是一个方块 App 图标
+     底色用 manifest 里的软件图标紫 #4c3d80；
+     字数少的字号放大、方块也略大，字数多的字号缩小但始终上下左右居中 */
   .thanks-chip {
-    flex: 0 0 52px !important;
-    width: 52px !important; min-width: 52px !important; max-width: 52px !important;
-    height: 52px !important; min-height: 52px !important; max-height: 52px !important;
     display: inline-flex !important; align-items: center !important; justify-content: center !important;
-    padding: 0 3px !important; box-sizing: border-box !important;
-    border-radius: 13px !important;
-    font-size: 12px !important; font-weight: 700 !important; line-height: 1.15 !important;
-    text-align: center !important; word-break: break-all !important; overflow: hidden !important;
-    background: linear-gradient(160deg, #8b6cff 0%, #6b5bc4 100%) !important;
+    box-sizing: border-box !important;
+    padding: 2px 4px !important;
+    border-radius: 14px !important;
+    font-weight: 800 !important; line-height: 1.1 !important;
+    text-align: center !important; word-break: break-word !important;
+    overflow: hidden !important; letter-spacing: 0 !important;
+    background: #4c3d80 !important;
     color: #ffffff !important;
-    box-shadow: 0 2px 6px rgba(107, 91, 196, .35), inset 0 1px 0 rgba(255,255,255,.28) !important;
+    box-shadow: 0 2px 6px rgba(40, 30, 70, .45), inset 0 1px 0 rgba(255,255,255,.16) !important;
   }
   [data-theme="dark"] .thanks-chip {
-    background: linear-gradient(160deg, #8b6cff 0%, #5b4ea8 100%) !important;
+    background: #4c3d80 !important;
     color: #ffffff !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255,255,255,.22) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255,255,255,.14) !important;
   }
 [data-theme="dark"] .chk-row { background: rgba(255,255,255,.05); }
 
@@ -7246,7 +7247,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.38';
+const APP_VER = 'v12.40';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7667,7 +7668,7 @@ function openExtractAccountsDialog() {
   const missing = names.filter(nm => !existing.has(nm)).sort((a, b) => a.localeCompare(b, 'zh'));
 
   const listHtml = missing.length
-    ? missing.map(nm => `<span class="thanks-chip">${esc(nm)}</span>`).join('')
+    ? missing.map(nm => `<span class="thanks-chip" style="${thanksChipStyle(nm)}">${esc(nm)}</span>`).join('')
     : '<span class="sync-hint small">流水里用到的账户名都已经在账户表里了。</span>';
 
   mkDialog(`
@@ -8104,7 +8105,7 @@ async function openThanksDialog() {
     const data = await res.json();
     const list = Array.isArray(data.donors) ? data.donors : [];
     mask.querySelector('#thanks-wall').innerHTML = list.length
-      ? list.map(d => `<span class="thanks-chip">${esc(d.name || '匿名')}</span>`).join('')
+      ? list.map(d => `<span class="thanks-chip" style="${thanksChipStyle(d.name || '匿名')}">${esc(d.name || '匿名')}</span>`).join('')
       : '<span class="sync-hint small">还没有人，等第一位朋友。</span>';
   } catch (e) {
     mask.querySelector('#thanks-wall').innerHTML = '<span class="sync-hint small">离线，暂时取不到感谢墙</span>';
@@ -8125,7 +8126,7 @@ async function loadThanksWall() {
     const data = await res.json();
     const list = Array.isArray(data.donors) ? data.donors : [];
     wall.innerHTML = list.length
-      ? list.map(d => `<span class="thanks-chip">${esc(d.name || '匿名')}</span>`).join('')
+      ? list.map(d => `<span class="thanks-chip" style="${thanksChipStyle(d.name || '匿名')}">${esc(d.name || '匿名')}</span>`).join('')
       : '<span class="sync-hint small">还没有人，等第一位朋友。</span>';
   } catch (e) {
     wall.innerHTML = '<span class="sync-hint small">离线，暂时取不到感谢墙</span>';
@@ -10477,6 +10478,18 @@ function buildLayoutText() {
     const n = Number(v);
     if (!isFinite(n)) return 0;
     return Number(n.toFixed(10)) + 0;
+  }
+
+  /* 感谢墙图标的尺寸：字数越少越大，形成大大小小的节奏 */
+  function thanksChipStyle(name) {
+    const n = [...String(name || '')].length;
+    if (n <= 1) return 'width:66px;height:66px;font-size:30px';
+    if (n === 2) return 'width:58px;height:58px;font-size:24px';
+    if (n === 3) return 'width:56px;height:56px;font-size:18px';
+    if (n === 4) return 'width:58px;height:58px;font-size:15px';
+    if (n <= 6) return 'width:62px;height:62px;font-size:12px';
+    if (n <= 9) return 'width:66px;height:66px;font-size:10px';
+    return 'width:70px;height:70px;font-size:9px';
   }
 
 function buildImportText() {
