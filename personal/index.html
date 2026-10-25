@@ -346,7 +346,6 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
 
 [data-theme="dark"] table.install-table thead th,
 [data-theme="dark"] table.install-table th { background: var(--bg-gray-light) !important; color: var(--text-muted) !important; }
-[data-theme="dark"] .grid-wrap { background: var(--bg-gray) !important; }
 /* 汇总「当前结余」在暗色下用亮白加粗，确保看清 */
 [data-theme="dark"] table#summary-table td.col-bal,
 [data-theme="dark"] table#summary-table td.col-bal input { color: #ffffff !important; font-weight: 700; }
@@ -354,7 +353,9 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
 /* 查询表金额列同样处理 */
 [data-theme="dark"] table.query-table td.col-amount { color: #ffffff !important; }
 /* 拖拽手柄、空提示等细节也别是浅色 */
-[data-theme="dark"] .grid-wrap, [data-theme="dark"] .query-section { background: var(--bg-gray) !important; }
+/* 注意：`.grid-wrap` 不在这条里 —— 它的底色必须与 `#main` 一致（见文件末尾
+   「根治：表格底色对齐页面底色」那一节）。这里只留查询页的三栏容器。 */
+[data-theme="dark"] .query-section { background: var(--bg-gray) !important; }
 [data-theme="dark"] .sync-box { background: var(--bg-gray-light) !important; color: var(--text-main) !important; }
 [data-theme="dark"] .toast { background: #2a2a2a !important; color: #ffffff !important; }
 
@@ -365,9 +366,11 @@ input::placeholder, textarea::placeholder { color: #9aa7b8 !important; }
 table.grid tbody td, table.query-table tbody td, table.install-table tbody td { color: var(--text-muted); }
 /* 反色主题下可编辑内容用亮白，和暗底形成对比 */
 [data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea { color: #ffffff !important; }
-/* 暗色下按钮 / 卡片底色 */
+/* 暗色下按钮 / 卡片底色
+   `.grid-wrap` 故意不在此列表：它是表格的滚动容器，底色必须等于页面底色
+   （`--bg-main`），否则表格右端那块留白会比页面深一档，右端「操作」列怎么调都对不上。 */
 [data-theme="dark"] .toolbar, [data-theme="dark"] .tabbar,
-[data-theme="dark"] .grid-wrap, [data-theme="dark"] table.grid,
+[data-theme="dark"] table.grid,
 [data-theme="dark"] table.query-table, [data-theme="dark"] table.install-table {
   background-color: var(--bg-gray-light);
   color: var(--text-main);
@@ -3120,22 +3123,24 @@ table#summary-table tbody tr.debt-row:not(.cat-row) > td.col-repay {
   border-left: 1px solid #4c3d80 !important;
 }
 
-/* 5) 深色主题：删除列 & 账单/还款列用更深的底色（不跟随斑马纹） */
-[data-theme="dark"] table#summary-table th.col-del,
-[data-theme="dark"] table#summary-table td.col-del,
-[data-theme="dark"] table#summary-table th.col-bill,
-[data-theme="dark"] table#summary-table th.col-repay,
-[data-theme="dark"] table#summary-table td.col-bill,
-[data-theme="dark"] table#summary-table td.col-repay,
-[data-theme="dark"] table#summary-table tbody tr:nth-child(odd) > td.col-del,
-[data-theme="dark"] table#summary-table tbody tr:nth-child(even) > td.col-del,
-[data-theme="dark"] table#summary-table tbody tr:nth-child(odd) > td.col-bill,
-[data-theme="dark"] table#summary-table tbody tr:nth-child(odd) > td.col-repay,
-[data-theme="dark"] table#summary-table tbody tr:nth-child(even) > td.col-bill,
-[data-theme="dark"] table#summary-table tbody tr:nth-child(even) > td.col-repay,
-[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-del {
-  background: #0a0a0a !important;
-  background-color: #0a0a0a !important;
+/* 5) 删除列 & 账单 / 还款列：底色 = 页面底色，不跟随斑马纹。
+      原来是深色写死 #0a0a0a —— 与页面底色 #000 差 10 级，
+      和表格右侧留白、和「操作」列凑成「三块黑」。改用变量后两套主题同一条规则。 */
+table#summary-table th.col-del,
+table#summary-table td.col-del,
+table#summary-table th.col-bill,
+table#summary-table th.col-repay,
+table#summary-table td.col-bill,
+table#summary-table td.col-repay,
+table#summary-table tbody tr:nth-child(odd) > td.col-del,
+table#summary-table tbody tr:nth-child(even) > td.col-del,
+table#summary-table tbody tr:nth-child(odd) > td.col-bill,
+table#summary-table tbody tr:nth-child(odd) > td.col-repay,
+table#summary-table tbody tr:nth-child(even) > td.col-bill,
+table#summary-table tbody tr:nth-child(even) > td.col-repay,
+table#summary-table tbody tr.cat-row > td.col-del {
+  background: var(--bg-main) !important;
+  background-color: var(--bg-main) !important;
 }
 /* 类型标签行的 删除 / 账单日 / 还款日 三列：完全透明，不要任何填充 */
 table#summary-table tbody tr.cat-row > td.col-del,
@@ -3249,11 +3254,9 @@ table#summary-table tbody tr.cat-row:nth-child(even) > td.col-bill,
 [data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-bill,
 table#summary-table tbody tr.cat-row:nth-child(even) > td.col-repay,
 [data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-repay {
-  background: var(--billcell-bg, transparent) !important;
-  background-color: var(--billcell-bg, transparent) !important;
+  background: var(--bg-main) !important;
+  background-color: var(--bg-main) !important;
 }
-:root { --billcell-bg: #ffffff; }                 /* 浅色：纯白 */
-[data-theme="dark"] { --billcell-bg: #0a0a0a; }   /* 深色：最黑 */
 /* 删除列左边框：所有行统一 1px */
 table#summary-table tbody td.col-del,
 table#summary-table tbody tr.cat-row > td.col-del,
@@ -3296,12 +3299,15 @@ table#summary-table tbody tr.cat-row:nth-child(even) > td.col-del,
 [data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-del {
   border-left: 1px solid #2a2a2a !important;
 }
-/* 删除/账单日/还款日 三列：固定用最黑（深色）/ 纯白（浅色），不跟随斑马纹 */
+/* 删除 / 账单日 / 还款日 三列：底色 = 页面底色，不跟随斑马纹。
+   （原来是独立的 `--billcell-bg`：#fff / #0a0a0a。深色下 #0a0a0a 与页面底色
+     #000 差 10 级、与表格右侧留白 #0d0d0d 差 3 级 —— 三块黑谁也说不清。
+     现在三处统一到 `--bg-main`，与「操作」列同一口径。） */
 table#summary-table th.col-del, table#summary-table td.col-del,
 table#summary-table th.col-bill, table#summary-table td.col-bill,
 table#summary-table th.col-repay, table#summary-table td.col-repay {
-  background: var(--billcell-bg) !important;
-  background-color: var(--billcell-bg) !important;
+  background: var(--bg-main) !important;
+  background-color: var(--bg-main) !important;
 }
 /* 流水表行尾删除列：单元格无边框无填充，按钮也无外框无填充 */
 table#flow-table th.col-del,
@@ -3384,26 +3390,17 @@ table.grid tbody td.col-note {
   overflow: visible !important;
 }
 
-/* 删除列底色：用最深（深色 #0a0a0a / 浅色 #ffffff），和汇总页一致 */
+/* 删除列底色 = 页面底色（不跟随斑马纹）。
+   原先是 `#ffffff` + 深色分支 `#0a0a0a` 两条；深色那条与页面底色差 10 级。
+   改成变量后一条规则覆盖两套主题。 */
 table#flow-table th.col-del,
 table#flow-table td.col-del,
 table#flow-table tbody tr:nth-child(odd) > td.col-del,
-table#flow-table tbody tr:nth-child(even) > td.col-del,
-[data-theme="dark"] table#flow-table th.col-del,
-[data-theme="dark"] table#flow-table td.col-del,
-[data-theme="dark"] table#flow-table tbody tr:nth-child(odd) > td.col-del,
-[data-theme="dark"] table#flow-table tbody tr:nth-child(even) > td.col-del {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
+table#flow-table tbody tr:nth-child(even) > td.col-del {
+  background: var(--bg-main) !important;
+  background-color: var(--bg-main) !important;
   border: none !important;
   box-shadow: none !important;
-}
-[data-theme="dark"] table#flow-table th.col-del,
-[data-theme="dark"] table#flow-table td.col-del,
-[data-theme="dark"] table#flow-table tbody tr:nth-child(odd) > td.col-del,
-[data-theme="dark"] table#flow-table tbody tr:nth-child(even) > td.col-del {
-  background: #0a0a0a !important;
-  background-color: #0a0a0a !important;
 }
 
 /* 勾选框与 × 拉开距离，避免误触 */
@@ -7288,50 +7285,49 @@ html[data-theme="dark"] .confirm-mask .sync-box > .sync-sticky {
   margin: 0 !important;
 }
 
-/* 固定页「操作」列：边框清零；背景用 inherit 直接继承所在行的斑马纹
-   （transparent 会透出表格底色、写死颜色又对不上，只有 inherit 永远和同行一致） */
-html body table#fixed-table td.col-op,
-html body table#fixed-table td.col-ops {
-  border: 0 !important;
-  box-shadow: none !important;
-  background: inherit !important;
-  background-color: inherit !important;
-  background-image: none !important;
-}
-html body table#fixed-table th.col-op,
-html body table#fixed-table th.col-ops {
-  border: 0 !important;
-  box-shadow: none !important;
-  background: inherit !important;
-  background-color: inherit !important;
-}
+/* 固定页「操作」列：边框清零。
+   背景统一由下面「根治」那一节给（var(--bg-main)）——
+   这里曾有一份 `background: inherit`（抄同行斑马纹）的旧规则，与下游那条
+   同特异性、同为 !important，谁生效只看声明顺序，属于典型的两份事实源，已删除。 */
 
-/* 设置页「上移」和「删除」两列之间不要竖线 */
+/* 设置页「上移」和「删除」两列：两列之间、以及它们与「期初」列之间都不画竖线。
+   注意：文件里另有 `table#summary-table tbody td.col-del { border-left: 1px ... !important }`
+   （「删除列左边框：所有行统一 1px」那条），它正是这两列中间那条线的来源，
+   必须在那边一起清掉 —— 只改这里不生效。JS 侧 syncSummaryDelBorder 也已把
+   inline 的 border-left 从 1px 改成 none，两边都要清。 */
 html body table#summary-table td.col-move,
-html body table#summary-table th.col-move {
-  border-right: 0 !important;
-  border-left: 0 !important;
-  box-shadow: none !important;
-}
+html body table#summary-table th.col-move,
 html body table#summary-table td.col-del,
 html body table#summary-table th.col-del {
   border-left: 0 !important;
   border-right: 0 !important;
+  border-top: 0 !important;
+  border-bottom: 0 !important;
   box-shadow: none !important;
 }
-/* 期初列右边也清掉（它右边紧挨着上移列） */
+/* 「期初」列右边也清掉（它右边紧挨着上移列）。
+   注意列名：设置页显示的是 **col-open**（期初），而 col-bal 是「当前结余」，
+   在设置页是隐藏列。v12.52 起这条一直写在 col-bal 上，所以「期初」右边那条竖线
+   从来没被清掉 —— 选择器指错了列。两个都写上，谁显示清谁。 */
+html body table#summary-table td.col-open,
+html body table#summary-table th.col-open,
 html body table#summary-table td.col-bal,
 html body table#summary-table th.col-bal {
   border-right: 0 !important;
 }
 
 /* ============================================================
-   根治：表格底色对齐页面底色
-   右端那些「不要背景色」的列是 transparent，透出的是 table 的底色。
-   只要 table 底色 = 页面底色，透明单元格自然和右侧空白一致，不用逐个调色。
+   根治：表格区域与页面同底色
+   右端那些「不要背景色」的列是 transparent，透出的是 table 的底色；
+   而 table 右边那片留白属于 .grid-wrap。**三者必须是同一个颜色**，
+   否则「让右端列和右边空白一致」这件事永远差着级数：
+     · 深色：table 曾 = #000、.grid-wrap = #0d0d0d、右端列曾写死 #0a0a0a —— 三种黑
+     · 浅色：三者都是 #fff，所以浅色一直看不出问题
+   v12.99 起：`.grid-wrap` 的深色背景从 `--bg-gray`(#0d0d0d) 归并到
+   `--bg-main`(#000000)（见文件上方 .grid-wrap 那几条），右端列一律用
+   `var(--bg-main)`，于是「列 / 表格 / 右侧留白」自动同色，且跟随主题。
    ============================================================ */
-html body table.grid,
-html[data-theme="dark"] body table.grid {
+html body table.grid {
   background: var(--bg-main) !important;
   background-color: var(--bg-main) !important;
 }
@@ -7567,7 +7563,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.98';
+const APP_VER = 'v12.99';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -14647,13 +14643,14 @@ function syncSummaryDelBorder() {
   const table = document.getElementById('summary-table');
   if (!table) return;
   const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-  let color = 'rgb(226, 232, 240)';
+  // 删除 / 账单日 / 还款日 三列底色 = 页面底色。
+  // 以前写死 '#0a0a0a'（深色），与页面底色 #000、与表格右侧留白差着级数，
+  // 三块黑摆在一起就露馅。现在统一读 --bg-main，和「操作」列同一口径。
+  let bg = dark ? '#000000' : '#ffffff';
   try {
-    const v = getComputedStyle(document.documentElement).getPropertyValue('--border-light').trim();
-    if (v) color = v;
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--bg-main').trim();
+    if (v) bg = v;
   } catch (e) {}
-  // 删除/账单日/还款日 三列底色：深色用最黑 #0a0a0a，浅色用纯白 #ffffff
-  const bg = dark ? '#0a0a0a' : '#ffffff';
 
   // 三列：背景强制统一
   table.querySelectorAll('thead th.col-del, thead th.col-bill, thead th.col-repay, tbody td.col-del, tbody td.col-bill, tbody td.col-repay').forEach(cell => {
@@ -14662,12 +14659,12 @@ function syncSummaryDelBorder() {
     cell.style.setProperty('box-shadow', 'none', 'important');
   });
 
-  // 删除列：左边框统一 1px，其它三边清掉
+  // 删除列：四边全清 —— 「上移 ▲」与「删除 ×」之间那条竖线就是这里的 border-left
   table.querySelectorAll('thead th.col-del, tbody td.col-del').forEach(td => {
     td.style.setProperty('border-top', 'none', 'important');
     td.style.setProperty('border-right', 'none', 'important');
     td.style.setProperty('border-bottom', 'none', 'important');
-    td.style.setProperty('border-left', '1px solid ' + color, 'important');
+    td.style.setProperty('border-left', 'none', 'important');
   });
 
   // 账单日/还款日：清掉所有边框，只留负债类型标签行的下划线
