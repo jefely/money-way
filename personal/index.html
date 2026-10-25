@@ -6108,7 +6108,7 @@ html body .toolbar.flow-bar.audit-tabs {
   padding: 0 !important;
   gap: 0 !important;
   background: var(--bg-gray) !important;
-  border-bottom: 2px solid var(--primary) !important;
+  border-bottom: 1px solid var(--primary) !important;
   flex-wrap: nowrap !important;
   overflow-x: auto !important;
   align-items: stretch !important;
@@ -6118,8 +6118,8 @@ html body .toolbar.flow-bar.audit-tabs > button.audit-tab {
   width: auto !important;
   min-width: 0 !important;
   max-width: none !important;
-  height: 100% !important;
-  line-height: 1 !important;
+  height: 40px !important;
+  line-height: 40px !important;
   padding: 0 6px !important;
   margin: 0 !important;
   border-radius: 0 !important;
@@ -6143,6 +6143,103 @@ html body .toolbar.flow-bar.audit-tabs > button.audit-tab.active {
   color: #d8d2e8 !important; border-right-color: #2a2a2a !important;
 }
 [data-theme="dark"] html body .toolbar.flow-bar.audit-tabs > button.audit-tab.active { color: #fff !important; }
+
+/* ============================================================
+   所有弹窗内的按钮统一成「添加账本 / 载入.txt / 另存.txt」那套样板
+   · 主按钮（无 .ghost）：紫渐变底 + 白字
+   · 次按钮（.ghost）：白底 + 淡紫边 + 紫字
+   高度 26px、圆角 7px、字号 12px、字重 600
+   ============================================================ */
+html body .confirm-mask .sync-box button,
+html body .confirm-mask .sync-box .sync-actions button,
+html body .confirm-mask .sync-box .sync-actions button:not(.sync-btn-main),
+html body .confirm-mask .sync-box .sync-actions button:not(.ghost) {
+  height: 26px !important;
+  min-height: 26px !important;
+  padding: 0 10px !important;
+  border-radius: 7px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 24px !important;
+  box-sizing: border-box !important;
+  box-shadow: none !important;
+}
+/* 主按钮：紫渐变 */
+html body .confirm-mask .sync-box button:not(.ghost):not(.sync-btn-main):not(.danger-btn) {
+  border: 1px solid transparent !important;
+  background: linear-gradient(135deg, #8b6cff, #6b5bc4) !important;
+  color: #fff !important;
+}
+html body .confirm-mask .sync-box button:not(.ghost):not(.sync-btn-main):not(.danger-btn):hover {
+  filter: brightness(1.06);
+}
+/* 主按钮（原本就标了 sync-btn-main 的也统一） */
+html body .confirm-mask .sync-box button.sync-btn-main {
+  border: 1px solid transparent !important;
+  background: linear-gradient(135deg, #8b6cff, #6b5bc4) !important;
+  color: #fff !important;
+}
+/* 次按钮：白底淡紫边 */
+html body .confirm-mask .sync-box button.ghost {
+  border: 1px solid #cbbcf0 !important;
+  background: #fff !important;
+  color: #5b4ea8 !important;
+}
+html body .confirm-mask .sync-box button.ghost:hover {
+  background: #f6f1ff !important;
+}
+/* 危险按钮保留红，但尺寸统一 */
+html body .confirm-mask .sync-box button.danger-btn {
+  border: 1px solid #f0a8a8 !important;
+  background: #fff !important;
+  color: #dc2626 !important;
+}
+html body .confirm-mask .sync-box button.danger-btn:hover {
+  background: #fff1f1 !important;
+}
+
+/* 深色主题 */
+[data-theme="dark"] html body .confirm-mask .sync-box button:not(.ghost):not(.danger-btn),
+[data-theme="dark"] html body .confirm-mask .sync-box button.sync-btn-main {
+  background: linear-gradient(135deg, #7a5cff, #5a4aa8) !important;
+  color: #fff !important;
+}
+[data-theme="dark"] html body .confirm-mask .sync-box button.ghost {
+  background: #1b1630 !important;
+  border-color: #3a2f66 !important;
+  color: #cfc4f5 !important;
+}
+[data-theme="dark"] html body .confirm-mask .sync-box button.danger-btn {
+  background: #1b1630 !important;
+  border-color: #6b2f2f !important;
+  color: #ff8a8a !important;
+}
+
+/* 圆角最后一击：.confirm-mask .sync-box .sync-actions button:not(.sync-btn-main) 是 (0,4,1)，
+   这里用 (0,4,2) 压过去，全部弹窗按钮统一 7px */
+html body .confirm-mask .sync-box .sync-actions button,
+html body .confirm-mask .sync-box .sync-actions button:not(.sync-btn-main),
+html body .confirm-mask .sync-box button.ghost,
+html body .confirm-mask .sync-box button.danger-btn {
+  border-radius: 7px !important;
+}
+
+/* 主按钮（无 .ghost、无 .danger-btn）圆角最后一击 —— 之前被 .confirm-mask .sync-box
+   里那几条 12px 的规则压着，这里把特异性拉到 (0,4,2) 并放在最末尾 */
+html body .confirm-mask .sync-box .sync-actions button:not(.ghost),
+html body .confirm-mask .sync-box .sync-actions button:not(.ghost):not(.danger-btn),
+html body .confirm-mask .sync-box button.sync-btn-main {
+  border-radius: 7px !important;
+}
+
+/* 弹窗按钮圆角最终裁决：对手用了 4 个 :not()（特异性 0,8,1），
+   这里照抄它的结构再套 html body，变成 (0,8,2)，一定赢 */
+html body .confirm-mask .sync-box .sync-actions button:not(.ghost):not(.sync-tab):not(.row-del):not(.rowmenu-item),
+html body .confirm-mask .sync-box .sync-actions button.ghost:not(.sync-tab):not(.row-del):not(.rowmenu-item),
+html body .confirm-mask .sync-box .sync-actions button.danger-btn:not(.sync-tab):not(.row-del):not(.rowmenu-item) {
+  border-radius: 7px !important;
+  border-radius: 7px !important;
+}
 </style>
 </head>
 <body>
@@ -6354,7 +6451,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.65';
+const APP_VER = 'v11.71';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6905,6 +7002,11 @@ function openChangePasswordDialog() {
       style="width:100%;height:38px;margin-bottom:10px;padding:0 10px;box-sizing:border-box;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main);font-size:15px">
     <input id="cp-new2" type="password" autocomplete="off" placeholder="再输一次新密码"
       style="width:100%;height:38px;margin-bottom:10px;padding:0 10px;box-sizing:border-box;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main);font-size:15px">
+      <div class="sync-hint small" style="text-align:left;margin:2px 0 6px">
+        提示词（选填，明文存在本机，忘密码时能在锁屏上看到）
+      </div>
+      <input id="cp-hint" type="text" autocomplete="off" placeholder="例如：生日 + 常用数字"
+        style="width:100%;height:38px;margin-bottom:10px;padding:0 10px;box-sizing:border-box;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main);font-size:15px">
     <div id="cp-err" style="min-height:18px;color:#dc2626;font-size:12px"></div>
     <div class="sync-actions">
       <button type="button" id="cp-go">确定修改</button>
