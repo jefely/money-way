@@ -4537,13 +4537,17 @@ table#summary-table td input {
 .lock-btn:disabled { opacity: .6; cursor: default; transform: none; }
 .lock-warn { margin-top: 12px; font-size: 12.5px !important; line-height: 1.6; color: rgba(255, 179, 179, .82); }/* ===== 统一弹窗皮肤：紫色毛玻璃（所有 confirm-mask / sync-box 弹窗共用）=====
    宽度固定 420、高度随内容（超过 86vh 内部滚动）；标题上方是无外框的 NT 字标。 */
+/* 深色遮罩：原来是 92%~94% 不透明，几乎等于一块实心板 ——
+   弹窗做成半透明后，透出来的其实是这层遮罩，页面内容根本透不到弹窗里，
+   所以「怎么看都不透明」。现在压到 50%~56%，并加大遮罩自身的模糊，
+   页面还在、但被糊掉，弹窗的透才看得出来。 */
 .confirm-mask {
   background:
-    radial-gradient(1100px 560px at 18% 8%, rgba(124, 92, 255, .40), transparent 62%),
-    radial-gradient(880px 500px at 88% 86%, rgba(76, 61, 128, .52), transparent 62%),
-    linear-gradient(160deg, rgba(27, 18, 51, .92) 0%, rgba(11, 8, 22, .94) 100%) !important;
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
+    radial-gradient(1100px 560px at 18% 8%, rgba(124, 92, 255, .22), transparent 62%),
+    radial-gradient(880px 500px at 88% 86%, rgba(76, 61, 128, .28), transparent 62%),
+    linear-gradient(160deg, rgba(27, 18, 51, .50) 0%, rgba(11, 8, 22, .56) 100%) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .confirm-mask .sync-box {
   width: min(94vw, 420px) !important;
@@ -7168,13 +7172,16 @@ html body table#fixed-table td.col-del .row-del {
   margin-top: 10px !important;
 }
 /* 「当前：」「远端：」各占一行，竖排在按钮右侧 ——
-   并排时文字一变长（读取中… / 读取失败）就会折行，整页跟着上下窜。 */
+   并排时文字一变长（读取中… / 读取失败）就会折行，整页跟着上下窜。
+   再上移 2px：与按钮居中对齐后视觉上仍偏低一点，单独顶上来。 */
 .ver-line .ver-mini {
   display: flex !important;
   flex-direction: column !important;
   gap: 2px !important;
   align-items: flex-start !important;
   line-height: 1.5 !important;
+  position: relative !important;
+  top: -2px !important;
 }
 .ver-line .ver-mini > span { white-space: nowrap !important; }
 /* 按钮宽度按 3 个字定死：文案在「更新 / 检查中… / 已是最新」之间切换时宽度不变 */
@@ -8042,7 +8049,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.30';
+const APP_VER = 'v13.31';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
