@@ -7143,6 +7143,63 @@ html body table#summary-table td.col-del > .row-del {
   box-shadow: none !important; outline: none !important;
   display: inline-flex !important; align-items: center !important; justify-content: center !important;
 }
+
+/* ============================================================
+   设置页右端两列（上移 / 删除）彻底干净：
+   浅色深色都一样 —— 没有竖线、没有底色、没有和左边不一致的色块
+   ============================================================ */
+html body table#summary-table td.col-move,
+html body table#summary-table th.col-move,
+html body table#summary-table td.col-del,
+html body table#summary-table th.col-del {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+/* 深色主题：这些行本来会被 nth-child 刷成深色，这里强制透明 */
+html[data-theme="dark"] body table#summary-table tbody tr td.col-move,
+html[data-theme="dark"] body table#summary-table tbody tr td.col-del,
+html[data-theme="dark"] body table#summary-table tbody tr:nth-child(odd) td.col-move,
+html[data-theme="dark"] body table#summary-table tbody tr:nth-child(odd) td.col-del,
+html[data-theme="dark"] body table#summary-table tbody tr:nth-child(even) td.col-move,
+html[data-theme="dark"] body table#summary-table tbody tr:nth-child(even) td.col-del,
+html[data-theme="dark"] body table#summary-table tbody tr.cat-row td.col-move,
+html[data-theme="dark"] body table#summary-table tbody tr.cat-row td.col-del {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* 分类小计那一行的紫色横条，不要延伸到上移 / 删除两列 */
+html body table#summary-table tbody tr.cat-row > td.col-move,
+html body table#summary-table tbody tr.cat-row > td.col-del,
+html body table#summary-table tbody tr.sum-row > td.col-move,
+html body table#summary-table tbody tr.sum-row > td.col-del {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* 「期初」列右边那条竖线：连表头一起清掉 */
+html body table#summary-table th.col-bal,
+html body table#summary-table td.col-bal {
+  border-right: 0 !important;
+  box-shadow: none !important;
+}
+html[data-theme="dark"] body table#summary-table th.col-bal,
+html[data-theme="dark"] body table#summary-table td.col-bal {
+  border-right: 0 !important;
+}
+/* 上移列左边那条线也去掉 */
+html body table#summary-table th.col-move,
+html body table#summary-table td.col-move {
+  border-left: 0 !important;
+}
 </style>
 </head>
 <body>
@@ -7354,7 +7411,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.56';
+const APP_VER = 'v12.60';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10299,6 +10356,7 @@ function renderStatsSum(main, footer) {
     </tr></thead>
     <tbody></tbody>`;
   const tbody = table.querySelector('tbody');
+
   if (!rows.length) {
     const tr = document.createElement('tr');
     tr.innerHTML = '<td colspan="9" style="text-align:center;color:var(--text-muted);padding:18px">这个时间段还没有数据</td>';
@@ -17690,6 +17748,19 @@ function mwSelfHeal() {
         inner.style.setProperty('height', '0', 'important');
         inner.style.setProperty('background', 'transparent', 'important');
       }
+    });
+
+    // 设置页右端「上移 / 删除」两列：彻底透明、零边框
+    document.querySelectorAll('table#summary-table td.col-move, table#summary-table th.col-move, table#summary-table td.col-del, table#summary-table th.col-del').forEach(function (el) {
+      el.style.setProperty('background', 'transparent', 'important');
+      el.style.setProperty('background-color', 'transparent', 'important');
+      el.style.setProperty('background-image', 'none', 'important');
+      el.style.setProperty('border', '0', 'important');
+      el.style.setProperty('box-shadow', 'none', 'important');
+    });
+    document.querySelectorAll('table#summary-table td.col-bal, table#summary-table th.col-bal').forEach(function (el) {
+      el.style.setProperty('border-right', '0', 'important');
+      el.style.setProperty('box-shadow', 'none', 'important');
     });
 
     // 流水表的 ☑ 固定/计划 复选框
