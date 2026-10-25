@@ -6595,14 +6595,17 @@ html body .confirm-mask .book-section .book-pick.on {
 /* .sync-box 要成为 × 的定位参照 */
 .confirm-mask .sync-box { position: relative; }
 
-/* 弹窗标题区：正常流即可。之前设成 sticky + top:0，但 .sync-box 不是滚动容器，
-   sticky 退化成相对偏移，把「同步」这类标题顶到内容上面盖住左栏文字。 */
+/* 弹窗标题区：不吸顶，跟内容一起滚。
+   之前设 sticky 想做「滚动时标题固定」，但那会让标题浮起来盖住下面滚动的内容，
+   而且标题是 background-clip:text 的渐变字，没法直接加不透明背景去挡。
+   最省事也最不容易出错的做法：让它老实跟着滚。 */
 .confirm-mask .sync-box > .sync-brand,
 .confirm-mask .sync-box > .sync-title,
 .confirm-mask .sync-box > .sync-head {
   position: static !important;
   top: auto !important;
   z-index: auto !important;
+  box-shadow: none !important;
 }
 
 /* ============================================================
@@ -7472,7 +7475,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.83';
+const APP_VER = 'v12.86';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
