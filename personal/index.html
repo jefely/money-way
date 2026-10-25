@@ -5354,17 +5354,19 @@ table#summary-table tbody td.col-name {
   background-clip: padding-box;
 }
 /* 逐级抬高，否则后渲染的列会把前面的盖住 */
-/* 冻结列（序 / 简码）的层级：只有这两列需要 z-index，右边那列盖左边那列。
-   其它列不再冻结，z-index 必须回到 auto —— 这组规则原来是「五列都冻结」时写的
-   （cat 6 / sub 7 / code 8 / name 9），现在 col-name 不冻结却仍有 6/9，
-   横向滚动时它会滑过来把冻结的「序 / 简码」盖住（手机视口下实测如此）。 */
+/* 冻结列（序 / 简码）的层级：只有这两列需要「比普通列高」，右边那列盖左边那列。
+   注意 **表头和数据行要分开处理**：
+   · 表头单元格必须有 z-index，否则盖不住下面滚上来的数据行
+     （曾经把 thead th.col-name 一起设成 auto，结果「账户名称」表头被数据穿透，
+       截图里能看到资产行压在列标上）；
+   · 数据行里不冻结的列必须回 auto，否则横向滚动时「账户名称」会滑过来盖住冻结列。 */
 table#summary-table thead th.col-seq  { z-index: 5; }
 table#summary-table thead th.col-code { z-index: 6; }
-table#summary-table tbody td.col-seq  { z-index: 2; }
-table#summary-table tbody td.col-code { z-index: 3; }
 table#summary-table thead th.col-cat,
 table#summary-table thead th.col-sub,
-table#summary-table thead th.col-name,
+table#summary-table thead th.col-name { z-index: 4; }   /* 低于冻结的两列，高于数据行 */
+table#summary-table tbody td.col-seq  { z-index: 2; }
+table#summary-table tbody td.col-code { z-index: 3; }
 table#summary-table tbody td.col-cat,
 table#summary-table tbody td.col-sub,
 table#summary-table tbody td.col-name { z-index: auto !important; }
@@ -8102,7 +8104,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.40';
+const APP_VER = 'v13.41';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
