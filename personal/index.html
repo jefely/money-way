@@ -1589,9 +1589,15 @@ table#summary-table { min-width: 800px !important; }
   min-height: 34px !important;
   align-items: center !important;
 }
+/* 月份行不再被拉伸到整条工具栏的高度。
+   之前是 align-self: stretch + min-height: 30 → 实测行高 33px，而按钮固定 26px
+   且默认顶对齐，于是这行**下方多出 7px 白**、按钮贴顶不居中。
+   现在：行高收到按钮高度（26），并且 align-items: center 兜底 ——
+   万一将来行高又被别的东西撑大，按钮也是上下居中而不是贴顶。 */
 .toolbar.bar1 .month-row, .toolbar.bar2 .month-row {
-  align-self: stretch !important;
-  min-height: 30px !important;
+  align-self: center !important;
+  min-height: 26px !important;
+  align-items: center !important;
 }
 /* 工具栏标题：绝不能被 syncFlowTitleWidth 改成 absolute（那会让它铺满整条并居中） */
 .toolbar.flow-bar > .flow-title,
@@ -6077,11 +6083,13 @@ table#summary-table th.col-hin, table#summary-table td.col-hin {
    · range：两个日期框 + 「至」
    · year ：年份格子
    · month：1~12 月份格子
-   原来 range 是 36px、year/month 是 40px，切换模式整行会跳一下。
+   原来 range 是 36px、year/month 是 40px，切换模式整行会跳一下 —— 所以统一钉死。
+   现在收到 32px：三种模式里面的控件本身都是 26px 高，26 + 上下各 3px 正好，
+   40px 那一版会在控件上下各空出 7px，看着就是「月份栏下方多出来一条」。
    ============================================================ */
 html body .toolbar.bar2 {
-  min-height: 40px !important;
-  height: 40px !important;
+  min-height: 32px !important;
+  height: 32px !important;
   align-items: center !important;
   padding-top: 3px !important;
   padding-bottom: 3px !important;
@@ -7655,7 +7663,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.03';
+const APP_VER = 'v13.04';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
