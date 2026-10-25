@@ -484,11 +484,16 @@ table#flow-table tbody td.col-note > input:not(.fixed-chk) { padding-right: 38px
 
 /* 空行：默认铺 100 行，整行高亮太吵，只把序号淡化以区分「还没落库的行」 */
 table.grid tbody tr[data-new="1"] td.col-seq { color: var(--text-light); font-weight: 400; }
-/* 账户名称列固定在左侧。表头那格要压在所有列之上（含 sticky 的其它 th），
-   否则滚动时分类/简码的旧边框会从边上透出来，看着参差不齐。
-   右缘补一道阴影当分隔线，盖掉底下列边框的 1px 残影。 */
+/* 冻结列：序 / 简码 / 账户名称（用户指定这三列）。
+   序的 left 固定 0（127 行那条）；简码、账户名称的 left 由 applySummarySticky()
+   按「前面所有列的实际渲染宽度」累加后写进 inline style —— 类型/分类收起时
+   它们宽度为 0，偏移自然跟着变小，不用另算。
+   表头那格要压在所有列之上，否则滚动时相邻列的旧边框会从边上透出来。 */
+table#summary-table thead th.col-code,
+table#summary-table tbody td.col-code,
 table#summary-table thead th.col-name,
 table#summary-table tbody td.col-name { position: sticky; z-index: 2; background-clip: padding-box; }
+table#summary-table thead th.col-code,
 table#summary-table thead th.col-name { z-index: 6; }
 /* 分类分组行那条跨四列的格子也一起固定 */
 /* 分类分组行那条格子不固定：它 colspan=4，宽度是前四列之和，而数据行的账户名称只占 序号+名称，固定后会多盖住后面一截，把「当前结余」遮掉。让它照常跟着滚走。 */
@@ -4048,14 +4053,13 @@ table#summary-table tbody tr:nth-child(even):hover > td.col-seq {
   flex: 1 1 0 !important;
 }
 
-/* ③ 账户汇总：类型 / 分类 / 简码三列默认收起（宽度由 JS 写 colgroup = 0）。
+/* ③ 账户汇总：类型 / 分类两列默认收起（宽度由 JS 写 colgroup = 0）。
+      简码不再收起 —— 它是冻结列之一（序 / 简码 / 账户名称），收起就没意义了。
       收起时内边距、边框一并去掉，单元格里的输入框不可见、不可点。 */
 table#summary-table.sum-cols-folded th.col-cat,
 table#summary-table.sum-cols-folded td.col-cat,
 table#summary-table.sum-cols-folded th.col-sub,
-table#summary-table.sum-cols-folded td.col-sub,
-table#summary-table.sum-cols-folded th.col-code,
-table#summary-table.sum-cols-folded td.col-code {
+table#summary-table.sum-cols-folded td.col-sub {
   padding: 0 !important;
   border-left: none !important;
   border-right: none !important;
@@ -4083,7 +4087,9 @@ table#summary-table.sum-cols-folded td.col-code {
   -webkit-appearance: none;
   appearance: none;
   cursor: pointer;
-  color: #000000 !important;   /* 398 行的 button{color:#0f172a!important} 会压过来 */
+  /* 浅色下表头是深紫顶带（v13.08 的「紫玉顶带」），所以这个三角必须是白色；
+     黑三角在深紫底上等于隐形。深色主题下另行强制白色，两条一致。 */
+  color: #ffffff !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -7544,7 +7550,7 @@ html:not([data-theme="dark"]) body table.query-table > thead > tr.q-head-row > t
   background: linear-gradient(180deg, #6b5bc4, #584a9e) !important;
   color: #ffffff !important;
 }
-/* 数据区：白底 + 极淡紫斑马纹 + 更淡的网格线 */
+/* 表头与数据区：白底 + 极淡紫斑马纹 + 更淡的网格线 */
 html:not([data-theme="dark"]) body table.grid tbody td {
   background: #ffffff !important;
   border-right: 1px solid #f2eefb !important;
@@ -7555,6 +7561,45 @@ html:not([data-theme="dark"]) body table.grid tbody tr:nth-child(even) td {
 }
 html:not([data-theme="dark"]) body table.grid tbody tr:hover td {
   background: #f3eeff !important;
+}
+
+/* ------------------------------------------------------------
+   表头两端的圆角
+   ------------------------------------------------------------
+   外层 .grid-wrap 有 12px 圆角，但表格是方的、又贴着它左上角，直接把圆角盖住了 ——
+   所以「紫色列标行最右边是圆角」这件事一直不稳定（换个页、拖个列宽就没了）。
+   做法：圆角直接做在表头格自己身上。
+     · 每个表头格都带右上圆角，只有真正处在紫色块最右的那格才看得见；
+     · 右端那几列是页面底色（白），它们必须保持直角，否则会在表头行右端切口子；
+     · 紫色块的最后一格被白列挡住时（流水/查询的 col-note、设置的 col-open、
+       固定的 col-state、统计的 col-hin），单独把圆角补回来。
+   ------------------------------------------------------------ */
+html:not([data-theme="dark"]) body table.grid > thead > tr > th:first-child {
+  border-top-left-radius: 12px !important;
+}
+html:not([data-theme="dark"]) body table.grid > thead > tr > th:last-child {
+  border-top-right-radius: 12px !important;
+}
+html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-op,
+html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-ops,
+html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-move,
+html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-del,
+html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-bill,
+html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-repay {
+  border-top-right-radius: 0 !important;
+}
+html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-note,
+html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-open,
+html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-state,
+html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-hin {
+  border-top-right-radius: 12px !important;
+}
+/* 表格最后一行也收个下圆角，和外框对齐 */
+html:not([data-theme="dark"]) body table.grid > tbody > tr:last-child > td:first-child {
+  border-bottom-left-radius: 12px !important;
+}
+html:not([data-theme="dark"]) body table.grid > tbody > tr:last-child > td:last-child {
+  border-bottom-right-radius: 12px !important;
 }
 </style>
 </head>
@@ -7767,7 +7812,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.08';
+const APP_VER = 'v13.09';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10107,7 +10152,7 @@ function renderAudit(main, footer) {
 
     <div class="intro-sec">简码设置区默认隐藏</div>
     <div class="intro-lead" style="margin-bottom:8px">
-      「类型 / 分类 / 简码」三列默认收起。点「账户名称」左边的 <b>▶</b> 展开，
+      「类型 / 分类」两列默认收起。点「账户名称」左边的 <b>▶</b> 展开，
       再点 <b>◀</b> 收回；展开后简码可以直接改。
     </div>
 
@@ -14751,7 +14796,7 @@ let summaryFold = (() => {
 let summaryRealW = null;
 
 // 汇总表 colgroup 里 type/sub/code 三列的位置：0 是序号列，1=类型 2=分类 3=简码
-const SUMMARY_FOLD_COLS = [1, 2, 3];
+const SUMMARY_FOLD_COLS = [1, 2];   // 1=类型、2=分类（简码不再收起：它是冻结列之一）
 
 // 真实宽度只认 colWidths.summary。以前这里用一份单独记的 summaryFoldW 覆盖前三列，
 // 于是「把三列调窄 → 折叠 → 再展开」宽度又弹回 76/59/73，怎么调都存不住。
@@ -14782,7 +14827,7 @@ function applySummaryFold() {
   table.classList.toggle('sum-cols-folded', summaryFold);
   // 三角形按钮的方向由 .sum-cols-folded 控制，这里只同步提示文字
   const btn = table.querySelector('.sum-fold-toggle');
-  if (btn) btn.title = summaryFold ? '展开类型 / 分类 / 简码' : '收起类型 / 分类 / 简码';
+  if (btn) btn.title = summaryFold ? '展开类型 / 分类' : '收起类型 / 分类';
   applySummarySticky();
 }
 
