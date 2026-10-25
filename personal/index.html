@@ -5841,10 +5841,9 @@ html body .toolbar.flow-bar > button {
    ============================================================ */
 html body .toolbar button:not(.m-btn):not(.audit-tab) {
   padding: 0 4px !important;
-  /* 基准宽 56px、可缩不可长 —— 这样每一页的按钮宽度都严格一致，
-     窗口窄到放不下时才等比缩小（36px 底线），不会再出现某页 53 某页 56 的差别 */
-  flex: 0 1 56px !important;
-  width: 56px !important;
+  /* 有空间时长到 56px，空间不够就等比缩小（36px 底线），所以不会把同排的年份框挤到下一行 */
+  flex: 1 1 auto !important;
+  width: auto !important;
   min-width: 36px !important;
   max-width: 56px !important;
   font-size: 13px !important;
@@ -5892,11 +5891,26 @@ html body .toolbar .month-row .m-btn {
 /* 流水页按钮也必须和其它页一样宽 56px（它有一条更靠后的 .toolbar.flow-bar > button 规则
    把 flex 拉回 1 1 auto，导致只有 53px） */
 html body .toolbar.flow-bar > button {
-  flex: 0 1 56px !important;
-  width: 56px !important;
+  flex: 1 1 auto !important;
+  width: auto !important;
   min-width: 36px !important;
   max-width: 56px !important;
 }
+
+/* 所有工具栏一律单行；放不下时按钮先缩小（36px 底线），再不够才横向滚动 */
+html body .toolbar.flow-bar,
+html body .toolbar.bar1,
+html body .toolbar.bar2,
+html body .toolbar.install-bar {
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none;
+}
+html body .toolbar.flow-bar::-webkit-scrollbar,
+html body .toolbar.bar1::-webkit-scrollbar,
+html body .toolbar.bar2::-webkit-scrollbar,
+html body .toolbar.install-bar::-webkit-scrollbar { display: none; }
 </style>
 </head>
 <body>
@@ -6108,7 +6122,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.35';
+const APP_VER = 'v11.36';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -15718,8 +15732,8 @@ function mwSelfHeal() {
     var scope = root || document;
     scope.querySelectorAll('.toolbar.flow-bar > button').forEach(function (b) {
       if (!/添加|同步|导入|导出|主题|布局/.test(b.textContent || '')) return;
-      b.style.setProperty('flex', '0 1 56px', 'important');
-      b.style.setProperty('width', '56px', 'important');
+      b.style.setProperty('flex', '1 1 auto', 'important');
+      b.style.setProperty('width', 'auto', 'important');
       b.style.setProperty('min-width', '36px', 'important');
       b.style.setProperty('max-width', '56px', 'important');
       b.style.setProperty('padding', '0 4px', 'important');
