@@ -7213,7 +7213,7 @@ html body .thanks-chip {
 }
 html body .thanks-chip .thanks-txt {
   display: block !important;
-  white-space: nowrap !important;
+  white-space: pre !important;      /* pre 不换行，且保留行首空格 */
   line-height: 1.05 !important;
   padding: 0 !important;
   margin: 0 !important;
@@ -7222,8 +7222,9 @@ html body .thanks-chip .thanks-txt {
   max-width: 100% !important;
 }
 
-/* 感谢墙文字：字间距略放大，看着不那么挤 */
+/* 感谢墙文字：字间距略放大，看着不那么挤；保留行首空格（补位用） */
 html body .thanks-chip .thanks-txt {
+  white-space: pre !important;
   letter-spacing: .06em !important;
   padding-left: .06em !important;   /* 抵消最后一字的字距，保持居中 */
   text-indent: .06em !important;
@@ -7469,7 +7470,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.78';
+const APP_VER = 'v12.82';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10856,7 +10857,9 @@ function buildLayoutText() {
 
     // 手动断行：名字里写 | 就按 | 切，完全听用户的
     if (raw0.indexOf('|') >= 0) {
-      var parts = raw0.split('|').map(function (x) { return x.trim(); }).filter(function (x) { return x.length > 0; });
+      var parts = raw0.split('|')
+        .map(function (x) { return x.replace(/[ \t]+$/, ''); })   // 只去尾部，开头空格是补位用的
+        .filter(function (x) { return x.trim().length > 0; });
       if (parts.length) {
         var maxLen = parts.reduce(function (a, b) { return [...b].length > [...a].length ? b : a; }, '');
         var mc = [...maxLen].length;
@@ -10868,8 +10871,9 @@ function buildLayoutText() {
         else boxM = 138;
         var charWM = isLat ? 0.62 : 1;
         var ratioM = isLat ? 0.54 : 0.86;
-        var fsMW = (boxM * ratioM) / (mc * charWM);
-        var fsMH = (boxM * 0.80) / (rowsN * 1.16);
+        var innerM = Math.max(10, boxM * 0.12);      // 四周至少留 12%
+        var fsMW = (boxM - innerM * 2) / (mc * charWM);
+        var fsMH = (boxM - innerM * 2) / (rowsN * 1.16);
         var fsM = Math.floor(Math.min(fsMW, fsMH));
         if (isLat && rowsN === 1) fsM = Math.floor(Math.min(fsM, boxM / 2.6));
         fsM = Math.max(9, Math.min(fsM, 46));
@@ -10908,9 +10912,9 @@ function buildLayoutText() {
     var maxChars = [...maxLen].length;
     var charW = isLatin ? 0.62 : 1;
     var widthRatio = isLatin ? 0.54 : 0.86;
-    var fsW = (box * widthRatio) / (maxChars * charW);
-    // 行间距比之前多 4px：纵向预算按 (行高 + 4) 算
-    var fsH = (box * 0.80) / (lines.length * 1.16 + (lines.length - 1) * 4 / box * lines.length);
+    var inner = Math.max(10, box * 0.12);            // 四周至少留 12%
+    var fsW = (box - inner * 2) / (maxChars * charW);
+    var fsH = (box - inner * 2) / (lines.length * 1.16);
     var fs = Math.floor(Math.min(fsW, fsH));
     // 单个英文词只有一行时，可以明显放大
     if (isLatin && !words && lines.length === 1) fs = Math.floor(Math.min(fs, box / 2.6));

@@ -76,8 +76,9 @@
     <label for="names">② 名单（一行一个名字）</label>
     <textarea id="names" placeholder="NT&#10;jefely&#10;可爱的|宝贝&#10;亲亲晚风&#10;天才如你，|我信你|就见鬼了"></textarea>
     <div class="hint">
-      想自己控制换行位置，就在名字里写 <code>|</code>：<code>可爱的|宝贝</code> 会显示成两行。<br>
-      一个 <code>|</code> 两行，两个三行，以此类推。不写 <code>|</code> 就自动断行。
+      <b>换行</b>：名字里写 <code>|</code> 就完全按你切的位置断：<code>可爱的|宝贝</code> 两行，<code>天才如你，|我信你|就见鬼了</code> 三行。不写 <code>|</code> 则自动断行。<br>
+      <b>微调左右</b>：想某一行往右挪一点，就在那一行的<b>开头加空格</b>（一个空格约半个字宽，两个约一个字宽）。<br>
+      <b>字号</b>：由「最长那一行有几个字」和「一共几行」自动算，四周固定留 12% 边界。想让字大一点，就把最长的行切短一些。
     </div>
     <div class="row">
       <span class="cnt" id="cnt">0 个名字</span>
