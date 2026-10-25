@@ -6938,6 +6938,10 @@ html body table.grid input.fixed-chk[type="checkbox"]:checked::after {
 .book-row { gap: 10px !important; }
 .book-row .book-ops { gap: 8px !important; margin-left: auto; }
 .book-row .book-name-inp { margin-right: 2px; }
+
+/* 方框移到输入框左边，添加行用同样宽度的占位保持对齐 */
+.book-pick-ghost { flex: 0 0 11px !important; width: 11px !important; height: 11px !important; }
+.book-row > .book-pick { margin-right: 0 !important; }
 </style>
 </head>
 <body>
@@ -7149,7 +7153,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.22';
+const APP_VER = 'v12.23';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -11825,9 +11829,9 @@ function openImportXlsxDialog(preFile) {
         row.className = 'book-row' + (b.id === cur.id ? ' active' : '');
         const on = b.id === cur.id;
         row.innerHTML = `
-          <input class="book-name-inp" type="text" value="${esc(b.name)}" maxlength="24">
           <button type="button" class="book-pick${on ? ' on' : ''}" data-op="pick"
                   title="${on ? '当前账本' : '点一下加载这个账本'}"><i></i></button>
+          <input class="book-name-inp" type="text" value="${esc(b.name)}" maxlength="24">
           <span class="book-ops">
             ${bookState.list.length > 1 ? '<button type="button" class="book-x" data-op="del" title="删除这个账本">×</button>' : ''}
             <button type="button" data-op="rename">改名</button>
@@ -11903,6 +11907,7 @@ function openImportXlsxDialog(preFile) {
       const addRow = document.createElement('div');
       addRow.className = 'book-row book-row-add';
       addRow.innerHTML = `
+        <span class="book-pick-ghost" aria-hidden="true"></span>
         <input class="book-name-inp book-new-inp" type="text" maxlength="24"
                placeholder="输入新账本名称…">
         <span class="book-ops">
