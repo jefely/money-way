@@ -4449,7 +4449,8 @@ table#summary-table td input {
 .lock-glow.g2 { width: 420px; height: 420px; background: #4c3d80; right: -90px; bottom: -110px; }
 .lock-card {
   position: relative; width: min(92vw, 356px);
-  padding: 34px 26px 26px;
+  /* padding-top 必须与 .sync-box 一致（25px），否则锁屏和弹窗的头部距顶边不一样 */
+  padding: 25px 26px 26px;
   border-radius: 22px;
   background: rgba(255, 255, 255, .075);
   backdrop-filter: blur(26px) saturate(160%);
@@ -4489,11 +4490,13 @@ table#summary-table td input {
   border-bottom: 4px solid #8b6cff !important;
 }
 .lock-card > .lock-title {
-  font-size: 21px !important;
+  font-size: 22px !important;
   font-weight: 700 !important;
   letter-spacing: .04em !important;
+  line-height: 1.2 !important;
   text-align: center !important;
-  margin: 0 0 18px 0 !important;      /* 与下面内容拉开，别挤着 */
+  /* 与弹窗标题同一套间距：正文从标题下 18px 开始 */
+  margin: 0 0 18px 0 !important;
   /* 与其它弹窗一样：紫渐变标题（深紫底上整体提亮一档） */
   background: linear-gradient(135deg, #d9ccff, #9b7fff) !important;
   -webkit-background-clip: text !important;
@@ -4501,7 +4504,7 @@ table#summary-table td input {
   color: transparent !important;
 }
 .lock-title { font-size: 22px !important; font-weight: 700; color: #fff !important; letter-spacing: .08em; }
-.lock-sub { margin-top: 7px; font-size: 13px !important; line-height: 1.65; color: rgba(255, 255, 255, .6) !important; }
+.lock-sub { margin-top: 0; font-size: 13px !important; line-height: 1.65; color: rgba(255, 255, 255, .6) !important; }
 .lock-field { position: relative; margin: 20px 0 4px; }
 .lock-field input {
   width: 100%; height: 48px; padding: 0 14px; box-sizing: border-box;
@@ -4819,8 +4822,8 @@ table#summary-table td input {
   position: static !important;
   width: calc(100% + 52px) !important;
   box-sizing: border-box !important;
-  margin: 0 -26px 8px !important;
-  padding: 0 26px 6px !important;
+  margin: 0 -26px 10px !important;
+  padding: 0 26px 10px !important;   /* 与锁屏 .lock-logo 的 padding-bottom 一致 */
   font-size: 28px !important;
   font-weight: 800 !important;
   letter-spacing: .1em !important;
@@ -4834,11 +4837,14 @@ table#summary-table td input {
   filter: none !important;
 }
 .confirm-mask .sync-box .sync-title {
-  margin: 0 0 22px 0 !important;
+  /* 与锁屏统一：标题下留 18px，正文才不贴着脸。
+     原来这条被更早的规则算成 margin-bottom: 0（实测），正文直接顶上来。 */
+  margin: 0 0 18px 0 !important;
   padding: 0 !important;
   font-size: 22px !important;
   font-weight: 700 !important;
   letter-spacing: .04em !important;
+  line-height: 1.2 !important;
   text-align: center !important;
   /* 和 NT 同一套紫色渐变 */
   background: linear-gradient(135deg, #8b6cff, #5b4ea8) !important;
@@ -7425,24 +7431,29 @@ html body .query-section .grid-wrap { scrollbar-gutter: auto !important; }
   top: 0 !important;
   z-index: 4 !important;              /* 必须低于 .dlg-x，否则盖住右上角关闭按钮 */
   background: transparent !important;
-  margin-top: -10px !important;       /* 头部整体上移 10px，贴近卡片上沿 */
+  /* 头部距卡片顶边的距离由 .sync-box 的 padding-top 统一控制（25px），
+     wrapper 不额外位移 —— 否则和锁屏（同样 25px padding）对不齐 */
+  margin-top: 0 !important;
   /* 左右各撑出去，盖住 .sync-box 的 padding，不留缝 */
   margin-left: -40px !important;
   margin-right: -40px !important;
   padding-left: 40px !important;
   padding-right: 40px !important;
-  padding-bottom: 6px !important;     /* 头部与正文之间再让出一点，别挤着 */
   box-sizing: content-box !important;
 }
 html[data-theme="dark"] .confirm-mask .sync-box > .sync-sticky {
   background: transparent !important;
 }
-/* wrapper 里面的标题回到正常流，渐变照旧 */
+/* wrapper 里面的标题回到正常流，渐变照旧。
+   注意这里不能写 `margin: 0` —— wrapOne 会把 .sync-title 搬进 .sync-sticky，
+   这条规则随后就命中，把标题下方的间距清零，正文紧贴标题（实测 margin-bottom 读到 0）。
+   保留 18px，与锁屏 .lock-card > .lock-title 的间距一致。 */
 .confirm-mask .sync-sticky > .sync-brand,
 .confirm-mask .sync-sticky > .sync-title {
   position: static !important;
-  margin: 0 !important;
+  margin: 0 0 18px 0 !important;
 }
+.confirm-mask .sync-sticky > .sync-brand { margin: 0 !important; }
 
 /* 固定页「操作」列：边框清零。
    背景统一由下面「根治」那一节给（var(--bg-main)）——
@@ -8007,7 +8018,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.27';
+const APP_VER = 'v13.28';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
