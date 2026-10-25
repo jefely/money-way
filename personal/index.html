@@ -6924,9 +6924,6 @@ html body table.grid input.fixed-chk[type="checkbox"] {
 html body table.grid input.fixed-chk[type="checkbox"]:checked {
   background: #000000 !important;
 }
-html body table.grid input.fixed-chk[type="checkbox"]:checked::after {
-  content: ''; position: absolute; inset: 2px; background: transparent;
-}
 [data-theme="dark"] html body table.grid input.fixed-chk[type="checkbox"] {
   border-color: #ffffff !important;
 }
@@ -6952,6 +6949,37 @@ html body .toolbar.flow-bar.audit-tabs {
 }
 [data-theme="dark"] html body .toolbar.flow-bar.audit-tabs {
   box-shadow: 0 1px 0 0 rgba(0, 0, 0, .9) !important;
+}
+
+/* ============================================================
+   固定页「操作」列：裸的 × 删除按钮，单元格不要底色和边框
+   ============================================================ */
+html body table#fixed-table td.col-op,
+html body table#fixed-table th.col-op,
+html body table#fixed-table td.col-ops,
+html body table#fixed-table th.col-ops,
+html body table#fixed-table td.col-del,
+html body table#fixed-table th.col-del {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  border-top: 0 !important;
+  border-bottom: 1px solid var(--border-light) !important;
+  box-shadow: none !important;
+}
+html body table#fixed-table td.col-op .row-del,
+html body table#fixed-table td.col-ops .row-del,
+html body table#fixed-table td.col-del .row-del {
+  width: 20px !important; min-width: 20px !important; max-width: 20px !important;
+  height: 20px !important; min-height: 20px !important; max-height: 20px !important;
+  padding: 0 !important; margin: 0 auto !important;
+  border: 0 !important; border-radius: 0 !important;
+  background: transparent !important; background-image: none !important;
+  box-shadow: none !important;
+  font-size: 18px !important; line-height: 20px !important;
+  display: inline-flex !important; align-items: center !important; justify-content: center !important;
+  opacity: 1 !important;
 }
 </style>
 </head>
@@ -7164,7 +7192,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.24';
+const APP_VER = 'v12.26';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
