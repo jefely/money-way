@@ -6547,6 +6547,36 @@ html body .confirm-mask .book-section .book-pick.on {
 [data-theme="dark"] html body .confirm-mask .book-section .book-pick {
   border-color: #b6a8f5 !important;
 }
+
+/* 弹窗右上角的关闭 × */
+.dlg-x {
+  position: absolute;
+  top: 8px; right: 10px;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; margin: 0;
+  border: 0 !important; border-radius: 8px !important;
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  font-size: 20px; line-height: 1; font-weight: 400;
+  cursor: pointer;
+  z-index: 5;
+  box-shadow: none !important;
+}
+.dlg-x:hover { background: rgba(139,108,255,.14) !important; color: var(--primary) !important; }
+[data-theme="dark"] .dlg-x { color: #b6a8f5 !important; }
+[data-theme="dark"] .dlg-x:hover { background: rgba(182,168,245,.16) !important; color: #fff !important; }
+
+/* .sync-box 要成为 × 的定位参照 */
+.confirm-mask .sync-box { position: relative; }
+
+/* 弹窗顶部（NT / 标题 / 紫线）固定住，滚动内容时不跟着走 */
+.confirm-mask .sync-box > .sync-brand,
+.confirm-mask .sync-box > .sync-title,
+.confirm-mask .sync-box > .sync-head {
+  position: sticky; top: 0; z-index: 4;
+  background: inherit;
+}
 </style>
 </head>
 <body>
@@ -6758,7 +6788,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.94';
+const APP_VER = 'v11.96';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -11603,21 +11633,22 @@ function openImportTextDialog() {
           </span>
         </div>
         <input type="file" id="imp-file" accept=".txt,.csv,.text" style="display:none">
-        <textarea id="imp-text" spellcheck="false" placeholder="账户
-资产类，现金，XJ，现金，200.00，
-资产类，充值，FK，饭卡，0.00，
+          <textarea id="imp-text" spellcheck="false" placeholder="账户
+类型，分类，简码，名称，期初，账单日，还款日，
+收入类，工资，GZ，工资，
+资产类，现金，XJ，现金，200，
+资产类，储蓄，GHC，工行储，4567，
+负债类，信用，JHX，交行信1，2000，8，3，
+负债类，信用，JHX2，交行信2，0，8，3，
 
-流水
-261022，ZHX，水，3.00，
-261022，XJ，水，3.00，"
+流水：
+日期，转出，转入，金额，备注，
+260801，XJ，S，3.5，
+260801，JHC，HF，100，
+260802，现金，水，3.5，
+260802，交行储，话费，100，"
           style="width:100%;height:260px;font-size:12px;font-family:ui-monospace,Consolas,monospace;padding:8px;box-sizing:border-box;border:1px solid var(--border-light);border-radius:9px;background:var(--bg-main);color:var(--text-main);line-height:1.6"></textarea>
         <div id="imp-preview" class="sync-hint small" style="text-align:left;min-height:18px;margin-top:6px">识别到：</div>
-      </div>
-
-      <div class="sync-hint small" style="text-align:left;line-height:1.6;margin-top:2px">
-        用「账户」「流水」两个词分段，字段之间用中文逗号。<br>
-        账户：<code>类型，分类，简码，名称，期初，</code>　流水：<code>YYMMDD，转出，转入，金额，备注，</code><br>
-        账户按「名称」判重，已存在的自动忽略。
       </div>
 
       <div class="sync-actions">
@@ -16734,6 +16765,50 @@ function mwSelfHeal() {
           if (n.classList && n.classList.contains('confirm-mask')) paint(n);
           else if (n.querySelector && n.querySelector('.confirm-mask')) paint(n.querySelector('.confirm-mask'));
           else if (n.closest && n.closest('.confirm-mask')) paint(n.closest('.confirm-mask'));
+        });
+      });
+    }).observe(document.body, { childList: true, subtree: true });
+  } catch (e) {}
+})();
+
+/* 弹窗的关闭按钮统一挪到右上角，做成 ×
+   —— 底部那个「关闭」在很多弹窗里既占位又难看，这里统一处理：
+      1. 把底部 sync-actions 里带 data-act="close" 的按钮移除
+      2. 在 .sync-box 右上角插入一个 × */
+(function mwDialogCloseX() {
+  function decorate(mask) {
+    if (!mask || mask.nodeType !== 1) return;
+    var box = mask.querySelector('.sync-box');
+    if (!box || box.querySelector('.dlg-x')) return;
+    // 移除底部关闭
+    mask.querySelectorAll('.sync-actions button[data-act="close"]').forEach(function (b) {
+      var acts = b.parentElement;
+      b.remove();
+      // 如果这一行空了就把整行删掉
+      if (acts && !acts.querySelector('button')) acts.remove();
+    });
+    // 右上角 ×
+    var x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'dlg-x';
+    x.setAttribute('aria-label', '关闭');
+    x.textContent = '×';
+    x.onclick = function () {
+      var c = mask.querySelector('.sync-actions button[data-act="close"]');
+      if (c) c.click();
+      else mask.remove();
+    };
+    box.appendChild(x);
+  }
+  window.mwDecorateDialog = decorate;
+  document.querySelectorAll('.confirm-mask').forEach(decorate);
+  try {
+    new MutationObserver(function (muts) {
+      muts.forEach(function (m) {
+        m.addedNodes && m.addedNodes.forEach(function (n) {
+          if (n.nodeType !== 1) return;
+          if (n.classList && n.classList.contains('confirm-mask')) decorate(n);
+          else if (n.querySelector) n.querySelectorAll('.confirm-mask').forEach(decorate);
         });
       });
     }).observe(document.body, { childList: true, subtree: true });
