@@ -7432,7 +7432,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.67';
+const APP_VER = 'v12.70';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10734,62 +10734,64 @@ function buildLayoutText() {
     return h >>> 0;
   }
   /* 每行字数按档位走：小档 1 行、中档 2 行、大档 3 或 4 行 */
+  var THANKS_NO_LINE_START = '，。！？；：、）】》」』”’…·,.!?;:)]}';
+
+  /* 中文按 perRow 切行，再把落在行首的标点并回上一行 */
+  function thanksRowify(chars, perRow) {
+    var rows = [];
+    for (var i = 0; i < chars.length; i += perRow) rows.push(chars.slice(i, i + perRow));
+    for (var r = 1; r < rows.length; r++) {
+      while (rows[r].length && THANKS_NO_LINE_START.indexOf(rows[r][0]) >= 0) {
+        rows[r - 1] = rows[r - 1].concat(rows[r].shift());
+      }
+      if (!rows[r].length) { rows.splice(r, 1); r--; }
+    }
+    return rows.map(function (arr) { return arr.join(''); });
+  }
+
   function thanksPlan(name) {
     var raw = String(name || '');
     var n = [...raw].length;
-    // 外框正方形：46（NT 基准）/ 92（2 倍）/ 138（3 倍）
-    var rows, box;
-    if (n <= 2) { rows = 1; box = 46; }
-    else if (n <= 6) { rows = 2; box = 92; }
-    else { rows = 3; box = 138; }
+    var box, lines;
+
+    if (n <= 2) box = 46; else if (n <= 6) box = 92; else box = 138;
 
     var isLatin = !/[\u4e00-\u9fa5]/.test(raw);
     var words = isLatin && /\s/.test(raw) ? raw.split(/\s+/).filter(Boolean) : null;
-    var perRow, textRows;
 
     if (words && words.length > 1) {
-      var perLine = Math.ceil(words.length / rows);
-      textRows = Math.ceil(words.length / perLine);
-      var longest = words.reduce(function (a, b) { return b.length > a.length ? b : a; }, '');
-      perRow = perLine * longest.length;
+      // 英文按词分组，绝不拆词
+      var want = box === 46 ? 1 : (box === 92 ? 2 : 3);
+      var perLine = Math.ceil(words.length / want);
+      lines = [];
+      for (var w = 0; w < words.length; w += perLine) {
+        lines.push(words.slice(w, w + perLine).join(' '));
+      }
+    } else if (isLatin) {
+      lines = [raw];                    // 单个英文词整串一行，靠字号收
+    } else if (n <= 5) {
+      lines = [raw];
     } else {
-      perRow = Math.ceil(n / rows);
-      textRows = Math.min(rows, Math.ceil(n / perRow));
+      var want2 = n <= 6 ? 2 : 3;
+      lines = thanksRowify([...raw], Math.ceil(n / want2));
     }
 
-    // 比例对齐 App 图标（nt-512.png 量出来的）：
-    //   文字视觉宽 ≈ 方块 54%（英文按 0.54，中文放宽到 0.82 才不显小）
-    //   文字总高  ≈ 方块 30%~62%（行数越多越高，但上下各留一点）
-    //   字母平均视觉宽 ≈ 0.62em，汉字 ≈ 1em
+    // 字号：按「最长那一行」的宽度和总行数算，两向取小
+    var maxLen = lines.reduce(function (a, b) { return [...b].length > [...a].length ? b : a; }, '');
+    var maxChars = [...maxLen].length;
     var charW = isLatin ? 0.62 : 1;
-    var widthRatio = isLatin ? 0.54 : 0.82;
-    var fsW = (box * widthRatio) / (perRow * charW);
-    var fsH = (box * 0.74) / textRows / 1.16;
+    var widthRatio = isLatin ? 0.54 : 0.86;
+    var fsW = (box * widthRatio) / (maxChars * charW);
+    var fsH = (box * 0.76) / lines.length / 1.16;
     var fs = Math.floor(Math.min(fsW, fsH));
     fs = Math.max(9, Math.min(fs, 40));
 
-    return { n: n, rows: textRows, perRow: perRow, box: box, fs: fs, raw: raw, words: words };
+    return { n: n, box: box, fs: fs, lines: lines, raw: raw };
   }
   function thanksWrap(name) {
     var p = thanksPlan(name);
-    var esc2 = function (v) { return esc(v); };
-    var lines = [];
-    if (p.words) {
-      var perLine = Math.ceil(p.words.length / p.rows);
-      for (var w = 0; w < p.words.length; w += perLine) {
-        lines.push(p.words.slice(w, w + perLine).join(' '));
-      }
-    } else if (p.rows === 1) {
-      lines.push(p.raw);
-    } else {
-      var chars = [...p.raw];
-      for (var i = 0; i < chars.length; i += p.perRow) {
-        lines.push(chars.slice(i, i + p.perRow).join(''));
-      }
-    }
-    // 每行一个「横向长条」小容器，宽 = 100% - 内边距，高 = 一个字号
-    return lines.map(function (line) {
-      return '<span class="thanks-txt">' + esc2(line) + '</span>';
+    return p.lines.map(function (line) {
+      return '<span class="thanks-txt">' + esc(line) + '</span>';
     }).join('');
   }
   function thanksChipStyle(name) {
