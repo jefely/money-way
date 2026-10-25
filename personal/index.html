@@ -6933,6 +6933,11 @@ html body table.grid input.fixed-chk[type="checkbox"]:checked::after {
 [data-theme="dark"] html body table.grid input.fixed-chk[type="checkbox"]:checked {
   background: #ffffff !important;
 }
+
+/* 账本行：输入框与右侧控件之间留出呼吸距离 */
+.book-row { gap: 10px !important; }
+.book-row .book-ops { gap: 8px !important; margin-left: auto; }
+.book-row .book-name-inp { margin-right: 2px; }
 </style>
 </head>
 <body>
@@ -7144,7 +7149,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.19';
+const APP_VER = 'v12.20';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -17292,7 +17297,23 @@ function mwSelfHeal() {
       b.style.setProperty('border-radius', '0', 'important');
       b.style.setProperty('box-shadow', 'none', 'important');
       b.style.setProperty('color', ink, 'important');
-      b.style.setProperty('opacity', '0.55', 'important');
+      b.style.setProperty('opacity', '0.6', 'important');
+      // 和方框同尺寸：点击区 20×20，字形 18px
+      b.style.setProperty('width', '20px', 'important');
+      b.style.setProperty('min-width', '20px', 'important');
+      b.style.setProperty('max-width', '20px', 'important');
+      b.style.setProperty('height', '20px', 'important');
+      b.style.setProperty('min-height', '20px', 'important');
+      b.style.setProperty('max-height', '20px', 'important');
+      b.style.setProperty('flex', '0 0 20px', 'important');
+      b.style.setProperty('padding', '0', 'important');
+      b.style.setProperty('margin', '0', 'important');
+      b.style.setProperty('font-size', '18px', 'important');
+      b.style.setProperty('line-height', '20px', 'important');
+      b.style.setProperty('align-self', 'center', 'important');
+      b.style.setProperty('display', 'inline-flex', 'important');
+      b.style.setProperty('align-items', 'center', 'important');
+      b.style.setProperty('justify-content', 'center', 'important');
     });
 
     // 上移 ▲
@@ -17308,13 +17329,13 @@ function mwSelfHeal() {
     // 账本方形勾选：纯黑/纯白边框，选中填满
     document.querySelectorAll('.book-section .book-pick').forEach(function (pk) {
       var on = pk.classList.contains('on');
-      pk.style.setProperty('width', '15px', 'important');
-      pk.style.setProperty('min-width', '15px', 'important');
-      pk.style.setProperty('max-width', '15px', 'important');
-      pk.style.setProperty('height', '15px', 'important');
-      pk.style.setProperty('min-height', '15px', 'important');
-      pk.style.setProperty('max-height', '15px', 'important');
-      pk.style.setProperty('flex', '0 0 15px', 'important');
+      pk.style.setProperty('width', '13px', 'important');
+      pk.style.setProperty('min-width', '13px', 'important');
+      pk.style.setProperty('max-width', '13px', 'important');
+      pk.style.setProperty('height', '13px', 'important');
+      pk.style.setProperty('min-height', '13px', 'important');
+      pk.style.setProperty('max-height', '13px', 'important');
+      pk.style.setProperty('flex', '0 0 13px', 'important');
       pk.style.setProperty('align-self', 'center', 'important');
       pk.style.setProperty('padding', '0', 'important');
       pk.style.setProperty('border-radius', '0', 'important');
