@@ -7288,19 +7288,22 @@ html[data-theme="dark"] .confirm-mask .sync-box > .sync-sticky {
   margin: 0 !important;
 }
 
-/* 固定页「操作」列：连行分隔线都不要，只剩一个 × */
+/* 固定页「操作」列：边框清零；背景用 inherit 直接继承所在行的斑马纹
+   （transparent 会透出表格底色、写死颜色又对不上，只有 inherit 永远和同行一致） */
 html body table#fixed-table td.col-op,
-html body table#fixed-table th.col-op,
-html body table#fixed-table td.col-ops,
-html body table#fixed-table th.col-ops {
-  background: transparent !important;
-  background-color: transparent !important;
+html body table#fixed-table td.col-ops {
   border: 0 !important;
-  border-bottom: 0 !important;
-  border-top: 0 !important;
-  border-left: 0 !important;
-  border-right: 0 !important;
   box-shadow: none !important;
+  background: inherit !important;
+  background-color: inherit !important;
+  background-image: none !important;
+}
+html body table#fixed-table th.col-op,
+html body table#fixed-table th.col-ops {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: inherit !important;
+  background-color: inherit !important;
 }
 </style>
 </head>
@@ -7513,7 +7516,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.89';
+const APP_VER = 'v12.92';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10069,7 +10072,7 @@ function renderFixed(main, footer) {
       <th class="col-amount">金额</th>
       <th class="col-note">备注</th>
       <th class="col-state">本月</th>
-      <th class="col-op">操作</th>
+      <th class="col-op"></th>
     </tr></thead><tbody></tbody>`;
   const tbody = table.querySelector('tbody');
   const nowYm = todayISO().slice(0, 7);
@@ -17979,15 +17982,40 @@ function mwSelfHeal() {
       }
     });
 
-    // 固定页「操作」列：同样处理，深色纯黑、浅色透明
-    var opBg = isDark() ? '#000000' : 'transparent';
-    document.querySelectorAll('table#fixed-table td.col-op, table#fixed-table th.col-op, table#fixed-table td.col-ops, table#fixed-table th.col-ops').forEach(function (el) {
-      el.style.setProperty('background', opBg, 'important');
-      el.style.setProperty('background-color', opBg, 'important');
-      el.style.setProperty('background-image', 'none', 'important');
-      el.style.setProperty('border', '0', 'important');
-      el.style.setProperty('box-shadow', 'none', 'important');
+    // 固定页「操作」列：背景直接抄同一行相邻那格的实际颜色
+    // —— 试过 transparent（透出表格底色，更亮）、写死 #000（更黑）、inherit（拿不到），
+    //    都不如直接读邻格算出来的颜色稳。
+    document.querySelectorAll('table#fixed-table tbody tr').forEach(function (tr) {
+      var op = tr.querySelector('td.col-op, td.col-ops');
+      if (!op) return;
+      var ref = tr.querySelector('td.col-state') || tr.querySelector('td.col-note');
+      if (ref) {
+        var bg = getComputedStyle(ref).backgroundColor;
+        if (bg && bg !== 'rgba(0, 0, 0, 0)') {
+          op.style.setProperty('background', bg, 'important');
+          op.style.setProperty('background-color', bg, 'important');
+        }
+      }
+      op.style.setProperty('background-image', 'none', 'important');
+      op.style.setProperty('border', '0', 'important');
+      op.style.setProperty('box-shadow', 'none', 'important');
     });
+    // 表头那格跟「本月」表头一致
+    (function () {
+      var thOp = document.querySelector('table#fixed-table thead th.col-op, table#fixed-table thead th.col-ops');
+      var thRef = document.querySelector('table#fixed-table thead th.col-state');
+      if (thOp && thRef) {
+        var b = getComputedStyle(thRef).backgroundColor;
+        if (b && b !== 'rgba(0, 0, 0, 0)') {
+          thOp.style.setProperty('background', b, 'important');
+          thOp.style.setProperty('background-color', b, 'important');
+        }
+      }
+      if (thOp) {
+        thOp.style.setProperty('border', '0', 'important');
+        thOp.style.setProperty('box-shadow', 'none', 'important');
+      }
+    })();
 
     // 设置页右端「上移 / 删除」两列：深色主题用纯黑，浅色主题透明
     var colBg = isDark() ? '#000000' : 'transparent';
