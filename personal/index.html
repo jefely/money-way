@@ -6337,27 +6337,6 @@ html body .confirm-mask .sync-box button.danger-btn:not(.sync-tab):not(.row-del)
   color: #ff8a8a !important;
 }
 
-/* 账本区：内联编辑 */
-.book-row { display: flex; align-items: center; gap: 6px; }
-.book-name-inp {
-  flex: 1 1 auto; min-width: 0;
-  height: 30px; padding: 0 9px;
-  border: 1px solid var(--border-light); border-radius: 8px;
-  background: var(--bg-main); color: var(--text-main);
-  font-size: 13px; font-weight: 600; outline: none;
-  box-sizing: border-box;
-}
-.book-name-inp:focus { border-color: var(--primary); }
-.book-row-add .book-name-inp { border-style: dashed; font-weight: 400; }
-.book-row-add .book-name-inp::placeholder { color: var(--text-muted); opacity: .8; }
-.book-add-btn {
-  height: 26px; padding: 0 10px; border-radius: 7px;
-  font-size: 12px; font-weight: 600; cursor: pointer;
-  border: 1px solid #cbbcf0 !important; background: #fff !important; color: #5b4ea8 !important;
-}
-.book-add-btn:hover { background: #f6f1ff !important; }
-[data-theme="dark"] .book-name-inp { background: #1b1630; border-color: #3a2f66; }
-[data-theme="dark"] .book-add-btn { background: #1b1630 !important; border-color: #3a2f66 !important; color: #cfc4f5 !important; }
 
 /* 路径页：「Money Way」跟在收起/展开三角右边，随它一起移动 */
 .mw-toggle-label {
@@ -6375,6 +6354,66 @@ html body .confirm-mask .sync-box button.danger-btn:not(.sync-tab):not(.row-del)
 }
 .mw-toggle-label.shifted { left: 30px; }
 [data-theme="dark"] .mw-toggle-label { color: #b6a8f5; }
+
+
+/* 「当前 vX / 远端 vX」放一排 */
+.ver-mini { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* 账本行：输入框弹性伸缩，功能按钮在右侧不换行、不溢出 */
+.book-row {
+  display: flex; align-items: center; gap: 6px;
+  flex-wrap: nowrap; min-width: 0;
+}
+.book-name-inp {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 90px !important;
+  max-width: none !important;
+  height: 30px; padding: 0 9px;
+  border: 1px solid var(--border-light); border-radius: 8px;
+  background: var(--bg-main); color: var(--text-main);
+  font-size: 13px; font-weight: 600; outline: none;
+  box-sizing: border-box;
+}
+.book-name-inp:focus { border-color: var(--primary); }
+.book-cur {
+  flex: 0 0 auto;
+  display: inline-block;
+  white-space: nowrap !important;
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  background: var(--primary) !important;
+  color: #fff !important;
+  padding: 2px 8px !important;
+  border-radius: 999px !important;
+  line-height: 1.5 !important;
+  min-width: 34px;
+  text-align: center;
+  box-sizing: border-box;
+}
+.book-ops {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 4px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+.book-ops button {
+  white-space: nowrap !important;
+  flex: 0 0 auto;
+  height: 26px; padding: 0 7px; border-radius: 7px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1px solid #cbbcf0 !important; background: #fff !important; color: #5b4ea8 !important;
+}
+.book-ops button:hover:not(:disabled) { background: #f6f1ff !important; }
+.book-ops button:disabled { opacity: .55; cursor: default; }
+.book-row-add .book-name-inp { border-style: dashed; font-weight: 400; }
+.book-row-add .book-name-inp::placeholder { color: var(--text-muted); opacity: .8; }
+.book-add-btn { background: #f6f1ff !important; }
+[data-theme="dark"] .book-name-inp { background: #1b1630; border-color: #3a2f66; }
+[data-theme="dark"] .book-ops button { background: #1b1630 !important; border-color: #3a2f66 !important; color: #cfc4f5 !important; }
+[data-theme="dark"] .book-add-btn { background: #241d3d !important; }
 </style>
 </head>
 <body>
@@ -6586,7 +6625,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.81';
+const APP_VER = 'v11.87';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -8905,8 +8944,8 @@ function renderAudit(main, footer) {
           <div class="sync-hint small" style="margin-top:6px">安卓 Chrome / iPhone Safari 打开后，用「添加到主屏幕」装成 App，离线可用。</div>
           <div style="margin-top:10px"><button type="button" id="ver-update-help">更新</button></div>
           <div class="ver-mini">
-            <div>当前 ${APP_VER}</div>
-            <div id="ver-mini-remote">远端 读取中…</div>
+            <span>当前 ${APP_VER}</span>
+            <span id="ver-mini-remote">远端 读取中…</span>
           </div>
         </div>
       </div>
@@ -11241,7 +11280,7 @@ function openImportXlsxDialog(preFile) {
           <input class="book-name-inp" type="text" value="${esc(b.name)}" maxlength="24">
           ${b.id === cur.id ? '<span class="book-cur">当前</span>' : ''}
           <span class="book-ops">
-            <button type="button" data-op="pick"${b.id === cur.id ? ' disabled' : ''}>${b.id === cur.id ? '在用' : '切换'}</button>
+            <button type="button" data-op="pick"${b.id === cur.id ? ' disabled' : ''}>${b.id === cur.id ? '在用' : '加载'}</button>
             <button type="button" data-op="rename">改名</button>
             ${bookState.list.length > 1 ? '<button type="button" data-op="del">删除</button>' : ''}
           </span>`;
@@ -11296,8 +11335,16 @@ function openImportXlsxDialog(preFile) {
     };
 
     render();
+    box.__mwRerender = render;
     return box;
   }
+
+// 账本区刷新：让所有打开的账本区重新渲染（不关对话框）
+function refreshBookSections() {
+  document.querySelectorAll('.book-section').forEach(function (box) {
+    if (box.__mwRerender) box.__mwRerender();
+  });
+}
 
 // 新建账本：空白（73 个默认账户，期初全 0）
 async function createBook(name) {
@@ -11310,14 +11357,14 @@ async function createBook(name) {
   _lastSaved = JSON.stringify(state);
   _savePending = true;
   try { await flushDiskWrite(); } catch (e) {}
-  closeAllMasks();
+  refreshBookSections();
   render();
   toast('已新建并切到「' + name + '」');
 }
 
 // 切换账本：同一密码，直接用会话密钥解；解不开再问一次
 async function switchBook(id) {
-  closeAllMasks();
+  // 不关对话框：切换后原地刷新账本区
   const target = bookState.list.find(b => b.id === id);
   if (!target) return;
   const key = (id === 'b1') ? LS_KEY_BASE : (LS_KEY_BASE + ':' + id);
@@ -11331,7 +11378,7 @@ async function switchBook(id) {
     _lastSaved = JSON.stringify(state);
     _savePending = true;
     try { await flushDiskWrite(); } catch (e) {}
-    render();
+    refreshBookSections();render();
     toast('已切到「' + target.name + '」（空账本）');
     return;
   }
