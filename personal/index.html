@@ -1060,18 +1060,22 @@ table.install-table tbody tr.inst-p > td.col-name input { color: #4c3d80 !import
 /* 月份格子保持紧凑，不参与 2ch 大间隔（12 个月放不下） */
 .toolbar.bar1 .month-row,
 .toolbar.bar2 .month-row { gap: 4px; }
-/* 流水页按钮：固定最大宽度，窗口变窄时自己收缩，但有下限不再缩成小方块 */
+/* 流水页按钮（2 个汉字：添加 / 同步 / 导入 / 导出）
+   · 单按钮最大宽度 = 56px：13px 字号下一个汉字约 13px，两个字 26px，
+     留左右各约 14px 内边距 + 1px 边框，正好舒适且不空旷
+   · flex: 1 1 auto → 窗口变宽时最多长到 56px，变窄时跟着等比缩小 */
 .toolbar.flow-bar > button {
-  flex: 0 1 auto !important;
+  flex: 1 1 auto !important;
   width: auto !important;
-  min-width: 40px !important;
-  max-width: 58px !important;
-  padding: 0 5px !important;
+  min-width: 36px !important;
+  max-width: 56px !important;
+  padding: 0 4px !important;
   font-size: 13px !important;
   height: 26px !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  box-sizing: border-box;
 }
 /* 窄屏：只收紧间距，按钮尺寸交给上面的 min/max 控制 */
 @media (max-width: 767px) {
@@ -6014,7 +6018,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.21';
+const APP_VER = 'v11.22';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
