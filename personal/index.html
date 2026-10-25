@@ -6595,12 +6595,14 @@ html body .confirm-mask .book-section .book-pick.on {
 /* .sync-box 要成为 × 的定位参照 */
 .confirm-mask .sync-box { position: relative; }
 
-/* 弹窗顶部（NT / 标题 / 紫线）固定住，滚动内容时不跟着走 */
+/* 弹窗标题区：正常流即可。之前设成 sticky + top:0，但 .sync-box 不是滚动容器，
+   sticky 退化成相对偏移，把「同步」这类标题顶到内容上面盖住左栏文字。 */
 .confirm-mask .sync-box > .sync-brand,
 .confirm-mask .sync-box > .sync-title,
 .confirm-mask .sync-box > .sync-head {
-  position: sticky; top: 0; z-index: 4;
-  background: inherit;
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
 }
 
 /* ============================================================
@@ -7470,7 +7472,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.82';
+const APP_VER = 'v12.83';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
