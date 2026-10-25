@@ -5852,7 +5852,12 @@ th.col-range { text-align: left; }
   border: 1px solid var(--border-light); border-radius: 12px;
   background: var(--bg-gray-light);
 }
-.intro-install .install-qr-row { max-width: 520px; }
+/* 二维码那一行整体放到 900px：原来 520px 时，右边那列文字只剩 ~400px 宽，
+   「安卓 Chrome / iPhone Safari 打开后，用「添加到主屏幕」装成 App，离线可用。」
+   被挤成两行、还从句子中间断开。放到 900 后一句话一行放得下。
+   文字区本身也改成按词换行（原来是 word-break: break-all，会在任意字符处断开）。 */
+.intro-install .install-qr-row { max-width: 900px; }
+.intro-install .install-qr-txt { word-break: normal; overflow-wrap: break-word; }
 .intro-install .install-qr-img { width: 104px; height: 104px; flex: 0 0 104px; }
 .intro-install button {
   padding: 5px 14px; border-radius: 6px; border: 1px solid var(--primary);
@@ -7537,8 +7542,10 @@ html:not([data-theme="dark"]) body table#summary-table > thead > tr > th.col-bil
 html:not([data-theme="dark"]) body table#summary-table > thead > tr > th.col-repay {
   background: var(--bg-main) !important;
   color: var(--text-muted) !important;
-  border-right: 1px solid #f2eefb !important;
-  border-bottom: 1px solid #e6ddf6 !important;
+  /* 这一格要跟表格右边那片留白连成一体：边框一条都不留
+     （留 border-right/bottom 会在白底上描出一个「白框」，用户一眼就看出是个格子）。 */
+  border: 0 !important;
+  box-shadow: none !important;
 }
 /* 表头里的冻结列（序 / 账户名称）：跟顶带同色，否则吸顶滚动时透出后面的字 */
 html:not([data-theme="dark"]) body table#flow-table > thead > tr > th.col-seq,
@@ -7576,6 +7583,14 @@ html:not([data-theme="dark"]) body table.grid > thead > tr > th:first-child {
   border-top-left-radius: 12px !important;
 }
 html:not([data-theme="dark"]) body table.grid > thead > tr > th:last-child {
+  border-top-right-radius: 12px !important;
+}
+/* 查询页的表不是 .grid（是 .query-table），上面那两条碰不到它 ——
+   所以三栏的紫色列标一直是方角。这里单独给它两端的圆角。 */
+html:not([data-theme="dark"]) body table.query-table > thead > tr.q-head-row > th:first-child {
+  border-top-left-radius: 12px !important;
+}
+html:not([data-theme="dark"]) body table.query-table > thead > tr.q-head-row > th:last-child {
   border-top-right-radius: 12px !important;
 }
 html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-op,
@@ -7814,7 +7829,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.10';
+const APP_VER = 'v13.11';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
