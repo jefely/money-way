@@ -6653,7 +6653,7 @@ html body .mw-chart-wrap {
   scrollbar-width: auto;
   scrollbar-color: rgba(128,128,128,.55) transparent;
 }
-*::-webkit-scrollbar { width: 14px; height: 14px; background: transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; background: var(--bg-main); }
 *::-webkit-scrollbar-track { background: transparent; border: 0; box-shadow: none; }
 *::-webkit-scrollbar-thumb {
   background: rgba(128,128,128,.55);
@@ -6675,7 +6675,6 @@ html body .grid-wrap,
 html body .mw-side-left { scrollbar-gutter: stable; }
 
 /* 左栏自己的滚动条也统一成 14px（之前是 10px） */
-html body .mw-side-left::-webkit-scrollbar { width: 14px !important; }
 html body .mw-side-left::-webkit-scrollbar-thumb {
   background: rgba(128,128,128,.5) !important;
   border: 3px solid transparent !important;
@@ -6692,6 +6691,117 @@ html body .mw-side-left::-webkit-scrollbar-thumb {
   box-shadow: none !important;
   font-size: 15px !important; line-height: 26px !important;
   cursor: pointer;
+}
+
+/* ============================================================
+   滚动条微调
+   · 宽度回到 10px（不再用 14px 撑宽）
+   · 滑块整体左移 5px：用不透明的右侧边框把可视滑块推左，热区仍然占满
+   · 轨道用页面底色铺满，消除顶部那块漏底的缝隙
+   ============================================================ */
+*::-webkit-scrollbar { width: 10px !important; height: 10px !important; background: var(--bg-main) !important; }
+*::-webkit-scrollbar-track { background: var(--bg-main) !important; border: 0 !important; box-shadow: none !important; }
+*::-webkit-scrollbar-track-piece { background: var(--bg-main) !important; border: 0 !important; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(128,128,128,.6) !important;
+  border-radius: 5px !important;
+  border: 0 solid transparent !important;
+  border-right: 5px solid transparent !important;   /* 可视滑块左移 5px */
+  background-clip: padding-box !important;
+  min-height: 40px;
+}
+*::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,.85) !important; background-clip: padding-box !important; }
+*::-webkit-scrollbar-thumb:active { background: rgba(139,108,255,.9) !important; background-clip: padding-box !important; }
+*::-webkit-scrollbar-corner { background: var(--bg-main) !important; }
+*::-webkit-scrollbar-button { display: none !important; height: 0 !important; width: 0 !important; }
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-button:vertical:start:decrement,
+*::-webkit-scrollbar-button:vertical:end:increment { background: var(--bg-main) !important; }
+
+[data-theme="dark"] *::-webkit-scrollbar,
+[data-theme="dark"] *::-webkit-scrollbar-track,
+[data-theme="dark"] *::-webkit-scrollbar-track-piece,
+[data-theme="dark"] *::-webkit-scrollbar-corner { background: var(--bg-main) !important; }
+[data-theme="dark"] *::-webkit-scrollbar-thumb { background: rgba(180,180,190,.55) !important; background-clip: padding-box !important; }
+[data-theme="dark"] *::-webkit-scrollbar-thumb:hover { background: rgba(180,180,190,.8) !important; background-clip: padding-box !important; }
+
+/* 左栏：滚动条区域永远有一层底色，不露后面的图 */
+html body .mw-side-left { background-clip: padding-box; }
+html body .mw-side-left::-webkit-scrollbar { width: 10px !important; background: var(--bg-main) !important; }
+html body .mw-side-left::-webkit-scrollbar-track,
+html body .mw-side-left::-webkit-scrollbar-track-piece { background: var(--bg-main) !important; }
+html body .mw-side-left::-webkit-scrollbar-thumb {
+  background: rgba(128,128,128,.6) !important;
+  border: 0 solid transparent !important;
+  border-right: 5px solid transparent !important;
+  background-clip: padding-box !important;
+  border-radius: 5px !important;
+}
+
+/* 左栏顶部那块「漏底」：给冻结区补一层同色底，并把滚动容器背景铺到底 */
+html body .mw-side-left,
+html body .mw-side-frozen { background-color: var(--bg-main) !important; }
+
+/* 必须保留槽位：auto 会让浏览器退回 overlay 滚动条，滑块不占宽也就难点中 */
+html body #main,
+html body .grid-wrap,
+html body .mw-side-left { scrollbar-gutter: stable; }
+
+/* ============================================================
+   滚动条最终版
+   · 宽度 10px（不再撑到 14/15）
+   · 滑块：可视部分占左侧 7px，右侧留 3px —— 视觉上就是「左移了几像素」
+   · 轨道用页面底色铺满，顶部不再漏底
+   ============================================================ */
+*::-webkit-scrollbar {
+  width: 10px !important;
+  height: 10px !important;
+  background: var(--bg-main) !important;
+}
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track-piece {
+  background: var(--bg-main) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(120,120,130,.72) !important;
+  border: 0 solid transparent !important;
+  border-right: 3px solid transparent !important;
+  background-clip: padding-box !important;
+  border-radius: 4px !important;
+  min-height: 44px;
+}
+*::-webkit-scrollbar-thumb:hover { background: rgba(120,120,130,.92) !important; background-clip: padding-box !important; }
+*::-webkit-scrollbar-thumb:active { background: rgba(139,108,255,.95) !important; background-clip: padding-box !important; }
+*::-webkit-scrollbar-corner { background: var(--bg-main) !important; }
+*::-webkit-scrollbar-button { display: none !important; height: 0 !important; width: 0 !important; }
+
+[data-theme="dark"] *::-webkit-scrollbar,
+[data-theme="dark"] *::-webkit-scrollbar-track,
+[data-theme="dark"] *::-webkit-scrollbar-track-piece,
+[data-theme="dark"] *::-webkit-scrollbar-corner { background: var(--bg-main) !important; }
+[data-theme="dark"] *::-webkit-scrollbar-thumb {
+  background: rgba(170,170,185,.68) !important;
+  background-clip: padding-box !important;
+  border-right: 3px solid transparent !important;
+  border-radius: 4px !important;
+}
+[data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
+  background: rgba(170,170,185,.92) !important;
+  background-clip: padding-box !important;
+}
+
+/* 左栏滚动条同步 */
+html body .mw-side-left::-webkit-scrollbar { width: 10px !important; background: var(--bg-main) !important; }
+html body .mw-side-left::-webkit-scrollbar-track,
+html body .mw-side-left::-webkit-scrollbar-track-piece { background: var(--bg-main) !important; }
+html body .mw-side-left::-webkit-scrollbar-thumb {
+  background: rgba(120,120,130,.72) !important;
+  border: 0 solid transparent !important;
+  border-right: 3px solid transparent !important;
+  background-clip: padding-box !important;
+  border-radius: 4px !important;
 }
 </style>
 </head>
@@ -6904,7 +7014,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.11';
+const APP_VER = 'v12.15';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
