@@ -7264,7 +7264,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.43';
+const APP_VER = 'v12.44';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10497,9 +10497,14 @@ function buildLayoutText() {
     return Number(n.toFixed(10)) + 0;
   }
 
-  /* thanks.json 里昵称的字段名容错：name / 姓名 / nick / nickname 都认 */
+  /* thanks.json 的 donors 支持两种写法：
+       · 纯字符串数组（推荐）：["NT", "jefely"]
+       · 对象数组（旧写法，兼容）：[{ "name": "NT" }]
+     对象里的字段名 name / 姓名 / nick / nickname 都认。 */
   function thanksName(d) {
-    if (!d || typeof d !== 'object') return String(d || '').trim() || '匿名';
+    if (d == null) return '匿名';
+    if (typeof d === 'string') return d.trim() || '匿名';
+    if (typeof d !== 'object') return String(d).trim() || '匿名';
     const raw = d.name != null ? d.name
       : (d['姓名'] != null ? d['姓名']
       : (d.nick != null ? d.nick
