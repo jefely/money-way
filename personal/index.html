@@ -7885,17 +7885,18 @@ table.install-table tbody td.col-name { box-shadow: inset -1px 0 0 var(--border-
      文字就折行、行高一路涨上去，相邻列的金额还会和账户名叠在一起
      （用户截图里「交行储8380」竖成四行、金额压在字上）。
      设置页那边每格是定高输入框，天生不换行，所以没这问题。
-   · 表格宽度不能被压缩：width:auto + min-width:100%。
-     否则列宽之和小于容器时，浏览器会按比例把所有列压一遍，
-     拖出来的宽度当场失效。
+   · 表格宽度不要再动：v13.52 试过 width:auto + min-width:100%，
+     结果表格总宽被 min-width 锁死，拖动列宽变成「一列变宽、别的列被压回去」，
+     看起来就是列宽调整失效。保持 table.grid 默认的 width:100% 即可。
    ============================================================ */
-table#stats-sum-table { width: auto !important; min-width: 100% !important; }
 table#stats-sum-table thead th,
 table#stats-sum-table tbody td {
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
 }
+/* 表头「账户名称」例外：折叠按钮是 absolute 的，overflow:hidden 会把它裁掉（按钮消失） */
+table#stats-sum-table thead th.col-name { overflow: visible !important; }
 table#stats-sum-table thead th { height: var(--layout-head-h, 26px) !important; }
 table#stats-sum-table tbody td { height: var(--layout-row-h, 32px) !important; }
 
@@ -8221,7 +8222,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.53';
+const APP_VER = 'v13.54';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
