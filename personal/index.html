@@ -6947,8 +6947,20 @@ html body .toolbar.flow-bar.audit-tabs {
   box-shadow: 0 1px 0 0 rgba(90, 90, 100, .85) !important;
   margin-bottom: 1px !important;
 }
-[data-theme="dark"] html body .toolbar.flow-bar.audit-tabs {
-  box-shadow: 0 1px 0 0 rgba(0, 0, 0, .9) !important;
+/* 深色主题下纯黑线等于没有 —— 换成偏亮的灰，并在下面补一道更深的描边做出层次 */
+html[data-theme="dark"] body .toolbar.flow-bar.audit-tabs,
+html[data-theme="dark"] .toolbar.flow-bar.audit-tabs {
+  box-shadow:
+    0 1px 0 0 rgba(168, 166, 186, .6),
+    0 2px 0 0 rgba(0, 0, 0, .9) !important;
+}
+/* 子标签按钮本身也补一条内描边，两个紫块相邻时更分得开 */
+html[data-theme="dark"] .toolbar.flow-bar.audit-tabs > button {
+  box-shadow: inset 0 -1px 0 0 rgba(168, 166, 186, .3) !important;
+}
+html[data-theme="dark"] .toolbar.flow-bar.audit-tabs > button[data-active="true"],
+html[data-theme="dark"] .toolbar.flow-bar.audit-tabs > button.active {
+  box-shadow: inset 0 -1px 0 0 rgba(255, 255, 255, .4) !important;
 }
 
 /* ============================================================
@@ -7213,7 +7225,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.29';
+const APP_VER = 'v12.31';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
