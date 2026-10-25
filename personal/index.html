@@ -6122,21 +6122,7 @@ html body .confirm-mask .sync-box .sync-actions button:not(.ghost) {
   box-sizing: border-box !important;
   box-shadow: none !important;
 }
-/* 主按钮：紫渐变 */
-html body .confirm-mask .sync-box button:not(.ghost):not(.sync-btn-main):not(.danger-btn) {
-  border: 1px solid transparent !important;
-  background: linear-gradient(135deg, #8b6cff, #6b5bc4) !important;
-  color: #fff !important;
-}
-html body .confirm-mask .sync-box button:not(.ghost):not(.sync-btn-main):not(.danger-btn):hover {
-  filter: brightness(1.06);
-}
-/* 主按钮（原本就标了 sync-btn-main 的也统一） */
-html body .confirm-mask .sync-box button.sync-btn-main {
-  border: 1px solid transparent !important;
-  background: linear-gradient(135deg, #8b6cff, #6b5bc4) !important;
-  color: #fff !important;
-}
+
 /* 次按钮：白底淡紫边 */
 html body .confirm-mask .sync-box button.ghost {
   border: 1px solid #cbbcf0 !important;
@@ -6276,6 +6262,79 @@ html body .confirm-mask .sync-box button:active {
 html body .confirm-mask .sync-box button:disabled {
   opacity: .55 !important;
   filter: none !important;
+}
+
+/* ============================================================
+   弹窗按钮最终形态：全部「白底 + 淡紫边 + 紫字」，圆角 7px，没有谁看起来是「默认按下」
+   对手的选择器是 .confirm-mask .sync-box button:not(.ghost):not(.sync-tab):not(.row-del):not(.rowmenu-item)
+   （特异性 0,8,1）。这里照抄它并加 html body → 0,8,3，稳赢。
+   ============================================================ */
+html body .confirm-mask .sync-box button:not(.sync-tab):not(.row-del):not(.rowmenu-item) {
+  height: 26px !important;
+  min-height: 26px !important;
+  padding: 0 10px !important;
+  border-radius: 7px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 24px !important;
+  box-sizing: border-box !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: #fff !important;
+  background-image: none !important;
+  border: 1px solid #cbbcf0 !important;
+  color: #5b4ea8 !important;
+}
+html body .confirm-mask .sync-box button:not(.sync-tab):not(.row-del):not(.rowmenu-item):hover {
+  background: #f6f1ff !important;
+  background-image: none !important;
+  border-color: #8b6cff !important;
+  color: #4c3d80 !important;
+  filter: none !important;
+}
+html body .confirm-mask .sync-box button:not(.sync-tab):not(.row-del):not(.rowmenu-item):active,
+html body .confirm-mask .sync-box button:not(.sync-tab):not(.row-del):not(.rowmenu-item):focus,
+html body .confirm-mask .sync-box button:not(.sync-tab):not(.row-del):not(.rowmenu-item):focus-visible {
+  background: #fff !important;
+  background-image: none !important;
+  border-color: #cbbcf0 !important;
+  color: #5b4ea8 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+}
+html body .confirm-mask .sync-box button:not(.sync-tab):not(.row-del):not(.rowmenu-item):disabled {
+  background: #fff !important;
+  color: #a89bc9 !important;
+  opacity: .6 !important;
+}
+/* 危险按钮：白底红字红边 */
+html body .confirm-mask .sync-box button.danger-btn:not(.sync-tab):not(.row-del):not(.rowmenu-item) {
+  background: #fff !important;
+  background-image: none !important;
+  border-color: #f0a8a8 !important;
+  color: #dc2626 !important;
+}
+html body .confirm-mask .sync-box button.danger-btn:not(.sync-tab):not(.row-del):not(.rowmenu-item):hover {
+  background: #fff1f1 !important;
+  border-color: #dc2626 !important;
+}
+
+/* 深色主题：暗紫底 + 淡紫字，同样不要渐变 */
+[data-theme="dark"] html body .confirm-mask .sync-box button:not(.sync-tab):not(.row-del):not(.rowmenu-item) {
+  background: #1b1630 !important;
+  background-image: none !important;
+  border-color: #3a2f66 !important;
+  color: #cfc4f5 !important;
+}
+[data-theme="dark"] html body .confirm-mask .sync-box button:not(.sync-tab):not(.row-del):not(.rowmenu-item):hover {
+  background: #241d3d !important;
+  border-color: #8b6cff !important;
+}
+[data-theme="dark"] html body .confirm-mask .sync-box button.danger-btn:not(.sync-tab):not(.row-del):not(.rowmenu-item) {
+  background: #1b1630 !important;
+  border-color: #6b2f2f !important;
+  color: #ff8a8a !important;
 }
 </style>
 </head>
@@ -6488,7 +6547,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.75';
+const APP_VER = 'v11.77';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -16346,6 +16405,56 @@ function mwSelfHeal() {
   try {
     new MutationObserver(function () { applyBar1(document); apply(document); })
       .observe(document.getElementById('main') || document.body, { childList: true, subtree: true });
+  } catch (e) {}
+})();
+
+/* 弹窗按钮统一：所有 .confirm-mask 里的按钮都用 inline style 重刷一遍。
+   CSS 里对同一个按钮有十几条 !important 规则互相覆盖（有的带 4 个 :not()），
+   靠选择器打架既不直观也不可靠，inline + !important 是唯一稳的做法。 */
+(function mwUniformDialogButtons() {
+  function paint(mask) {
+    if (!mask || mask.nodeType !== 1) return;
+    mask.querySelectorAll('button').forEach(function (b) {
+      // 跳过表格里的行内按钮（删除/上移那些有自己的样式）
+      if (b.classList.contains('row-del') || b.classList.contains('rowmenu-item')) return;
+      var danger = b.classList.contains('danger-btn');
+      var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      b.style.setProperty('height', '26px', 'important');
+      b.style.setProperty('min-height', '26px', 'important');
+      b.style.setProperty('padding', '0 10px', 'important');
+      b.style.setProperty('border-radius', '7px', 'important');
+      b.style.setProperty('font-size', '12px', 'important');
+      b.style.setProperty('font-weight', '600', 'important');
+      b.style.setProperty('line-height', '24px', 'important');
+      b.style.setProperty('box-sizing', 'border-box', 'important');
+      b.style.setProperty('box-shadow', 'none', 'important');
+      b.style.setProperty('outline', 'none', 'important');
+      b.style.setProperty('transform', 'none', 'important');
+      b.style.setProperty('background-image', 'none', 'important');
+      if (danger) {
+        b.style.setProperty('background', dark ? '#1b1630' : '#ffffff', 'important');
+        b.style.setProperty('border', '1px solid ' + (dark ? '#6b2f2f' : '#f0a8a8'), 'important');
+        b.style.setProperty('color', dark ? '#ff8a8a' : '#dc2626', 'important');
+      } else {
+        b.style.setProperty('background', dark ? '#1b1630' : '#ffffff', 'important');
+        b.style.setProperty('border', '1px solid ' + (dark ? '#3a2f66' : '#cbbcf0'), 'important');
+        b.style.setProperty('color', dark ? '#cfc4f5' : '#5b4ea8', 'important');
+      }
+    });
+  }
+  window.mwPaintDialogButtons = paint;
+  paint(document);
+  try {
+    new MutationObserver(function (muts) {
+      muts.forEach(function (m) {
+        m.addedNodes && m.addedNodes.forEach(function (n) {
+          if (n.nodeType !== 1) return;
+          if (n.classList && n.classList.contains('confirm-mask')) paint(n);
+          else if (n.querySelector && n.querySelector('.confirm-mask')) paint(n.querySelector('.confirm-mask'));
+          else if (n.closest && n.closest('.confirm-mask')) paint(n.closest('.confirm-mask'));
+        });
+      });
+    }).observe(document.body, { childList: true, subtree: true });
   } catch (e) {}
 })();
 
