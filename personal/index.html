@@ -7771,30 +7771,32 @@ html:not([data-theme="dark"]) body table.grid > tbody > tr:last-child > td:last-
    浅色 / 深色各一套，边框分别是亮紫与暗紫。
    ============================================================ */
 html:not([data-theme="dark"]) .confirm-mask .sync-box {
-  background: rgba(255, 255, 255, .16) !important;
-  -webkit-backdrop-filter: blur(26px) saturate(170%);
-  backdrop-filter: blur(26px) saturate(170%);
-  border: 1px solid rgba(139, 108, 255, .30) !important;
+  /* 透明度减半 .16 → .08；毛玻璃加强 blur 26 → 42，saturate 170 → 190。
+     越透越要靠模糊与饱和把底层「糊成一片底色」，否则文字会跟背后的表格打架。 */
+  background: rgba(255, 255, 255, .08) !important;
+  -webkit-backdrop-filter: blur(42px) saturate(190%);
+  backdrop-filter: blur(42px) saturate(190%);
+  border: 1px solid rgba(139, 108, 255, .34) !important;
   border-radius: 18px !important;
   /* 内侧再加一层光（灯箱感）：从内部边缘往里散，而不是从外面投 */
   box-shadow:
     0 0 0 1px rgba(139, 108, 255, .06),
     0 0 34px rgba(139, 108, 255, .14),
-    inset 0 0 60px rgba(255, 255, 255, .55),
-    inset 0 1px 0 rgba(255, 255, 255, .90),
+    inset 0 0 70px rgba(255, 255, 255, .62),
+    inset 0 1px 0 rgba(255, 255, 255, .95),
     0 24px 56px -18px rgba(76, 61, 128, .40) !important;
 }
 [data-theme="dark"] .confirm-mask .sync-box {
-  background: rgba(20, 16, 32, .16) !important;
-  -webkit-backdrop-filter: blur(26px) saturate(160%);
-  backdrop-filter: blur(26px) saturate(160%);
-  border: 1px solid rgba(155, 138, 210, .38) !important;
+  background: rgba(20, 16, 32, .08) !important;
+  -webkit-backdrop-filter: blur(42px) saturate(180%);
+  backdrop-filter: blur(42px) saturate(180%);
+  border: 1px solid rgba(155, 138, 210, .42) !important;
   border-radius: 18px !important;
   box-shadow:
     0 0 0 1px rgba(139, 108, 255, .10),
     0 0 40px rgba(139, 108, 255, .18),
-    inset 0 0 70px rgba(139, 108, 255, .16),
-    inset 0 1px 0 rgba(255, 255, 255, .12),
+    inset 0 0 80px rgba(139, 108, 255, .20),
+    inset 0 1px 0 rgba(255, 255, 255, .14),
     0 26px 64px rgba(0, 0, 0, .70) !important;
 }
 /* 输入框：半透明底，压在磨砂上不突兀 */
@@ -8094,7 +8096,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.37';
+const APP_VER = 'v13.38';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
