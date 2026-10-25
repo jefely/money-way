@@ -6803,6 +6803,136 @@ html body .mw-side-left::-webkit-scrollbar-thumb {
   background-clip: padding-box !important;
   border-radius: 4px !important;
 }
+
+/* ============================================================
+   × 和方框：全部纯黑（浅色主题）/ 纯白（深色主题），不要任何紫色
+   覆盖：弹窗右上角 ×、账本行 ×、添加行 ×、账本方框、流水表/设置页删除 ×、
+        流水表的 ☑ 复选框、设置页上移 ▲
+   ============================================================ */
+
+/* 弹窗右上角 × */
+html body .confirm-mask .dlg-x,
+html body .dlg-x {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: #000000 !important;
+}
+html body .confirm-mask .dlg-x:hover,
+html body .dlg-x:hover {
+  background: rgba(0,0,0,.07) !important;
+  color: #000000 !important;
+}
+[data-theme="dark"] html body .confirm-mask .dlg-x,
+[data-theme="dark"] html body .dlg-x {
+  color: #ffffff !important;
+}
+[data-theme="dark"] html body .confirm-mask .dlg-x:hover,
+[data-theme="dark"] html body .dlg-x:hover {
+  background: rgba(255,255,255,.14) !important;
+  color: #ffffff !important;
+}
+
+/* 表格里的删除 ×（流水表 / 设置页） */
+html body table.grid button.row-del,
+html body table.grid tbody td.col-del > .row-del,
+html body table.grid tbody td.col-bill > .row-del,
+html body table.set-table tbody td.col-del > .row-del,
+html body .confirm-mask .book-section button.book-x {
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #000000 !important;
+  opacity: .55 !important;
+}
+html body table.grid button.row-del:hover,
+html body table.grid tbody td.col-del > .row-del:hover,
+html body table.grid tbody td.col-bill > .row-del:hover,
+html body table.set-table tbody td.col-del > .row-del:hover,
+html body .confirm-mask .book-section button.book-x:hover {
+  background: transparent !important;
+  color: #000000 !important;
+  opacity: 1 !important;
+}
+[data-theme="dark"] html body table.grid button.row-del,
+[data-theme="dark"] html body table.grid tbody td.col-del > .row-del,
+[data-theme="dark"] html body table.grid tbody td.col-bill > .row-del,
+[data-theme="dark"] html body table.set-table tbody td.col-del > .row-del,
+[data-theme="dark"] html body .confirm-mask .book-section button.book-x {
+  color: #ffffff !important;
+}
+[data-theme="dark"] html body table.grid button.row-del:hover,
+[data-theme="dark"] html body table.set-table tbody td.col-del > .row-del:hover,
+[data-theme="dark"] html body .confirm-mask .book-section button.book-x:hover {
+  color: #ffffff !important;
+}
+
+/* 上移 ▲ 同色 */
+html body table.set-table tbody td.col-move > .pin-btn,
+html body table.grid tbody td.col-move .pin-btn {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #000000 !important;
+  opacity: .55 !important;
+}
+html body table.set-table tbody td.col-move > .pin-btn:hover,
+html body table.grid tbody td.col-move .pin-btn:hover {
+  color: #000000 !important;
+  opacity: 1 !important;
+}
+[data-theme="dark"] html body table.set-table tbody td.col-move > .pin-btn,
+[data-theme="dark"] html body table.grid tbody td.col-move .pin-btn {
+  color: #ffffff !important;
+}
+
+/* 账本的方框：纯黑细边，选中填黑；深色主题反过来 */
+html body .confirm-mask .sync-box button.book-pick:not(.sync-tab):not(.row-del):not(.rowmenu-item) {
+  border-radius: 0 !important;
+  border: 1px solid #000000 !important;
+  box-shadow: none !important;
+}
+html body .confirm-mask .sync-box button.book-pick.on:not(.sync-tab):not(.row-del):not(.rowmenu-item) {
+  background: #000000 !important;
+  border-color: #000000 !important;
+}
+[data-theme="dark"] html body .confirm-mask .sync-box button.book-pick:not(.sync-tab):not(.row-del):not(.rowmenu-item) {
+  border-color: #ffffff !important;
+  background: transparent !important;
+}
+[data-theme="dark"] html body .confirm-mask .sync-box button.book-pick.on:not(.sync-tab):not(.row-del):not(.rowmenu-item) {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+}
+
+/* 流水表行尾的 ☑ 复选框：同样纯黑/纯白 */
+html body table.grid input.fixed-chk[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  width: 14px; height: 14px;
+  margin: 0 4px;
+  border: 1px solid #000000 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  position: relative;
+  vertical-align: middle;
+}
+html body table.grid input.fixed-chk[type="checkbox"]:checked {
+  background: #000000 !important;
+}
+html body table.grid input.fixed-chk[type="checkbox"]:checked::after {
+  content: ''; position: absolute; inset: 2px; background: transparent;
+}
+[data-theme="dark"] html body table.grid input.fixed-chk[type="checkbox"] {
+  border-color: #ffffff !important;
+}
+[data-theme="dark"] html body table.grid input.fixed-chk[type="checkbox"]:checked {
+  background: #ffffff !important;
+}
 </style>
 </head>
 <body>
@@ -7014,7 +7144,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.15';
+const APP_VER = 'v12.19';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -17024,7 +17154,8 @@ function mwSelfHeal() {
     mask.querySelectorAll('button').forEach(function (b) {
       // 跳过表格里的行内按钮（删除/上移那些有自己的样式）
       if (b.classList.contains('row-del') || b.classList.contains('rowmenu-item')
-          || b.classList.contains('book-pick') || b.classList.contains('book-add-btn')
+          || b.classList.contains('dlg-x') || b.classList.contains('book-pick')
+          || b.classList.contains('book-add-btn') || b.classList.contains('book-x')
           || b.closest('.book-section') || b.closest('.book-ops')) return;
       var danger = b.classList.contains('danger-btn');
       var dark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -17089,6 +17220,17 @@ function mwSelfHeal() {
     x.className = 'dlg-x';
     x.setAttribute('aria-label', '关闭');
     x.textContent = '×';
+    (function () {
+      var ink = document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#000000';
+      x.style.setProperty('background', 'transparent', 'important');
+      x.style.setProperty('border', '0', 'important');
+      x.style.setProperty('border-radius', '0', 'important');
+      x.style.setProperty('box-shadow', 'none', 'important');
+      x.style.setProperty('color', ink, 'important');
+      x.style.setProperty('font-size', '20px', 'important');
+      x.style.setProperty('font-weight', '400', 'important');
+      x.style.setProperty('line-height', '1', 'important');
+    })();
     x.onclick = function () {
       var c = mask.querySelector('.sync-actions button[data-act="close"]');
       if (c) c.click();
@@ -17108,6 +17250,106 @@ function mwSelfHeal() {
         });
       });
     }).observe(document.body, { childList: true, subtree: true });
+  } catch (e) {}
+})();
+
+/* 全站「×」和「方框」统一成纯黑 / 纯白（深色主题）
+   —— CSS 里那些 !important 和各处 inline style 互相压，只有 inline + !important 稳 */
+(function mwMonoControls() {
+  function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+
+  function paint() {
+    var ink = isDark() ? '#ffffff' : '#000000';
+    var other = isDark() ? '#000000' : '#ffffff';
+
+    // 弹窗右上角 ×
+    document.querySelectorAll('.dlg-x').forEach(function (b) {
+      b.style.setProperty('background', 'transparent', 'important');
+      b.style.setProperty('border', '0', 'important');
+      b.style.setProperty('border-radius', '0', 'important');
+      b.style.setProperty('box-shadow', 'none', 'important');
+      b.style.setProperty('color', ink, 'important');
+      b.style.setProperty('font-size', '20px', 'important');
+      b.style.setProperty('font-weight', '400', 'important');
+    });
+
+    // 表格删除 ×（流水表 / 设置页）
+    document.querySelectorAll('table.grid .row-del').forEach(function (b) {
+      b.style.setProperty('background', 'transparent', 'important');
+      b.style.setProperty('background-image', 'none', 'important');
+      b.style.setProperty('border', '0', 'important');
+      b.style.setProperty('border-radius', '0', 'important');
+      b.style.setProperty('box-shadow', 'none', 'important');
+      b.style.setProperty('color', ink, 'important');
+      b.style.setProperty('opacity', '0.55', 'important');
+    });
+
+    // 账本区 ×
+    document.querySelectorAll('.book-section .book-x').forEach(function (b) {
+      b.style.setProperty('background', 'transparent', 'important');
+      b.style.setProperty('background-image', 'none', 'important');
+      b.style.setProperty('border', '0', 'important');
+      b.style.setProperty('border-radius', '0', 'important');
+      b.style.setProperty('box-shadow', 'none', 'important');
+      b.style.setProperty('color', ink, 'important');
+      b.style.setProperty('opacity', '0.55', 'important');
+    });
+
+    // 上移 ▲
+    document.querySelectorAll('table.grid .pin-btn').forEach(function (b) {
+      b.style.setProperty('background', 'transparent', 'important');
+      b.style.setProperty('border', '0', 'important');
+      b.style.setProperty('border-radius', '0', 'important');
+      b.style.setProperty('box-shadow', 'none', 'important');
+      b.style.setProperty('color', ink, 'important');
+      b.style.setProperty('opacity', '0.55', 'important');
+    });
+
+    // 账本方形勾选：纯黑/纯白边框，选中填满
+    document.querySelectorAll('.book-section .book-pick').forEach(function (pk) {
+      var on = pk.classList.contains('on');
+      pk.style.setProperty('width', '15px', 'important');
+      pk.style.setProperty('min-width', '15px', 'important');
+      pk.style.setProperty('max-width', '15px', 'important');
+      pk.style.setProperty('height', '15px', 'important');
+      pk.style.setProperty('min-height', '15px', 'important');
+      pk.style.setProperty('max-height', '15px', 'important');
+      pk.style.setProperty('flex', '0 0 15px', 'important');
+      pk.style.setProperty('align-self', 'center', 'important');
+      pk.style.setProperty('padding', '0', 'important');
+      pk.style.setProperty('border-radius', '0', 'important');
+      pk.style.setProperty('box-sizing', 'border-box', 'important');
+      pk.style.setProperty('box-shadow', 'none', 'important');
+      pk.style.setProperty('border', '1px solid ' + ink, 'important');
+      pk.style.setProperty('background', on ? ink : 'transparent', 'important');
+      pk.style.setProperty('background-image', 'none', 'important');
+    });
+
+    // 流水表的 ☑ 固定/计划 复选框
+    document.querySelectorAll('table.grid input.fixed-chk[type="checkbox"]').forEach(function (cb) {
+      cb.style.setProperty('appearance', 'none', 'important');
+      cb.style.setProperty('-webkit-appearance', 'none', 'important');
+      cb.style.setProperty('width', '14px', 'important');
+      cb.style.setProperty('height', '14px', 'important');
+      cb.style.setProperty('margin', '0 4px', 'important');
+      cb.style.setProperty('border', '1px solid ' + ink, 'important');
+      cb.style.setProperty('border-radius', '0', 'important');
+      cb.style.setProperty('box-shadow', 'none', 'important');
+      cb.style.setProperty('background', cb.checked ? ink : 'transparent', 'important');
+      cb.style.setProperty('cursor', 'pointer', 'important');
+    });
+  }
+
+  window.mwMonoControls = paint;
+  paint();
+  try {
+    new MutationObserver(function () { paint(); })
+      .observe(document.body, { childList: true, subtree: true });
+  } catch (e) {}
+  // 主题切换后重刷
+  try {
+    new MutationObserver(function () { paint(); })
+      .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   } catch (e) {}
 })();
 
