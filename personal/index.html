@@ -7850,6 +7850,11 @@ html:not([data-theme="dark"]) .confirm-mask .sync-box button.ghost {
 /* 头部底色/模糊统一由下面「弹窗头部：吸顶 + 一层遮罩」那一节给。
    这里曾经是「全透明 + backdrop-filter:none」的版本，因为带了 !important，
    会把后面新写的 blur 盖掉（实测 backdropFilter 读回 none），所以整段移除。 */
+/* 设置页折叠的列用 display:none 真正去掉（和统计表同一机制）：
+   width:0 在 table-layout:fixed 下仍占最小宽度，还会把剩余空间摊给别人。 */
+table#summary-table th.folded,
+table#summary-table td.folded { display: none !important; }
+
 /* × 提到最上层，任何头部/吸顶层都盖不住它 */
 html body .confirm-mask .dlg-x { z-index: 30 !important; }
 
@@ -8222,7 +8227,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.57';
+const APP_VER = 'v13.58';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -15226,7 +15231,10 @@ function renderSummary(main, footer) {
     applySummaryPaste(matrix, rowIdx < 0 ? 0 : rowIdx, colIdx);
   });
 
-  initColResize(table, 'summary');
+  /* 折叠态和展开态的「可见列数」不同（14 / 12），各用一份存档，
+     否则折叠时写入的 12 个宽度会被展开时的 14 列逻辑判为「对不上」而回落默认。
+     机制与统计表一致：折叠列 display:none，<col> 由 ensureColgroup 按可见列重建。 */
+  initColResize(table, summaryFold ? 'summaryFold' : 'summary');
   // 账户名称列标题左边的小三角：点一下展开/收起类型、分类、简码三列
   const foldBtn = table.querySelector('.sum-fold-toggle');
   if (foldBtn) {
@@ -15278,15 +15286,30 @@ function summaryBaseWidths() {
 function applySummaryFold() {
   const table = document.getElementById('summary-table');
   if (!table) return;
-  const real = summaryBaseWidths();
-  summaryRealW = real.slice();              // 记下真实宽度，折叠只改「视图」
-  const view = real.slice();
-  if (summaryFold) SUMMARY_FOLD_COLS.forEach(ci => { view[ci] = 0; });
-  applyWidths(table, 'summary', view);
-  // 落盘的永远是真实宽度（applyWidths 会用传进去的 view 覆盖 colWidths）
-  colWidths.summary = real;
+  /* 折叠 = 把「类型 / 分类」两列的单元格标成 .folded（CSS display:none），
+     <colgroup> 由 ensureColgroup 按可见列重建。
+     宽度**按列名**从 colWByClass.summary 里取（snapshotClassWidths 在拖动结束时记的），
+     这样折叠/展开两边都拿到「用户拖过的真实值」；一条都没记过才用默认值。
+     以前这套是「宽度写 0 + 落盘永远真实值」，和 initColResize 的存档互相覆盖，
+     展开后就回落到默认宽度。 */
   table.classList.toggle('sum-cols-folded', summaryFold);
-  // 三角形按钮的方向由 .sum-cols-folded 控制，这里只同步提示文字
+  table.querySelectorAll('th.col-cat, td.col-cat, th.col-sub, td.col-sub')
+    .forEach(el => el.classList.toggle('folded', summaryFold));
+
+  const key = summaryFold ? 'summaryFold' : 'summary';
+  const dft = DEFAULT_COL_WIDTHS[key] || [];
+  /* 两份列名宽度合并读：折叠态的调整记在 .summaryFold、展开态的记在 .summary，
+     而按列名存天然不受列数影响 —— 合并起来，无论当前是哪种状态，
+     都能拿到用户在这两处调过的宽度。 */
+  const byName = Object.assign({}, colWByClass.summaryFold || {}, colWByClass.summary || {});
+  const visible = Array.from(table.querySelectorAll('thead th'))
+    .filter(th => !th.classList.contains('folded'));
+  const px = visible.map((th, i) => {
+    const k = colKeyOf(th);
+    if (k && byName[k] != null) return byName[k];
+    return dft[i] != null ? dft[i] : (dft[dft.length - 1] || 100);
+  });
+  applyWidths(table, key, px);
   const btn = table.querySelector('.sum-fold-toggle');
   if (btn) btn.title = summaryFold ? '展开类型 / 分类' : '收起类型 / 分类';
   applySummarySticky();
@@ -18098,7 +18121,9 @@ const DEFAULT_COL_WIDTHS = {
   statsSum: [52, 84, 84, 150, 120, 100, 100, 100, 100],
   /* 折叠态是 7 列（去掉类型/分类），单独一套存档 key，避免和 9 列的那份互相覆盖 ——
      混在一起时折叠会写入 7 个值、展开时 9 列对不上就回落默认（账户名称被压成 84）。 */
-  statsSumFold: [52, 150, 120, 100, 100, 100, 100]
+  statsSumFold: [52, 150, 120, 100, 100, 100, 100],
+  /* 设置页折叠态可见 12 列（去掉「类型 / 分类」），与展开态的 14 列各存一份 */
+  summaryFold: [52, 73, 127, 0, 0, 0, 0, 0, 137, 34, 34, 64]
 };
 
 // 列宽的 localStorage 键。v3 统一存像素；v1 同格式可直接用；v2 曾经存过比例（×1000 折算）。
@@ -18330,8 +18355,7 @@ function ensureColgroup(table) {
   return cg;
 }
 
-// 列宽下限（像素）。之前定义在别处，被重写时弄丢了，这里补回。
-const COL_MIN = 36;   // 列宽下限（再窄就点不到单元格了）
+// 列宽下限（像素）。之前定义在别处，被重写时弄丢了，这里补回。const COL_MIN = 36;   // 列宽下限（再窄就点不到单元格了）
 let _widthRaf = 0;            // 列宽拖拽的 rAF 句柄
 let _pendingWidths = null;    // 本帧待写入的列宽
 
