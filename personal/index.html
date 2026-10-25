@@ -623,19 +623,27 @@ table.query-table tbody td {
   text-overflow: ellipsis !important;
 }
 
-/* 备注全文浮层：贴在格子下方，放不下就翻到上面；点别处或 Esc 关闭 */
+/* 备注全文浮层：**无色毛玻璃**。
+   只留一层极淡的中性半透明 + backdrop-filter，让底层内容透过来但被柔化，
+   不引入任何色相（浅色给白雾、深色给黑雾），文字仍用 --text-main 保证对比度。
+   不支持 backdrop-filter 的浏览器靠这层半透明兜底，照样能读。 */
 .cell-pop {
   position: fixed; z-index: 99990; max-width: min(88vw, 460px);
-  padding: 9px 12px; border-radius: 10px;
-  background: var(--card); color: var(--text-main);
-  border: 1px solid var(--border);
-  box-shadow: 0 10px 28px rgba(40, 28, 80, .22);
+  padding: 9px 12px; border-radius: 12px;
+  background: rgba(255, 255, 255, .48);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, .70);
+  box-shadow: 0 10px 30px rgba(40, 28, 80, .16);
+  color: var(--text-main);
   font-size: 13px; line-height: 1.65;
   white-space: pre-wrap; word-break: break-word;
 }
 [data-theme="dark"] .cell-pop {
-  background: #1a1626; color: #f0edf7; border-color: #2e2843;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, .55);
+  background: rgba(16, 14, 24, .52);
+  border-color: rgba(255, 255, 255, .13);
+  color: #f2effa;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .50);
 }
 
 /* 整块 thead 一起吸顶：标题 → 筛选 → 列名三行始终可见。
@@ -7851,7 +7859,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.14';
+const APP_VER = 'v13.15';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
