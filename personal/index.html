@@ -7228,6 +7228,25 @@ html body .thanks-chip .thanks-txt {
   padding-left: .06em !important;   /* 抵消最后一字的字距，保持居中 */
   text-indent: .06em !important;
 }
+
+/* 感谢墙：行间距比之前多 4px */
+html body .thanks-chip .thanks-txt + .thanks-txt { margin-top: 4px !important; }
+
+/* 设置页右端两列：深色主题下用纯黑，和周围三种灰彻底区隔 */
+html[data-theme="dark"] body table#summary-table td.col-move,
+html[data-theme="dark"] body table#summary-table th.col-move,
+html[data-theme="dark"] body table#summary-table td.col-del,
+html[data-theme="dark"] body table#summary-table th.col-del {
+  background: #000000 !important;
+  background-color: #000000 !important;
+}
+/* 浅色主题下用和表格一致的底色，不要突兀 */
+html:not([data-theme="dark"]) body table#summary-table td.col-move,
+html:not([data-theme="dark"]) body table#summary-table th.col-move,
+html:not([data-theme="dark"]) body table#summary-table td.col-del,
+html:not([data-theme="dark"]) body table#summary-table th.col-del {
+  background: transparent !important;
+}
 </style>
 </head>
 <body>
@@ -7439,7 +7458,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.72';
+const APP_VER = 'v12.76';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7860,7 +7879,7 @@ function openExtractAccountsDialog() {
   const missing = names.filter(nm => !existing.has(nm)).sort((a, b) => a.localeCompare(b, 'zh'));
 
   const listHtml = missing.length
-    ? missing.map(nm => `<span class="thanks-chip" style="${thanksChipStyle(nm)}">${thanksWrap(nm)}</span>`).join('')
+    ? missing.map((nm, i) => `<span class="thanks-chip" style="${thanksChipStyle(nm, i)}">${thanksWrap(nm)}</span>`).join('')
     : '<span class="sync-hint small">流水里用到的账户名都已经在账户表里了。</span>';
 
   mkDialog(`
@@ -8297,7 +8316,7 @@ async function openThanksDialog() {
     const text = await res.text();
     const list = await parseDonorsAsync(text);
     mask.querySelector('#thanks-wall').innerHTML = list.length
-      ? list.map(d => `<span class="thanks-chip" style="${thanksChipStyle(thanksName(d))}">${thanksWrap(thanksName(d))}</span>`).join('')
+      ? list.map((d, i) => `<span class="thanks-chip" style="${thanksChipStyle(thanksName(d), i)}">${thanksWrap(thanksName(d))}</span>`).join('')
       : '<span class="sync-hint small">还没有人，等第一位朋友。</span>';
   } catch (e) {
     mask.querySelector('#thanks-wall').innerHTML = '<span class="sync-hint small">离线，暂时取不到感谢墙</span>';
@@ -8318,7 +8337,7 @@ async function loadThanksWall() {
     const text = await res.text();
     const list = await parseDonorsAsync(text);
     wall.innerHTML = list.length
-      ? list.map(d => `<span class="thanks-chip" style="${thanksChipStyle(thanksName(d))}">${thanksWrap(thanksName(d))}</span>`).join('')
+      ? list.map((d, i) => `<span class="thanks-chip" style="${thanksChipStyle(thanksName(d), i)}">${thanksWrap(thanksName(d))}</span>`).join('')
       : '<span class="sync-hint small">还没有人，等第一位朋友。</span>';
   } catch (e) {
     wall.innerHTML = '<span class="sync-hint small">离线，暂时取不到感谢墙</span>';
@@ -10800,8 +10819,18 @@ function buildLayoutText() {
 
   /* 中文按 perRow 切行，再把落在行首的标点并回上一行 */
   function thanksRowify(chars, perRow) {
+    // 先按 perRow 切，再把最后一行太短的往前匀，目标是各行长度尽量一致
     var rows = [];
     for (var i = 0; i < chars.length; i += perRow) rows.push(chars.slice(i, i + perRow));
+    // 若末行明显短于 perRow，从上一行末尾挪几个过来
+    for (var k = rows.length - 1; k > 0; k--) {
+      var prev = rows[k - 1], cur = rows[k];
+      var diff = prev.length - cur.length;
+      while (diff >= 2) {
+        cur.unshift(prev.pop());
+        diff = prev.length - cur.length;
+      }
+    }
     for (var r = 1; r < rows.length; r++) {
       while (rows[r].length && THANKS_NO_LINE_START.indexOf(rows[r][0]) >= 0) {
         rows[r - 1] = rows[r - 1].concat(rows[r].shift());
@@ -10831,10 +10860,10 @@ function buildLayoutText() {
       }
     } else if (isLatin) {
       lines = [raw];                    // 单个英文词整串一行，靠字号收
-    } else if (n <= 5) {
+    } else if (n <= 3) {
       lines = [raw];
     } else {
-      var want2 = n <= 6 ? 2 : 3;
+      var want2 = n <= 6 ? 2 : (n <= 9 ? 3 : 4);
       lines = thanksRowify([...raw], Math.ceil(n / want2));
     }
 
@@ -10844,9 +10873,12 @@ function buildLayoutText() {
     var charW = isLatin ? 0.62 : 1;
     var widthRatio = isLatin ? 0.54 : 0.86;
     var fsW = (box * widthRatio) / (maxChars * charW);
-    var fsH = (box * 0.76) / lines.length / 1.16;
+    // 行间距比之前多 4px：纵向预算按 (行高 + 4) 算
+    var fsH = (box * 0.80) / (lines.length * 1.16 + (lines.length - 1) * 4 / box * lines.length);
     var fs = Math.floor(Math.min(fsW, fsH));
-    fs = Math.max(9, Math.min(fs, 40));
+    // 单个英文词只有一行时，可以明显放大
+    if (isLatin && !words && lines.length === 1) fs = Math.floor(Math.min(fs, box / 2.6));
+    fs = Math.max(9, Math.min(fs, 46));
 
     return { n: n, box: box, fs: fs, lines: lines, raw: raw };
   }
@@ -10858,8 +10890,7 @@ function buildLayoutText() {
   }
   function thanksChipStyle(name) {
     var p = thanksPlan(name);
-    var h = thanksHash(p.raw);
-    var pair = THANKS_PALETTE[h % THANKS_PALETTE.length];
+    var pair = THANKS_PALETTE[(arguments[1] || thanksHash(p.raw)) % THANKS_PALETTE.length];
     return 'width:' + p.box + 'px;height:' + p.box + 'px;font-size:' + p.fs + 'px;'
          + 'background:' + pair[0] + '!important;color:' + pair[1] + '!important;'
          + 'border-radius:0!important;';
@@ -17870,10 +17901,11 @@ function mwSelfHeal() {
       }
     });
 
-    // 设置页右端「上移 / 删除」两列：彻底透明、零边框
+    // 设置页右端「上移 / 删除」两列：深色主题用纯黑，浅色主题透明
+    var colBg = isDark() ? '#000000' : 'transparent';
     document.querySelectorAll('table#summary-table td.col-move, table#summary-table th.col-move, table#summary-table td.col-del, table#summary-table th.col-del').forEach(function (el) {
-      el.style.setProperty('background', 'transparent', 'important');
-      el.style.setProperty('background-color', 'transparent', 'important');
+      el.style.setProperty('background', colBg, 'important');
+      el.style.setProperty('background-color', colBg, 'important');
       el.style.setProperty('background-image', 'none', 'important');
       el.style.setProperty('border', '0', 'important');
       el.style.setProperty('box-shadow', 'none', 'important');
