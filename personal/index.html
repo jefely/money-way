@@ -242,12 +242,18 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
 [data-theme="dark"] .cell-active { background-color: var(--cell-active) !important; }
 [data-theme="dark"] td:focus-within input,
 [data-theme="dark"] .cell-active input { color: #ffffff !important; }
-/* 冻结列必须有实心深色背景，否则横向滚动时后面的文字会透出来 */
+/* 冻结列必须有实心深色背景，否则横向滚动时后面的文字会透出来。
+   表头和数据行分开写：表头跟「提亮后的表头」同色（#262626），
+   否则表头那一行会在冻结列处断成两截深浅。 */
 [data-theme="dark"] table.grid thead th.col-seq,
-[data-theme="dark"] table.grid tbody td.col-seq,
 [data-theme="dark"] table#summary-table thead th.col-name,
+[data-theme="dark"] table.query-table thead th.col-seq {
+  background-color: #262626 !important;
+  color: var(--text-main) !important;
+  box-shadow: 1px 0 0 #333333 !important;
+}
+[data-theme="dark"] table.grid tbody td.col-seq,
 [data-theme="dark"] table#summary-table tbody td.col-name,
-[data-theme="dark"] table.query-table thead th.col-seq,
 [data-theme="dark"] table.query-table tbody td.col-seq {
   background-color: #0d0d0d !important;
   color: var(--text-main) !important;
@@ -4294,10 +4300,11 @@ html[data-theme="dark"] table#summary-table thead th.col-seq {
 
 /* ⑩ 深色主题：汇总「账户名称」列与其它列同色。
    原来这一列单独用 #0d0d0d / 偶数行 #171717，而其它列是 #0d0d0d / #1a1a1a，
-   于是深色下这一列看着比旁边更黑。现在完全跟随斑马纹，表头也和其它表头一致。 */
-[data-theme="dark"] table#summary-table thead th.col-name {
-  background-color: #141414 !important;
-}
+   于是深色下这一列看着比旁边更黑。现在完全跟随斑马纹。
+   注意：这条原来还有 `thead th.col-name { background-color: #141414 }` 一条，
+   它的意图是「表头也跟其它表头一致」；现在表头统一提到 #262626（见文件末尾
+   「深色主题：让最近数据的表头一眼认得出来」那一节），表头的规则已由那边统一管，
+   这里只留数据行 —— 否则会变成两处各写一个表头底色，谁生效只看谁更靠后。 */
 [data-theme="dark"] table#summary-table tbody tr:not(.cat-row):not(:hover):nth-child(odd) > td.col-name {
   background-color: #0d0d0d !important;
 }
@@ -7263,9 +7270,29 @@ html:not([data-theme="dark"]) body table#summary-table th.col-del {
    主滚动容器不需要预留 —— 内容区各自滚动，滚动条覆盖式出现即可。
    ============================================================ */
 html body #main { scrollbar-gutter: auto !important; }
-/* 查询三栏要铺满，各栏自己的滚动槽也取消 */
+/* 查询三栏要铺满，各栏自己的滚动槽也取消。
+   注意还要管到 .grid-wrap 那一层 —— 它才是表格的直接容器：
+   它的 computed scrollbar-gutter 仍是 stable，于是内容盒 = 栏宽 − 15px，
+   表格 width:100% 也只能拿到那 15px 之外的宽度，右侧就永远空一条。 */
 html body .query-dual,
-html body .query-dual > * { scrollbar-gutter: auto !important; }
+html body .query-dual > *,
+html body .query-section .grid-wrap { scrollbar-gutter: auto !important; }
+
+/* 手机上查询页 = 横向搓动切换的 3 页（A / B / C），每页正好一屏。
+   隐藏滚动条：既避免滚动条把每页宽度吃掉（那样右边会露出下一页的一条边），
+   也让「一次一页」的手感干净。滚动本身照旧（触摸滑动 + snap 吸附）。 */
+@media (max-width: 767px) {
+  html body .query-dual { scrollbar-width: none; -ms-overflow-style: none; }
+  html body .query-dual::-webkit-scrollbar { display: none; width: 0; height: 0; }
+  html body .query-section .grid-wrap { scrollbar-width: none; -ms-overflow-style: none; }
+  html body .query-section .grid-wrap::-webkit-scrollbar { display: none; width: 0; height: 0; }
+  /* 每页占满一屏，吸附到整页 */
+  html body .query-dual { scroll-snap-type: x mandatory; }
+  html body .query-section,
+  html body .query-dual > * { flex: 0 0 100% !important; width: 100% !important; scroll-snap-align: start; }
+  /* 一页一屏时不需要栏间分隔线：那条 1px 右边框会让每页内容比视口窄 1px */
+  html body .query-section { border-right: 0 !important; }
+}
 
 /* 固定页「跟流水」勾选/取消：静默处理，不弹提示 */
 
@@ -7374,6 +7401,48 @@ html body table#fixed-table tr.fixed-new-row > td.col-ops {
   background: var(--bg-main) !important;
   background-color: var(--bg-main) !important;
   background-image: none !important;
+}
+
+/* ============================================================
+   深色主题：让「最靠近数据的那行表头」一眼认得出来
+   ------------------------------------------------------------
+   实测（无头 Chrome，getComputedStyle）：
+     表头底 rgb(20,20,20) ；数据奇数行 rgb(13,13,13)、偶数行 rgb(26,26,26)
+     → 表头 vs 奇数行对比度 1.055、vs 偶数行 1.059，基本就是同一个颜色。
+   表头文字本身并不弱（白字 700，对比度 18.4），所以问题不在字、在这行没有分层；
+   能拉开层次的只有明度差 —— 把这一行提亮到 #262626，并压一条 #4a4a4a 的底线。
+   （试过用半透明遮罩：视觉上它就是"背景色被混浅"，与直接改色等价，
+     却会多出一个层叠层级，和这里已有的 !important 抢注叠在一起更难维护。）
+
+   只作用于「紧挨数据」的那行表头：
+     · grid 表（流水/分类/固定/设置）：thead 那一行
+     · query 表：三行里的 q-head-row —— 标题行（流水查询A/清空/合计）和
+       筛选行（输入框）保持原来的暗紫，那是另一套语义，不能一起提亮。
+   放在文件最末尾：同特异性下靠顺序取胜，不必和前面几条 !important 比拼数字。
+   ============================================================ */
+html[data-theme="dark"] body table#flow-table > thead > tr > th,
+html[data-theme="dark"] body table#cat-table > thead > tr > th,
+html[data-theme="dark"] body table#fixed-table > thead > tr > th,
+html[data-theme="dark"] body table#summary-table > thead > tr > th,
+html[data-theme="dark"] body table.query-table > thead > tr.q-head-row > th {
+  background-color: #262626 !important;
+  background-image: none !important;
+  border-bottom: 1px solid #4a4a4a !important;
+}
+
+/* 右端那几列（固定页「操作」/ 设置页「上移·删除·账单日·还款日」）的表头：
+   数据行里它们跟页面底色同色（不跟斑马纹），但表头是一整行，不能在中间断开成两种深浅，
+   所以表头这几格也一起用提亮后的颜色。这一条比上面那条多一个 class，压过
+   `html body table#summary-table th.col-move` 那组（它们把表头也设成了 --bg-main）。 */
+html[data-theme="dark"] body table#fixed-table thead th.col-op,
+html[data-theme="dark"] body table#fixed-table thead th.col-ops,
+html[data-theme="dark"] body table#summary-table thead th.col-move,
+html[data-theme="dark"] body table#summary-table thead th.col-del,
+html[data-theme="dark"] body table#summary-table thead th.col-bill,
+html[data-theme="dark"] body table#summary-table thead th.col-repay {
+  background-color: #262626 !important;
+  background-image: none !important;
+  border-bottom: 1px solid #4a4a4a !important;
 }
 </style>
 </head>
@@ -7586,7 +7655,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.02';
+const APP_VER = 'v13.03';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
