@@ -5864,6 +5864,76 @@ html body .toolbar > .fixed-title {
   font-size: 14px !important;
   font-weight: 700 !important;
 }
+
+/* ============================================================
+   1~12 月份格子行
+   · 窗口宽于 900px：整排最多占 900px（再宽也不再拉伸）
+   · 窗口窄于 900px：撑满可用宽度，格子等比缩小
+   一律 12 个一行（原来是 repeat(6, 46px) 固定 6 列，宽屏下只占 300 多像素）
+   ============================================================ */
+html body .toolbar.bar1 > .month-row,
+html body .toolbar.bar2 > .month-row {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: 900px !important;
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  gap: 4px !important;
+}
+html body .toolbar.bar1 > .month-row .m-btn,
+html body .toolbar.bar2 > .month-row .m-btn {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  flex: 0 0 auto !important;
+  height: 26px !important;
+  font-size: 13px !important;
+  padding: 0 !important;
+}
+
+@media (max-width: 900px) {
+  html body .toolbar.bar1 > .month-row,
+  html body .toolbar.bar2 > .month-row {
+    max-width: none !important;   /* 窄屏：撑满，跟随窗口 */
+  }
+}
+
+/* ============================================================
+   月份行所在的那条工具栏（bar2）放开宽度上限：
+   原来被 .toolbar.bar2 { max-width: 420px } 卡住，12 个格子只能挤在 408px 里。
+   · 窗口 > 900px：整排最多 900px
+   · 窗口 < 900px：跟随窗口宽度撑满
+   ============================================================ */
+html body .toolbar.bar2 {
+  max-width: 900px !important;
+  width: 100% !important;
+  flex-wrap: nowrap !important;
+}
+html body .toolbar.bar1 {
+  max-width: 900px !important;   /* 上面那排按钮+年份框同样放宽，两排才好对齐 */
+  width: 100% !important;
+}
+html body .toolbar.bar2 > .month-row {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: none !important;    /* 上限交给父级 bar2 控制，这里必须放开 */
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  gap: 4px !important;
+}
+html body .toolbar.bar2 > .month-row .m-btn {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 26px !important;
+  font-size: 13px !important;
+  padding: 0 !important;
+}
+@media (max-width: 900px) {
+  html body .toolbar.bar2 > .month-row {
+    max-width: none !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -6075,7 +6145,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.37';
+const APP_VER = 'v11.39';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
