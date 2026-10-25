@@ -6043,7 +6043,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.24';
+const APP_VER = 'v11.25';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -15663,9 +15663,24 @@ function mwSelfHeal() {
       b.style.setProperty('box-sizing', 'border-box', 'important');
     });
   }
+  // 工具条本身：禁止换行（之前 flex-wrap: wrap !important 会把按钮挤到第二行），
+  // 换成「横向滚动兜底」——正常情况靠按钮缩小就够，极端窄才滚动。
+  function fixBar(root) {
+    var scope = root || document;
+    scope.querySelectorAll('.toolbar.flow-bar').forEach(function (bar) {
+      bar.style.setProperty('flex-wrap', 'nowrap', 'important');
+      bar.style.setProperty('height', '26px', 'important');
+      bar.style.setProperty('min-height', '26px', 'important');
+      bar.style.setProperty('align-items', 'center', 'important');
+      bar.style.setProperty('overflow-x', 'auto', 'important');
+      bar.style.setProperty('overflow-y', 'hidden', 'important');
+      bar.style.setProperty('white-space', 'nowrap', 'important');
+    });
+  }
   apply(document);
+  fixBar(document);
   try {
-    new MutationObserver(function () { apply(document); })
+    new MutationObserver(function () { apply(document); fixBar(document); })
       .observe(document.getElementById('main') || document.body, { childList: true, subtree: true });
   } catch (e) {}
 })();
