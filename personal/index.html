@@ -5035,26 +5035,45 @@ table.install-table thead th.col-month {
 [data-theme="dark"] .thanks-tip b { color: #c3b2ff; }
 
 /* ===== 校验页：分页标签（v17.5）===== */
-.audit-tabs {
-  gap: 6px;
-  position: sticky; top: 0; z-index: 20;
-  background: var(--bg-main);
-}
-/* 注意要压过 .toolbar button 的紫底，所以带上 .toolbar 前缀 */
-.toolbar .audit-tab {
-  height: 26px; padding: 0 12px; border-radius: 8px; cursor: pointer;
-  border: 1px solid var(--border-light) !important;
-  background: var(--bg-main) !important;
-  color: var(--text-muted) !important;
-  font-size: 13px; font-weight: 600;
-  transition: background .15s, color .15s, border-color .15s;
-}
-.toolbar .audit-tab:hover { border-color: var(--primary) !important; color: var(--primary) !important; }
-.toolbar .audit-tab.active {
-  background: var(--primary) !important;
-  border-color: var(--primary) !important;
-  color: #fff !important;
-}
+  /* 校验页分页签：直接沿用顶部标签行的样式（等分、满高、右侧分隔、激活紫底），
+     看起来就是「第一行标签页放不下，挪到这里」。 */
+  .audit-tabs {
+    gap: 0 !important;
+    position: sticky; top: 0; z-index: 20;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 0 !important;
+    background: var(--bg-gray) !important;
+    border-bottom: 2px solid var(--primary);
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+  }
+  .toolbar .audit-tab {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 100% !important;
+    padding: 0 6px !important;
+    border-radius: 0 !important;
+    border: none !important;
+    border-right: 1px solid var(--border-light) !important;
+    background: transparent !important;
+    color: var(--text-muted) !important;
+    font-size: 15px !important;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background .15s, color .15s;
+  }
+  .toolbar .audit-tab:last-child { border-right: none !important; }
+  .toolbar .audit-tab:hover { color: var(--primary) !important; }
+  .toolbar .audit-tab.active {
+    background: var(--primary) !important;
+    color: #fff !important;
+    border-right-color: var(--primary) !important;
+  }
+  [data-theme="dark"] .audit-tabs { background: #1a1a1a !important; }
+  [data-theme="dark"] .toolbar .audit-tab { color: #d8d2e8 !important; border-right-color: #2a2a2a !important; }
+  [data-theme="dark"] .toolbar .audit-tab.active { color: #fff !important; }
 .audit-pane[hidden] { display: none !important; }
 /* 注意：不能给 .audit-pane 统一 width:100%，
    「账本说明」那一块本身带左右 12px 外边距，100% 再加外边距就会超出屏幕一点点。 */
@@ -6055,11 +6074,17 @@ html body .toolbar.bar2 > .month-row.plan-years {
 }
 html body .toolbar.bar2 > .month-row.plan-years .m-btn {
   width: auto !important;
-  min-width: 0 !important;
+  min-width: 56px !important;    /* 年份就 4 个数字，不能被压到显示不全 */
   max-width: 56px !important;
   height: 26px !important;
   font-size: 13px !important;
   padding: 0 !important;
+  white-space: nowrap !important;
+}
+/* 年份个数少，用固定格子宽度铺开，不跟月份一样强行 12 等分 */
+html body .toolbar.bar2 > .month-row.plan-years {
+  grid-template-columns: repeat(auto-fill, 56px) !important;
+  justify-content: start !important;
 }
 @media (max-width: 900px) {
   html body .toolbar.bar2 > .month-row.plan-years { max-width: none !important; }
@@ -6071,6 +6096,53 @@ html body .toolbar.bar2 > input.year-input {
   line-height: 24px !important;
   box-sizing: border-box !important;
 }
+
+/* ============================================================
+   校验页分页签：强制按「顶部标签行」的样子显示
+   （它带有 toolbar + flow-bar 两个 class，会被流水的按钮规则钉成 56×26，
+     所以这里用更高特异性压回去：等分、满高、无圆角、右侧分隔线）
+   ============================================================ */
+html body .toolbar.flow-bar.audit-tabs {
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  background: var(--bg-gray) !important;
+  border-bottom: 2px solid var(--primary) !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  align-items: stretch !important;
+}
+html body .toolbar.flow-bar.audit-tabs > button.audit-tab {
+  flex: 1 1 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 100% !important;
+  line-height: 1 !important;
+  padding: 0 6px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  border-right: 1px solid var(--border-light) !important;
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  white-space: nowrap;
+  box-sizing: border-box !important;
+}
+html body .toolbar.flow-bar.audit-tabs > button.audit-tab:last-child { border-right: none !important; }
+html body .toolbar.flow-bar.audit-tabs > button.audit-tab.active {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border-right-color: var(--primary) !important;
+}
+[data-theme="dark"] html body .toolbar.flow-bar.audit-tabs { background: #1a1a1a !important; }
+[data-theme="dark"] html body .toolbar.flow-bar.audit-tabs > button.audit-tab {
+  color: #d8d2e8 !important; border-right-color: #2a2a2a !important;
+}
+[data-theme="dark"] html body .toolbar.flow-bar.audit-tabs > button.audit-tab.active { color: #fff !important; }
 </style>
 </head>
 <body>
@@ -6282,7 +6354,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.60';
+const APP_VER = 'v11.65';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6779,6 +6851,45 @@ function pinAccountToTop(id, tableId) {
     render();
   }
   toast('已上移：' + (arr[j].name || '这一行'), { duration: 1500 });
+}
+
+/* 配置：账户设置框架（导出 / 导入 / 提取流水账户） */
+function openConfigDialog() {
+  const mask = mkDialog(`
+    <div class="sync-title">配置</div>
+    <div class="sync-hint small">
+      账户表（类型 / 分类 / 简码 / 名称 / 期初）可以导出成一段文本带走；
+      也可以把流水里出现过、账户表里还没有的名字一次提出来。
+    </div>
+    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" id="cfg-export">复制账户设置</button>
+      <button type="button" class="ghost" id="cfg-import">导入账户设置</button>
+      <button type="button" class="ghost" id="cfg-extract">提取流水账户</button>
+    </div>
+    <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
+  `);
+  mask.querySelector('#cfg-export').onclick = () => { mask.remove(); copyAccountsText(); };
+  mask.querySelector('#cfg-import').onclick = () => { mask.remove(); openImportAccountsDialog(); };
+  mask.querySelector('#cfg-extract').onclick = () => { mask.remove(); openExtractAccountsDialog(); };
+}
+
+/* 重置：两个选项先让用户选，别一点就直接清库 */
+function openResetChoiceDialog() {
+  const mask = mkDialog(`
+    <div class="sync-title">重置</div>
+    <div class="sync-hint small">
+      <b>重置账户（保留数据）</b>：只把账户表恢复成内置默认，流水 / 分期 / 固定都留着。<br><br>
+      <b>重置账本（清空数据）</b>：全部清空并恢复默认账户，
+      <b style="color:#dc2626">不可撤销</b>，请先「配置 → 复制账户设置」或导出备份。
+    </div>
+    <div class="sync-actions" style="flex-wrap:wrap;gap:8px">
+      <button type="button" class="danger-btn" id="rst-keep">重置账户（保留数据）</button>
+      <button type="button" class="danger-btn" id="rst-wipe">重置账本（清空数据）</button>
+      <button type="button" class="ghost" data-act="close">关闭</button>
+    </div>
+  `);
+  mask.querySelector('#rst-keep').onclick = () => { mask.remove(); openResetDialog('keep'); };
+  mask.querySelector('#rst-wipe').onclick = () => { mask.remove(); openResetDialog('wipe'); };
 }
 
 /* 修改账本密码：先用旧密码把当前密文解开（验证），再换新 salt + 新 key 重新加密写盘 */
@@ -8630,47 +8741,12 @@ function renderAudit(main, footer) {
   vpane.innerHTML = `
 
     <div class="audit-card">
-      <div class="audit-title">账本密码</div>
-      <div class="sync-hint small" style="margin-top:8px">
-        改密码会用新密码重新加密整本账本。<b style="color:#dc2626">旧密码一旦忘记，数据无法恢复</b>，
-        改完请自己记牢。
-      </div>
-      <div style="margin-top:12px"><button type="button" id="pw-change">修改密码</button></div>
-    </div>
-
-    <div class="audit-card">
       <div class="audit-title">提取流水账户</div>
       <div class="sync-hint small" style="margin-top:8px">
         把流水里出现过、但账户表里还没有的名字，自动追加到账户表<b>末尾</b>，
-        简码自动给（X1、X2…）。之后请到汇总页设置类型/分类、校对简码，不要的可以删掉。
+        简码自动给（X1、X2…）。之后请到统计页/设置页校对类型与简码，不要的可以删掉。
       </div>
       <div style="margin-top:12px"><button type="button" id="acc-extract">提取流水账户</button></div>
-    </div>
-
-    <div class="audit-card">
-      <div class="audit-title">重置账本</div>
-      <div class="sync-hint small" style="margin-top:8px">
-        <b>重置账户（保留数据）</b>：只把账户表恢复成内置默认，流水/分期/固定都留着；
-        之后流水里的账户名可能对不上，需要你手动改账户名或流水来修正。<br>
-        <b>重置账本（清空数据）</b>：全部清空并恢复默认账户，
-        <b style="color:#dc2626">不可撤销</b>，请先「导出」或「存成同步文件」备份。
-      </div>
-      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-        <button type="button" id="ver-reset-keep" class="danger-btn">重置账户（保留数据）</button>
-        <button type="button" id="ver-reset" class="danger-btn">重置账本（清空数据）</button>
-      </div>
-    </div>
-
-    <div class="audit-card">
-      <div class="audit-title">账户设置框架</div>
-      <div class="sync-hint small" style="margin-top:8px">
-        把当前账户表（类型 / 分类 / 简码 / 名称 / 期初）导出成一段文本，
-        存着下次用、或发给别的设备。<b>导出＝复制到剪贴板</b>，粘贴到记事本即可保存。
-      </div>
-      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-        <button type="button" id="acc-export">复制账户设置</button>
-        <button type="button" class="ghost" id="acc-import">导入账户设置</button>
-      </div>
     </div>`;
   main.appendChild(vpane);
 
@@ -12688,10 +12764,22 @@ function renderSummary(main, footer) {
 
   } catch (e) {}
 
-  // 设置页只保留「配平」按钮，其余工具按钮连同 bar2 一律移除
+  // 设置页工具条：配平 / 密码 / 配置 / 重置
   bar1.querySelectorAll('button').forEach(b => { if (!/配平/.test(b.textContent || '')) b.remove(); });
   bar1.querySelectorAll('input').forEach(el => el.remove());
   if (bar2) bar2.remove();
+  [
+    { label: '密码', fn: () => openChangePasswordDialog() },
+    { label: '配置', fn: () => openConfigDialog() },
+    { label: '重置', fn: () => openResetChoiceDialog() }
+  ].forEach(function (d) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ghost plan-btn';
+    btn.textContent = d.label;
+    btn.onclick = d.fn;
+    bar1.appendChild(btn);
+  });
   main.appendChild(bar1);
 
   // 表格主体
