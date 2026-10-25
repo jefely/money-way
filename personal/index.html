@@ -7246,7 +7246,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.37';
+const APP_VER = 'v12.38';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -11844,13 +11844,6 @@ function openImportXlsxDialog(preFile) {
     const beforeInst = (state.installments || []).length;
     // 必须先有汇总表才能重建账户 —— 没有汇总表就只换流水，账户保持原样
     const hasAcc = pendingAccs.length > 0;
-    const msg = (hasAcc
-      ? '用文件里的 ' + pending.length + ' 笔流水 + ' + pendingAccs.length + ' 个账户覆盖本账本？\n\n'
-        + '现有 ' + beforeTx + ' 笔流水、' + beforeAcc + ' 个账户会被清空并替换。\n这一步不可撤销。'
-      : '文件里没有「汇总」表，只能用 ' + pending.length + ' 笔流水替换现有 ' + beforeTx + ' 笔。\n\n账户表保持不动。这一步不可撤销。')
-      + (hasInstSheet ? '\n\n「分期」表里的 ' + pendingInsts.length + ' 个分期会替换现有的 ' + beforeInst + ' 个。' : '')
-      + (hasFixSheet ? '\n\n「固定」表里的 ' + pendingFixed.length + ' 条会替换现有的 ' + (state.fixed || []).length + ' 条。' : '');
-    if (!confirm(msg)) return;
 
     // ① 先清空流水，整表替换
     state.transactions = pending.map((f, i) => ({
