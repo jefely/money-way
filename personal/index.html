@@ -7014,6 +7014,27 @@ html body table#fixed-table td.col-del .row-del {
   margin: 0 !important;
 }
 .book-line-add > .book-row { flex: 1 1 auto !important; }
+
+/* 「更新」按钮 + 版本号同一行 */
+.ver-line {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 14px !important;
+  margin-top: 10px !important;
+}
+.ver-line .ver-mini { display: inline-flex !important; gap: 16px !important; align-items: center !important; }
+
+/* 添加行：左侧占位宽度与上面的方框列严格一致（11px + 9px gap） */
+.book-line-add > .book-pick-ghost {
+  flex: 0 0 11px !important;
+  width: 11px !important;
+  min-width: 11px !important;
+  max-width: 11px !important;
+  height: 11px !important;
+}
+.book-line { gap: 9px !important; }
+.book-line > .book-pick { flex: 0 0 11px !important; width: 11px !important; }
 </style>
 </head>
 <body>
@@ -7225,7 +7246,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.31';
+const APP_VER = 'v12.32';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -9542,10 +9563,12 @@ function renderAudit(main, footer) {
           <div><b>手机安装</b>：扫码打开本账本</div>
           <div class="sync-hint small" style="margin-top:6px">${SITE_URL}</div>
           <div class="sync-hint small" style="margin-top:6px">安卓 Chrome / iPhone Safari 打开后，用「添加到主屏幕」装成 App，离线可用。</div>
-          <div style="margin-top:10px"><button type="button" id="ver-update-help">更新</button></div>
-          <div class="ver-mini">
-            <span>当前 ${APP_VER}</span>
-            <span id="ver-mini-remote">远端 读取中…</span>
+          <div class="ver-line">
+            <button type="button" id="ver-update-help">更新</button>
+            <span class="ver-mini">
+              <span>当前：${APP_VER}</span>
+              <span id="ver-mini-remote">远端：读取中…</span>
+            </span>
           </div>
         </div>
       </div>
@@ -9644,8 +9667,8 @@ function renderAudit(main, footer) {
     try {
       const t = await (await fetch('sw.js?probe=' + Date.now(), { cache: 'no-store' })).text();
       const m = /const CACHE = '([^']+)'/.exec(t);
-      el.textContent = '远端 ' + (m ? String(m[1]).replace(/^mw-personal-/, '') : '读取失败');
-    } catch (e) { el.textContent = '远端 读取失败'; }
+      el.textContent = '远端：' + (m ? String(m[1]).replace(/^mw-personal-/, '') : '读取失败');
+    } catch (e) { el.textContent = '远端：读取失败'; }
   })();
 
   // 账本说明页顶部的「检查更新」按钮：复用 version 页同一套逻辑
