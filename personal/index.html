@@ -7324,6 +7324,38 @@ html body table#summary-table td.col-bal,
 html body table#summary-table th.col-bal {
   border-right: 0 !important;
 }
+
+/* ============================================================
+   根治：表格底色对齐页面底色
+   右端那些「不要背景色」的列是 transparent，透出的是 table 的底色。
+   只要 table 底色 = 页面底色，透明单元格自然和右侧空白一致，不用逐个调色。
+   ============================================================ */
+html body table.grid,
+html[data-theme="dark"] body table.grid {
+  background: var(--bg-main) !important;
+  background-color: var(--bg-main) !important;
+}
+
+/* ============================================================
+   右端那两列（固定页「操作」/ 设置页「上移·删除」）：
+   用 var(--bg-main) 也就是页面底色。
+   写 transparent 会透出行斑马纹（深色 13,13,13 / 26,26,26），和右侧的纯黑对不上；
+   写死颜色换主题就错。用同一个变量，永远和页面右侧一致。
+   ============================================================ */
+html body table#fixed-table td.col-op,
+html body table#fixed-table th.col-op,
+html body table#fixed-table td.col-ops,
+html body table#fixed-table th.col-ops,
+html body table#summary-table td.col-move,
+html body table#summary-table th.col-move,
+html body table#summary-table td.col-del,
+html body table#summary-table th.col-del {
+  background: var(--bg-main) !important;
+  background-color: var(--bg-main) !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
 </style>
 </head>
 <body>
@@ -7535,7 +7567,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.94';
+const APP_VER = 'v12.98';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -18001,72 +18033,25 @@ function mwSelfHeal() {
       }
     });
 
-    // 固定页「操作」列：背景直接抄同一行相邻那格的实际颜色
-    // —— 试过 transparent（透出表格底色，更亮）、写死 #000（更黑）、inherit（拿不到），
-    //    都不如直接读邻格算出来的颜色稳。
-    // 用页面底色，和表格右边那片空白完全一致
-    var pageBg = getComputedStyle(document.body).backgroundColor || '';
-    var mainEl = document.getElementById('main');
-    if (mainEl) {
-      var mb = getComputedStyle(mainEl).backgroundColor;
-      if (mb && mb !== 'rgba(0, 0, 0, 0)') pageBg = mb;
-    }
-    document.querySelectorAll('table#fixed-table tbody tr').forEach(function (tr) {
-      var op = tr.querySelector('td.col-op, td.col-ops');
-      if (!op) return;
-      op.style.setProperty('background', pageBg, 'important');
-      op.style.setProperty('background-color', pageBg, 'important');
-      op.style.setProperty('background-image', 'none', 'important');
-      op.style.setProperty('border', '0', 'important');
-      op.style.setProperty('box-shadow', 'none', 'important');
+    // 右端那两列（固定页「操作」/ 设置页「上移·删除」）：
+    // 背景由 CSS 里的 var(--bg-main) 统一给，这里只保证边框为零。
+    // 注意：绝对不能在这里 removeProperty('background')，
+    // 那会把 CSS 给的颜色也清掉，单元格退回透明又透出行斑马纹。
+    document.querySelectorAll('table#fixed-table td.col-op, table#fixed-table th.col-op, table#fixed-table td.col-ops, table#fixed-table th.col-ops, table#summary-table td.col-move, table#summary-table th.col-move, table#summary-table td.col-del, table#summary-table th.col-del').forEach(function (el) {
+      el.style.setProperty('border', '0', 'important');
+      el.style.setProperty('box-shadow', 'none', 'important');
     });
-    // 表头那格跟「本月」表头一致
-    (function () {
-      var thOp = document.querySelector('table#fixed-table thead th.col-op, table#fixed-table thead th.col-ops');
-      if (thOp) {
-        thOp.style.setProperty('background', pageBg, 'important');
-        thOp.style.setProperty('background-color', pageBg, 'important');
-        thOp.style.setProperty('border', '0', 'important');
-        thOp.style.setProperty('box-shadow', 'none', 'important');
-      }
-    })();
-
-    // 设置页「上移 / 删除」两列：背景直接抄同一行「期初」那格的实际颜色
-    // —— 写死颜色或 transparent 永远和邻格对不上，只有读实际值才逐像素一致。
-    document.querySelectorAll('table#summary-table tbody tr').forEach(function (tr) {
-      var ref = tr.querySelector('td.col-bal') || tr.querySelector('td.col-name') || tr.querySelector('td.col-seq');
-      if (!ref) return;
-      var bg = getComputedStyle(ref).backgroundColor;
-      tr.querySelectorAll('td.col-move, td.col-del').forEach(function (td) {
-        if (bg && bg !== 'rgba(0, 0, 0, 0)') {
-          td.style.setProperty('background', bg, 'important');
-          td.style.setProperty('background-color', bg, 'important');
-        } else {
-          td.style.removeProperty('background');
-          td.style.removeProperty('background-color');
-        }
-        td.style.setProperty('background-image', 'none', 'important');
-        td.style.setProperty('border', '0', 'important');
-        td.style.setProperty('box-shadow', 'none', 'important');
-      });
-    });
-    // 表头两格跟「期初」表头一致
-    (function () {
-      var refTh = document.querySelector('table#summary-table thead th.col-bal');
-      if (!refTh) return;
-      var b = getComputedStyle(refTh).backgroundColor;
-      document.querySelectorAll('table#summary-table thead th.col-move, table#summary-table thead th.col-del').forEach(function (th) {
-        if (b && b !== 'rgba(0, 0, 0, 0)') {
-          th.style.setProperty('background', b, 'important');
-          th.style.setProperty('background-color', b, 'important');
-        }
-        th.style.setProperty('border', '0', 'important');
-        th.style.setProperty('box-shadow', 'none', 'important');
-      });
-    })();
     document.querySelectorAll('table#summary-table td.col-bal, table#summary-table th.col-bal').forEach(function (el) {
       el.style.setProperty('border-right', '0', 'important');
       el.style.setProperty('box-shadow', 'none', 'important');
+    });
+    // 上移 / 删除两列的背景用 inline 直接钉成页面底色
+    // （CSS 里有多条历史规则在写 transparent，光靠 CSS 压不住）
+    document.querySelectorAll('table#summary-table td.col-move, table#summary-table th.col-move, table#summary-table td.col-del, table#summary-table th.col-del').forEach(function (el) {
+      var pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg-main').trim() || '#ffffff';
+      el.style.setProperty('background', pageBg, 'important');
+      el.style.setProperty('background-color', pageBg, 'important');
+      el.style.setProperty('background-image', 'none', 'important');
     });
 
     // 流水表的 ☑ 固定/计划 复选框
