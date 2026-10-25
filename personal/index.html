@@ -5027,10 +5027,26 @@ table.install-table thead th.col-month {
   border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-main); color: var(--text-main); font-size: 14px; }
 .thanks-name-row button { height: 32px; padding: 0 16px; border: none; border-radius: 8px;
   background: var(--primary); color: #fff; font-weight: 600; cursor: pointer; }
-.thanks-wall { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; min-height: 28px; }
-.thanks-chip { padding: 3px 10px; border-radius: 12px; font-size: 12.5px; font-weight: 600;
-  background: rgba(139,108,255,.12); color: #5b4ea8; }
-[data-theme="dark"] .thanks-chip { background: rgba(139,108,255,.22); color: #c3b2ff; }
+.thanks-wall { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; min-height: 52px; }
+  /* 感谢墙：每个名字是一个正方形 App 图标（紫底白字，圆角像应用图标） */
+  .thanks-chip {
+    flex: 0 0 52px !important;
+    width: 52px !important; min-width: 52px !important; max-width: 52px !important;
+    height: 52px !important; min-height: 52px !important; max-height: 52px !important;
+    display: inline-flex !important; align-items: center !important; justify-content: center !important;
+    padding: 0 3px !important; box-sizing: border-box !important;
+    border-radius: 13px !important;
+    font-size: 12px !important; font-weight: 700 !important; line-height: 1.15 !important;
+    text-align: center !important; word-break: break-all !important; overflow: hidden !important;
+    background: linear-gradient(160deg, #8b6cff 0%, #6b5bc4 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(107, 91, 196, .35), inset 0 1px 0 rgba(255,255,255,.28) !important;
+  }
+  [data-theme="dark"] .thanks-chip {
+    background: linear-gradient(160deg, #8b6cff 0%, #5b4ea8 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255,255,255,.22) !important;
+  }
 [data-theme="dark"] .chk-row { background: rgba(255,255,255,.05); }
 
 .thanks-tip { margin-top: 12px; padding: 10px 12px; border-radius: 10px; font-size: 12.5px;
@@ -7230,7 +7246,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.34';
+const APP_VER = 'v12.37';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -11999,7 +12015,6 @@ function openImportXlsxDialog(preFile) {
       const addRow = document.createElement('div');
       addRow.className = 'book-row book-row-add';
       addRow.innerHTML = `
-        <span class="book-pick-ghost" aria-hidden="true"></span>
         <input class="book-name-inp book-new-inp" type="text" maxlength="24"
                placeholder="输入新账本名称…">
         <span class="book-ops">
@@ -12037,6 +12052,12 @@ function openImportXlsxDialog(preFile) {
       addRow.querySelector('[data-op="add"]').onclick = (ev) => { ev.stopPropagation(); doAdd(); };
       const clrBtn = addRow.querySelector('[data-op="clr"]');
       if (clrBtn) clrBtn.onclick = (ev) => { ev.stopPropagation(); newInp.value = ''; newInp.focus(); };
+      {
+        var gh = document.createElement('span');
+        gh.className = 'book-pick-ghost';
+        gh.setAttribute('aria-hidden', 'true');
+        addLine.appendChild(gh);
+      }
       addLine.appendChild(addRow);
       list.appendChild(addLine);
     };
