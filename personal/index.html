@@ -7411,7 +7411,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.62';
+const APP_VER = 'v12.64';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10716,22 +10716,34 @@ function buildLayoutText() {
   function thanksPlan(name) {
     var raw = String(name || '');
     var n = [...raw].length;
-    var rows, box;
-    if (n <= 2) { rows = 1; box = 46; }
-    else if (n <= 4) { rows = 2; box = 66; }
-    else if (n <= 9) { rows = 3; box = 92; }
-    else { rows = 4; box = 92; }
-    // 纯英文带空格：按词断，行数由词数决定
+    // 三档高度：46（NT 基准）/ 92（2 倍）/ 138（3 倍）
+    // 宽度 = 高度 + 一个字高，保证横向永远比纵向宽，版面看起来是横的
+    var rows, boxH;
+    if (n <= 2) { rows = 1; boxH = 46; }
+    else if (n <= 6) { rows = 2; boxH = 92; }
+    else { rows = 3; boxH = 138; }
     var isLatin = !/[\u4e00-\u9fa5]/.test(raw);
+    // 先按高度和行数估个字号，宽度依赖字号，所以迭代一次
+    var perRow = Math.ceil(n / rows);
+    var cap = boxH === 46 ? 30 : (boxH === 92 ? 21 : 25);
+    var fs = Math.min((boxH - 8) / rows / 1.15, cap);
+    var boxW = Math.round(boxH + fs);
+    // 纯英文带空格：按词断行
     var words = isLatin && /\s/.test(raw) ? raw.split(/\s+/).filter(Boolean) : null;
     if (words && words.length > 1) {
       var perLine = Math.ceil(words.length / rows);
       rows = Math.ceil(words.length / perLine);
       var longestWord = words.reduce(function (a, b) { return b.length > a.length ? b : a; }, '');
-      return { n: n, rows: rows, perRow: perLine * longestWord.length, box: box, raw: raw, words: words };
+      perRow = perLine * longestWord.length;
+      fs = Math.min((boxH - 8) / rows / 1.15, (boxH - 18) / (perRow * 0.72 + 0.15), cap);
+      boxW = Math.round(boxH + fs);
+      return { n: n, rows: rows, perRow: perRow, boxW: boxW, boxH: boxH, fs: Math.max(9, Math.floor(fs)), raw: raw, words: words };
     }
-    var perRow = Math.ceil(n / rows);
-    return { n: n, rows: rows, perRow: perRow, box: box, raw: raw };
+    var fsW = (boxW - 18) / ((isLatin ? perRow * 0.72 : perRow) + 0.15);
+    var fsH = (boxH - 8) / rows / 1.15;
+    fs = Math.floor(Math.min(fsW, fsH, cap));
+    boxW = Math.round(boxH + fs);
+    return { n: n, rows: rows, perRow: perRow, boxW: boxW, boxH: boxH, fs: Math.max(9, fs), raw: raw };
   }
   function thanksWrap(name) {
     var p = thanksPlan(name);
@@ -10755,19 +10767,9 @@ function buildLayoutText() {
     var p = thanksPlan(name);
     var h = thanksHash(p.raw);
     var bg = THANKS_PALETTE[h % THANKS_PALETTE.length];
-    // 字号：横向按每行字数（留 9px×2 边距）算，纵向按行数算，取小的
-    var innerW = p.box - 18;
-    var isLatin = !/[\u4e00-\u9fa5]/.test(p.raw);
-    // 英文字母比汉字窄，一行实际能放更多；但字号仍受同一横向约束，
-    // 只是把「每行字数」按 0.62 折算成等效汉字宽度
-    var perRowEff = isLatin ? Math.max(p.perRow * 0.72, 1) : p.perRow;
-    var fsW = innerW / (perRowEff + 0.15);
-    var fsH = (p.box - 10) / p.rows / 1.16;
-    var fs = Math.floor(Math.min(fsW, fsH));
-    fs = Math.max(9, Math.min(fs, 40));
-    return 'width:' + p.box + 'px;height:' + p.box + 'px;font-size:' + fs + 'px;'
+    return 'width:' + p.boxW + 'px;height:' + p.boxH + 'px;font-size:' + p.fs + 'px;'
          + 'background:' + bg + '!important;color:#ffffff!important;'
-         + 'border-radius:0!important;padding:0 9px!important;line-height:1.1';
+         + 'border-radius:0!important;padding:0 9px!important;line-height:1.08';
   }
 
 function buildImportText() {
