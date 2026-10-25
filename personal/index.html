@@ -7842,6 +7842,25 @@ html:not([data-theme="dark"]) .confirm-mask .sync-box button.ghost {
 /* × 提到最上层，任何头部/吸顶层都盖不住它 */
 html body .confirm-mask .dlg-x { z-index: 30 !important; }
 
+/* 「重置」弹窗：每个危险按钮靠左，紧贴它自己那段说明的上方。
+   竖排、左对齐，说明与按钮成为一个整体，不用在上下之间来回找对应关系。 */
+.confirm-mask .reset-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 6px !important;
+  margin: 14px 0 !important;
+}
+.confirm-mask .reset-item > button {
+  align-self: flex-start !important;
+  margin: 0 !important;
+}
+.confirm-mask .reset-item .reset-note {
+  text-align: left !important;
+  line-height: 1.65 !important;
+  margin: 0 !important;
+}
+
 /* ---- 弹窗滚动条：直接不显示 ----
    `.sync-box` 自己滚动，滚动条贯穿整块卡片高度，从 NT 那一带就开始画，
    像一根棍子把标题戳穿。试过给 thumb 加透明 border-top 想让它从头部下方开始，
@@ -8105,7 +8124,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.43';
+const APP_VER = 'v13.44';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -8624,18 +8643,22 @@ function openConfigDialog() {
   mask.querySelector('#cfg-extract').onclick = () => { mask.remove(); openExtractAccountsDialog(); };
 }
 
-/* 重置：两个选项先让用户选，别一点就直接清库 */
+/* 重置：两个选项先让用户选，别一点就直接清库。
+   版式：每个按钮放在**它自己那段解说上方**、靠左 —— 原来按钮居中并排在最后，
+   说明在上面、按钮在下面，看了说明还得回头找是哪个按钮。 */
 function openResetChoiceDialog() {
   const mask = mkDialog(`
     <div class="sync-title">重置</div>
-    <div class="sync-hint small">
-      <b>重置账户（保留数据）</b>：只把账户表恢复成内置默认，流水 / 分期 / 固定都留着。<br><br>
-      <b>重置账本（清空数据）</b>：全部清空并恢复默认账户，
-      <b style="color:#dc2626">不可撤销</b>，请先「配置 → 复制账户设置」或导出备份。
-    </div>
-    <div class="sync-actions" style="flex-wrap:wrap;gap:8px">
+    <div class="reset-item">
       <button type="button" class="danger-btn" id="rst-keep">重置账户（保留数据）</button>
+      <div class="sync-hint small reset-note">只把账户表恢复成内置默认，流水 / 分期 / 固定都留着。</div>
+    </div>
+    <div class="reset-item">
       <button type="button" class="danger-btn" id="rst-wipe">重置账本（清空数据）</button>
+      <div class="sync-hint small reset-note">全部清空并恢复默认账户，
+        <b style="color:#dc2626">不可撤销</b>，请先「配置 → 复制账户设置」或导出备份。</div>
+    </div>
+    <div class="sync-actions" style="justify-content:flex-start;margin-top:4px">
       <button type="button" class="ghost" data-act="close">关闭</button>
     </div>
   `);
