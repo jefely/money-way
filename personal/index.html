@@ -3810,6 +3810,25 @@ table#fixed-table input:disabled { color: var(--text-light); }
 .tag-c2 { background: #ede9fe; color: #6d28d9; }
 .intro-dim { color: var(--text-light); font-size: 11px; }
 .intro-warn { color: #dc2626; font-weight: 700; }
+/* 简介里的表格：INTJ 版把「操作 / 加减 / 校验 / 虚拟账户 / 速查 / 风险」都做成表，
+   比段落好扫。细线 + 行首加粗，不用斑马纹（这些表通常只有 2~6 行）。
+   **必须限宽**：卡片有 1500+px 宽，表格铺满时每列被撑开、文字缩在左边，
+   反而比段落更难读。820px 是这段文字一行能舒服扫完的上限。 */
+.intro-tbl, .intro-lead { max-width: 820px; }
+.intro-tbl { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.6; margin: 2px 0 4px; table-layout: fixed; }
+.intro-tbl th, .intro-tbl td {
+  text-align: left; padding: 5px 8px; vertical-align: top;
+  border-bottom: 1px solid var(--border-light); word-break: break-word;
+}
+.intro-tbl thead th { font-weight: 700; color: var(--text-muted); font-size: 11.5px; border-bottom: 1px solid var(--border); }
+.intro-tbl tbody th { font-weight: 700; color: var(--text-main); }
+.intro-tbl td { color: var(--text-muted); }
+.intro-tbl code { font-size: 11.5px; }
+.intro-tbl tr:last-child th, .intro-tbl tr:last-child td { border-bottom: none; }
+[data-theme="dark"] .intro-tbl th, [data-theme="dark"] .intro-tbl td { border-bottom-color: #2a2a2a; }
+[data-theme="dark"] .intro-tbl thead th { color: #9a94ad; border-bottom-color: #3a3a3a; }
+[data-theme="dark"] .intro-tbl tbody th { color: #f0edf7; }
+[data-theme="dark"] .intro-tbl td { color: #9a94ad; }
 .intro-foot {
   margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border);
   font-size: 12.5px; font-weight: 700; color: var(--text-main);
@@ -7829,7 +7848,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.11';
+const APP_VER = 'v13.12';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10155,87 +10174,97 @@ function renderAudit(main, footer) {
         </div>
       </div>
     </div>
-    <div class="intro-tagline">紫老头的专属账本，用「NT = 直觉 + 思考」的习惯进行记账。</div>
-    <div class="intro-lead">每一笔钱，都从一个账户<b>转出</b>，进入另一个账户<b>转入</b>。<br>
-      不用记「借 / 贷」，只回答一个问题：<b>这笔钱从哪来，到哪去。</b></div>
+    <div class="intro-tagline">一笔钱 = 一个账户<b>转出</b> + 另一个账户<b>转入</b>。不记借贷，只记方向。</div>
 
-    <div class="intro-sec">简单开始</div>
-    <div class="intro-steps">
-      <div class="step"><span class="sn">1</span><div>先去<b>汇总</b>表查看账户及简码，简码可直接修改。</div></div>
-      <div class="step"><span class="sn">2</span><div>再到<b>流水记录</b>表，在日期栏输入 <code>:</code>（英文冒号）插入当前日期。</div></div>
-      <div class="step"><span class="sn">3</span><div>把对应的<b>简码</b>填进「转出账户」和「转入账户」。</div></div>
-      <div class="step"><span class="sn">4</span><div>填入<b>转账金额</b>，一笔记账就完成了。</div></div>
-    </div>
+    <div class="intro-sec">操作（4 步）</div>
+    <table class="intro-tbl">
+      <thead><tr><th style="width:8%">步</th><th style="width:22%">去哪</th><th>做什么</th></tr></thead>
+      <tbody>
+        <tr><th>1</th><td>汇总</td><td>查账户简码（简码可直接改）</td></tr>
+        <tr><th>2</th><td>流水记录</td><td>日期栏输入 <code>:</code>（英文冒号）插入今天</td></tr>
+        <tr><th>3</th><td>流水记录</td><td>填「转出」「转入」两栏的简码</td></tr>
+        <tr><th>4</th><td>流水记录</td><td>填金额，完成</td></tr>
+      </tbody>
+    </table>
 
-    <div class="intro-sec">简码设置区默认隐藏</div>
+    <div class="intro-sec">加减规则</div>
+    <table class="intro-tbl">
+      <thead><tr><th style="width:42%">账户性质</th><th style="width:29%">转入</th><th style="width:29%">转出</th></tr></thead>
+      <tbody>
+        <tr><th>资产 · 费用</th><td>增加</td><td>减少</td></tr>
+        <tr><th>负债 · 权益 · 收入</th><td>减少</td><td>增加</td></tr>
+      </tbody>
+    </table>
+
+    <div class="intro-sec">校验（必须都为 0）</div>
+    <table class="intro-tbl">
+      <thead><tr><th style="width:26%">校验</th><th>判据</th></tr></thead>
+      <tbody>
+        <tr><th>数据完整性</th><td>转出总额 − 转入总额 = 0</td></tr>
+        <tr><th>会计恒等式</th><td>总资产 − 总负债 − 总权益 = 0
+          <span class="intro-dim">（总权益已含本期收入 − 费用）</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="intro-sec">虚拟账户：钱从账本外进来时</div>
     <div class="intro-lead" style="margin-bottom:8px">
-      「类型 / 分类」两列默认收起。点「账户名称」左边的 <b>▶</b> 展开，
-      再点 <b>◀</b> 收回；展开后简码可以直接改。
+      每笔流水必须有两个对手方。工资是外面发的、本金是自己投的 —— 这两类钱<b>没有来源账户</b>，
+      直接记成「收入 → 卡」会缺一边，「转出总额 = 转入总额」立刻破。
+      解法：预置两个权益类虚拟账户，站在<b>转出</b>那一侧。
+    </div>
+    <table class="intro-tbl">
+      <thead><tr>
+        <th style="width:15%">虚拟账户</th><th style="width:15%">性质</th>
+        <th style="width:22%">承接</th><th style="width:25%">记法</th><th>结果</th>
+      </tr></thead>
+      <tbody>
+        <tr><th>收入汇总</th><td>权益类 · 结转</td><td>工资、红包、退款等<b>赚来的</b>钱</td>
+          <td>收入汇总 转出 → 招行储 转入</td><td>资产 +，权益 +（本期收入）</td></tr>
+        <tr><th>实收资本</th><td>权益类 · 投资</td><td>自己投进去的<b>本金</b></td>
+          <td>实收资本 转出 → 招行储 转入</td><td>资产 +，权益 +（所有者投入）</td></tr>
+      </tbody>
+    </table>
+    <div class="intro-lead">
+      <b>为什么方向是「转出」</b>：权益类账户的规则是转出增加、转入减少。钱离开虚拟池子进入你的卡，
+      池子账面记多一笔 —— 对应「家底多了一笔」。<br>
+      <b>为什么必须分两个</b>：混用会让「本期收入」虚高。工资是赚的、本金是投的，两者属不同权益科目，
+      混记之后收入合计不再是真实收入。<br>
+      <b>边界</b>：虚拟账户没有真实余额，不参与汇总表的余额统计。它唯一的作用是让每笔流水都有对手方，
+      使「转出总额 = 转入总额」永远成立。
     </div>
 
-    <div class="intro-sec">账户性质决定加减</div>
-    <div class="intro-grid">
-      <div><span class="tag tag-a">资产 · 费用</span>转入增加，转出减少</div>
-      <div><span class="tag tag-l">负债 · 权益 · 收入</span>转出增加，转入减少</div>
-    </div>
+    <div class="intro-sec">速查：我想…</div>
+    <table class="intro-tbl">
+      <thead><tr><th style="width:22%">我想</th><th style="width:20%">去哪</th><th>做什么</th></tr></thead>
+      <tbody>
+        <tr><th>记一笔</th><td>流水记录</td><td>日期 <code>:</code> → 填简码 → 填金额</td></tr>
+        <tr><th>查 / 改简码</th><td>汇总</td><td>点「简码」左边的 <b>▶</b> 展开类型 / 分类，再点 <b>◀</b> 收回</td></tr>
+        <tr><th>看账平不平</th><td>校验</td><td>两条校验都为 0</td></tr>
+        <tr><th>换手机</th><td>同步</td><td>先存同步文件 → 新设备「覆盖导入」</td></tr>
+        <tr><th>备份</th><td>同步 / 导出</td><td>同步文件（加密）为主；Excel（明文）仅自留</td></tr>
+        <tr><th>换新版</th><td>本页顶部</td><td>点「检查更新」；只换程序，不动数据</td></tr>
+      </tbody>
+    </table>
 
-    <div class="intro-sec">两条校验，都为 0 才算健康</div>
-    <div class="intro-grid">
-      <div><span class="tag tag-c1">数据完整性</span>转出总额 − 转入总额 = 0</div>
-      <div><span class="tag tag-c2">会计恒等式</span>总资产 − 总负债 − 总权益 = 0<br>
-        <span class="intro-dim">（总权益已含本期收入 − 费用）</span></div>
-    </div>
+    <div class="intro-sec">速查：风险</div>
+    <table class="intro-tbl">
+      <thead><tr><th style="width:20%">风险</th><th style="width:52%">触发条件</th><th>后果</th></tr></thead>
+      <tbody>
+        <tr><th>数据丢失</th><td>清站点数据 / 卸载主屏图标 / 系统存储回收 / iOS 普通网页 7 天未访问</td>
+          <td><span class="intro-warn">不可恢复</span></td></tr>
+        <tr><th>忘记密码</th><td>没有找回机制，密码是唯一凭据</td>
+          <td><span class="intro-warn">不可恢复</span></td></tr>
+        <tr><th>缓存丢失</th><td>任意清理动作</td><td>可自动重建（约 1 MB）</td></tr>
+      </tbody>
+    </table>
 
-    <div class="intro-sec">钱从外面进来时，用「虚拟账户」接住</div>
-    <div class="intro-lead" style="margin-bottom:8px">
-      有的钱不是从别的账户转来的 —— 工资是外面发的，本金是你自己投的。
-      这时没有对手账户可写，所以软件预置了两个<b>虚拟账户</b>专门承接：
-    </div>
-    <div class="intro-virtual">
-      <div class="vrow">
-        <span class="vname">收入汇总</span><span class="vtype">权益类 · 结转</span>
-        <div class="vflow"><b>收入汇总</b> 转出 → <b>储蓄卡</b> 转入</div>
-        <div class="vnote">发工资、收红包。资产和权益同时增加。</div>
-      </div>
-      <div class="vrow">
-        <span class="vname">实收资本</span><span class="vtype">权益类 · 投资</span>
-        <div class="vflow"><b>实收资本</b> 转出 → <b>储蓄卡</b> 转入</div>
-        <div class="vnote">自己投本金进来。同样是资产和权益一起涨。</div>
-      </div>
-    </div>
-    <div class="intro-lead" style="margin-top:8px">
-      为什么都写成「转出」？因为权益类账户的规则是<b>转出增加、转入减少</b> ——
-      钱离开虚拟池子进入你的卡里，池子里的「家底」就记多了一笔。
-      虚拟账户没有真实余额，它的唯一作用是让每笔流水都有对手方，
-      这样「转出总额 = 转入总额」才永远成立。
-    </div>
-
-    <div class="intro-sec">数据自持</div>
-    <div class="intro-lead">账本密码只在你手里，本机数据与同步文件都用它加密，不上传任何服务器。<br>
-      <span class="intro-warn">忘记密码 = 数据永久无法恢复</span>，这是「数据完全属于你」的代价。</div>
-
-    <div class="intro-sec">数据安全与备份（请务必读完）</div>
-    <div class="intro-grid" style="grid-template-columns:1fr">
-      <div><span class="tag tag-a">加密方式</span>账本用你的密码派生密钥（PBKDF2 → AES-GCM）加密后写入本机，
-        加密后的数据没有密码就等于一堆随机字节，<b>任何人也包括开发者都无法恢复</b>。</div>
-      <div><span class="tag tag-l">会被清掉的情况</span>
-        手动「清除网站数据」、卸载主屏图标、系统存储极度紧张时被当临时数据回收。
-        iOS 上普通网页存储有「7 天未访问」策略；<b>已添加到主屏的 App 一般不受这条限制</b>，但系统级清理仍会命中。</div>
-      <div><span class="tag tag-c1">页面缓存 vs 账本数据</span>
-        页面与图标缓存（约 1 MB）丢了没关系 —— 下次联网打开会自动重建，只是启动稍慢一次。
-        <b>真正不可重建的是账本数据本身</b>。App 已在启动时申请持久化存储（Chrome/Android 通常获批），
-        但这只是降低概率，<b>不是备份</b>。</div>
-      <div><span class="tag tag-c2">必须做的备份动作（两种都建议做）</span>
-        <b>① 存成同步文件</b>：工具栏「同步」→「存成同步文件（发到另一台设备）」。
-        得到的文件<b>内容是加密的</b>，没有密码打不开，最适合放网盘 / U 盘 / 发给自己。<br>
-        <b>② 导出 Excel</b>：工具栏「导出」。能直接用表格软件看，
-        但不带密码保护，只适合自己留档，别随手发出去。<br>
-        恢复时：「同步」→「覆盖导入」（整本替换成文件内容，换手机用这个）
-        或「合并导入」（只补本机没有的条目，一条不删）。<br>
-        <b>换手机、清缓存、重置系统之前，一定先存一份同步文件。</b></div>
-      <div><span class="tag tag-a">更新与版本</span>
-        启动一律用本地版本，不会自动联网取新版；要换新版时到本页顶部点 <b>「检查更新」</b>。
-        更新只替换程序，<b>不碰你的账本数据</b>。</div>
+    <div class="intro-sec">数据边界</div>
+    <div class="intro-lead">
+      <b>存储</b>：本机，密码经 PBKDF2 派生密钥、AES-GCM 加密后写入；密码不上传任何服务器。<br>
+      <b>加密强度</b>：没有密码，数据等于一堆随机字节，任何人也包括开发者都无法恢复。<br>
+      <b>持久化</b>：App 启动时已申请持久化存储（Chrome / Android 通常获批），但这只降低被回收的概率，
+      <b>不是备份</b>。<br>
+      <b>唯一可靠的动作</b>：换手机、清缓存、重置系统之前，先存一份同步文件。
     </div>
 
     <div class="intro-foot">你负责记录钱的去向，软件负责让账永远是平的。</div>
