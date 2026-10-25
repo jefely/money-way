@@ -6821,11 +6821,11 @@ input::selection, textarea::selection { background: rgba(139, 108, 255, .70); co
 /* 滚动条：原来 10px + 3px 透明边框，实际可见滑块约 4px，但整条轨道占掉 10px，
    在手机上（尤其流水页横向那一根）显得又粗又抢眼。收到 4px、边框 1px →
    可见滑块约 2px，贴着边缘走。 */
-*::-webkit-scrollbar { width: 4px; height: 4px; background: var(--bg-main); }
+*::-webkit-scrollbar { width: 3px; height: 3px; background: var(--bg-main); }
 *::-webkit-scrollbar-track { background: transparent; border: 0; box-shadow: none; }
 *::-webkit-scrollbar-thumb {
   background: rgba(128,128,128,.55);
-  border-radius: 4px;
+  border-radius: 3px;
   border: 1px solid transparent;
   background-clip: padding-box;
   min-height: 40px;
@@ -7839,6 +7839,21 @@ html[data-theme="dark"] .confirm-mask .sync-box > .sync-sticky {
 }
 /* × 提到最上层，任何头部/吸顶层都盖不住它 */
 html body .confirm-mask .dlg-x { z-index: 30 !important; }
+
+/* ---- 弹窗滚动条：不许压到头部 ---- 
+   .sync-box 自己滚动，滚动条贯穿整块卡片高度，于是从 NT 字标那一带就开始，
+   视觉上像一根棍子戳穿标题。给滑块加一段透明上边框（配合 background-clip），
+   可见部分就从头部下方开始 —— 头部约 96px 高，这里留 79px。 */
+.confirm-mask .sync-box::-webkit-scrollbar { width: 3px !important; height: 3px !important; }
+.confirm-mask .sync-box::-webkit-scrollbar-track { background: transparent !important; }
+.confirm-mask .sync-box::-webkit-scrollbar-thumb {
+  background: rgba(139, 108, 255, .55) !important;
+  background-clip: padding-box !important;
+  border: 0 !important;
+  border-top: 79px solid transparent !important;
+  border-radius: 3px !important;
+}
+.confirm-mask .sync-box::-webkit-scrollbar-thumb:hover { background: rgba(139, 108, 255, .8) !important; background-clip: padding-box !important; }
 </style>
 </head><body>
 
@@ -8049,7 +8064,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.31';
+const APP_VER = 'v13.32';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
