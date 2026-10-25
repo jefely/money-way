@@ -7221,6 +7221,13 @@ html body .thanks-chip .thanks-txt {
   color: inherit !important;
   max-width: 100% !important;
 }
+
+/* 感谢墙文字：字间距略放大，看着不那么挤 */
+html body .thanks-chip .thanks-txt {
+  letter-spacing: .06em !important;
+  padding-left: .06em !important;   /* 抵消最后一字的字距，保持居中 */
+  text-indent: .06em !important;
+}
 </style>
 </head>
 <body>
@@ -7432,7 +7439,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.70';
+const APP_VER = 'v12.71';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10713,17 +10720,22 @@ function buildLayoutText() {
      · 小档 46px，大档 92px（正好翻倍），中档 66px
      · 直角方块（微软风格），左右留 9px 内边距给文字呼吸
      · 配色避开绿色系 */
+  /* 配色取自 2025 趋势色板：
+     Pinterest 年度五色（樱桃红 Cherry Red / 奶油黄 Butter Yellow / 光环靛 Aura Indigo /
+     莳萝绿 Dill Green / 燕麦白 Alpine Oat）+ Pantone 2025 摩卡慕斯棕 Mocha Mousse，
+     绿色按你的要求剔除，另补几个同调性的深色。
+     每项是 [底色, 字色]，浅底配深字，深底配白字。 */
   var THANKS_PALETTE = [
-    '#4c3d80',  // 品牌紫
-    '#2f6fd0',  // 蓝
-    '#c96a2b',  // 橙
-    '#b8433f',  // 红
-    '#8a5aa8',  // 紫罗兰
-    '#a04a6f',  // 玫红
-    '#4a6fa5',  // 灰蓝
-    '#7a5c3e',  // 棕
-    '#556070',  // 石板灰
-    '#a8682c'   // 琥珀
+    ['#C6413A', '#ffffff'],  // 樱桃红 Cherry Red
+    ['#F0CE6B', '#3A2E14'],  // 奶油黄 Butter Yellow（浅底深字）
+    ['#565A9E', '#ffffff'],  // 光环靛 Aura Indigo
+    ['#A47864', '#ffffff'],  // 摩卡慕斯棕 Mocha Mousse
+    ['#E4DBC4', '#3A3527'],  // 燕麦白 Alpine Oat（浅底深字）
+    ['#2F4550', '#ffffff'],  // 深蓝灰
+    ['#C97B4A', '#ffffff'],  // 焦糖橙
+    ['#7B5CA8', '#ffffff'],  // 暮光紫
+    ['#B85C7E', '#ffffff'],  // 木槿玫红
+    ['#4A6B8A', '#ffffff']   // 雾霾蓝
   ];
   function thanksHash(str) {
     var h = 2166136261;
@@ -10797,9 +10809,9 @@ function buildLayoutText() {
   function thanksChipStyle(name) {
     var p = thanksPlan(name);
     var h = thanksHash(p.raw);
-    var bg = THANKS_PALETTE[h % THANKS_PALETTE.length];
+    var pair = THANKS_PALETTE[h % THANKS_PALETTE.length];
     return 'width:' + p.box + 'px;height:' + p.box + 'px;font-size:' + p.fs + 'px;'
-         + 'background:' + bg + '!important;color:#ffffff!important;'
+         + 'background:' + pair[0] + '!important;color:' + pair[1] + '!important;'
          + 'border-radius:0!important;';
   }
 
