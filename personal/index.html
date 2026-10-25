@@ -7287,6 +7287,21 @@ html[data-theme="dark"] .confirm-mask .sync-box > .sync-sticky {
   position: static !important;
   margin: 0 !important;
 }
+
+/* 固定页「操作」列：连行分隔线都不要，只剩一个 × */
+html body table#fixed-table td.col-op,
+html body table#fixed-table th.col-op,
+html body table#fixed-table td.col-ops,
+html body table#fixed-table th.col-ops {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-bottom: 0 !important;
+  border-top: 0 !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  box-shadow: none !important;
+}
 </style>
 </head>
 <body>
@@ -7498,7 +7513,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.87';
+const APP_VER = 'v12.89';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -17962,6 +17977,16 @@ function mwSelfHeal() {
         inner.style.setProperty('height', '0', 'important');
         inner.style.setProperty('background', 'transparent', 'important');
       }
+    });
+
+    // 固定页「操作」列：同样处理，深色纯黑、浅色透明
+    var opBg = isDark() ? '#000000' : 'transparent';
+    document.querySelectorAll('table#fixed-table td.col-op, table#fixed-table th.col-op, table#fixed-table td.col-ops, table#fixed-table th.col-ops').forEach(function (el) {
+      el.style.setProperty('background', opBg, 'important');
+      el.style.setProperty('background-color', opBg, 'important');
+      el.style.setProperty('background-image', 'none', 'important');
+      el.style.setProperty('border', '0', 'important');
+      el.style.setProperty('box-shadow', 'none', 'important');
     });
 
     // 设置页右端「上移 / 删除」两列：深色主题用纯黑，浅色主题透明
