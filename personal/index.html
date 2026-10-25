@@ -7149,7 +7149,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.20';
+const APP_VER = 'v12.21';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -17278,15 +17278,28 @@ function mwSelfHeal() {
       b.style.setProperty('font-weight', '400', 'important');
     });
 
-    // 表格删除 ×（流水表 / 设置页）
+    // 表格删除 ×（流水表 / 设置页）：和账本区同一尺寸
     document.querySelectorAll('table.grid .row-del').forEach(function (b) {
+      b.style.setProperty('width', '20px', 'important');
+      b.style.setProperty('min-width', '20px', 'important');
+      b.style.setProperty('max-width', '20px', 'important');
+      b.style.setProperty('height', '20px', 'important');
+      b.style.setProperty('min-height', '20px', 'important');
+      b.style.setProperty('max-height', '20px', 'important');
+      b.style.setProperty('padding', '0', 'important');
+      b.style.setProperty('margin', '0 auto', 'important');
       b.style.setProperty('background', 'transparent', 'important');
       b.style.setProperty('background-image', 'none', 'important');
       b.style.setProperty('border', '0', 'important');
       b.style.setProperty('border-radius', '0', 'important');
       b.style.setProperty('box-shadow', 'none', 'important');
       b.style.setProperty('color', ink, 'important');
-      b.style.setProperty('opacity', '0.55', 'important');
+      b.style.setProperty('opacity', '0.6', 'important');
+      b.style.setProperty('font-size', '18px', 'important');
+      b.style.setProperty('line-height', '20px', 'important');
+      b.style.setProperty('display', 'inline-flex', 'important');
+      b.style.setProperty('align-items', 'center', 'important');
+      b.style.setProperty('justify-content', 'center', 'important');
     });
 
     // 账本区 ×
@@ -17316,14 +17329,28 @@ function mwSelfHeal() {
       b.style.setProperty('justify-content', 'center', 'important');
     });
 
-    // 上移 ▲
+    // 上移 ▲：无边框无底色、纯黑白、尺寸和 × 一致
     document.querySelectorAll('table.grid .pin-btn').forEach(function (b) {
+      b.style.setProperty('width', '20px', 'important');
+      b.style.setProperty('min-width', '20px', 'important');
+      b.style.setProperty('max-width', '20px', 'important');
+      b.style.setProperty('height', '20px', 'important');
+      b.style.setProperty('min-height', '20px', 'important');
+      b.style.setProperty('max-height', '20px', 'important');
+      b.style.setProperty('padding', '0', 'important');
+      b.style.setProperty('margin', '0 auto', 'important');
       b.style.setProperty('background', 'transparent', 'important');
+      b.style.setProperty('background-image', 'none', 'important');
       b.style.setProperty('border', '0', 'important');
       b.style.setProperty('border-radius', '0', 'important');
       b.style.setProperty('box-shadow', 'none', 'important');
       b.style.setProperty('color', ink, 'important');
-      b.style.setProperty('opacity', '0.55', 'important');
+      b.style.setProperty('opacity', '0.6', 'important');
+      b.style.setProperty('font-size', '14px', 'important');
+      b.style.setProperty('line-height', '20px', 'important');
+      b.style.setProperty('display', 'inline-flex', 'important');
+      b.style.setProperty('align-items', 'center', 'important');
+      b.style.setProperty('justify-content', 'center', 'important');
     });
 
     // 账本方形勾选：纯黑/纯白边框，选中填满
@@ -17350,9 +17377,13 @@ function mwSelfHeal() {
     document.querySelectorAll('table.grid input.fixed-chk[type="checkbox"]').forEach(function (cb) {
       cb.style.setProperty('appearance', 'none', 'important');
       cb.style.setProperty('-webkit-appearance', 'none', 'important');
-      cb.style.setProperty('width', '14px', 'important');
-      cb.style.setProperty('height', '14px', 'important');
-      cb.style.setProperty('margin', '0 4px', 'important');
+      cb.style.setProperty('width', '13px', 'important');
+      cb.style.setProperty('min-width', '13px', 'important');
+      cb.style.setProperty('max-width', '13px', 'important');
+      cb.style.setProperty('height', '13px', 'important');
+      cb.style.setProperty('min-height', '13px', 'important');
+      cb.style.setProperty('max-height', '13px', 'important');
+      cb.style.setProperty('margin', '0 2px', 'important');
       cb.style.setProperty('border', '1px solid ' + ink, 'important');
       cb.style.setProperty('border-radius', '0', 'important');
       cb.style.setProperty('box-shadow', 'none', 'important');
