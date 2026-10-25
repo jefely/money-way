@@ -6219,7 +6219,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.51';
+const APP_VER = 'v11.53';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -9037,89 +9037,6 @@ function fmtOpening(v) {
   return sign + Math.abs(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-/* 设置页：账本设置（账户的类型 / 分类 / 简码 / 名称 / 期初） */
-function renderSettings(main, footer) {
-  const bar1 = document.createElement('div');
-  bar1.className = 'toolbar flow-bar';
-  bar1.innerHTML = '<span class="flow-title">账本设置</span>';
-  main.appendChild(bar1);
-
-  const wrap = document.createElement('div');
-  wrap.className = 'grid-wrap';
-  const table = document.createElement('table');
-  table.className = 'grid set-table'; table.id = 'settings-table';
-  table.innerHTML = `
-    <thead><tr>
-      <th class="col-seq">序</th>
-      <th class="col-cat">类型</th>
-      <th class="col-sub">分类</th>
-      <th class="col-code">简码</th>
-      <th class="col-name">账户名称</th>
-      <th class="col-open">期初金额</th>
-      <th class="col-move" title="点 ▲ 与同类型上一行交换位置">上移</th>
-      <th class="col-del"></th>
-    </tr></thead>
-    <tbody></tbody>`;
-  const tbody = table.querySelector('tbody');
-  const order = ['资产类', '负债类', '收入类', '权益类', '费用类'];
-  const list = state.accounts.slice().sort((a, b) => {
-    const ia = order.indexOf(a.cat || ''), ib = order.indexOf(b.cat || '');
-    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
-  });
-  let n = 1;
-  for (const a of list) {
-    const tr = document.createElement('tr');
-    tr.dataset.acc = a.name || '';
-    if (a.id) tr.dataset.id = a.id;
-    tr.innerHTML =
-      '<td class="col-seq">' + (n++) + '</td>' +
-      '<td class="col-cat">' + mwEsc(a.cat || '') + '</td>' +
-      '<td class="col-sub">' + mwEsc(a.sub || '') + '</td>' +
-      '<td class="col-code">' + mwEsc(a.code || '') + '</td>' +
-      '<td class="col-name">' + mwEsc(a.name || '') + '</td>' +
-      '<td class="col-open">' + fmtOpening(a.opening) + '</td>' +
-      '<td class="col-move"><button type="button" class="pin-btn" title="上移：与同类型上一行交换位置">▲</button></td>' +
-      '<td class="col-del"><button type="button" class="row-del" title="删除账户">×</button></td>';
-    const pin = tr.querySelector('.pin-btn');
-    if (pin) pin.onclick = (ev) => { ev.stopPropagation(); pinAccountToTop(a.id, 'settings-table'); };
-    const del = tr.querySelector('.row-del');
-    if (del) del.onclick = () => {
-      if (!confirm('删除账户「' + (a.name || '') + '」？\n流水里用到这个名字的行会变成对不上的名称。')) return;
-      state.accounts = state.accounts.filter(x => x !== a);
-      save(); render(); toast('已删除账户 ' + (a.name || ''));
-    };
-    tbody.appendChild(tr);
-  }
-  wrap.appendChild(table);
-  main.appendChild(wrap);
-
-  // 和流水页同一套：colgroup 列宽（可拖、可持久化、总宽 = 各列之和）
-  initColResize(table, 'settings');
-}
-
-/* 统计页：分类 / 汇总 两个子按钮，直接并入 bar1（排在「清空」前面） */
-function renderStats(main, footer) {
-  if (statsSub === 'sum') renderSummary(main, footer);
-  else renderCat(main, footer);
-
-  const bar1 = main.querySelector('.toolbar.bar1');
-  if (!bar1) return;
-  const grp = document.createElement('span');
-  grp.className = 'stats-sub';
-  grp.innerHTML =
-    '<button type="button" class="ghost plan-btn" data-s="cat"'
-      + (statsSub === 'cat' ? ' data-active="true"' : '') + '>分类</button>' +
-    '<button type="button" class="ghost plan-btn" data-s="sum"'
-      + (statsSub === 'sum' ? ' data-active="true"' : '') + '>汇总</button>';
-  const clearBtn = [].slice.call(bar1.querySelectorAll('button'))
-    .find(b => /清空/.test(b.textContent || ''));
-  if (clearBtn) bar1.insertBefore(grp, clearBtn);
-  else bar1.appendChild(grp);
-  grp.querySelectorAll('button').forEach(b => {
-    b.onclick = () => { statsSub = b.dataset.s; render(); };
-  });
-}
-
 function renderCat(main, footer) {
   const range = catRangeOf();
 
@@ -11768,8 +11685,8 @@ function render() {
   footer.innerHTML = '<span id="footer-text"></span>';
 
   if (currentTab === 'flow') renderFlow(main, footer);
-  else if (currentTab === 'cat') renderStats(main, footer);
-  else if (currentTab === 'settings') renderSettings(main, footer);
+  else if (currentTab === 'cat') renderCat(main, footer);
+  else if (currentTab === 'settings') renderSummary(main, footer);
   else if (currentTab === 'install') renderInstall(main, footer);
   else if (currentTab === 'fixed') renderFixed(main, footer);
   else if (currentTab === 'query') renderQuery(main, footer);
@@ -11777,7 +11694,7 @@ function render() {
   else if (currentTab === 'money') renderMoneyWay(main, footer);
 
   // 数据体检：标红重复/异常项（flow 和 summary 页才有可标的地方）
-  if (currentTab === 'flow' || (currentTab === 'cat' && statsSub === 'sum')) {
+  if (currentTab === 'flow' || currentTab === 'settings') {
     try { applyDataIssues(); } catch (e) {}
   }
   // ③ 还原：本页每个滚动容器逐个还原（查询页有 3 个各带滚动条的面板）
@@ -12549,7 +12466,7 @@ function renderSummary(main, footer) {
 
   // 统一工具栏：账户汇总 | 全部 清空 区间 年份 月份 [年]
   const { bar1, bar2 } = buildRangeToolbar({
-    title: '账户汇总',
+    title: '账本设置',
     mode: summaryMode,
     year: summaryMode === 'year' ? summaryYear : summaryMonth.year,
     month: summaryMonth.month,
@@ -13305,7 +13222,7 @@ window.addEventListener('resize', () => {
   const nowNarrow = window.innerWidth < 768;
   if (nowNarrow !== _wasNarrow) { _wasNarrow = nowNarrow; render(); return; }
   if (currentTab === 'flow') syncFlowTitleWidth();
-  if (currentTab === 'cat' && statsSub === 'sum') { syncGridRight(); applySummarySticky(); }
+  if (currentTab === 'settings') { syncGridRight(); applySummarySticky(); }
 });
 
 function bindQuerySection(sec, idx, footer) {
