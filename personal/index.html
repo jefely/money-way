@@ -5035,18 +5035,17 @@ table.install-table thead th.col-month {
     display: inline-flex !important; align-items: center !important; justify-content: center !important;
     box-sizing: border-box !important;
     padding: 2px 3px !important;
-    border-radius: 14px !important;
+    border-radius: 0 !important;
     font-weight: 800 !important; line-height: 1.08 !important;
-    text-align: center !important; word-break: break-word !important;
+    text-align: center !important; word-break: keep-all !important; overflow-wrap: normal !important;
     overflow: hidden !important; letter-spacing: 0 !important;
     background: #4c3d80 !important;
     color: #ffffff !important;
-    box-shadow: 0 2px 6px rgba(40, 30, 70, .45), inset 0 1px 0 rgba(255,255,255,.16) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .28) !important;
   }
   [data-theme="dark"] .thanks-chip {
-    background: #4c3d80 !important;
     color: #ffffff !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255,255,255,.14) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .5) !important;
   }
 [data-theme="dark"] .chk-row { background: rgba(255,255,255,.05); }
 
@@ -7355,7 +7354,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.52';
+const APP_VER = 'v12.56';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10604,18 +10603,23 @@ function buildLayoutText() {
     return t || '匿名';
   }
 
-  /* 感谢墙图标：三档大小（大 = 小的 2 倍）+ 按名字哈希取色 + 每 5 字断行
-     · 用名字做哈希种子，同一个人每次打开都是同一个颜色，不会乱闪
-     · 大 92px / 中 66px / 小 46px，最大与最小正好 2 倍 */
+  /* 感谢墙图标
+     · 档位由「每行放几个字」决定：字数 ÷ 2 / ÷ 3 / ÷ 4 分别对应小 / 中 / 大三档
+       n<=2 → 1 行小档;  n=3..4 → 2 行中档;  n=5..9 → 3 行大档;  n>=10 → 4 行大档
+     · 小档 46px，大档 92px（正好翻倍），中档 66px
+     · 直角方块（微软风格），左右留 9px 内边距给文字呼吸
+     · 配色避开绿色系 */
   var THANKS_PALETTE = [
-    ['#4c3d80', '#ffffff'],  // 品牌紫
-    ['#2f6fd0', '#ffffff'],  // 蓝
-    ['#2f9e6e', '#ffffff'],  // 绿
-    ['#c96a2b', '#ffffff'],  // 橙
-    ['#b8433f', '#ffffff'],  // 红
-    ['#2a9d9a', '#ffffff'],  // 青
-    ['#a04a8f', '#ffffff'],  // 洋红
-    ['#6b7a2f', '#ffffff']   // 橄榄
+    '#4c3d80',  // 品牌紫
+    '#2f6fd0',  // 蓝
+    '#c96a2b',  // 橙
+    '#b8433f',  // 红
+    '#8a5aa8',  // 紫罗兰
+    '#a04a6f',  // 玫红
+    '#4a6fa5',  // 灰蓝
+    '#7a5c3e',  // 棕
+    '#556070',  // 石板灰
+    '#a8682c'   // 琥珀
   ];
   function thanksHash(str) {
     var h = 2166136261;
@@ -10625,56 +10629,62 @@ function buildLayoutText() {
     }
     return h >>> 0;
   }
-  /* 断行规则：
-       · 中文每 5 字一行（10 字 → 5/5，15 字 → 5/5/5，16 字 → 5/5/5/1）
-       · 英文/数字按空格断词，绝不把一个单词劈成两半 */
-  function thanksWrap(name) {
+  /* 每行字数按档位走：小档 1 行、中档 2 行、大档 3 或 4 行 */
+  function thanksPlan(name) {
     var raw = String(name || '');
-    var chars = [...raw];
-    if (chars.length <= 5) return esc(raw);
-    // 含空格且以拉丁字母为主 → 按词断
-    var latinOnlyWord = !/\s/.test(raw) && !/[\u4e00-\u9fa5]/.test(raw);
-    if (latinOnlyWord) return esc(raw);   // 单个英文词整体不拆，靠字号收
-    if (/\s/.test(raw) && !/[\u4e00-\u9fa5]/.test(raw)) {
-      var words = raw.split(/\s+/).filter(Boolean);
-      var rows = [], cur = '';
-      words.forEach(function (w) {
-        if (!cur) { cur = w; return; }
-        if ((cur + ' ' + w).length <= 8) { cur += ' ' + w; }
-        else { rows.push(cur); cur = w; }
-      });
-      if (cur) rows.push(cur);
-      return rows.map(esc).join('<br>');
+    var n = [...raw].length;
+    var rows, box;
+    if (n <= 2) { rows = 1; box = 46; }
+    else if (n <= 4) { rows = 2; box = 66; }
+    else if (n <= 9) { rows = 3; box = 92; }
+    else { rows = 4; box = 92; }
+    // 纯英文带空格：按词断，行数由词数决定
+    var isLatin = !/[\u4e00-\u9fa5]/.test(raw);
+    var words = isLatin && /\s/.test(raw) ? raw.split(/\s+/).filter(Boolean) : null;
+    if (words && words.length > 1) {
+      var perLine = Math.ceil(words.length / rows);
+      rows = Math.ceil(words.length / perLine);
+      var longestWord = words.reduce(function (a, b) { return b.length > a.length ? b : a; }, '');
+      return { n: n, rows: rows, perRow: perLine * longestWord.length, box: box, raw: raw, words: words };
     }
+    var perRow = Math.ceil(n / rows);
+    return { n: n, rows: rows, perRow: perRow, box: box, raw: raw };
+  }
+  function thanksWrap(name) {
+    var p = thanksPlan(name);
+    if (p.rows === 1) return esc(p.raw);
+    if (p.words) {
+      var perLine = Math.ceil(p.words.length / p.rows);
+      var rows2 = [];
+      for (var w = 0; w < p.words.length; w += perLine) {
+        rows2.push(esc(p.words.slice(w, w + perLine).join(' ')));
+      }
+      return rows2.join('<br>');
+    }
+    var chars = [...p.raw];
     var out = [];
-    for (var i = 0; i < chars.length; i += 5) out.push(esc(chars.slice(i, i + 5).join('')));
+    for (var i = 0; i < chars.length; i += p.perRow) {
+      out.push(esc(chars.slice(i, i + p.perRow).join('')));
+    }
     return out.join('<br>');
   }
   function thanksChipStyle(name) {
-    var raw = String(name || '');
-    var n = [...raw].length;
-    var h = thanksHash(raw);
-    var pair = THANKS_PALETTE[h % THANKS_PALETTE.length];
-    // 档位：字数多的强制上大档，保证装得下；字数少的按哈希分三档做节奏
-    var tier;
-    if (n >= 11) tier = 2;
-    else if (n >= 7) tier = 1 + (h % 2);   // 中或大
-    else tier = h % 3;
-    var box = tier === 2 ? 92 : (tier === 1 ? 66 : 46);
-    var rows = Math.max(1, Math.ceil(n / 5));
-    var perRow = Math.min(n, 5);          // 这一行实际放几个字
-    // 横向：按实际每行字数算（1 个字的方块就该放大字）
-    // 纵向：rows 行，行高约 1.18 倍字号
-    var fsW = box / (perRow + 0.25);
-    var fsH = box / rows / 1.18;
+    var p = thanksPlan(name);
+    var h = thanksHash(p.raw);
+    var bg = THANKS_PALETTE[h % THANKS_PALETTE.length];
+    // 字号：横向按每行字数（留 9px×2 边距）算，纵向按行数算，取小的
+    var innerW = p.box - 18;
+    var isLatin = !/[\u4e00-\u9fa5]/.test(p.raw);
+    // 英文字母比汉字窄，一行实际能放更多；但字号仍受同一横向约束，
+    // 只是把「每行字数」按 0.62 折算成等效汉字宽度
+    var perRowEff = isLatin ? Math.max(p.perRow * 0.72, 1) : p.perRow;
+    var fsW = innerW / (perRowEff + 0.15);
+    var fsH = (p.box - 10) / p.rows / 1.16;
     var fs = Math.floor(Math.min(fsW, fsH));
-    // 英文/数字比中文窄，可以再放大一些
-    var latinOnly = !/[\u4e00-\u9fa5]/.test(raw);
-    if (latinOnly) fs = Math.floor(fs * 1.45);
-    fs = Math.max(10, Math.min(fs, 40));
-    return 'width:' + box + 'px;height:' + box + 'px;font-size:' + fs + 'px;'
-         + 'background:' + pair[0] + '!important;color:' + pair[1] + '!important;'
-         + 'line-height:1.08';
+    fs = Math.max(9, Math.min(fs, 40));
+    return 'width:' + p.box + 'px;height:' + p.box + 'px;font-size:' + fs + 'px;'
+         + 'background:' + bg + '!important;color:#ffffff!important;'
+         + 'border-radius:0!important;padding:0 9px!important;line-height:1.1';
   }
 
 function buildImportText() {
