@@ -3941,10 +3941,10 @@ table.grid thead th { overflow: visible !important; }
 table.grid thead th,
 table.query-table thead th,
 table.install-table thead th {
-  height: var(--layout-head-h, 34px);
+  height: var(--layout-head-h, 26px);
   box-sizing: border-box;
 }
-table#fixed-table thead th { height: var(--layout-head-h, 34px) !important; }
+table#fixed-table thead th { height: var(--layout-head-h, 26px) !important; }
 /* ============================================================
    v9.51 用户反馈修正
    ============================================================ */
@@ -7466,6 +7466,27 @@ html[data-theme="dark"] body table#summary-table thead th.col-repay {
   background-image: none !important;
   border-bottom: 1px solid #4a4a4a !important;
 }
+
+/* ============================================================
+   表头行高统一收窄：表头必须比数据行矮
+   ------------------------------------------------------------
+   `th { height: … }` 在表格里只是**建议值**：上下 padding 一撑，
+   实际行高就回到 32px（和数据行一样高，等于没改）。
+   所以这里三件事一起做：
+     · height 取布局变量（默认 26，比 32 的数据行矮 6）
+     · 上下 padding 清零 —— 否则光 padding 就有 14~16px
+     · line-height 钉成同一高度 —— 文字自然垂直居中，不用再靠 padding 撑
+   分期表的表头是「文字/横线/文字」三行结构（th.col-name 等固定 64px），
+   `table.install-table` 不带 .grid，所以不会被这条命中。
+   ============================================================ */
+html body table.grid thead th,
+html body table.query-table > thead > tr.q-head-row > th {
+  height: var(--layout-head-h, 26px) !important;
+  min-height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: var(--layout-head-h, 26px) !important;
+}
 </style>
 </head>
 <body>
@@ -7677,7 +7698,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.05';
+const APP_VER = 'v13.06';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10860,7 +10881,7 @@ function buildLayoutText() {
   const rowHOf = k => L.pageRowH[k] || L.rowH;
   const fontOf = k => L.pageFont[k] || L.fontSize;
   const headFontOf = k => L.pageHeadFont[k] || L.headerFontSize;
-  const headH = L.headerRowH || 34;
+  const headH = L.headerRowH || 26;
   const lines = [];
   lines.push('布局');
   lines.push('');
@@ -17451,7 +17472,7 @@ const LAYOUT_PAGE_NAMES = {
 };
 // tableFont 是老字段（按表字号），保留以兼容旧存档；新代码统一读 pageFont。
 const DEFAULT_LAYOUT = {
-  rowH: 32, fontSize: 15, headerFontSize: 15, tabH: 40, headerRowH: 34,
+  rowH: 32, fontSize: 15, headerFontSize: 15, tabH: 40, headerRowH: 26,
   pageRowH: {}, pageFont: { cat: 13 }, pageHeadFont: {}, tableFont: { cat: 13 },
   // 全局单元格度量：
   //   gripShift 手柄相对列边线的位置（0 = 手柄中心压在边线上，-2 = 左移 2px，2 = 右移 2px）
@@ -17480,8 +17501,7 @@ let layoutCfg = (() => {
       if (Number(o.headerFontSize)) out.headerFontSize = clampFont(o.headerFontSize);
       // 这两项以前读出来就被丢掉了 —— 导入后刷新即失效，看起来就是「改了没反应」
       if (Number(o.tabH)) out.tabH = clampRowH(o.tabH);
-      if (Number(o.headerRowH)) out.headerRowH = clampRowH(o.headerRowH);
-      if (o.gripShift != null) out.gripShift = clampShift(o.gripShift);
+      if (Number(o.headerRowH)) out.headerRowH = clampRowH(o.headerRowH);      if (o.gripShift != null) out.gripShift = clampShift(o.gripShift);
       if (o.padL != null) out.padL = clampPad(o.padL);
       if (o.padR != null) out.padR = clampPad(o.padR);
       if (o.align === 'left' || o.align === 'center') out.align = o.align;
@@ -17500,6 +17520,10 @@ let layoutCfg = (() => {
       out.tableFont = Object.assign({}, out.pageFont);
     }
   } catch (e) {}
+  // 表头行必须比数据行矮（用户明确要求）。
+  // 老存档里 headerRowH 是 34，比 32 的数据行还高；读出来就压到 rowH − 6。
+  // 想整体调高：先调 rowH，表头跟着走。
+  out.headerRowH = Math.min(out.headerRowH, Math.max(20, out.rowH - 6));
   return out;
 })();
 
@@ -17515,7 +17539,7 @@ function applyLayout() {
   r.setProperty('--layout-fs', layoutCfg.fontSize + 'px');
   r.setProperty('--layout-fs-h', layoutCfg.headerFontSize + 'px');
   // 这两项以前解析出来了却没生效：表头行高没有变量、标签栏高度写死在 CSS 里
-  r.setProperty('--layout-head-h', (layoutCfg.headerRowH || 34) + 'px');
+  r.setProperty('--layout-head-h', (layoutCfg.headerRowH || 26) + 'px');
   r.setProperty('--layout-tab-h', (layoutCfg.tabH || 40) + 'px');
   r.setProperty('--fs-tab', layoutCfg.fontSize + 'px');
   // 全局单元格度量：所有表格共用（手柄位置、文字到左右边框的距离）
