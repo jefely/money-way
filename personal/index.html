@@ -6475,15 +6475,22 @@ table#stats-sum-table th.col-name,
 table#stats-sum-table td.col-name {
   text-align: center !important;
 }
+/* 表头：全部居中（金额列也一样）。
+   原来这条把 th 和 td 绑在一起写成 right，于是「当前结余 / 转出 / 转入 /
+   转出历史 / 转入历史」五个表头都贴右边，和其它表头不一致。
+   表头是列名、不是数字，居中才对齐；数字靠右是数据行的事，拆开写。 */
 table#stats-sum-table th.col-bal,
-table#stats-sum-table td.col-bal,
 table#stats-sum-table th.col-out,
-table#stats-sum-table td.col-out,
 table#stats-sum-table th.col-in,
-table#stats-sum-table td.col-in,
 table#stats-sum-table th.col-hout,
+table#stats-sum-table th.col-hin {
+  text-align: center !important;
+}
+/* 数据行：金额靠右 */
+table#stats-sum-table td.col-bal,
+table#stats-sum-table td.col-out,
+table#stats-sum-table td.col-in,
 table#stats-sum-table td.col-hout,
-table#stats-sum-table th.col-hin,
 table#stats-sum-table td.col-hin {
   text-align: right !important;
   padding-right: 8px !important;
@@ -7579,7 +7586,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.01';
+const APP_VER = 'v13.02';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
