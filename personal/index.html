@@ -6535,8 +6535,8 @@ html body .confirm-mask .book-section .book-pick {
   height: 15px !important; min-height: 15px !important; max-height: 15px !important;
   padding: 0 !important; flex: 0 0 15px !important;
   align-self: center !important;
-  border-radius: 3px !important;
-  border: 1.5px solid var(--border) !important;
+  border-radius: 0 !important;
+  border: 1px solid var(--border) !important;
   background: transparent !important;
   box-shadow: none !important;
 }
@@ -6580,6 +6580,39 @@ html body .confirm-mask .book-section .book-pick.on {
 .confirm-mask .sync-box > .sync-head {
   position: sticky; top: 0; z-index: 4;
   background: inherit;
+}
+
+/* ============================================================
+   删除 × 统一：直角、无底色、无边框（和 Windows 窗口按钮一个路数）
+   覆盖流水表、设置页、账单日列等所有 .row-del
+   ============================================================ */
+html body table.grid button.row-del,
+html body table.grid tbody td.col-del > .row-del,
+html body table.grid tbody td.col-bill > .row-del,
+html body table.set-table tbody td.col-del > .row-del {
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  font-weight: 400 !important;
+}
+html body table.grid button.row-del:hover,
+html body table.grid tbody td.col-del > .row-del:hover,
+html body table.grid tbody td.col-bill > .row-del:hover,
+html body table.set-table tbody td.col-del > .row-del:hover {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+/* 设置页 / 流水表的「上移 ▲」也做成直角裸文字，和 × 成对 */
+html body table.set-table tbody td.col-move > .pin-btn,
+html body table.grid tbody td.col-move .pin-btn {
+  border-radius: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }
 </style>
 </head>
@@ -6792,7 +6825,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.04';
+const APP_VER = 'v12.05';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -11476,7 +11509,7 @@ function openImportXlsxDialog(preFile) {
           pk.style.setProperty('flex', '0 0 15px', 'important');
           pk.style.setProperty('align-self', 'center', 'important');
           pk.style.setProperty('padding', '0', 'important');
-          pk.style.setProperty('border-radius', '3px', 'important');
+          pk.style.setProperty('border-radius', '0', 'important');
           pk.style.setProperty('box-sizing', 'border-box', 'important');
           const isOn = pk.classList.contains('on');
           pk.style.setProperty('background', isOn ? '#ffffff' : 'transparent', 'important');
