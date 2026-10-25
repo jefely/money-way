@@ -5366,20 +5366,21 @@ table#summary-table tbody td.col-name {
   background-clip: padding-box;
 }
 /* 逐级抬高，否则后渲染的列会把前面的盖住 */
-/* 冻结列（序 / 类型 / 分类 / 简码）的层级。
-   规则：**冻结的列按从左到右递增**，右边盖左边；
-   不冻结的列（账户名称…）一律 auto，被冻结列盖住。
-   注意表头和数据行要分开：表头单元格必须有 z-index 才能盖住滚上来的数据行，
-   而数据行里不冻结的列必须回 auto，否则横向滚动时会滑过来盖住冻结列。 */
+/* 冻结列（序 / 简码）的层级：只有这两列需要「比普通列高」，右边那列盖左边那列。
+   注意 **表头和数据行要分开处理**：
+   · 表头单元格必须有 z-index，否则盖不住下面滚上来的数据行
+     （曾经把 thead th.col-name 一起设成 auto，结果「账户名称」表头被数据穿透，
+       截图里能看到资产行压在列标上）；
+   · 数据行里不冻结的列必须回 auto，否则横向滚动时「账户名称」会滑过来盖住冻结列。 */
 table#summary-table thead th.col-seq  { z-index: 5; }
-table#summary-table thead th.col-cat  { z-index: 6; }
-table#summary-table thead th.col-sub  { z-index: 7; }
-table#summary-table thead th.col-code { z-index: 8; }
-table#summary-table thead th.col-name { z-index: 4; }
+table#summary-table thead th.col-code { z-index: 6; }
+table#summary-table thead th.col-cat,
+table#summary-table thead th.col-sub,
+table#summary-table thead th.col-name { z-index: 4; }   /* 低于冻结的两列，高于数据行 */
 table#summary-table tbody td.col-seq  { z-index: 2; }
-table#summary-table tbody td.col-cat  { z-index: 3; }
-table#summary-table tbody td.col-sub  { z-index: 4; }
-table#summary-table tbody td.col-code { z-index: 5; }
+table#summary-table tbody td.col-code { z-index: 3; }
+table#summary-table tbody td.col-cat,
+table#summary-table tbody td.col-sub,
 table#summary-table tbody td.col-name { z-index: auto !important; }
 
 /* 导出 / 导入 的行式菜单（和添加、同步弹窗一个观感） */
@@ -7850,11 +7851,6 @@ html:not([data-theme="dark"]) .confirm-mask .sync-box button.ghost {
 /* 头部底色/模糊统一由下面「弹窗头部：吸顶 + 一层遮罩」那一节给。
    这里曾经是「全透明 + backdrop-filter:none」的版本，因为带了 !important，
    会把后面新写的 blur 盖掉（实测 backdropFilter 读回 none），所以整段移除。 */
-/* 设置页折叠的列用 display:none 真正去掉（和统计表同一机制）：
-   width:0 在 table-layout:fixed 下仍占最小宽度，还会把剩余空间摊给别人。 */
-table#summary-table th.folded,
-table#summary-table td.folded { display: none !important; }
-
 /* × 提到最上层，任何头部/吸顶层都盖不住它 */
 html body .confirm-mask .dlg-x { z-index: 30 !important; }
 
@@ -7881,30 +7877,12 @@ table.install-table tbody td.col-name { box-shadow: inset -1px 0 0 var(--border-
 /* ============================================================
    统计·汇总表：折叠「类型 / 分类」+ 冻结「序 / 账户名称」
    ------------------------------------------------------------
-   · 折叠：用 display:none 真正去掉这两列（width:0 在 table-layout:fixed 下
-     浏览器仍会给最小宽度，省下的空间被重分配给最宽的列）。
-   · 冻结：序 + 账户名称。账户名称的 left 等于序的实际宽度，
-     由 syncStatsFreezeLeft() 算，拖列宽时每帧重算。
-   · 折叠按钮绝对定位贴住「账户名称」格左边缘（见文件末尾）。
-   · **单元格不换行 + 行高固定**：统计表每格是纯文本，不锁死的话把列拖窄，
-     文字就折行、行高一路涨上去，相邻列的金额还会和账户名叠在一起
-     （用户截图里「交行储8380」竖成四行、金额压在字上）。
-     设置页那边每格是定高输入框，天生不换行，所以没这问题。
-   · 表格宽度不要再动：v13.52 试过 width:auto + min-width:100%，
-     结果表格总宽被 min-width 锁死，拖动列宽变成「一列变宽、别的列被压回去」，
-     看起来就是列宽调整失效。保持 table.grid 默认的 width:100% 即可。
+   · 折叠：两列收成 0 宽（不是 display:none —— 那样 colgroup 的列数和 th 对不上，
+     initColResize 会把后面所有列的宽度整体错位）。
+   · 冻结：序 + 账户名称。账户名称的 left 等于序的宽度（52px），
+     两列都 sticky，右边那列盖左边那列。
+   · 折叠按钮贴在「账户名称」表头左上角，跟着列一起冻结。
    ============================================================ */
-table#stats-sum-table thead th,
-table#stats-sum-table tbody td {
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
-/* 表头「账户名称」例外：折叠按钮是 absolute 的，overflow:hidden 会把它裁掉（按钮消失） */
-table#stats-sum-table thead th.col-name { overflow: visible !important; }
-table#stats-sum-table thead th { height: var(--layout-head-h, 26px) !important; }
-table#stats-sum-table tbody td { height: var(--layout-row-h, 32px) !important; }
-
 table#stats-sum-table th.folded,
 table#stats-sum-table td.folded {
   /* 用 display:none 真正把列去掉。
@@ -8227,7 +8205,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.58';
+const APP_VER = 'v13.59';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -15231,10 +15209,7 @@ function renderSummary(main, footer) {
     applySummaryPaste(matrix, rowIdx < 0 ? 0 : rowIdx, colIdx);
   });
 
-  /* 折叠态和展开态的「可见列数」不同（14 / 12），各用一份存档，
-     否则折叠时写入的 12 个宽度会被展开时的 14 列逻辑判为「对不上」而回落默认。
-     机制与统计表一致：折叠列 display:none，<col> 由 ensureColgroup 按可见列重建。 */
-  initColResize(table, summaryFold ? 'summaryFold' : 'summary');
+  initColResize(table, 'summary');
   // 账户名称列标题左边的小三角：点一下展开/收起类型、分类、简码三列
   const foldBtn = table.querySelector('.sum-fold-toggle');
   if (foldBtn) {
@@ -15286,30 +15261,15 @@ function summaryBaseWidths() {
 function applySummaryFold() {
   const table = document.getElementById('summary-table');
   if (!table) return;
-  /* 折叠 = 把「类型 / 分类」两列的单元格标成 .folded（CSS display:none），
-     <colgroup> 由 ensureColgroup 按可见列重建。
-     宽度**按列名**从 colWByClass.summary 里取（snapshotClassWidths 在拖动结束时记的），
-     这样折叠/展开两边都拿到「用户拖过的真实值」；一条都没记过才用默认值。
-     以前这套是「宽度写 0 + 落盘永远真实值」，和 initColResize 的存档互相覆盖，
-     展开后就回落到默认宽度。 */
+  const real = summaryBaseWidths();
+  summaryRealW = real.slice();              // 记下真实宽度，折叠只改「视图」
+  const view = real.slice();
+  if (summaryFold) SUMMARY_FOLD_COLS.forEach(ci => { view[ci] = 0; });
+  applyWidths(table, 'summary', view);
+  // 落盘的永远是真实宽度（applyWidths 会用传进去的 view 覆盖 colWidths）
+  colWidths.summary = real;
   table.classList.toggle('sum-cols-folded', summaryFold);
-  table.querySelectorAll('th.col-cat, td.col-cat, th.col-sub, td.col-sub')
-    .forEach(el => el.classList.toggle('folded', summaryFold));
-
-  const key = summaryFold ? 'summaryFold' : 'summary';
-  const dft = DEFAULT_COL_WIDTHS[key] || [];
-  /* 两份列名宽度合并读：折叠态的调整记在 .summaryFold、展开态的记在 .summary，
-     而按列名存天然不受列数影响 —— 合并起来，无论当前是哪种状态，
-     都能拿到用户在这两处调过的宽度。 */
-  const byName = Object.assign({}, colWByClass.summaryFold || {}, colWByClass.summary || {});
-  const visible = Array.from(table.querySelectorAll('thead th'))
-    .filter(th => !th.classList.contains('folded'));
-  const px = visible.map((th, i) => {
-    const k = colKeyOf(th);
-    if (k && byName[k] != null) return byName[k];
-    return dft[i] != null ? dft[i] : (dft[dft.length - 1] || 100);
-  });
-  applyWidths(table, key, px);
+  // 三角形按钮的方向由 .sum-cols-folded 控制，这里只同步提示文字
   const btn = table.querySelector('.sum-fold-toggle');
   if (btn) btn.title = summaryFold ? '展开类型 / 分类' : '收起类型 / 分类';
   applySummarySticky();
@@ -15345,15 +15305,7 @@ function applySummarySticky() {
          只要再给它写 left 就等于同时横向冻结了 —— 所以 col-name 绝不能收到 left，
          否则「账户名称」也会被一起冻住（这正是上一版冻结成三列的原因）。 */
   const ACCUM_CLS = ['col-seq', 'col-cat', 'col-sub', 'col-code', 'col-name'];
-  /* 冻结哪些列：
-     · 折叠态（类型/分类收成 0 宽）→ 只冻「序 + 简码」；
-     · 展开态 → 「序 / 类型 / 分类 / 简码」一起冻。
-       展开后如果只冻序和简码，横向滚动时夹在中间的类型/分类会被推出屏幕，
-       简码又停在中间，整行读起来像「各列各自动」。
-     注意 col-name 永远不进这个集合：它一旦有 left 就等于也被横向冻结。 */
-  const FROZEN_CLS = summaryFold
-    ? ['col-seq', 'col-code']
-    : ['col-seq', 'col-cat', 'col-sub', 'col-code'];
+  const FROZEN_CLS = ['col-seq', 'col-code'];
   const measureAndApply = () => {
     const ths = table.querySelectorAll('thead th');
     if (!ths.length) return;
@@ -18121,9 +18073,7 @@ const DEFAULT_COL_WIDTHS = {
   statsSum: [52, 84, 84, 150, 120, 100, 100, 100, 100],
   /* 折叠态是 7 列（去掉类型/分类），单独一套存档 key，避免和 9 列的那份互相覆盖 ——
      混在一起时折叠会写入 7 个值、展开时 9 列对不上就回落默认（账户名称被压成 84）。 */
-  statsSumFold: [52, 150, 120, 100, 100, 100, 100],
-  /* 设置页折叠态可见 12 列（去掉「类型 / 分类」），与展开态的 14 列各存一份 */
-  summaryFold: [52, 73, 127, 0, 0, 0, 0, 0, 137, 34, 34, 64]
+  statsSumFold: [52, 150, 120, 100, 100, 100, 100]
 };
 
 // 列宽的 localStorage 键。v3 统一存像素；v1 同格式可直接用；v2 曾经存过比例（×1000 折算）。
@@ -18339,13 +18289,7 @@ function colHeadRow(table) {
 function ensureColgroup(table) {
   const headRow = colHeadRow(table);
   if (!headRow) return null;
-  /* 折叠的列（display:none 的 .folded）不参与列宽分配：
-     它还在 thead 里，但已经不占位了。如果 colgroup 仍按「所有 th」的数量建，
-     就会多出几个没有宽度的 <col>，table-layout:fixed 会拿剩余宽度乱分 ——
-     表现就是拖动列宽时列「乱跳、被压进左边消失」。 */
-  const ths = Array.from(headRow.querySelectorAll('th'))
-    .filter(th => !th.classList.contains('folded'));
-  const n = ths.length;
+  const n = headRow.querySelectorAll('th').length;
   let cg = table.querySelector('colgroup');
   if (cg && cg.children.length === n) return cg;
   if (cg) cg.remove();
@@ -18355,7 +18299,8 @@ function ensureColgroup(table) {
   return cg;
 }
 
-// 列宽下限（像素）。之前定义在别处，被重写时弄丢了，这里补回。const COL_MIN = 36;   // 列宽下限（再窄就点不到单元格了）
+// 列宽下限（像素）。之前定义在别处，被重写时弄丢了，这里补回。
+const COL_MIN = 36;   // 列宽下限（再窄就点不到单元格了）
 let _widthRaf = 0;            // 列宽拖拽的 rAF 句柄
 let _pendingWidths = null;    // 本帧待写入的列宽
 
@@ -18378,16 +18323,8 @@ function applyWidths(table, key, px) {
     w.forEach((v, i) => { if (cols[i]) cols[i].style.width = (v / sum * 100).toFixed(4) + '%'; });
     table.style.width = '100%';
   } else {
-    /* 表格总宽必须等于**实际写进去的列宽之和**。
-       之前直接用 w.reduce(...)，而 w 可能比 colgroup 的 <col> 多
-       （统计表折叠后 colgroup 只有 7 个 col，w 仍有 9 个值）——
-       于是表格宽 922px、列宽只写了 722px，多出的 200px 被
-       table-layout:fixed 按比例摊回各列：拖动任意一列，每一列都跟着动。 */
-    let sum = 0;
-    w.forEach((v, i) => {
-      if (cols[i]) { cols[i].style.width = v + 'px'; sum += v; }
-    });
-    table.style.width = Math.round(sum) + 'px';
+    w.forEach((v, i) => { if (cols[i]) cols[i].style.width = v + 'px'; });
+    table.style.width = w.reduce((a, b) => a + b, 0) + 'px';
   }
   table.classList.add('cols-custom');
   colWidths[key] = w;
@@ -18453,10 +18390,7 @@ function initColResize(table, key) {
   ensureColgroup(table);
   const ths = Array.from(headRow.querySelectorAll('th'));
   // 优先按「列名」还原 —— 这样折叠/展开导致列数变化时，手动调过的宽度也不会丢。
-  // 但 **summary 例外**：它有自己的折叠宽度逻辑（summaryBaseWidths / applySummaryFold，
-  // 折叠只改视图、落盘永远是真实宽度）。如果这里再用按列名的数组覆盖 colWidths.summary，
-  // 那套逻辑就被绕过去了 —— 表现就是「展开折叠之后，简码/账户名称/期初的宽度回到默认」。
-  const byCls = (key === 'summary') ? null : classWidthsFor(table, key);
+  const byCls = classWidthsFor(table, key);
   if (byCls) {
     colWidths[key] = byCls;
     applyWidths(table, key, byCls);
