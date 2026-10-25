@@ -6788,7 +6788,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.96';
+const APP_VER = 'v12.01';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10070,18 +10070,28 @@ function parseImportText(text) {
     if (/^\[账户\]/.test(line)) { section = 'acc'; continue; }
     if (/^\[流水\]/.test(line)) { section = 'flow'; continue; }
     if (section === null) continue;
+      // 跳过表头行（用户把「类型，分类，…」「日期，转出，…」也一起粘进来了）
+      if (/^(类型|日期)[，,、]/.test(line) || /^(类型|日期)$/.test(line)) continue;
     // 分隔符：优先中文逗号，其次英文逗号、制表符
     const parts = line.split(/[，,\t]/).map(s => s.trim());
     while (parts.length && parts[parts.length - 1] === '') parts.pop();
     if (!parts.length) continue;
 
     if (section === 'acc') {
-      // 类型，分类，简码，名称，期初
+      // 类型，分类，简码，名称，[期初]，[账单日]，[还款日]
+      // 前 4 项必填；后面全可选。要跳过期初直接写账单日，就用空值占位：
+      //   负债类，信用，JHX，交行信1，，8，3，
       if (parts.length < 4) continue;
       const cat = parts[0], sub = parts[1] || '', code = parts[2] || '', name = parts[3] || '';
-      const opening = parts.length >= 5 ? nums(parts[4]) : 0;
-      if (!name) continue;
-      accounts.push({ cat, sub, code, name, opening });
+      if (!cat || !name) continue;
+      const opening = (parts.length >= 5 && parts[4] !== '') ? nums(parts[4]) : 0;
+      const billDay  = (parts.length >= 6 && parts[5] !== '') ? parseInt(parts[5], 10) : null;
+      const repayDay = (parts.length >= 7 && parts[6] !== '') ? parseInt(parts[6], 10) : null;
+      accounts.push({
+        cat, sub, code, name, opening,
+        billDay:  (billDay  != null && !isNaN(billDay))  ? billDay  : null,
+        repayDay: (repayDay != null && !isNaN(repayDay)) ? repayDay : null
+      });
     } else {
       // 日期，转出账户，转入账户，金额，备注
       if (parts.length < 4) continue;
@@ -11726,7 +11736,9 @@ function openImportTextDialog() {
       if (existing.has(a.name)) { skippedAcc++; continue; }
       const acc = {
         id: uid(), cat: a.cat, sub: a.sub, code: a.code, name: a.name,
-        opening: a.opening, billDay: '', repayDay: ''
+          opening: trimNum(a.opening),
+          billDay: a.billDay != null ? String(a.billDay) : '',
+          repayDay: a.repayDay != null ? String(a.repayDay) : ''
       };
       state.accounts.push(acc);
       existing.set(a.name, acc);
