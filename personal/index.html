@@ -5034,9 +5034,9 @@ table.install-table thead th.col-month {
   .thanks-chip {
     display: inline-flex !important; align-items: center !important; justify-content: center !important;
     box-sizing: border-box !important;
-    padding: 2px 4px !important;
+    padding: 2px 3px !important;
     border-radius: 14px !important;
-    font-weight: 800 !important; line-height: 1.1 !important;
+    font-weight: 800 !important; line-height: 1.08 !important;
     text-align: center !important; word-break: break-word !important;
     overflow: hidden !important; letter-spacing: 0 !important;
     background: #4c3d80 !important;
@@ -7324,7 +7324,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.46';
+const APP_VER = 'v12.51';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7745,7 +7745,7 @@ function openExtractAccountsDialog() {
   const missing = names.filter(nm => !existing.has(nm)).sort((a, b) => a.localeCompare(b, 'zh'));
 
   const listHtml = missing.length
-    ? missing.map(nm => `<span class="thanks-chip" style="${thanksChipStyle(nm)}">${esc(nm)}</span>`).join('')
+    ? missing.map(nm => `<span class="thanks-chip" style="${thanksChipStyle(nm)}">${thanksWrap(nm)}</span>`).join('')
     : '<span class="sync-hint small">流水里用到的账户名都已经在账户表里了。</span>';
 
   mkDialog(`
@@ -8182,7 +8182,7 @@ async function openThanksDialog() {
     const data = await res.json();
     const list = Array.isArray(data.donors) ? data.donors : [];
     mask.querySelector('#thanks-wall').innerHTML = list.length
-      ? list.map(d => `<span class="thanks-chip" style="${thanksChipStyle(thanksName(d))}">${esc(thanksName(d))}</span>`).join('')
+      ? list.map(d => `<span class="thanks-chip" style="${thanksChipStyle(thanksName(d))}">${thanksWrap(thanksName(d))}</span>`).join('')
       : '<span class="sync-hint small">还没有人，等第一位朋友。</span>';
   } catch (e) {
     mask.querySelector('#thanks-wall').innerHTML = '<span class="sync-hint small">离线，暂时取不到感谢墙</span>';
@@ -8203,7 +8203,7 @@ async function loadThanksWall() {
     const data = await res.json();
     const list = Array.isArray(data.donors) ? data.donors : [];
     wall.innerHTML = list.length
-      ? list.map(d => `<span class="thanks-chip" style="${thanksChipStyle(thanksName(d))}">${esc(thanksName(d))}</span>`).join('')
+      ? list.map(d => `<span class="thanks-chip" style="${thanksChipStyle(thanksName(d))}">${thanksWrap(thanksName(d))}</span>`).join('')
       : '<span class="sync-hint small">还没有人，等第一位朋友。</span>';
   } catch (e) {
     wall.innerHTML = '<span class="sync-hint small">离线，暂时取不到感谢墙</span>';
@@ -9799,7 +9799,7 @@ function renderAudit(main, footer) {
     <div class="audit-card">
       <div class="audit-title">感谢墙</div>
       <div class="sync-hint small" style="margin-top:8px">
-        名单由作者手动维护（<code>thanks.json</code>），这里只显示愿意公开的昵称。
+        名单由作者维护，这里只添加愿意公开昵称的用户。
       </div>
       <div class="thanks-wall" id="thanks-wall">加载中…</div>
     </div>`;
@@ -10573,16 +10573,77 @@ function buildLayoutText() {
     return t || '匿名';
   }
 
-  /* 感谢墙图标的尺寸：字数越少越大，形成大大小小的节奏 */
+  /* 感谢墙图标：三档大小（大 = 小的 2 倍）+ 按名字哈希取色 + 每 5 字断行
+     · 用名字做哈希种子，同一个人每次打开都是同一个颜色，不会乱闪
+     · 大 92px / 中 66px / 小 46px，最大与最小正好 2 倍 */
+  var THANKS_PALETTE = [
+    ['#4c3d80', '#ffffff'],  // 品牌紫
+    ['#2f6fd0', '#ffffff'],  // 蓝
+    ['#2f9e6e', '#ffffff'],  // 绿
+    ['#c96a2b', '#ffffff'],  // 橙
+    ['#b8433f', '#ffffff'],  // 红
+    ['#2a9d9a', '#ffffff'],  // 青
+    ['#a04a8f', '#ffffff'],  // 洋红
+    ['#6b7a2f', '#ffffff']   // 橄榄
+  ];
+  function thanksHash(str) {
+    var h = 2166136261;
+    for (var i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = (h * 16777619) >>> 0;
+    }
+    return h >>> 0;
+  }
+  /* 断行规则：
+       · 中文每 5 字一行（10 字 → 5/5，15 字 → 5/5/5，16 字 → 5/5/5/1）
+       · 英文/数字按空格断词，绝不把一个单词劈成两半 */
+  function thanksWrap(name) {
+    var raw = String(name || '');
+    var chars = [...raw];
+    if (chars.length <= 5) return esc(raw);
+    // 含空格且以拉丁字母为主 → 按词断
+    var latinOnlyWord = !/\s/.test(raw) && !/[\u4e00-\u9fa5]/.test(raw);
+    if (latinOnlyWord) return esc(raw);   // 单个英文词整体不拆，靠字号收
+    if (/\s/.test(raw) && !/[\u4e00-\u9fa5]/.test(raw)) {
+      var words = raw.split(/\s+/).filter(Boolean);
+      var rows = [], cur = '';
+      words.forEach(function (w) {
+        if (!cur) { cur = w; return; }
+        if ((cur + ' ' + w).length <= 8) { cur += ' ' + w; }
+        else { rows.push(cur); cur = w; }
+      });
+      if (cur) rows.push(cur);
+      return rows.map(esc).join('<br>');
+    }
+    var out = [];
+    for (var i = 0; i < chars.length; i += 5) out.push(esc(chars.slice(i, i + 5).join('')));
+    return out.join('<br>');
+  }
   function thanksChipStyle(name) {
-    const n = [...String(name || '')].length;
-    if (n <= 1) return 'width:66px;height:66px;font-size:30px';
-    if (n === 2) return 'width:58px;height:58px;font-size:24px';
-    if (n === 3) return 'width:56px;height:56px;font-size:18px';
-    if (n === 4) return 'width:58px;height:58px;font-size:15px';
-    if (n <= 6) return 'width:62px;height:62px;font-size:12px';
-    if (n <= 9) return 'width:66px;height:66px;font-size:10px';
-    return 'width:70px;height:70px;font-size:9px';
+    var raw = String(name || '');
+    var n = [...raw].length;
+    var h = thanksHash(raw);
+    var pair = THANKS_PALETTE[h % THANKS_PALETTE.length];
+    // 档位：字数多的强制上大档，保证装得下；字数少的按哈希分三档做节奏
+    var tier;
+    if (n >= 11) tier = 2;
+    else if (n >= 7) tier = 1 + (h % 2);   // 中或大
+    else tier = h % 3;
+    var box = tier === 2 ? 92 : (tier === 1 ? 66 : 46);
+    var rows = Math.max(1, Math.ceil(n / 5));
+    var perRow = Math.min(n, 5);          // 这一行实际放几个字
+    // 横向：按实际每行字数算（1 个字的方块就该放大字）
+    // 纵向：rows 行，行高约 1.18 倍字号
+    var fsW = box / (perRow + 0.25);
+    var fsH = box / rows / 1.18;
+    var fs = Math.floor(Math.min(fsW, fsH));
+    // 英文/数字比中文窄，可以再放大一些
+    var latinOnly = !/[\u4e00-\u9fa5]/.test(raw);
+    if (latinOnly) fs = Math.floor(fs * 1.45);
+    fs = Math.max(10, Math.min(fs, 40));
+    return 'width:' + box + 'px;height:' + box + 'px;font-size:' + fs + 'px;'
+         + 'background:' + pair[0] + '!important;color:' + pair[1] + '!important;'
+         + 'line-height:1.08';
   }
 
 function buildImportText() {
