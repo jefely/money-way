@@ -7189,7 +7189,7 @@ html body table#fixed-table td.col-del .row-del {
   align-items: flex-start !important;
   line-height: 1.5 !important;
   position: relative !important;
-  top: -2px !important;
+  top: -4px !important;               /* 与按钮居中对齐后仍偏低，再上移 2px（累计 -4） */
 }
 .ver-line .ver-mini > span { white-space: nowrap !important; }
 /* 按钮宽度按 3 个字定死：文案在「更新 / 检查中… / 已是最新」之间切换时宽度不变 */
@@ -7213,26 +7213,27 @@ html body #ver-update-help {
 .book-line { gap: 9px !important; }
 .book-line > .book-pick { flex: 0 0 11px !important; width: 11px !important; }
 
-/* 「更新」按钮：和「载入.txt」同款 —— 白底 / 淡紫边 / 紫字，深色主题换暗紫底 */
+/* 「更新」按钮：紫底 + **纯白字**（原来白底紫字，用户要求字改纯白，
+   白字压在白底上会看不见，所以底色一起换成主题紫） */
 html body #ver-update-help,
 html[data-theme="dark"] #ver-update-help {
-  background: #ffffff !important;
-  border: 1px solid #cbbcf0 !important;
-  color: #5b4ea8 !important;
-  -webkit-text-fill-color: #5b4ea8 !important;
+  background: #6b5bc4 !important;
+  border: 1px solid #5b4ea8 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
   box-shadow: none !important;
 }
 html[data-theme="dark"] #ver-update-help {
-  background: #1b1630 !important;
-  border-color: #3a2f66 !important;
-  color: #cfc4f5 !important;
-  -webkit-text-fill-color: #cfc4f5 !important;
+  background: #574aa6 !important;
+  border-color: #6b5bc4 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 html body #ver-update-help:hover {
-  background: #f6f1ff !important;
+  background: #7b6bd4 !important;
 }
 html[data-theme="dark"] #ver-update-help:hover {
-  background: #241d3d !important;
+  background: #6556bd !important;
 }
 
 /* ============================================================
@@ -8104,7 +8105,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.41';
+const APP_VER = 'v13.42';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -18057,6 +18058,61 @@ function saveColWidths() {
   }
 }
 
+/* ── 列宽再按「列名」存一份 ─────────────────────────────────────────
+   colWidths 是按索引的数组；一旦列的个数变了（汇总页折叠/展开「类型/分类」，
+   9 列 ↔ 7 列…），长度对不上，initColResize 就整组回落默认值 ——
+   手动调好的宽度白调了，用户看到的就是「一收起一展开，宽度又变回去」。
+   这里按 th 的 col-* class 记一份宽度，列数变化时仍能按名字对上号。 */
+const COLW_CLS_KEY = 'flow_colw_cls_v1';
+function colKeyOf(th) {
+  const list = Array.from(th.classList || []);
+  for (const c of list) if (/^col-/.test(c)) return c;
+  return '';
+}
+let colWByClass = (() => {
+  try {
+    const o = JSON.parse(localStorage.getItem(COLW_CLS_KEY) || '{}');
+    return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
+  } catch (e) { return {}; }
+})();
+function saveColWByClass() {
+  try { localStorage.setItem(COLW_CLS_KEY, JSON.stringify(colWByClass)); } catch (e) {}
+}
+/* 把当前表格各列的宽度按列名记下来（0 = 折叠隐藏，不覆盖真实值） */
+function snapshotClassWidths(table, key) {
+  try {
+    const headRow = colHeadRow(table);
+    if (!headRow) return;
+    const ths = Array.from(headRow.querySelectorAll('th'));
+    const px = widthsOf(table);
+    const m = Object.assign({}, colWByClass[key] || {});
+    ths.forEach((th, i) => {
+      const k = colKeyOf(th);
+      if (!k) return;
+      const w = Math.round(px[i] || 0);
+      if (w > 0) m[k] = w;
+    });
+    colWByClass[key] = m;
+    saveColWByClass();
+  } catch (e) {}
+}
+/* 按列名还原出一组宽度；一条都对不上就返回 null，交给调用方走默认逻辑 */
+function classWidthsFor(table, key) {
+  const m = colWByClass[key];
+  if (!m) return null;
+  const headRow = colHeadRow(table);
+  if (!headRow) return null;
+  const ths = Array.from(headRow.querySelectorAll('th'));
+  const dft = DEFAULT_COL_WIDTHS[key] || [];
+  let hit = 0;
+  const px = ths.map((th, i) => {
+    const k = colKeyOf(th);
+    if (k && m[k] != null) { hit++; return m[k]; }
+    return dft[i] != null ? dft[i] : (dft[dft.length - 1] || 100);
+  });
+  return hit ? px : null;
+}
+
 // 列头行：流水/汇总就是 thead 唯一一行；查询页是蓝色那行（thead 最后一行）
 function colHeadRow(table) {
   const rows = table.querySelectorAll('thead tr');
@@ -18166,7 +18222,12 @@ function initColResize(table, key) {
   if (!headRow) return;
   ensureColgroup(table);
   const ths = Array.from(headRow.querySelectorAll('th'));
-  if (Array.isArray(colWidths[key]) && colWidths[key].length === ths.length) {
+  // 优先按「列名」还原 —— 这样折叠/展开导致列数变化时，手动调过的宽度也不会丢。
+  const byCls = classWidthsFor(table, key);
+  if (byCls) {
+    colWidths[key] = byCls;
+    applyWidths(table, key, byCls);
+  } else if (Array.isArray(colWidths[key]) && colWidths[key].length === ths.length) {
     applyWidths(table, key, colWidths[key]);
   } else if (Array.isArray(DEFAULT_COL_WIDTHS[key])) {
     // 存的列宽数量和当前表结构对不上（比如表加了/删了一列）。
@@ -18250,6 +18311,8 @@ function initColResize(table, key) {
           if (key === 'summary' && summaryFold) {
             colWidths.summary = summaryBaseWidths();
           }
+          // 再按列名记一份：列数变化（折叠/展开）后仍能还原
+          snapshotClassWidths(table, key);
           saveColWidths(); syncFlowTitleWidth(); syncGridRight();
           try { applySummarySticky(); } catch (e) {}
         }
@@ -18276,6 +18339,7 @@ function initColResize(table, key) {
         next[idx] = want;
       }
       paintWidths(key, next);
+      snapshotClassWidths(table, key);   // 双击自动适应也按列名记一份
       saveColWidths();
       syncFlowTitleWidth();
     });
