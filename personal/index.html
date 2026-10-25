@@ -7903,10 +7903,18 @@ table#stats-sum-table thead th.col-name,
 table#stats-sum-table tbody td.col-name { box-shadow: inset -1px 0 0 var(--border-light); }
 [data-theme="dark"] table#stats-sum-table thead th.col-name,
 [data-theme="dark"] table#stats-sum-table tbody td.col-name { box-shadow: inset -1px 0 0 #343434; }
-/* 折叠按钮：贴着账户名称左侧，不改变行高 */
+/* 折叠按钮：**绝对贴住这一格的左边缘**，不随列宽变化跑位置。
+   原来它是行内元素，跟着表头文字一起受 text-align 和列宽影响 ——
+   折叠/展开、拖列宽时按钮会跟着平移。改成 absolute 钉在左边缘，
+   再给 th 留出左侧内距放它。 */
+table#stats-sum-table thead th.col-name { padding-left: 22px !important; }
 table#stats-sum-table th.col-name .stats-fold-toggle {
+  position: absolute !important;
+  left: 4px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
   display: inline-flex; align-items: center; justify-content: center;
-  width: 14px; height: 14px; margin: 0 6px 0 0; padding: 0;
+  width: 14px; height: 14px; margin: 0 !important; padding: 0;
   background: none !important; border: 0 !important; border-radius: 0 !important;
   box-shadow: none !important;
   color: inherit !important; font-size: 10px !important; line-height: 1 !important;
@@ -8195,7 +8203,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.46';
+const APP_VER = 'v13.47';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
