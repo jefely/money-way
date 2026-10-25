@@ -8222,7 +8222,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.54';
+const APP_VER = 'v13.55';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -18415,7 +18415,10 @@ function initColResize(table, key) {
   ensureColgroup(table);
   const ths = Array.from(headRow.querySelectorAll('th'));
   // 优先按「列名」还原 —— 这样折叠/展开导致列数变化时，手动调过的宽度也不会丢。
-  const byCls = classWidthsFor(table, key);
+  // 但 **summary 例外**：它有自己的折叠宽度逻辑（summaryBaseWidths / applySummaryFold，
+  // 折叠只改视图、落盘永远是真实宽度）。如果这里再用按列名的数组覆盖 colWidths.summary，
+  // 那套逻辑就被绕过去了 —— 表现就是「展开折叠之后，简码/账户名称/期初的宽度回到默认」。
+  const byCls = (key === 'summary') ? null : classWidthsFor(table, key);
   if (byCls) {
     colWidths[key] = byCls;
     applyWidths(table, key, byCls);
