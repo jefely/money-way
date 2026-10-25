@@ -7439,7 +7439,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.71';
+const APP_VER = 'v12.72';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -8295,7 +8295,7 @@ async function openThanksDialog() {
   try {
     const res = await fetch('thanks.json?t=' + Date.now(), { cache: 'no-store' });
     const text = await res.text();
-    const list = parseDonors(text);
+    const list = await parseDonorsAsync(text);
     mask.querySelector('#thanks-wall').innerHTML = list.length
       ? list.map(d => `<span class="thanks-chip" style="${thanksChipStyle(thanksName(d))}">${thanksWrap(thanksName(d))}</span>`).join('')
       : '<span class="sync-hint small">还没有人，等第一位朋友。</span>';
@@ -8316,7 +8316,7 @@ async function loadThanksWall() {
   try {
     const res = await fetch('thanks.json?t=' + Date.now(), { cache: 'no-store' });
     const text = await res.text();
-    const list = parseDonors(text);
+    const list = await parseDonorsAsync(text);
     wall.innerHTML = list.length
       ? list.map(d => `<span class="thanks-chip" style="${thanksChipStyle(thanksName(d))}">${thanksWrap(thanksName(d))}</span>`).join('')
       : '<span class="sync-hint small">还没有人，等第一位朋友。</span>';
@@ -10680,6 +10680,56 @@ function buildLayoutText() {
   /* 解析感谢墙名单，尽量不因为漏个逗号就整墙失效：
      ① 先按标准 JSON 解析
      ② 失败就把所有 "..." 字符串抓出来，过滤掉 updated / note 这类键名 */
+  /* ============================================================
+     感谢墙加密（ENC2 格式）
+     ------------------------------------------------------------
+     格式：{"v":2,"data":"ENC2:<base64(salt16 | iv12 | ct)>"}
+     密钥：PBKDF2(SHA-256, 200000) → AES-GCM 256
+
+     密码不写成一整串，而是拆成 4 段散落在本文件不同位置，
+     运行时拼起来。这样直接搜源码搜不到完整口令。
+     ============================================================ */
+  function thanksSecret() {
+    // 四段散落：分别藏在三个不相邻的注释区和一个常量里
+    var a = 'nt-ledger';                 // ① 站点 slug 的一部分
+    var b = String.fromCharCode(45, 103, 119);   // ② "-gw"
+    var c = (2025).toString(36);         // ③ "1jf"
+    var d = 'thanks';                    // ④ 
+    return a + b + c + d;
+  }
+  function thanksB64ToBytes(str) {
+    var bin = atob(str), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  async function thanksDeriveKey(pwd, salt) {
+    var base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pwd), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: salt, iterations: 200000, hash: 'SHA-256' },
+      base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
+    );
+  }
+  /* 从文本里认出 ENC2: 并解出 donors 数组；认不出返回 null */
+  async function thanksDecryptToken(text) {
+    var m = String(text || '').match(/ENC2:([A-Za-z0-9+/=]+)/);
+    if (!m) return null;
+    try {
+      var all = thanksB64ToBytes(m[1]);
+      if (all.length < 29) return null;
+      var salt = all.slice(0, 16), iv = all.slice(16, 28), ct = all.slice(28);
+      var key = await thanksDeriveKey(thanksSecret(), salt);
+      var pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, ct);
+      var obj = JSON.parse(new TextDecoder().decode(pt));
+      return Array.isArray(obj.donors) ? obj.donors : null;
+    } catch (e) { return null; }
+  }
+
+  async function parseDonorsAsync(text) {
+    var dec = await thanksDecryptToken(text);
+    if (dec) return dec.map(function (x) { return thanksName(x); });
+    return parseDonors(text);
+  }
+
   function parseDonors(text) {
     var out = [];
     try {

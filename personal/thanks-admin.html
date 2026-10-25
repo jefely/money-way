@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NT账本 · 感谢墙加密工具</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 28px 18px 60px;
+    font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: #f6f4fb; color: #241d3d;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #6b6483; font-size: 13px; margin-bottom: 22px; }
+  .card {
+    background: #fff; border: 1px solid #e3ddf2; border-radius: 12px;
+    padding: 18px; margin-bottom: 16px;
+  }
+  label { display: block; font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+  input[type=password], input[type=text], textarea {
+    width: 100%; padding: 9px 11px; font: inherit; color: inherit;
+    background: #fbfaff; border: 1px solid #d9d2ee; border-radius: 8px; outline: none;
+  }
+  input:focus, textarea:focus { border-color: #6b5bc4; }
+  textarea { min-height: 190px; resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+  button {
+    font: inherit; font-weight: 600; cursor: pointer;
+    padding: 9px 18px; border-radius: 8px; border: 1px solid #cbbcf0;
+    background: #fff; color: #5b4ea8;
+  }
+  button:hover { background: #f6f1ff; }
+  button.primary { background: #6b5bc4; border-color: #6b5bc4; color: #fff; }
+  button.primary:hover { background: #574aa6; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+  .out { margin-top: 14px; }
+  .out textarea { min-height: 140px; background: #f2f0fa; }
+  .hint { font-size: 12.5px; color: #6b6483; margin-top: 8px; }
+  .hint code { background: #efeaf9; padding: 1px 5px; border-radius: 4px; }
+  .ok { color: #2f7d4f; font-weight: 600; }
+  .err { color: #b8433f; font-weight: 600; }
+  .cnt { font-size: 12.5px; color: #6b6483; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #14101f; color: #ece8f7; }
+    .card { background: #1b1630; border-color: #2f2751; }
+    input, textarea { background: #120e1e; border-color: #332b57; color: #ece8f7; }
+    button { background: #1b1630; border-color: #3a2f66; color: #cfc4f5; }
+    button:hover { background: #241d3d; }
+    button.primary { background: #6b5bc4; border-color: #6b5bc4; color: #fff; }
+    .hint code { background: #241d3d; }
+    .sub, .hint, .cnt { color: #9d95bb; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>感谢墙 · 加密工具</h1>
+  <div class="sub">输入密码 → 编辑名单 → 生成加密后的 thanks.json 片段，粘贴回仓库即可。</div>
+
+  <div class="card">
+    <label for="pwd">① 口令</label>
+    <input type="password" id="pwd" placeholder="与 index.html 里 thanksSecret() 的值保持一致" autocomplete="off">
+    <div class="row">
+      <button type="button" id="btn-secret">填入当前站的固定口令</button>
+      <span class="cnt" id="secret-state">未填入</span>
+    </div>
+    <div class="hint">
+      口令必须和 <code>index.html</code> 里 <code>thanksSecret()</code> 拼出来的那一串完全一致，否则页面解不开。<br>
+      改了口令的话，<code>index.html</code> 里那 4 段碎片要跟着改。
+    </div>
+  </div>
+
+  <div class="card">
+    <label for="names">② 名单（一行一个名字）</label>
+    <textarea id="names" placeholder="NT&#10;jefely&#10;可爱的宝贝"></textarea>
+    <div class="row">
+      <span class="cnt" id="cnt">0 个名字</span>
+      <button type="button" id="btn-load">从远程加载现有名单</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>③ 生成加密内容</label>
+    <div class="row">
+      <button type="button" class="primary" id="btn-enc">加密并生成</button>
+      <button type="button" id="btn-copy">复制结果</button>
+    </div>
+    <div class="out">
+      <textarea id="out" readonly placeholder="点「加密并生成」后，这里会出现要粘贴进 thanks.json 的内容"></textarea>
+    </div>
+    <div class="hint" id="msg"></div>
+  </div>
+
+  <div class="card">
+    <label>怎么用</label>
+    <div class="hint" style="line-height:1.9">
+      1. 把上面「生成」出来的整段内容，替换掉 <code>thanks.json</code> 里原来的内容。<br>
+      2. 保持文件名仍然是 <code>thanks.json</code>。<br>
+      3. 提交后，页面会自动识别 <code>ENC2:</code> 开头的内容并解密显示。<br>
+      <br>
+      <b>关于安全性</b>：这是纯静态站点，解密密钥必须在页面里，所以它本质是<b>混淆</b>——能挡住随手查看，挡不住铁了心的人。真要保密只能用后端或让访客输密码。
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   加密：PBKDF2(SHA-256, 200000 轮) → AES-GCM 256
+   输出格式：ENC2:<base64(salt 16 | iv 12 | ciphertext)>
+   ============================================================ */
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var namesEl = $('names'), pwdEl = $('pwd'), outEl = $('out'), msgEl = $('msg'), cntEl = $('cnt');
+
+  function b64(bytes) {
+    var s = '';
+    for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s);
+  }
+  function unb64(str) {
+    var bin = atob(str);
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  async function deriveKey(pwd, salt) {
+    var base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pwd), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: salt, iterations: 200000, hash: 'SHA-256' },
+      base,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }
+
+  function updateCount() {
+    var list = namesEl.value.split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+    cntEl.textContent = list.length + ' 个名字';
+  }
+  namesEl.addEventListener('input', updateCnt => updateCount());
+  updateCount();
+  pwdEl.value = defaultSecret();
+  $('secret-state').textContent = '已填入（' + defaultSecret().length + ' 位）';
+
+  /* 与 index.html 的 thanksSecret() 保持一致的默认口令 */
+  function defaultSecret() {
+    var a = 'nt-ledger';
+    var b = String.fromCharCode(45, 103, 119);
+    var c = (2025).toString(36);
+    var d = 'thanks';
+    return a + b + c + d;
+  }
+  $('btn-secret').onclick = function () {
+    pwdEl.value = defaultSecret();
+    $('secret-state').textContent = '已填入（' + defaultSecret().length + ' 位）';
+    msgEl.className = 'hint'; msgEl.textContent = '';
+  };
+
+  $('btn-enc').onclick = async function () {
+    var pwd = pwdEl.value;
+    var list = namesEl.value.split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+    if (!pwd) { msgEl.className = 'hint err'; msgEl.textContent = '请先填密码。'; return; }
+    if (!list.length) { msgEl.className = 'hint err'; msgEl.textContent = '名单是空的。'; return; }
+    msgEl.className = 'hint'; msgEl.textContent = '加密中…';
+    try {
+      var salt = crypto.getRandomValues(new Uint8Array(16));
+      var iv = crypto.getRandomValues(new Uint8Array(12));
+      var key = await deriveKey(pwd, salt);
+      var payload = JSON.stringify({
+        updated: new Date().toISOString().slice(0, 10),
+        donors: list
+      });
+      var ct = new Uint8Array(await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv: iv }, key, new TextEncoder().encode(payload)
+      ));
+      var all = new Uint8Array(16 + 12 + ct.length);
+      all.set(salt, 0); all.set(iv, 16); all.set(ct, 28);
+      var token = 'ENC2:' + b64(all);
+      outEl.value = '{\n  "v": 2,\n  "data": "' + token + '"\n}';
+      msgEl.className = 'hint ok';
+      msgEl.textContent = '生成成功，共 ' + list.length + ' 个名字。复制上面整段，替换 thanks.json。';
+    } catch (e) {
+      msgEl.className = 'hint err';
+      msgEl.textContent = '失败：' + e.message;
+    }
+  };
+
+  $('btn-copy').onclick = async function () {
+    if (!outEl.value) { msgEl.className = 'hint err'; msgEl.textContent = '还没生成内容。'; return; }
+    try {
+      await navigator.clipboard.writeText(outEl.value);
+      msgEl.className = 'hint ok'; msgEl.textContent = '已复制。';
+    } catch (e) {
+      outEl.select(); document.execCommand('copy');
+      msgEl.className = 'hint ok'; msgEl.textContent = '已复制。';
+    }
+  };
+
+  $('btn-load').onclick = async function () {
+    msgEl.className = 'hint'; msgEl.textContent = '读取中…';
+    try {
+      var res = await fetch('../personal/thanks.json?t=' + Date.now(), { cache: 'no-store' });
+      var text = await res.text();
+      // 明文格式
+      var m = text.match(/"donors"\s*:\s*\[([\s\S]*?)\]/);
+      if (m && !/ENC2:/.test(text)) {
+        var arr = [];
+        var re = /"((?:[^"\\]|\\.)*)"/g, hit;
+        while ((hit = re.exec(m[1]))) { if (hit[1].trim()) arr.push(hit[1].trim()); }
+        namesEl.value = arr.join('\n');
+        updateCount();
+        msgEl.className = 'hint ok'; msgEl.textContent = '已载入 ' + arr.length + ' 个名字（明文）。';
+        return;
+      }
+      var t = text.match(/ENC2:([A-Za-z0-9+/=]+)/);
+      if (t) {
+        msgEl.className = 'hint';
+        msgEl.textContent = '现有名单是加密的。请在上方填入当初的密码，然后点这里解密载入。';
+        var pwd = pwdEl.value;
+        if (!pwd) return;
+        var all = unb64(t[1]);
+        var salt = all.slice(0, 16), iv = all.slice(16, 28), ct = all.slice(28);
+        var key = await deriveKey(pwd, salt);
+        var pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, ct);
+        var obj = JSON.parse(new TextDecoder().decode(pt));
+        namesEl.value = (obj.donors || []).join('\n');
+        updateCount();
+        msgEl.className = 'hint ok'; msgEl.textContent = '解密成功，载入 ' + (obj.donors || []).length + ' 个名字。';
+        return;
+      }
+      msgEl.className = 'hint err'; msgEl.textContent = '没认出 thanks.json 的格式。';
+    } catch (e) {
+      msgEl.className = 'hint err'; msgEl.textContent = '读取失败：' + e.message + '（本地打开时可能跨域受限，可手动粘贴名单）';
+    }
+  };
+})();
+</script>
+</body>
+</html>
