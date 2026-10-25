@@ -5982,14 +5982,16 @@ table.set-table td.col-open {
   font-variant-numeric: tabular-nums; font-weight: 600;
 }
 table.set-table th.col-open { text-align: right; padding-right: 10px; }
-table.set-table td.col-del, table.set-table th.col-del { width: 40px; text-align: center; }
-table.set-table .row-del {
-  width: 22px; height: 22px; line-height: 1; padding: 0;
-  border: 1px solid var(--border); border-radius: 4px;
-  background: #fff; color: var(--text-muted); cursor: pointer; font-size: 14px;
+table.set-table td.col-del, table.set-table th.col-del { width: 44px; text-align: center; }
+/* 删除按钮沿用流水页那套 .row-del（静止时几乎看不见，hover/按下才显红） */
+table.set-table tbody td.col-del { position: relative; }
+table.set-table tbody td.col-del > .row-del {
+  position: absolute; inset: 0; width: 100%;
+  padding: 0; background: none; border: 0;
+  color: var(--border); font-size: 15px; line-height: 1; cursor: pointer;
 }
-table.set-table .row-del:hover { color: var(--danger); border-color: var(--danger); }
-[data-theme="dark"] table.set-table .row-del { background: #241b3a; border-color: #3d3159; color: var(--text-main); }
+table.set-table tbody td.col-del > .row-del:hover { color: var(--danger); background: #fee2e2; }
+[data-theme="dark"] table.set-table tbody td.col-del > .row-del:hover { background: rgba(255,80,80,.18); }
 /* 统计页的子按钮组：并进 bar1，跟在按钮后面 */
 span.stats-sub { display: inline-flex; gap: 4px; align-items: center; flex: 0 0 auto; margin-left: 2px; }
 span.stats-sub button {
@@ -6212,7 +6214,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.46';
+const APP_VER = 'v11.48';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -9072,6 +9074,9 @@ function renderSettings(main, footer) {
   }
   wrap.appendChild(table);
   main.appendChild(wrap);
+
+  // 和流水页同一套：colgroup 列宽（可拖、可持久化、总宽 = 各列之和）
+  initColResize(table, 'settings');
 }
 
 /* 统计页：分类 / 汇总 两个子按钮，直接并入 bar1（排在「清空」前面） */
@@ -15469,7 +15474,9 @@ const DEFAULT_COL_WIDTHS = {
   fixed:   [56, 70, 70, 150, 150, 108, 150, 84, 64],   // 9 列（加了「频率」后从 8 变 9）
   // 分类表去掉「类型」列后是 5 列，用户给的 6 个值取前 2 个 + 后 3 个
   cat:     [62, 88, 122, 90, 99],
-  installFixed: [113, 60, 99]   // 分期表前三列（账户名称/账单日/每月合计）
+  installFixed: [113, 60, 99],   // 分期表前三列（账户名称/账单日/每月合计）
+  // 设置页 7 列：序 / 类型 / 分类 / 简码 / 账户名称 / 期初 / 删除
+  settings: [52, 96, 96, 84, 168, 110, 44]
 };
 
 // 列宽的 localStorage 键。v3 统一存像素；v1 同格式可直接用；v2 曾经存过比例（×1000 折算）。
@@ -15481,7 +15488,7 @@ const COLW_KEY_V2 = 'flow_col_widths_v2';
 
 // 布局参数：全局默认 + 每页覆盖（行高 / 正文字号 / 表头字号）
 const LAYOUT_KEY = 'flow_layout_v1';
-const LAYOUT_PAGES = ['flow', 'summary', 'cat', 'query', 'install', 'fixed'];
+const LAYOUT_PAGES = ['flow', 'summary', 'cat', 'query', 'install', 'fixed', 'settings'];
 const LAYOUT_PAGE_NAMES = {
   flow: '流水记录', summary: '账户汇总', cat: '分类统计',
   query: '查询', install: '分期', fixed: '固定收支'
