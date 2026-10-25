@@ -1,7 +1,7 @@
 ﻿/* NT账本 · Service Worker
    策略：**缓存优先**（用本地版本启动，快且离线可用）。
    想换新版时，去「校验」页点「检查更新」，由页面发 SKIP_WAITING 让新 SW 接管。 */
-const CACHE = 'mw-personal-v11.22';
+const CACHE = 'mw-personal-v11.23';
 const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {

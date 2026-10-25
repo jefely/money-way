@@ -5807,6 +5807,31 @@ th.col-range { text-align: left; }
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* ============================================================
+   流水页按钮最终尺寸（放在样式表最末尾 + html body 抬特异性，
+   用来压过本文件里散落各处的 .toolbar > button 覆盖规则）
+   单按钮最大宽度 56px：13px 字号 × 2 个汉字 ≈ 26px + 左右内边距 8px + 边框 2px + 余量
+   ============================================================ */
+html body .toolbar.flow-bar > button {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 36px !important;
+  max-width: 56px !important;
+  padding: 0 4px !important;
+  font-size: 13px !important;
+  height: 26px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  box-sizing: border-box !important;
+}
+@media (max-width: 767px) {
+  html body .toolbar.flow-bar > button {
+    font-size: 13px !important;
+    min-width: 34px !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -6018,7 +6043,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.22';
+const APP_VER = 'v11.23';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
