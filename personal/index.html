@@ -6008,6 +6008,16 @@ table.set-table tbody td.col-del > .row-del:active {
 /* 统计页的子按钮组：并进 bar1，跟在按钮后面 */
 span.stats-sub { display: inline-flex; gap: 4px; align-items: center; flex: 0 0 auto; margin-left: 2px; }
 span.stats-sub button { flex: 0 0 auto; }
+
+/* 设置页：隐藏 5 个金额列（当前结余/转出/转入/转出历史/转入历史）
+   —— 只是不显示，computeStats 的计算与数据一律不动 */
+table#summary-table th.col-bal, table#summary-table td.col-bal,
+table#summary-table th.col-out, table#summary-table td.col-out,
+table#summary-table th.col-in, table#summary-table td.col-in,
+table#summary-table th.col-hout, table#summary-table td.col-hout,
+table#summary-table th.col-hin, table#summary-table td.col-hin {
+  display: none !important;
+}
 </style>
 </head>
 <body>
@@ -6219,7 +6229,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.53';
+const APP_VER = 'v11.55';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -9037,6 +9047,120 @@ function fmtOpening(v) {
   return sign + Math.abs(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/* 统计页 · 汇总子页
+   ------------------------------------------------------------
+   顺序 = state.accounts 的原始顺序（就是设置页看到的顺序），
+   只剔除「这一段区间里一点数据都没有」的账户。 */
+function renderStatsSum(main, footer) {
+  const range = catRangeOf();
+
+  const { bar1, bar2 } = buildRangeToolbar({
+    title: '分类统计',
+    mode: catMode,
+    year: catMode === 'year' ? catYear : summaryMonth.year,
+    month: summaryMonth.month,
+    range: catMode === 'range' ? catRange : { start: '', end: '' },
+    onMode: (m) => { catMode = m; render(); },
+    onClear: () => {
+      catMode = 'range';
+      catRange = { start: '', end: '' };
+      saveSummaryState(); render(); toast('已清空，显示全部');
+    },
+    onYear: (y) => {
+      if (catMode === 'year') catYear = y;
+      else { summaryMonth.year = y; }
+      saveSummaryState(); render();
+    },
+    onMonth: (m) => { catMode = 'month'; summaryMonth.month = m; saveSummaryState(); render(); },
+    onRange: (s2, e2, doRender) => {
+      catRange = { start: s2, end: e2 };
+      saveSummaryState();
+      if (doRender !== false) render();
+    }
+  });
+  main.appendChild(bar1);
+  main.appendChild(bar2);
+
+  const f2 = v => (Math.abs(Number(v) || 0) < 0.005) ? '—'
+    : (v < 0 ? '-¥' : '¥') + Math.abs(Number(v) || 0).toLocaleString('zh-CN',
+        { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const rows = [];
+  for (const a of state.accounts) {
+    const st = computeStats(a, range);
+    const hasData = Math.abs(st.balance) > 0.005 || Math.abs(st.mOut) > 0.005
+      || Math.abs(st.mIn) > 0.005 || Math.abs(st.hOut) > 0.005 || Math.abs(st.hIn) > 0.005;
+    if (!hasData) continue;
+    rows.push({ a, st });
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'grid-wrap';
+  const table = document.createElement('table');
+  table.className = 'grid'; table.id = 'stats-sum-table';
+  table.innerHTML = `
+    <thead><tr>
+      <th class="col-seq">序</th>
+      <th class="col-cat">类型</th>
+      <th class="col-sub">分类</th>
+      <th class="col-name">账户名称</th>
+      <th class="col-bal">当前结余</th>
+      <th class="col-out">转出</th>
+      <th class="col-in">转入</th>
+      <th class="col-hout">转出历史</th>
+      <th class="col-hin">转入历史</th>
+    </tr></thead>
+    <tbody></tbody>`;
+  const tbody = table.querySelector('tbody');
+  if (!rows.length) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="9" style="text-align:center;color:var(--text-muted);padding:18px">这个时间段还没有数据</td>';
+    tbody.appendChild(tr);
+  } else {
+    let n = 1;
+    for (const { a, st } of rows) {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td class="col-seq">' + (n++) + '</td>' +
+        '<td class="col-cat">' + mwEsc(a.cat || '') + '</td>' +
+        '<td class="col-sub">' + mwEsc(a.sub || '') + '</td>' +
+        '<td class="col-name">' + mwEsc(a.name || '') + '</td>' +
+        '<td class="col-bal">' + f2(st.balance) + '</td>' +
+        '<td class="col-out">' + f2(st.mOut) + '</td>' +
+        '<td class="col-in">' + f2(st.mIn) + '</td>' +
+        '<td class="col-hout">' + f2(st.hOut) + '</td>' +
+        '<td class="col-hin">' + f2(st.hIn) + '</td>';
+      tbody.appendChild(tr);
+    }
+  }
+  wrap.appendChild(table);
+  main.appendChild(wrap);
+  try { initColResize(table, 'statsSum'); } catch (e) {}
+}
+
+/* 统计页壳：分类 / 汇总 两个子按钮挂到 bar1（清空之前） */
+function renderStats(main, footer) {
+  if (statsSub === 'sum') renderStatsSum(main, footer);
+  else renderCat(main, footer);
+
+  const bar1 = main.querySelector('.toolbar.bar1');
+  if (!bar1) return;
+  const grp = document.createElement('span');
+  grp.className = 'stats-sub';
+  grp.innerHTML =
+    '<button type="button" class="ghost plan-btn" data-s="cat"'
+      + (statsSub === 'cat' ? ' data-active="true"' : '') + '>分类</button>' +
+    '<button type="button" class="ghost plan-btn" data-s="sum"'
+      + (statsSub === 'sum' ? ' data-active="true"' : '') + '>汇总</button>';
+  const clearBtn = [].slice.call(bar1.querySelectorAll('button'))
+    .find(b => /清空/.test(b.textContent || ''));
+  if (clearBtn) bar1.insertBefore(grp, clearBtn);
+  else bar1.appendChild(grp);
+  grp.querySelectorAll('button').forEach(b => {
+    b.onclick = () => { statsSub = b.dataset.s; render(); };
+  });
+}
+
 function renderCat(main, footer) {
   const range = catRangeOf();
 
@@ -11685,7 +11809,7 @@ function render() {
   footer.innerHTML = '<span id="footer-text"></span>';
 
   if (currentTab === 'flow') renderFlow(main, footer);
-  else if (currentTab === 'cat') renderCat(main, footer);
+  else if (currentTab === 'cat') renderStats(main, footer);
   else if (currentTab === 'settings') renderSummary(main, footer);
   else if (currentTab === 'install') renderInstall(main, footer);
   else if (currentTab === 'fixed') renderFixed(main, footer);
@@ -12505,8 +12629,11 @@ function renderSummary(main, footer) {
 
   } catch (e) {}
 
+  // 设置页只保留「配平」按钮，其余工具按钮连同 bar2 一律移除
+  bar1.querySelectorAll('button').forEach(b => { if (!/配平/.test(b.textContent || '')) b.remove(); });
+  bar1.querySelectorAll('input').forEach(el => el.remove());
+  if (bar2) bar2.remove();
   main.appendChild(bar1);
-  main.appendChild(bar2);
 
   // 表格主体
   const wrap = document.createElement('div');
@@ -15413,7 +15540,8 @@ const DEFAULT_COL_WIDTHS = {
   cat:     [62, 88, 122, 90, 99],
   installFixed: [113, 60, 99],   // 分期表前三列（账户名称/账单日/每月合计）
   // 设置页 7 列：序 / 类型 / 分类 / 简码 / 账户名称 / 期初 / 删除
-  settings: [52, 96, 96, 84, 168, 110, 46, 44]
+  settings: [52, 96, 96, 84, 168, 110, 46, 44],
+  statsSum: [52, 84, 84, 150, 120, 100, 100, 100, 100]
 };
 
 // 列宽的 localStorage 键。v3 统一存像素；v1 同格式可直接用；v2 曾经存过比例（×1000 折算）。
