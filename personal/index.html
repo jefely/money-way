@@ -6043,7 +6043,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.25';
+const APP_VER = 'v11.26';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -15646,42 +15646,62 @@ function mwSelfHeal() {
   } catch (e) {}
 }
 
-/* 流水页工具条按钮：CSS 里散布着多条 !important 规则互相覆盖，
-   直接算不出最终值，于是用 inline style 强制钉住尺寸（inline + important 必赢）。 */
+/* 流水页工具条按钮：宽度和字号一起算，窗口变窄时等比缩小而不是换行。
+   —— 之前只压宽度不缩字号，文字撑不下就只能折到第二行。 */
 (function mwFixFlowButtons() {
-  function apply(root) {
-    var scope = root || document;
-    scope.querySelectorAll('.toolbar.flow-bar > button').forEach(function (b) {
-      if (!/添加|同步|导入|导出|主题|布局/.test(b.textContent || '')) return;
-      b.style.setProperty('flex', '1 1 auto', 'important');
-      b.style.setProperty('width', 'auto', 'important');
-      b.style.setProperty('min-width', '36px', 'important');
-      b.style.setProperty('max-width', '56px', 'important');
-      b.style.setProperty('padding', '0 4px', 'important');
-      b.style.setProperty('font-size', '13px', 'important');
+  var BTN_MAX = 56, BTN_MIN = 34, FS_MAX = 13, FS_MIN = 9;
+
+  function layout() {
+    var bar = document.querySelector('.toolbar.flow-bar');
+    if (!bar) return;
+    var btns = [].slice.call(bar.querySelectorAll(':scope > button'))
+      .filter(function (b) { return /添加|同步|导入|导出|主题|布局/.test(b.textContent || ''); });
+    if (!btns.length) return;
+
+    // 工具条禁止换行
+    bar.style.setProperty('flex-wrap', 'nowrap', 'important');
+    bar.style.setProperty('height', '26px', 'important');
+    bar.style.setProperty('min-height', '26px', 'important');
+    bar.style.setProperty('align-items', 'center', 'important');
+    bar.style.setProperty('overflow-x', 'auto', 'important');
+    bar.style.setProperty('overflow-y', 'hidden', 'important');
+
+    // 先按 css 文字宽估算（13px 时按钮 56px），再依据容器实测宽度回算每格可用宽度
+    var barW = bar.clientWidth;
+    var cs = getComputedStyle(bar);
+    var padL = parseFloat(cs.paddingLeft) || 0, padR = parseFloat(cs.paddingRight) || 0;
+    var gap = parseFloat(cs.columnGap) || 4;
+    var title = bar.querySelector('.flow-title, .bar-title, .fixed-title');
+    var titleW = title ? title.getBoundingClientRect().width + gap : 0;
+    var avail = barW - padL - padR - titleW - gap * btns.length;
+    var per = Math.max(BTN_MIN, Math.min(BTN_MAX, avail / btns.length));
+
+    // 字号跟按钮宽度等比：56px ↔ 13px，34px ↔ 9px
+    var fs = FS_MIN + (per - BTN_MIN) * (FS_MAX - FS_MIN) / (BTN_MAX - BTN_MIN);
+    fs = Math.max(FS_MIN, Math.min(FS_MAX, fs));
+
+    btns.forEach(function (b) {
+      b.style.setProperty('flex', '0 0 ' + per.toFixed(1) + 'px', 'important');
+      b.style.setProperty('width', per.toFixed(1) + 'px', 'important');
+      b.style.setProperty('min-width', '0', 'important');
+      b.style.setProperty('max-width', 'none', 'important');
+      b.style.setProperty('padding', '0 2px', 'important');
+      b.style.setProperty('font-size', fs.toFixed(2) + 'px', 'important');
       b.style.setProperty('height', '26px', 'important');
       b.style.setProperty('box-sizing', 'border-box', 'important');
+      b.style.setProperty('white-space', 'nowrap', 'important');
+      b.style.setProperty('overflow', 'visible', 'important');
+      b.style.setProperty('text-overflow', 'clip', 'important');
     });
   }
-  // 工具条本身：禁止换行（之前 flex-wrap: wrap !important 会把按钮挤到第二行），
-  // 换成「横向滚动兜底」——正常情况靠按钮缩小就够，极端窄才滚动。
-  function fixBar(root) {
-    var scope = root || document;
-    scope.querySelectorAll('.toolbar.flow-bar').forEach(function (bar) {
-      bar.style.setProperty('flex-wrap', 'nowrap', 'important');
-      bar.style.setProperty('height', '26px', 'important');
-      bar.style.setProperty('min-height', '26px', 'important');
-      bar.style.setProperty('align-items', 'center', 'important');
-      bar.style.setProperty('overflow-x', 'auto', 'important');
-      bar.style.setProperty('overflow-y', 'hidden', 'important');
-      bar.style.setProperty('white-space', 'nowrap', 'important');
-    });
-  }
-  apply(document);
-  fixBar(document);
+
+  window.mwFlowBtnLayout = layout;
+  layout();
+  window.addEventListener('resize', function () { layout(); });
+  window.addEventListener('orientationchange', function () { setTimeout(layout, 120); });
   try {
-    new MutationObserver(function () { apply(document); fixBar(document); })
-      .observe(document.getElementById('main') || document.body, { childList: true, subtree: true });
+    new MutationObserver(layout).observe(document.getElementById('main') || document.body,
+      { childList: true, subtree: true });
   } catch (e) {}
 })();
 
