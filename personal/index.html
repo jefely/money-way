@@ -7856,31 +7856,26 @@ html body .confirm-mask .dlg-x { z-index: 30 !important; }
   min-height: 30px !important;
 }
 
-/* ---- 弹窗头部：吸顶 + 一层遮罩 ----
-   头部做成全透明后，一滚动内容就从它下面穿上来，和标题字叠在一起（实测很清楚）。
-   但不吸顶又会让标题滚走、卡片一打开就到内容，没有层次。
-   所以：位置改回 sticky，同时给头部一层**与弹窗同色系的半透明遮罩 + 同样的模糊**
-   —— 挡住滚上来的内容，又不像实色块那样与毛玻璃打架。 */
+/* ---- 弹窗头部：不加背景，跟着内容一起滚 ----
+   头部在卡片顶部、受卡片圆角裁切，加任何底色都会露出一块「板」；
+   加回来又会和整体毛玻璃打架。所以保持无背景。
+   代价是无背景时不能吸顶（内容会从字下面穿上来），于是改成不吸顶：
+   头部随内容滚走，滚动过程中不会有内容压在标题上。
+   关闭按钮不受影响 —— 它已经独立成 fixed，钉在卡片右上角（见 decorate）。 */
 .confirm-mask .sync-box > .sync-sticky {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 4 !important;              /* 必须低于 .dlg-x，否则盖住右上角关闭按钮 */
-  /* 62% → 85% 仍有明显灰影，再提到 95% + 更重的模糊才真正「挡住」；
-     头部本身是弹窗的一部分，颜色与弹窗同系，不是另贴一块色板。 */
-  background: rgba(255, 255, 255, .95) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(170%) !important;
-  backdrop-filter: blur(28px) saturate(170%) !important;
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
   margin-top: 0 !important;
   margin-left: -40px !important;
   margin-right: -40px !important;
   padding-left: 40px !important;
   padding-right: 40px !important;
   box-sizing: content-box !important;
-}
-[data-theme="dark"] .confirm-mask .sync-box > .sync-sticky {
-  background: rgba(20, 16, 32, .96) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
-  backdrop-filter: blur(28px) saturate(160%) !important;
 }
 </style>
 </head><body>
@@ -8092,7 +8087,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.35';
+const APP_VER = 'v13.36';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -18480,7 +18475,27 @@ function mwSelfHeal() {
       if (c) c.click();
       else mask.remove();
     };
-    box.appendChild(x);
+    /* 关闭按钮**独立于滚动内容**：
+       .sync-box 是滚动容器，absolutely 定位的子元素会跟着内容一起滚
+       （实测滚动后 × 会跑掉）。所以挂到 .confirm-mask 上、用 position: fixed
+       钉在卡片右上角 —— 卡片本身不滚动，位置算一次就稳定。 */
+    var placeX = function () {
+      try {
+        var r = box.getBoundingClientRect();
+        x.style.setProperty('position', 'fixed', 'important');
+        x.style.setProperty('top', Math.round(r.top + 6) + 'px', 'important');
+        x.style.setProperty('right', Math.round(window.innerWidth - r.right + 8) + 'px', 'important');
+        x.style.setProperty('left', 'auto', 'important');
+      } catch (e) {}
+    };
+    mask.appendChild(x);
+    placeX();
+    setTimeout(placeX, 60);
+    window.addEventListener('resize', placeX);
+    /* 弹窗内容高度变化（展开/收起、识别结果刷新）时也要重新贴边 */
+    try {
+      if (window.ResizeObserver) new ResizeObserver(placeX).observe(box);
+    } catch (e) {}
   }
   window.mwDecorateDialog = decorate;
   document.querySelectorAll('.confirm-mask').forEach(decorate);
