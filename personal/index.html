@@ -5841,8 +5841,10 @@ html body .toolbar.flow-bar > button {
    ============================================================ */
 html body .toolbar button:not(.m-btn):not(.audit-tab) {
   padding: 0 4px !important;
-  flex: 1 1 auto !important;
-  width: auto !important;
+  /* 基准宽 56px、可缩不可长 —— 这样每一页的按钮宽度都严格一致，
+     窗口窄到放不下时才等比缩小（36px 底线），不会再出现某页 53 某页 56 的差别 */
+  flex: 0 1 56px !important;
+  width: 56px !important;
   min-width: 36px !important;
   max-width: 56px !important;
   font-size: 13px !important;
@@ -5863,6 +5865,37 @@ html body .toolbar > .bar-title,
 html body .toolbar > .fixed-title {
   font-size: 14px !important;
   font-weight: 700 !important;
+}
+
+/* 年份输入框（26年）：和同排按钮同高同字号同内边距。
+   注意要写 .toolbar.bar1 这一层，才能压过文件里已有的 .toolbar.bar1 .year-input（0,3,0）。 */
+html body .toolbar.bar1 .year-input,
+html body .toolbar.bar2 .year-input,
+html body .toolbar .year-input {
+  height: 26px !important;
+  line-height: 24px !important;
+  padding: 0 4px !important;
+  font-size: 13px !important;
+  border-radius: 6px !important;
+  box-sizing: border-box !important;
+  flex: 0 0 auto !important;
+  width: 52px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
+  text-align: center !important;
+}
+/* 月份格子行（1~12）也不参与拉伸，保持紧凑 */
+html body .toolbar .month-row .m-btn {
+  flex: 0 0 auto !important;
+}
+
+/* 流水页按钮也必须和其它页一样宽 56px（它有一条更靠后的 .toolbar.flow-bar > button 规则
+   把 flex 拉回 1 1 auto，导致只有 53px） */
+html body .toolbar.flow-bar > button {
+  flex: 0 1 56px !important;
+  width: 56px !important;
+  min-width: 36px !important;
+  max-width: 56px !important;
 }
 </style>
 </head>
@@ -6075,7 +6108,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.30';
+const APP_VER = 'v11.35';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -15685,8 +15718,8 @@ function mwSelfHeal() {
     var scope = root || document;
     scope.querySelectorAll('.toolbar.flow-bar > button').forEach(function (b) {
       if (!/添加|同步|导入|导出|主题|布局/.test(b.textContent || '')) return;
-      b.style.setProperty('flex', '1 1 auto', 'important');
-      b.style.setProperty('width', 'auto', 'important');
+      b.style.setProperty('flex', '0 1 56px', 'important');
+      b.style.setProperty('width', '56px', 'important');
       b.style.setProperty('min-width', '36px', 'important');
       b.style.setProperty('max-width', '56px', 'important');
       b.style.setProperty('padding', '0 4px', 'important');
