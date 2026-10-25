@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -7741,18 +7741,18 @@ html:not([data-theme="dark"]) body table.grid tbody tr:hover td {
        固定的 col-state、统计的 col-hin），单独把圆角补回来。
    ------------------------------------------------------------ */
 html:not([data-theme="dark"]) body table.grid > thead > tr > th:first-child {
-  border-top-left-radius: 12px !important;
+  border-top-left-radius: 6px !important;
 }
 html:not([data-theme="dark"]) body table.grid > thead > tr > th:last-child {
-  border-top-right-radius: 12px !important;
+  border-top-right-radius: 6px !important;
 }
 /* 查询页的表不是 .grid（是 .query-table），上面那两条碰不到它 ——
    所以三栏的紫色列标一直是方角。这里单独给它两端的圆角。 */
 html:not([data-theme="dark"]) body table.query-table > thead > tr.q-head-row > th:first-child {
-  border-top-left-radius: 12px !important;
+  border-top-left-radius: 6px !important;
 }
 html:not([data-theme="dark"]) body table.query-table > thead > tr.q-head-row > th:last-child {
-  border-top-right-radius: 12px !important;
+  border-top-right-radius: 6px !important;
 }
 html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-op,
 html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-ops,
@@ -7770,14 +7770,14 @@ html:not([data-theme="dark"]) body table.query-table > thead > tr.q-head-row > t
 html:not([data-theme="dark"]) body table#summary-table > thead > tr > th.col-open,
 html:not([data-theme="dark"]) body table#fixed-table > thead > tr > th.col-state,
 html:not([data-theme="dark"]) body table#stats-sum-table > thead > tr > th.col-hin {
-  border-top-right-radius: 12px !important;
+  border-top-right-radius: 6px !important;
 }
 /* 表格最后一行也收个下圆角，和外框对齐 */
 html:not([data-theme="dark"]) body table.grid > tbody > tr:last-child > td:first-child {
-  border-bottom-left-radius: 12px !important;
+  border-bottom-left-radius: 6px !important;
 }
 html:not([data-theme="dark"]) body table.grid > tbody > tr:last-child > td:last-child {
-  border-bottom-right-radius: 12px !important;
+  border-bottom-right-radius: 6px !important;
 }
 /* ============================================================
    弹窗皮肤（v13.21）：30% 透明 + 毛玻璃 + 紫边
@@ -8203,7 +8203,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.47';
+const APP_VER = 'v13.48';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
