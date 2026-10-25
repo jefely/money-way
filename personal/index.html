@@ -6614,6 +6614,74 @@ html body table.grid tbody td.col-move .pin-btn {
   border: 0 !important;
   box-shadow: none !important;
 }
+
+/* ============================================================
+   ① 路径页的收起/展开三角：只留一个三角形，不要任何方框
+   （深色主题里那条 [data-theme="dark"] button 会给所有按钮加边框，压过了 .mw-toggle）
+   ============================================================ */
+html body .mw-toggle,
+html body .mw-toggle-left,
+[data-theme="dark"] html body .mw-toggle {
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  width: 20px !important; height: 20px !important;
+  padding: 0 !important;
+  font-size: 12px !important;
+  line-height: 20px !important;
+  opacity: .75 !important;
+}
+html body .mw-toggle:hover,
+[data-theme="dark"] html body .mw-toggle:hover {
+  background: transparent !important;
+  color: var(--primary) !important;
+  opacity: 1 !important;
+}
+
+/* ============================================================
+   ② 滚动条：加宽到 14px，滑块给足对比度和热区，鼠标能稳稳抓住
+   ============================================================ */
+html body,
+html body #main,
+html body #app,
+html body .grid-wrap,
+html body .mw-side-left,
+html body .mw-chart-wrap {
+  scrollbar-width: auto;
+  scrollbar-color: rgba(128,128,128,.55) transparent;
+}
+*::-webkit-scrollbar { width: 14px; height: 14px; background: transparent; }
+*::-webkit-scrollbar-track { background: transparent; border: 0; box-shadow: none; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(128,128,128,.55);
+  border-radius: 7px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  min-height: 40px;
+}
+*::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,.8); background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:active { background: rgba(139,108,255,.9); background-clip: padding-box; }
+*::-webkit-scrollbar-corner { background: transparent; }
+*::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
+[data-theme="dark"] *::-webkit-scrollbar-thumb { background: rgba(180,180,190,.5); background-clip: padding-box; }
+[data-theme="dark"] *::-webkit-scrollbar-thumb:hover { background: rgba(180,180,190,.75); background-clip: padding-box; }
+
+/* 明确告诉浏览器「滚动条占位，别用覆盖式」 */
+html body #main,
+html body .grid-wrap,
+html body .mw-side-left { scrollbar-gutter: stable; }
+
+/* 左栏自己的滚动条也统一成 14px（之前是 10px） */
+html body .mw-side-left::-webkit-scrollbar { width: 14px !important; }
+html body .mw-side-left::-webkit-scrollbar-thumb {
+  background: rgba(128,128,128,.5) !important;
+  border: 3px solid transparent !important;
+  background-clip: padding-box !important;
+  border-radius: 7px !important;
+}
 </style>
 </head>
 <body>
@@ -6825,7 +6893,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.05';
+const APP_VER = 'v12.07';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
