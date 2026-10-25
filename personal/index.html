@@ -484,17 +484,14 @@ table#flow-table tbody td.col-note > input:not(.fixed-chk) { padding-right: 38px
 
 /* 空行：默认铺 100 行，整行高亮太吵，只把序号淡化以区分「还没落库的行」 */
 table.grid tbody tr[data-new="1"] td.col-seq { color: var(--text-light); font-weight: 400; }
-/* 冻结列：序 / 简码 / 账户名称（用户指定这三列）。
-   序的 left 固定 0（127 行那条）；简码、账户名称的 left 由 applySummarySticky()
+/* 冻结列：序 / 简码（用户指定这两列；账户名称不再冻结）。
+   序的 left 固定 0（127 行那条）；简码的 left 由 applySummarySticky()
    按「前面所有列的实际渲染宽度」累加后写进 inline style —— 类型/分类收起时
    它们宽度为 0，偏移自然跟着变小，不用另算。
    表头那格要压在所有列之上，否则滚动时相邻列的旧边框会从边上透出来。 */
 table#summary-table thead th.col-code,
-table#summary-table tbody td.col-code,
-table#summary-table thead th.col-name,
-table#summary-table tbody td.col-name { position: sticky; z-index: 2; background-clip: padding-box; }
-table#summary-table thead th.col-code,
-table#summary-table thead th.col-name { z-index: 6; }
+table#summary-table tbody td.col-code { position: sticky; z-index: 2; background-clip: padding-box; }
+table#summary-table thead th.col-code { z-index: 6; }
 /* 分类分组行那条跨四列的格子也一起固定 */
 /* 分类分组行那条格子不固定：它 colspan=4，宽度是前四列之和，而数据行的账户名称只占 序号+名称，固定后会多盖住后面一截，把「当前结余」遮掉。让它照常跟着滚走。 */
 
@@ -7528,9 +7525,10 @@ html:not([data-theme="dark"]) body table.query-table > thead > tr.q-head-row > t
   border-bottom: 1px solid #4c3d80 !important;
   border-right: 1px solid #6e60bf !important;
 }
-/* 右端那几列（固定页「操作」/ 设置页「上移·删除·账单日·还款日」）的表头
-   不参与紫色顶带：它们在数据行里就是页面底色，表头也保持页面底色，
+/* 右端那几列（流水页「删除·勾选」/ 固定页「操作」/ 设置页「上移·删除·账单日·还款日」）
+   的表头不参与紫色顶带：它们在数据行里就是页面底色，表头也保持页面底色，
    否则表头行右端会多出一块紫，跟右边留白断开。 */
+html:not([data-theme="dark"]) body table#flow-table > thead > tr > th.col-del,
 html:not([data-theme="dark"]) body table#fixed-table > thead > tr > th.col-op,
 html:not([data-theme="dark"]) body table#fixed-table > thead > tr > th.col-ops,
 html:not([data-theme="dark"]) body table#summary-table > thead > tr > th.col-move,
@@ -7588,10 +7586,14 @@ html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-bill,
 html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-repay {
   border-top-right-radius: 0 !important;
 }
-html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-note,
-html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-open,
-html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-state,
-html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-hin {
+/* 紫色块最后一格：按页面点名，不能用 class 通配 ——
+   `col-note` 在流水/查询页是最后一列（要圆角），但在固定收支页后面还跟着
+   「本月」，通配会把圆角切在表格中间（用户报的就是这个）。 */
+html:not([data-theme="dark"]) body table#flow-table > thead > tr > th.col-note,
+html:not([data-theme="dark"]) body table.query-table > thead > tr.q-head-row > th.col-note,
+html:not([data-theme="dark"]) body table#summary-table > thead > tr > th.col-open,
+html:not([data-theme="dark"]) body table#fixed-table > thead > tr > th.col-state,
+html:not([data-theme="dark"]) body table#stats-sum-table > thead > tr > th.col-hin {
   border-top-right-radius: 12px !important;
 }
 /* 表格最后一行也收个下圆角，和外框对齐 */
@@ -7812,7 +7814,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.09';
+const APP_VER = 'v13.10';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -14670,8 +14672,8 @@ function renderSummary(main, footer) {
       <th class="col-seq">序</th>
       <th class="col-cat">类型</th>
       <th class="col-sub">分类</th>
-      <th class="col-code">简码</th>
-      <th class="col-name"><button type="button" class="sum-fold-toggle" aria-label="展开或收起类型 / 分类 / 简码"></button>账户名称</th>
+      <th class="col-code"><button type="button" class="sum-fold-toggle" aria-label="展开或收起类型 / 分类"></button>简码</th>
+      <th class="col-name">账户名称</th>
       <th class="col-bal">当前结余</th>
       <th class="col-out">转出</th>
       <th class="col-in">转入</th>
@@ -14852,7 +14854,16 @@ function applySummarySticky() {
        · 浏览器把列压窄（表格要挤进容器）
        · 收起时前三列是 0
        · 用户拖过列宽分隔线
-     量 5 个 th 的开销可以忽略，但要在布局完成后再量 —— 否则拿到的是旧值。 */
+     量 5 个 th 的开销可以忽略，但要在布局完成后再量 —— 否则拿到的是旧值。
+
+     注意区分「累加」和「冻结」：
+       · 累加要覆盖到冻结列左边的**每一列**（类型/分类收起时宽度是 0，
+         但展开后就非 0，简码的 left 得跟着变大）；
+       · 冻结只有 序 和 简码 两列。所有 thead th 本来就 position: sticky（吸顶），
+         只要再给它写 left 就等于同时横向冻结了 —— 所以 col-name 绝不能收到 left，
+         否则「账户名称」也会被一起冻住（这正是上一版冻结成三列的原因）。 */
+  const ACCUM_CLS = ['col-seq', 'col-cat', 'col-sub', 'col-code', 'col-name'];
+  const FROZEN_CLS = ['col-seq', 'col-code'];
   const measureAndApply = () => {
     const ths = table.querySelectorAll('thead th');
     if (!ths.length) return;
@@ -14862,16 +14873,18 @@ function applySummarySticky() {
     };
     const offs = {};
     let acc = 0;
-    for (const cls of ['col-seq', 'col-cat', 'col-sub', 'col-code', 'col-name']) {
+    for (const cls of ACCUM_CLS) {
       offs[cls] = acc;
       const th = findTh(cls);
       acc += th ? Math.round(th.getBoundingClientRect().width) : 0;
     }
     if (acc <= 0) return;
     const apply = (cell) => {
-      for (const cls in offs) {
+      for (const cls of FROZEN_CLS) {
         if (cell.classList.contains(cls)) { cell.style.left = offs[cls] + 'px'; return; }
       }
+      // 不冻结的列：清掉可能残留的旧 left，避免被上一条规则（吸顶 sticky）顺带横向冻住
+      cell.style.removeProperty('left');
     };
     table.querySelectorAll('thead th').forEach(apply);
     table.querySelectorAll('tbody td').forEach(apply);
