@@ -7305,6 +7305,25 @@ html body table#fixed-table th.col-ops {
   background: inherit !important;
   background-color: inherit !important;
 }
+
+/* 设置页「上移」和「删除」两列之间不要竖线 */
+html body table#summary-table td.col-move,
+html body table#summary-table th.col-move {
+  border-right: 0 !important;
+  border-left: 0 !important;
+  box-shadow: none !important;
+}
+html body table#summary-table td.col-del,
+html body table#summary-table th.col-del {
+  border-left: 0 !important;
+  border-right: 0 !important;
+  box-shadow: none !important;
+}
+/* 期初列右边也清掉（它右边紧挨着上移列） */
+html body table#summary-table td.col-bal,
+html body table#summary-table th.col-bal {
+  border-right: 0 !important;
+}
 </style>
 </head>
 <body>
@@ -7516,7 +7535,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.93';
+const APP_VER = 'v12.94';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -17985,17 +18004,18 @@ function mwSelfHeal() {
     // 固定页「操作」列：背景直接抄同一行相邻那格的实际颜色
     // —— 试过 transparent（透出表格底色，更亮）、写死 #000（更黑）、inherit（拿不到），
     //    都不如直接读邻格算出来的颜色稳。
+    // 用页面底色，和表格右边那片空白完全一致
+    var pageBg = getComputedStyle(document.body).backgroundColor || '';
+    var mainEl = document.getElementById('main');
+    if (mainEl) {
+      var mb = getComputedStyle(mainEl).backgroundColor;
+      if (mb && mb !== 'rgba(0, 0, 0, 0)') pageBg = mb;
+    }
     document.querySelectorAll('table#fixed-table tbody tr').forEach(function (tr) {
       var op = tr.querySelector('td.col-op, td.col-ops');
       if (!op) return;
-      var ref = tr.querySelector('td.col-state') || tr.querySelector('td.col-note');
-      if (ref) {
-        var bg = getComputedStyle(ref).backgroundColor;
-        if (bg && bg !== 'rgba(0, 0, 0, 0)') {
-          op.style.setProperty('background', bg, 'important');
-          op.style.setProperty('background-color', bg, 'important');
-        }
-      }
+      op.style.setProperty('background', pageBg, 'important');
+      op.style.setProperty('background-color', pageBg, 'important');
       op.style.setProperty('background-image', 'none', 'important');
       op.style.setProperty('border', '0', 'important');
       op.style.setProperty('box-shadow', 'none', 'important');
@@ -18003,15 +18023,9 @@ function mwSelfHeal() {
     // 表头那格跟「本月」表头一致
     (function () {
       var thOp = document.querySelector('table#fixed-table thead th.col-op, table#fixed-table thead th.col-ops');
-      var thRef = document.querySelector('table#fixed-table thead th.col-state');
-      if (thOp && thRef) {
-        var b = getComputedStyle(thRef).backgroundColor;
-        if (b && b !== 'rgba(0, 0, 0, 0)') {
-          thOp.style.setProperty('background', b, 'important');
-          thOp.style.setProperty('background-color', b, 'important');
-        }
-      }
       if (thOp) {
+        thOp.style.setProperty('background', pageBg, 'important');
+        thOp.style.setProperty('background-color', pageBg, 'important');
         thOp.style.setProperty('border', '0', 'important');
         thOp.style.setProperty('box-shadow', 'none', 'important');
       }
