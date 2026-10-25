@@ -6336,6 +6336,45 @@ html body .confirm-mask .sync-box button.danger-btn:not(.sync-tab):not(.row-del)
   border-color: #6b2f2f !important;
   color: #ff8a8a !important;
 }
+
+/* 账本区：内联编辑 */
+.book-row { display: flex; align-items: center; gap: 6px; }
+.book-name-inp {
+  flex: 1 1 auto; min-width: 0;
+  height: 30px; padding: 0 9px;
+  border: 1px solid var(--border-light); border-radius: 8px;
+  background: var(--bg-main); color: var(--text-main);
+  font-size: 13px; font-weight: 600; outline: none;
+  box-sizing: border-box;
+}
+.book-name-inp:focus { border-color: var(--primary); }
+.book-row-add .book-name-inp { border-style: dashed; font-weight: 400; }
+.book-row-add .book-name-inp::placeholder { color: var(--text-muted); opacity: .8; }
+.book-add-btn {
+  height: 26px; padding: 0 10px; border-radius: 7px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1px solid #cbbcf0 !important; background: #fff !important; color: #5b4ea8 !important;
+}
+.book-add-btn:hover { background: #f6f1ff !important; }
+[data-theme="dark"] .book-name-inp { background: #1b1630; border-color: #3a2f66; }
+[data-theme="dark"] .book-add-btn { background: #1b1630 !important; border-color: #3a2f66 !important; color: #cfc4f5 !important; }
+
+/* 路径页：「Money Way」跟在收起/展开三角右边，随它一起移动 */
+.mw-toggle-label {
+  position: absolute;
+  left: calc(var(--mw-side-w, 330px) + 30px);
+  top: 10px;
+  z-index: 25;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--text-muted);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+}
+.mw-toggle-label.shifted { left: 30px; }
+[data-theme="dark"] .mw-toggle-label { color: #b6a8f5; }
 </style>
 </head>
 <body>
@@ -6547,7 +6586,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.77';
+const APP_VER = 'v11.81';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7104,7 +7143,7 @@ function openChangePasswordDialog() {
       <input id="cp-hint" type="text" autocomplete="off" placeholder="例如：生日 + 常用数字"
         style="width:100%;height:38px;margin-bottom:10px;padding:0 10px;box-sizing:border-box;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main);font-size:15px">
     <div id="cp-err" style="min-height:18px;color:#dc2626;font-size:12px"></div>
-    <div class="sync-actions">
+    <div class="sync-actions" style="gap:10px">
       <button type="button" id="cp-go">确定修改</button>
       <button type="button" class="ghost" data-act="close">取消</button>
     </div>
@@ -8350,12 +8389,21 @@ function mwDrawSvg(nodes, edges) {
   tg.title = '收起 / 展开左侧信息栏';
   tg.textContent = '◀';
   if (isNarrow) { tg.classList.add('shifted'); tg.textContent = '▶'; }
+
+  // 「Money Way」标签：紧跟在三角右边，和三角一起移动 / 一起隐藏
+  var mwLabel = document.createElement('span');
+  mwLabel.className = 'mw-toggle-label';
+  mwLabel.textContent = 'Money Way';
+  if (isNarrow) mwLabel.classList.add('shifted');
+
   tg.onclick = function () {
     var hidden = sideBox.classList.toggle('collapsed');
     tg.textContent = hidden ? '▶' : '◀';
     tg.classList.toggle('shifted', hidden);
+    mwLabel.classList.toggle('shifted', hidden);
   };
   wrap.appendChild(tg);
+  wrap.appendChild(mwLabel);
 
   /* ---------- 绑定 ---------- */
   var clearB = sideBox.querySelector('#mw-clear');
@@ -8855,7 +8903,7 @@ function renderAudit(main, footer) {
           <div><b>手机安装</b>：扫码打开本账本</div>
           <div class="sync-hint small" style="margin-top:6px">${SITE_URL}</div>
           <div class="sync-hint small" style="margin-top:6px">安卓 Chrome / iPhone Safari 打开后，用「添加到主屏幕」装成 App，离线可用。</div>
-          <div style="margin-top:10px"><button type="button" id="ver-update-help">检查更新</button></div>
+          <div style="margin-top:10px"><button type="button" id="ver-update-help">更新</button></div>
           <div class="ver-mini">
             <div>当前 ${APP_VER}</div>
             <div id="ver-mini-remote">远端 读取中…</div>
@@ -8957,7 +9005,7 @@ function renderAudit(main, footer) {
     try {
       const t = await (await fetch('sw.js?probe=' + Date.now(), { cache: 'no-store' })).text();
       const m = /const CACHE = '([^']+)'/.exec(t);
-      el.textContent = '远端 ' + (m ? m[1] : '读取失败');
+      el.textContent = '远端 ' + (m ? String(m[1]).replace(/^mw-personal-/, '') : '读取失败');
     } catch (e) { el.textContent = '远端 读取失败'; }
   })();
 
@@ -11169,66 +11217,87 @@ function openImportXlsxDialog(preFile) {
 }
 
 // 账本管理面板（嵌在「添加」对话框顶部）
-function buildBookSection() {
-  const box = document.createElement('div');
-  box.className = 'book-section';
-  const render = () => {
-    const cur = currentBook();
-    box.innerHTML = `
-      <div class="book-head">
-        <span class="book-title">账本</span>
-        <button type="button" class="book-new">+ 新建</button>
-      </div>
-      <div class="book-list"></div>
-    `;
-    const list = box.querySelector('.book-list');
-    for (const b of bookState.list) {
-      const row = document.createElement('div');
-      row.className = 'book-row' + (b.id === cur.id ? ' active' : '');
-      row.innerHTML = `
-        <span class="book-name">${esc(b.name)}</span>
-        ${b.id === cur.id ? '<span class="book-cur">当前</span>' : ''}
+  /* 账本区：内联编辑，不弹 prompt
+     · 每行名称是输入框，改了不立刻生效 —— 点「改名」才写入
+     · 列表末尾永远留一行空行：填名称 → 点「添加」→ 新增一本 */
+  function buildBookSection() {
+    const box = document.createElement('div');
+    box.className = 'book-section';
+
+    const render = () => {
+      const cur = currentBook();
+      box.innerHTML = `
+        <div class="book-head">
+          <span class="book-title">账本</span>
+        </div>
+        <div class="book-list"></div>`;
+
+      const list = box.querySelector('.book-list');
+
+      for (const b of bookState.list) {
+        const row = document.createElement('div');
+        row.className = 'book-row' + (b.id === cur.id ? ' active' : '');
+        row.innerHTML = `
+          <input class="book-name-inp" type="text" value="${esc(b.name)}" maxlength="24">
+          ${b.id === cur.id ? '<span class="book-cur">当前</span>' : ''}
+          <span class="book-ops">
+            <button type="button" data-op="pick"${b.id === cur.id ? ' disabled' : ''}>${b.id === cur.id ? '在用' : '切换'}</button>
+            <button type="button" data-op="rename">改名</button>
+            ${bookState.list.length > 1 ? '<button type="button" data-op="del">删除</button>' : ''}
+          </span>`;
+        const inp = row.querySelector('.book-name-inp');
+        inp.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); row.querySelector('[data-op="rename"]').click(); }
+        });
+        row.querySelectorAll('[data-op]').forEach(btn => {
+          btn.onclick = async (ev) => {
+            ev.stopPropagation();
+            const op = btn.dataset.op;
+            if (op === 'pick') {
+              await switchBook(b.id);
+            } else if (op === 'rename') {
+              const t = String(inp.value || '').trim();
+              if (!t) { toast('名称不能为空', { type: 'error' }); inp.value = b.name; return; }
+              if (t === b.name) { toast('名称没变'); return; }
+              b.name = t.slice(0, 24);
+              saveBooks(); render(); toast('已改名');
+            } else if (op === 'del') {
+              if (b.id === bookState.current) { toast('不能删除当前正在用的账本，先切到别的', { type: 'error' }); return; }
+              if (!confirm('删除账本「' + b.name + '」？\n\n它里面的账户和流水会一并删除，无法恢复。')) return;
+              try { localStorage.removeItem(LS_KEY_BASE + ':' + b.id); } catch (e) {}
+              bookState.list = bookState.list.filter(x => x.id !== b.id);
+              saveBooks(); render(); toast('已删除「' + b.name + '」');
+            }
+          };
+        });
+        list.appendChild(row);
+      }
+
+      const addRow = document.createElement('div');
+      addRow.className = 'book-row book-row-add';
+      addRow.innerHTML = `
+        <input class="book-name-inp book-new-inp" type="text" maxlength="24"
+               placeholder="输入新账本名称…">
         <span class="book-ops">
-          <button type="button" data-op="rename" title="重命名">改名</button>
-          ${bookState.list.length > 1 ? '<button type="button" data-op="del" title="删除账本">删除</button>' : ''}
+          <button type="button" class="book-add-btn" data-op="add">添加</button>
         </span>`;
-      row.querySelectorAll('[data-op]').forEach(btn => {
-        btn.onclick = (ev) => {
-          ev.stopPropagation();
-          const op = btn.dataset.op;
-          if (op === 'rename') {
-            const nm = prompt('账本名称', b.name);
-            if (nm === null) return;
-            const t = String(nm).trim();
-            if (!t) { toast('名称不能为空', { type: 'error' }); return; }
-            b.name = t.slice(0, 24);
-            saveBooks(); render(); toast('已改名');
-          } else if (op === 'del') {
-            if (b.id === bookState.current) { toast('不能删除当前正在用的账本，先切到别的', { type: 'error' }); return; }
-            if (!confirm('删除账本「' + b.name + '」？\n\n它里面的账户和流水会一并删除，无法恢复。')) return;
-            try { localStorage.removeItem(LS_KEY_BASE + ':' + b.id); } catch (e) {}
-            bookState.list = bookState.list.filter(x => x.id !== b.id);
-            saveBooks(); render(); toast('已删除「' + b.name + '」');
-          }
-        };
-      });
-      row.onclick = async () => {
-        if (b.id === bookState.current) return;
-        await switchBook(b.id);
+      const newInp = addRow.querySelector('.book-new-inp');
+      const doAdd = async () => {
+        const t = String(newInp.value || '').trim();
+        if (!t) { toast('请先输入账本名称', { type: 'error' }); newInp.focus(); return; }
+        if (bookState.list.some(x => x.name === t)) { toast('已有同名账本', { type: 'error' }); return; }
+        await createBook(t.slice(0, 24));
       };
-      list.appendChild(row);
-    }
-    box.querySelector('.book-new').onclick = async () => {
-      const nm = prompt('新账本名称', '账本 ' + (bookState.list.length + 1));
-      if (nm === null) return;
-      const t = String(nm).trim();
-      if (!t) { toast('名称不能为空', { type: 'error' }); return; }
-      await createBook(t.slice(0, 24));
+      newInp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); doAdd(); }
+      });
+      addRow.querySelector('[data-op="add"]').onclick = (ev) => { ev.stopPropagation(); doAdd(); };
+      list.appendChild(addRow);
     };
-  };
-  render();
-  return box;
-}
+
+    render();
+    return box;
+  }
 
 // 新建账本：空白（73 个默认账户，期初全 0）
 async function createBook(name) {
