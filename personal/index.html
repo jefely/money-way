@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -7301,10 +7301,10 @@ html body table#summary-table td.col-del,
 html body table#summary-table th.col-del {
   border-left: 0 !important;
   border-right: 0 !important;
-  border-top: 0 !important;
-  border-bottom: 0 !important;
   box-shadow: none !important;
 }
+/* 只清左右竖线。**上下横线不动** —— 行与行之间的分隔必须跟左侧「期初」列对齐；
+   把 border-top/bottom 一起清掉，▲/× 两列会变成一条没有行线的白带。 */
 /* 「期初」列右边也清掉（它右边紧挨着上移列）。
    注意列名：设置页显示的是 **col-open**（期初），而 col-bal 是「当前结余」，
    在设置页是隐藏列。v12.52 起这条一直写在 col-bal 上，所以「期初」右边那条竖线
@@ -7328,6 +7328,16 @@ html body table#summary-table th.col-bal {
    `var(--bg-main)`，于是「列 / 表格 / 右侧留白」自动同色，且跟随主题。
    ============================================================ */
 html body table.grid {
+  background: var(--bg-main) !important;
+  background-color: var(--bg-main) !important;
+}
+
+/* 设置页「期初」列（数据行）：底色也用页面底色。
+   它带斑马纹、右边四列却纯白，交界处会出现一条「看得到但不是边框」的色差带，
+   很容易被当成线框（反复报修的就是它）。去掉后「期初 + 上移 + 删除 + 账单日
+   + 还款日」连成一片，行的区分交给左边「序」和「账户名称」的斑马纹。
+   表头不动：表头统一是 --bg-gray，硬改这一格会缺一块。 */
+html body table#summary-table td.col-open {
   background: var(--bg-main) !important;
   background-color: var(--bg-main) !important;
 }
@@ -7563,7 +7573,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.99';
+const APP_VER = 'v13.00';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
