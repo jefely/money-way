@@ -7247,7 +7247,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.40';
+const APP_VER = 'v12.41';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -13093,8 +13093,6 @@ function renderFlow(main, footer) {
     <button class="ghost" id="f-sync">同步</button>
     <button class="ghost" id="f-import" title="导入 Excel 或文本">导入</button>
     <button class="ghost" id="f-exp">导出</button>
-    <button class="ghost" id="f-theme" title="切换反色主题">主题</button>
-    <button class="ghost" id="f-cols" title="布局设置：列宽 / 行高 / 字号">布局</button>
   `;
   main.appendChild(bar);
 
@@ -13103,9 +13101,6 @@ function renderFlow(main, footer) {
   document.getElementById('f-sync').onclick = () => openSyncDialog();
   // 导出：两行菜单 —— 导出文件（仅电脑端）/ 复制内容
   document.getElementById('f-exp').onclick = () => openExportMenu();
-  document.getElementById('f-theme').onclick = () => toggleTheme();
-  const colsBtn = document.getElementById('f-cols');
-  if (colsBtn) colsBtn.onclick = () => openColWidthsDialog();
   // 导入：两行菜单 —— 导入覆盖文件 / 导入覆盖账单
   const impBtn = document.getElementById('f-import');
   if (impBtn) impBtn.onclick = () => openImportMenu();
@@ -13871,12 +13866,15 @@ function renderSummary(main, footer) {
   [
     { label: '密码', fn: () => openChangePasswordDialog() },
     { label: '配置', fn: () => openConfigDialog() },
-    { label: '重置', fn: () => openResetChoiceDialog() }
+    { label: '重置', fn: () => openResetChoiceDialog() },
+    { label: '主题', fn: () => toggleTheme(), title: '切换反色主题' },
+    { label: '布局', fn: () => openColWidthsDialog(), title: '布局设置：列宽 / 行高 / 字号' }
   ].forEach(function (d) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'ghost plan-btn';
     btn.textContent = d.label;
+    if (d.title) btn.title = d.title;
     btn.onclick = d.fn;
     bar1.appendChild(btn);
   });
