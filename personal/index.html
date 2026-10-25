@@ -7264,6 +7264,29 @@ html body .query-dual,
 html body .query-dual > * { scrollbar-gutter: auto !important; }
 
 /* 固定页「跟流水」勾选/取消：静默处理，不弹提示 */
+
+/* 吸顶 wrapper：自己带不透明背景，负责挡住滚上来的内容 */
+.confirm-mask .sync-box > .sync-sticky {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 8 !important;
+  background: var(--bg-main) !important;
+  /* 左右各撑出去，盖住 .sync-box 的 padding，不留缝 */
+  margin-left: -40px !important;
+  margin-right: -40px !important;
+  padding-left: 40px !important;
+  padding-right: 40px !important;
+  box-sizing: content-box !important;
+}
+html[data-theme="dark"] .confirm-mask .sync-box > .sync-sticky {
+  background: #14132a !important;
+}
+/* wrapper 里面的标题回到正常流，渐变照旧 */
+.confirm-mask .sync-sticky > .sync-brand,
+.confirm-mask .sync-sticky > .sync-title {
+  position: static !important;
+  margin: 0 !important;
+}
 </style>
 </head>
 <body>
@@ -7475,7 +7498,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.86';
+const APP_VER = 'v12.87';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10169,13 +10192,8 @@ function renderFixed(main, footer) {
     // 操作
     const op = document.createElement('td');
     op.className = 'col-op';
-    if (f.sourceTxId) {
-      const badge = document.createElement('span');
-      badge.className = 'fixed-link-badge';
-      badge.textContent = '跟流水';
-      badge.title = '这条由流水的勾选框生成；编辑任一格就会脱钩';
-      op.appendChild(badge);
-    }
+    // 「跟流水」不再显示徽章：它只是来源信息，放在删除按钮前面反而杂乱
+
     const del = document.createElement('button');
     del.type = 'button';
     del.className = 'row-del';
@@ -17989,6 +18007,43 @@ function mwSelfHeal() {
   try {
     new MutationObserver(function () { paint(); })
       .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  } catch (e) {}
+})();
+
+/* 弹窗标题吸顶
+   ------------------------------------------------------------
+   标题本身是 background-clip:text 的渐变字，没法直接加不透明背景。
+   所以外面包一层 wrapper：wrapper 负责 sticky + 背景，
+   标题在里面保持渐变，滚上来的内容被 wrapper 挡掉。 */
+(function mwStickyDialogTitles() {
+  function wrapOne(el) {
+    if (!el || el.parentElement.classList.contains('sync-sticky')) return;
+    var box = document.createElement('div');
+    box.className = 'sync-sticky';
+    el.parentElement.insertBefore(box, el);
+    box.appendChild(el);
+  }
+  function scan(root) {
+    if (!root || root.nodeType !== 1) return;
+    if (root.classList && root.classList.contains('confirm-mask')) {
+      root.querySelectorAll('.sync-box > .sync-brand, .sync-box > .sync-title').forEach(wrapOne);
+    }
+    if (root.querySelectorAll) {
+      root.querySelectorAll('.confirm-mask').forEach(function (m) {
+        m.querySelectorAll('.sync-box > .sync-brand, .sync-box > .sync-title').forEach(wrapOne);
+      });
+    }
+  }
+  window.mwStickyTitles = scan;
+  document.querySelectorAll('.confirm-mask').forEach(function (m) {
+    m.querySelectorAll('.sync-box > .sync-brand, .sync-box > .sync-title').forEach(wrapOne);
+  });
+  try {
+    new MutationObserver(function (muts) {
+      muts.forEach(function (mu) {
+        mu.addedNodes && mu.addedNodes.forEach(function (n) { scan(n); });
+      });
+    }).observe(document.body, { childList: true, subtree: true });
   } catch (e) {}
 })();
 

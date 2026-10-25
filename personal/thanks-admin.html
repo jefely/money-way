@@ -42,6 +42,22 @@
   .ok { color: #2f7d4f; font-weight: 600; }
   .err { color: #b8433f; font-weight: 600; }
   .cnt { font-size: 12.5px; color: #6b6483; }
+
+  /* 输入框选中文字：深色下默认会变成白底白字，这里明确指定 */
+  input::selection, textarea::selection {
+    background: #8b6cff;
+    color: #ffffff;
+  }
+  textarea::-moz-selection, input::-moz-selection {
+    background: #8b6cff;
+    color: #ffffff;
+  }
+  /* 只读的结果框：本身是浅灰底，选中要有明显对比 */
+  #out::selection { background: #6b5bc4; color: #ffffff; }
+  @media (prefers-color-scheme: dark) {
+    #out::selection { background: #8b6cff; color: #ffffff; }
+  }
+
   @media (prefers-color-scheme: dark) {
     body { background: #14101f; color: #ece8f7; }
     .card { background: #1b1630; border-color: #2f2751; }
