@@ -7264,7 +7264,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.42';
+const APP_VER = 'v12.43';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -8122,7 +8122,7 @@ async function openThanksDialog() {
     const data = await res.json();
     const list = Array.isArray(data.donors) ? data.donors : [];
     mask.querySelector('#thanks-wall').innerHTML = list.length
-      ? list.map(d => `<span class="thanks-chip" style="${thanksChipStyle(d.name || '匿名')}">${esc(d.name || '匿名')}</span>`).join('')
+      ? list.map(d => `<span class="thanks-chip" style="${thanksChipStyle(thanksName(d))}">${esc(thanksName(d))}</span>`).join('')
       : '<span class="sync-hint small">还没有人，等第一位朋友。</span>';
   } catch (e) {
     mask.querySelector('#thanks-wall').innerHTML = '<span class="sync-hint small">离线，暂时取不到感谢墙</span>';
@@ -8143,7 +8143,7 @@ async function loadThanksWall() {
     const data = await res.json();
     const list = Array.isArray(data.donors) ? data.donors : [];
     wall.innerHTML = list.length
-      ? list.map(d => `<span class="thanks-chip" style="${thanksChipStyle(d.name || '匿名')}">${esc(d.name || '匿名')}</span>`).join('')
+      ? list.map(d => `<span class="thanks-chip" style="${thanksChipStyle(thanksName(d))}">${esc(thanksName(d))}</span>`).join('')
       : '<span class="sync-hint small">还没有人，等第一位朋友。</span>';
   } catch (e) {
     wall.innerHTML = '<span class="sync-hint small">离线，暂时取不到感谢墙</span>';
@@ -10495,6 +10495,17 @@ function buildLayoutText() {
     const n = Number(v);
     if (!isFinite(n)) return 0;
     return Number(n.toFixed(10)) + 0;
+  }
+
+  /* thanks.json 里昵称的字段名容错：name / 姓名 / nick / nickname 都认 */
+  function thanksName(d) {
+    if (!d || typeof d !== 'object') return String(d || '').trim() || '匿名';
+    const raw = d.name != null ? d.name
+      : (d['姓名'] != null ? d['姓名']
+      : (d.nick != null ? d.nick
+      : (d.nickname != null ? d.nickname : '')));
+    const t = String(raw || '').trim();
+    return t || '匿名';
   }
 
   /* 感谢墙图标的尺寸：字数越少越大，形成大大小小的节奏 */
