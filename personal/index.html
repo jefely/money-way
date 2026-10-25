@@ -1060,22 +1060,29 @@ table.install-table tbody tr.inst-p > td.col-name input { color: #4c3d80 !import
 /* 月份格子保持紧凑，不参与 2ch 大间隔（12 个月放不下） */
 .toolbar.bar1 .month-row,
 .toolbar.bar2 .month-row { gap: 4px; }
-/* 窄屏：流水页按钮和电脑保持同一尺寸（宽度自适应 + 左右 10px 内边距），
-   放不下就让工具条横向滚动，不要靠压窄按钮来塞 */
+/* 流水页按钮：固定最大宽度，窗口变窄时自己收缩，但有下限不再缩成小方块 */
+.toolbar.flow-bar > button {
+  flex: 0 1 auto !important;
+  width: auto !important;
+  min-width: 40px !important;
+  max-width: 58px !important;
+  padding: 0 5px !important;
+  font-size: 13px !important;
+  height: 26px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 窄屏：只收紧间距，按钮尺寸交给上面的 min/max 控制 */
 @media (max-width: 767px) {
   .toolbar.flow-bar {
-    gap: 6px; padding-left: 4px; padding-right: 4px;
+    gap: 4px; padding-left: 3px; padding-right: 3px;
     overflow-x: auto; overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
   .toolbar.flow-bar::-webkit-scrollbar { display: none; }
-  .toolbar.flow-bar > button {
-    width: auto !important; flex: 0 0 auto !important;
-    min-width: 0 !important; padding: 0 10px !important;
-    font-size: 14px !important; height: 26px !important;
-    white-space: nowrap;
-  }
+  .toolbar.flow-bar > button { letter-spacing: -.3px; }
   .toolbar.flow-bar .flow-title { margin-right: 0 !important; font-size: 14px; }
 }
 /* ============================================================
@@ -1460,8 +1467,7 @@ table#summary-table { min-width: 800px !important; }
 @media (max-width: 420px) {
   .toolbar.flow-bar, .toolbar.bar1, .toolbar.bar2, .toolbar.install-bar { gap: 4px !important; padding: 4px 4px !important; }
   .toolbar.flow-bar > button, .toolbar.bar1 > button, .toolbar.bar2 > button, .toolbar.install-bar > button {
-    font-size: 14px !important;
-    padding: 0 10px !important;
+    font-size: 13px !important;
   }
 }
 /* 汇总页：模式切换按钮（月份/区间）不参与均分，固定宽度 */
@@ -6008,7 +6014,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.20';
+const APP_VER = 'v11.21';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
