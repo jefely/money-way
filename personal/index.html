@@ -6043,7 +6043,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.26';
+const APP_VER = 'v11.27';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -15646,62 +15646,84 @@ function mwSelfHeal() {
   } catch (e) {}
 }
 
-/* 流水页工具条按钮：宽度和字号一起算，窗口变窄时等比缩小而不是换行。
-   —— 之前只压宽度不缩字号，文字撑不下就只能折到第二行。 */
-(function mwFixFlowButtons() {
-  var BTN_MAX = 56, BTN_MIN = 34, FS_MAX = 13, FS_MIN = 9;
+/* 两个自适应：① 流水页工具条按钮 ② 顶部标签页。
+   共同点：宽度先算、字号跟着宽度等比缩放，因此窗口变窄时文字缩小而不会换行。
+   注意：工具条自身高度要和其它页一致（行高 34~35px），不要压成 26px。 */
+(function mwAutoFit() {
+  var BTN_MAX = 56, BTN_MIN = 40, BTN_FS_MAX = 13, BTN_FS_MIN = 9.5;
 
-  function layout() {
+  function fitFlowBar() {
     var bar = document.querySelector('.toolbar.flow-bar');
     if (!bar) return;
     var btns = [].slice.call(bar.querySelectorAll(':scope > button'))
       .filter(function (b) { return /添加|同步|导入|导出|主题|布局/.test(b.textContent || ''); });
     if (!btns.length) return;
 
-    // 工具条禁止换行
+    // 行高和其它页保持一致：内容是 26px 按钮 + 上下 4px padding = 34px
     bar.style.setProperty('flex-wrap', 'nowrap', 'important');
-    bar.style.setProperty('height', '26px', 'important');
-    bar.style.setProperty('min-height', '26px', 'important');
+    bar.style.setProperty('height', 'auto', 'important');
+    bar.style.setProperty('min-height', '34px', 'important');
     bar.style.setProperty('align-items', 'center', 'important');
     bar.style.setProperty('overflow-x', 'auto', 'important');
     bar.style.setProperty('overflow-y', 'hidden', 'important');
 
-    // 先按 css 文字宽估算（13px 时按钮 56px），再依据容器实测宽度回算每格可用宽度
-    var barW = bar.clientWidth;
     var cs = getComputedStyle(bar);
     var padL = parseFloat(cs.paddingLeft) || 0, padR = parseFloat(cs.paddingRight) || 0;
     var gap = parseFloat(cs.columnGap) || 4;
     var title = bar.querySelector('.flow-title, .bar-title, .fixed-title');
     var titleW = title ? title.getBoundingClientRect().width + gap : 0;
-    var avail = barW - padL - padR - titleW - gap * btns.length;
+    var avail = bar.clientWidth - padL - padR - titleW - gap * btns.length;
     var per = Math.max(BTN_MIN, Math.min(BTN_MAX, avail / btns.length));
-
-    // 字号跟按钮宽度等比：56px ↔ 13px，34px ↔ 9px
-    var fs = FS_MIN + (per - BTN_MIN) * (FS_MAX - FS_MIN) / (BTN_MAX - BTN_MIN);
-    fs = Math.max(FS_MIN, Math.min(FS_MAX, fs));
+    var fs = BTN_FS_MIN + (per - BTN_MIN) * (BTN_FS_MAX - BTN_FS_MIN) / (BTN_MAX - BTN_MIN);
+    fs = Math.max(BTN_FS_MIN, Math.min(BTN_FS_MAX, fs));
 
     btns.forEach(function (b) {
       b.style.setProperty('flex', '0 0 ' + per.toFixed(1) + 'px', 'important');
       b.style.setProperty('width', per.toFixed(1) + 'px', 'important');
       b.style.setProperty('min-width', '0', 'important');
       b.style.setProperty('max-width', 'none', 'important');
-      b.style.setProperty('padding', '0 2px', 'important');
+      b.style.setProperty('padding', '0 3px', 'important');
       b.style.setProperty('font-size', fs.toFixed(2) + 'px', 'important');
+      b.style.setProperty('line-height', '26px', 'important');
       b.style.setProperty('height', '26px', 'important');
       b.style.setProperty('box-sizing', 'border-box', 'important');
       b.style.setProperty('white-space', 'nowrap', 'important');
-      b.style.setProperty('overflow', 'visible', 'important');
+      b.style.setProperty('overflow', 'hidden', 'important');
       b.style.setProperty('text-overflow', 'clip', 'important');
     });
   }
 
-  window.mwFlowBtnLayout = layout;
-  layout();
-  window.addEventListener('resize', function () { layout(); });
-  window.addEventListener('orientationchange', function () { setTimeout(layout, 120); });
+  /* 顶部标签页：8 个页签平分宽度，字随格子宽缩放 */
+  function fitTabbar() {
+    var bar = document.querySelector('.tabbar');
+    if (!bar) return;
+    var tabs = [].slice.call(bar.querySelectorAll(':scope > button'));
+    if (!tabs.length) return;
+    var cs = getComputedStyle(bar);
+    var padL = parseFloat(cs.paddingLeft) || 0, padR = parseFloat(cs.paddingRight) || 0;
+    var gap = parseFloat(cs.columnGap) || 0;
+    var avail = bar.clientWidth - padL - padR - gap * Math.max(0, tabs.length - 1);
+    var per = avail / tabs.length;
+    // 单格 60px 以上用 14px 字号；缩到 34px 时降到 10px
+    var fs = Math.max(10, Math.min(14, per / 4.4));
+    tabs.forEach(function (t) {
+      t.style.setProperty('font-size', fs.toFixed(2) + 'px', 'important');
+      t.style.setProperty('padding', '0 2px', 'important');
+      t.style.setProperty('letter-spacing', '0', 'important');
+      t.style.setProperty('white-space', 'nowrap', 'important');
+      t.style.setProperty('overflow', 'hidden', 'important');
+      t.style.setProperty('text-overflow', 'clip', 'important');
+    });
+  }
+
+  function all() { fitFlowBar(); fitTabbar(); }
+  window.mwAutoFit = all;
+  all();
+  window.addEventListener('resize', all);
+  window.addEventListener('orientationchange', function () { setTimeout(all, 120); });
   try {
-    new MutationObserver(layout).observe(document.getElementById('main') || document.body,
-      { childList: true, subtree: true });
+    new MutationObserver(function () { setTimeout(all, 0); })
+      .observe(document.getElementById('main') || document.body, { childList: true, subtree: true });
   } catch (e) {}
 })();
 
