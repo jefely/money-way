@@ -5366,21 +5366,20 @@ table#summary-table tbody td.col-name {
   background-clip: padding-box;
 }
 /* 逐级抬高，否则后渲染的列会把前面的盖住 */
-/* 冻结列（序 / 简码）的层级：只有这两列需要「比普通列高」，右边那列盖左边那列。
-   注意 **表头和数据行要分开处理**：
-   · 表头单元格必须有 z-index，否则盖不住下面滚上来的数据行
-     （曾经把 thead th.col-name 一起设成 auto，结果「账户名称」表头被数据穿透，
-       截图里能看到资产行压在列标上）；
-   · 数据行里不冻结的列必须回 auto，否则横向滚动时「账户名称」会滑过来盖住冻结列。 */
+/* 冻结列（序 / 类型 / 分类 / 简码）的层级。
+   规则：**冻结的列按从左到右递增**，右边盖左边；
+   不冻结的列（账户名称…）一律 auto，被冻结列盖住。
+   注意表头和数据行要分开：表头单元格必须有 z-index 才能盖住滚上来的数据行，
+   而数据行里不冻结的列必须回 auto，否则横向滚动时会滑过来盖住冻结列。 */
 table#summary-table thead th.col-seq  { z-index: 5; }
-table#summary-table thead th.col-code { z-index: 6; }
-table#summary-table thead th.col-cat,
-table#summary-table thead th.col-sub,
-table#summary-table thead th.col-name { z-index: 4; }   /* 低于冻结的两列，高于数据行 */
+table#summary-table thead th.col-cat  { z-index: 6; }
+table#summary-table thead th.col-sub  { z-index: 7; }
+table#summary-table thead th.col-code { z-index: 8; }
+table#summary-table thead th.col-name { z-index: 4; }
 table#summary-table tbody td.col-seq  { z-index: 2; }
-table#summary-table tbody td.col-code { z-index: 3; }
-table#summary-table tbody td.col-cat,
-table#summary-table tbody td.col-sub,
+table#summary-table tbody td.col-cat  { z-index: 3; }
+table#summary-table tbody td.col-sub  { z-index: 4; }
+table#summary-table tbody td.col-code { z-index: 5; }
 table#summary-table tbody td.col-name { z-index: auto !important; }
 
 /* 导出 / 导入 的行式菜单（和添加、同步弹窗一个观感） */
@@ -8222,7 +8221,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.52';
+const APP_VER = 'v13.53';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -15322,7 +15321,15 @@ function applySummarySticky() {
          只要再给它写 left 就等于同时横向冻结了 —— 所以 col-name 绝不能收到 left，
          否则「账户名称」也会被一起冻住（这正是上一版冻结成三列的原因）。 */
   const ACCUM_CLS = ['col-seq', 'col-cat', 'col-sub', 'col-code', 'col-name'];
-  const FROZEN_CLS = ['col-seq', 'col-code'];
+  /* 冻结哪些列：
+     · 折叠态（类型/分类收成 0 宽）→ 只冻「序 + 简码」；
+     · 展开态 → 「序 / 类型 / 分类 / 简码」一起冻。
+       展开后如果只冻序和简码，横向滚动时夹在中间的类型/分类会被推出屏幕，
+       简码又停在中间，整行读起来像「各列各自动」。
+     注意 col-name 永远不进这个集合：它一旦有 left 就等于也被横向冻结。 */
+  const FROZEN_CLS = summaryFold
+    ? ['col-seq', 'col-code']
+    : ['col-seq', 'col-cat', 'col-sub', 'col-code'];
   const measureAndApply = () => {
     const ths = table.querySelectorAll('thead th');
     if (!ths.length) return;
