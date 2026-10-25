@@ -4477,22 +4477,28 @@ table#summary-table td input {
 .lock-card > .lock-logo {
   width: calc(100% + 52px) !important;
   box-sizing: border-box !important;
-  margin: 0 -26px 12px !important;
+  margin: 0 -26px 10px !important;
   padding: 0 26px 10px !important;
   font-size: 28px !important;
   font-weight: 800 !important;
-  letter-spacing: .16em !important;
-  text-indent: .16em !important;      /* 字间距会让文字视觉左偏，补回来 */
-  line-height: 1.2 !important;
+  letter-spacing: .1em !important;
+  text-indent: .1em !important;       /* 字间距会让文字视觉左偏，补回来 */
+  line-height: 1.15 !important;
   text-align: center !important;
-  border-bottom: 1px solid rgba(255, 255, 255, .22) !important;
+  /* 与其它弹窗同一套：4px 实心紫线。锁屏底是深紫，所以紫线提亮到 #8b6cff 才看得见 */
+  border-bottom: 4px solid #8b6cff !important;
 }
 .lock-card > .lock-title {
   font-size: 21px !important;
   font-weight: 700 !important;
-  letter-spacing: .06em !important;
+  letter-spacing: .04em !important;
   text-align: center !important;
-  margin-top: 2px !important;
+  margin: 0 0 18px 0 !important;      /* 与下面内容拉开，别挤着 */
+  /* 与其它弹窗一样：紫渐变标题（深紫底上整体提亮一档） */
+  background: linear-gradient(135deg, #d9ccff, #9b7fff) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
 }
 .lock-title { font-size: 22px !important; font-weight: 700; color: #fff !important; letter-spacing: .08em; }
 .lock-sub { margin-top: 7px; font-size: 13px !important; line-height: 1.65; color: rgba(255, 255, 255, .6) !important; }
@@ -7419,12 +7425,13 @@ html body .query-section .grid-wrap { scrollbar-gutter: auto !important; }
   top: 0 !important;
   z-index: 4 !important;              /* 必须低于 .dlg-x，否则盖住右上角关闭按钮 */
   background: transparent !important;
-  margin-top: -5px !important;        /* 头部整体上移 5px，贴近卡片上沿 */
+  margin-top: -10px !important;       /* 头部整体上移 10px，贴近卡片上沿 */
   /* 左右各撑出去，盖住 .sync-box 的 padding，不留缝 */
   margin-left: -40px !important;
   margin-right: -40px !important;
   padding-left: 40px !important;
   padding-right: 40px !important;
+  padding-bottom: 6px !important;     /* 头部与正文之间再让出一点，别挤着 */
   box-sizing: content-box !important;
 }
 html[data-theme="dark"] .confirm-mask .sync-box > .sync-sticky {
@@ -7722,7 +7729,7 @@ html:not([data-theme="dark"]) body table.grid > tbody > tr:last-child > td:last-
    浅色 / 深色各一套，边框分别是亮紫与暗紫。
    ============================================================ */
 html:not([data-theme="dark"]) .confirm-mask .sync-box {
-  background: rgba(255, 255, 255, .30) !important;
+  background: rgba(255, 255, 255, .25) !important;
   -webkit-backdrop-filter: blur(26px) saturate(170%);
   backdrop-filter: blur(26px) saturate(170%);
   border: 1px solid rgba(139, 108, 255, .30) !important;
@@ -7733,7 +7740,7 @@ html:not([data-theme="dark"]) .confirm-mask .sync-box {
     0 24px 56px -18px rgba(76, 61, 128, .40) !important;
 }
 [data-theme="dark"] .confirm-mask .sync-box {
-  background: rgba(20, 16, 32, .30) !important;
+  background: rgba(20, 16, 32, .25) !important;
   -webkit-backdrop-filter: blur(26px) saturate(160%);
   backdrop-filter: blur(26px) saturate(160%);
   border: 1px solid rgba(155, 138, 210, .38) !important;
@@ -8000,7 +8007,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.26';
+const APP_VER = 'v13.27';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
