@@ -6682,6 +6682,17 @@ html body .mw-side-left::-webkit-scrollbar-thumb {
   background-clip: padding-box !important;
   border-radius: 7px !important;
 }
+
+/* 账本区的 ×（删除 / 清空输入）：裸符号，无底色无边框 */
+.book-x {
+  width: 22px !important; min-width: 22px !important;
+  padding: 0 !important; margin: 0 2px 0 0 !important;
+  border: 0 !important; border-radius: 0 !important;
+  background: transparent !important; background-image: none !important;
+  box-shadow: none !important;
+  font-size: 15px !important; line-height: 26px !important;
+  cursor: pointer;
+}
 </style>
 </head>
 <body>
@@ -6893,7 +6904,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.07';
+const APP_VER = 'v12.11';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10117,10 +10128,18 @@ function buildLayoutText() {
    · 流水的账户简码会先翻译成账户全称，翻译不到就原样保留并计入「未匹配」
    ============================================================ */
 // 把当前数据导出成导入用的 TXT 模板（账户段 + 流水段）
+  /* 金额按「最缺省」写法：200.00 → 200，15.60 → 15.6，0 → 0 */
+  function trimNum(v) {
+    const n = Number(v);
+    if (!isFinite(n)) return 0;
+    return Number(n.toFixed(10)) + 0;
+  }
+
 function buildImportText() {
   const lines = [];
-  const money = v => (Number(v) || 0).toFixed(2);
+  const money = v => String(trimNum(v));
   lines.push('账户');
+  lines.push('类型，分类，简码，名称，期初，账单日，还款日，');
   // 保持 类型 → 分类 → 简码 的稳定顺序，方便肉眼核对
   const CAT_ORDER = ['资产类', '负债类', '收入类', '权益类', '费用类'];
   const sorted = state.accounts.slice().sort((a, b) => {
@@ -10131,10 +10150,15 @@ function buildImportText() {
   for (const a of sorted) {
     const nm = String(a.name || '').trim();
     if (!nm) continue;
-    lines.push([a.cat || '', a.sub || '', a.code || '', nm, money(a.opening)].join('，') + '，');
+    const row = [a.cat || '', a.sub || '', a.code || '', nm, money(a.opening)];
+    const bd = String(a.billDay == null ? '' : a.billDay).trim();
+    const rd = String(a.repayDay == null ? '' : a.repayDay).trim();
+    if (bd || rd) { row.push(bd, rd); }
+    lines.push(row.join('，') + '，');
   }
   lines.push('');
   lines.push('流水');
+  lines.push('日期，转出，转入，金额，备注，');
   const txs = state.transactions.slice().sort((a, b) => {
     const da = String(a.date || ''), db = String(b.date || '');
     if (da !== db) return da < db ? -1 : 1;
@@ -11560,8 +11584,8 @@ function openImportXlsxDialog(preFile) {
           <button type="button" class="book-pick${on ? ' on' : ''}" data-op="pick"
                   title="${on ? '当前账本' : '点一下加载这个账本'}"><i></i></button>
           <span class="book-ops">
+            ${bookState.list.length > 1 ? '<button type="button" class="book-x" data-op="del" title="删除这个账本">×</button>' : ''}
             <button type="button" data-op="rename">改名</button>
-            ${bookState.list.length > 1 ? '<button type="button" data-op="del">删除</button>' : ''}
           </span>`;
         // 账本区按钮的样式用 inline 钉住 —— 弹窗里那批 !important 规则太霸道
         const dark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -11586,7 +11610,7 @@ function openImportXlsxDialog(preFile) {
           pk.style.setProperty('box-shadow', 'none', 'important');
         }
         row.querySelectorAll('.book-ops button').forEach(function (bb) {
-          const isDel = bb.dataset.op === 'del';
+          const isDel = bb.dataset.op === 'del' || bb.classList.contains('book-x');
           bb.style.setProperty('flex', '0 0 auto', 'important');
           bb.style.setProperty('white-space', 'nowrap', 'important');
           bb.style.setProperty('font-size', '12px', 'important');
@@ -11657,6 +11681,7 @@ function openImportXlsxDialog(preFile) {
         <input class="book-name-inp book-new-inp" type="text" maxlength="24"
                placeholder="输入新账本名称…">
         <span class="book-ops">
+          <button type="button" class="book-x" data-op="clr" title="清空输入">×</button>
           <button type="button" class="book-add-btn" data-op="add">添加</button>
         </span>`;
       const newInp = addRow.querySelector('.book-new-inp');
@@ -11671,7 +11696,7 @@ function openImportXlsxDialog(preFile) {
       });
       {
         const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-        addRow.querySelectorAll('.book-ops button').forEach(function (bb) {
+        addRow.querySelectorAll('.book-ops button:not(.book-x)').forEach(function (bb) {
           bb.style.setProperty('flex', '0 0 auto', 'important');
           bb.style.setProperty('white-space', 'nowrap', 'important');
           bb.style.setProperty('height', '26px', 'important');
@@ -11688,6 +11713,8 @@ function openImportXlsxDialog(preFile) {
         });
       }
       addRow.querySelector('[data-op="add"]').onclick = (ev) => { ev.stopPropagation(); doAdd(); };
+      const clrBtn = addRow.querySelector('[data-op="clr"]');
+      if (clrBtn) clrBtn.onclick = (ev) => { ev.stopPropagation(); newInp.value = ''; newInp.focus(); };
       list.appendChild(addRow);
     };
 
