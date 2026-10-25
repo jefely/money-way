@@ -8175,7 +8175,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.62';
+const APP_VER = 'v13.63';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -15226,7 +15226,10 @@ function applySummarySticky() {
          只要再给它写 left 就等于同时横向冻结了 —— 所以 col-name 绝不能收到 left，
          否则「账户名称」也会被一起冻住（这正是上一版冻结成三列的原因）。 */
   const ACCUM_CLS = ['col-seq', 'col-cat', 'col-sub', 'col-code', 'col-name'];
-  const FROZEN_CLS = ['col-seq', 'col-code'];
+  /* 冻结「最左两列」：折叠态是「序 + 简码」，展开态是「序 + 类型」。
+     原来固定冻 seq+code —— 展开后最左两列变成「序 + 类型」，
+     类型没冻，横向一滑前两列就跑走。 */
+  const FROZEN_CLS = summaryFold ? ['col-seq', 'col-code'] : ['col-seq', 'col-cat'];
   const measureAndApply = () => {
     const ths = table.querySelectorAll('thead th');
     if (!ths.length) return;
