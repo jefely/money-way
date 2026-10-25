@@ -7469,7 +7469,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.77';
+const APP_VER = 'v12.78';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10852,7 +10852,32 @@ function buildLayoutText() {
   }
 
   function thanksPlan(name) {
-    var raw = String(name || '');
+    var raw0 = String(name || '');
+
+    // 手动断行：名字里写 | 就按 | 切，完全听用户的
+    if (raw0.indexOf('|') >= 0) {
+      var parts = raw0.split('|').map(function (x) { return x.trim(); }).filter(function (x) { return x.length > 0; });
+      if (parts.length) {
+        var maxLen = parts.reduce(function (a, b) { return [...b].length > [...a].length ? b : a; }, '');
+        var mc = [...maxLen].length;
+        var isLat = !/[\u4e00-\u9fa5]/.test(parts.join(''));
+        var rowsN = parts.length;
+        var boxM;
+        if (rowsN <= 1) boxM = 46;
+        else if (rowsN === 2) boxM = 92;
+        else boxM = 138;
+        var charWM = isLat ? 0.62 : 1;
+        var ratioM = isLat ? 0.54 : 0.86;
+        var fsMW = (boxM * ratioM) / (mc * charWM);
+        var fsMH = (boxM * 0.80) / (rowsN * 1.16);
+        var fsM = Math.floor(Math.min(fsMW, fsMH));
+        if (isLat && rowsN === 1) fsM = Math.floor(Math.min(fsM, boxM / 2.6));
+        fsM = Math.max(9, Math.min(fsM, 46));
+        return { n: mc, box: boxM, fs: fsM, lines: parts, raw: parts.join(''), manual: true };
+      }
+    }
+
+    var raw = raw0;
     var n = [...raw].length;
     var box, lines;
 

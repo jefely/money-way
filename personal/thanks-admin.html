@@ -74,7 +74,11 @@
 
   <div class="card">
     <label for="names">② 名单（一行一个名字）</label>
-    <textarea id="names" placeholder="NT&#10;jefely&#10;可爱的宝贝"></textarea>
+    <textarea id="names" placeholder="NT&#10;jefely&#10;可爱的|宝贝&#10;亲亲晚风&#10;天才如你，|我信你|就见鬼了"></textarea>
+    <div class="hint">
+      想自己控制换行位置，就在名字里写 <code>|</code>：<code>可爱的|宝贝</code> 会显示成两行。<br>
+      一个 <code>|</code> 两行，两个三行，以此类推。不写 <code>|</code> 就自动断行。
+    </div>
     <div class="row">
       <span class="cnt" id="cnt">0 个名字</span>
       <button type="button" id="btn-load">从远程加载现有名单</button>
