@@ -4097,72 +4097,7 @@ table#summary-table tbody tr:nth-child(even):hover > td.col-seq {
   flex: 1 1 0 !important;
 }
 
-/* ③ 账户汇总：类型 / 分类两列默认收起（宽度由 JS 写 colgroup = 0）。
-      简码不再收起 —— 它是冻结列之一（序 / 简码 / 账户名称），收起就没意义了。
-      收起时内边距、边框一并去掉，单元格里的输入框不可见、不可点。 */
-table#summary-table.sum-cols-folded th.col-cat,
-table#summary-table.sum-cols-folded td.col-cat,
-table#summary-table.sum-cols-folded th.col-sub,
-table#summary-table.sum-cols-folded td.col-sub {
-  padding: 0 !important;
-  border-left: none !important;
-  border-right: none !important;
-  overflow: hidden !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
-/* 账户名称列标题左边的小三角：收起时尖朝右（点它展开）、展开时尖朝左（点它收起）。
-   纯黑 / 纯白，不跟表头的灰字。账户名称列右缘的拖拽手柄只负责调列宽。 */
-.sum-fold-toggle {
-  position: absolute;
-  left: -4px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 22px;
-  padding: 0;
-  /* 不要按钮底色、不要边框（深色主题下会被 [data-theme=dark] button 的底色和边框盖出来） */
-  background: transparent !important;
-  background-color: transparent !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  outline: none;
-  -webkit-appearance: none;
-  appearance: none;
-  cursor: pointer;
-  /* 浅色下表头是深紫顶带（v13.08 的「紫玉顶带」），所以这个三角必须是白色；
-     黑三角在深紫底上等于隐形。深色主题下另行强制白色，两条一致。 */
-  color: #ffffff !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 3;
-}
-.sum-fold-toggle::before {
-  content: '';
-  display: block;
-  width: 0;
-  height: 0;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-right: 7px solid currentColor;     /* 尖朝左 = 已展开 */
-}
-table#summary-table.sum-cols-folded .sum-fold-toggle::before {
-  border-right: none;
-  border-left: 7px solid currentColor;      /* 尖朝右 = 已收起 */
-}
-.sum-fold-toggle:active { transform: translateY(-50%) scale(0.9); }
-[data-theme="dark"] .sum-fold-toggle {
-  color: #ffffff !important;
-  /* 354 行的 [data-theme=dark] button 有 !important 的深底和边框，这里要压掉 */
-  background: transparent !important;
-  background-color: transparent !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-[data-theme="dark"] table#summary-table.sum-cols-folded .sum-fold-toggle::before { border-left-color: #ffffff; }
+/* ③ 账户汇总的折叠已移除（类型 / 分类 改排在「期初」之后，不需要收起）。 */
 
 /* ⑥ 列宽手柄：命中区收在本列内，平时完全透明，只在悬停/拖动时露一条 1px 竖线。
    以前手柄 right:-16px / width:32px，有 16px 盖在右边那一格上 —— 看起来像一层
@@ -7879,17 +7814,9 @@ table.install-table tbody td.col-name { box-shadow: inset -1px 0 0 var(--border-
    ------------------------------------------------------------
    · 折叠：两列收成 0 宽（不是 display:none —— 那样 colgroup 的列数和 th 对不上，
      initColResize 会把后面所有列的宽度整体错位）。
-   · 冻结：序 + 账户名称。账户名称的 left 等于序的宽度（52px），
-     两列都 sticky，右边那列盖左边那列。
-   · 折叠按钮贴在「账户名称」表头左上角，跟着列一起冻结。
+   · 冻结：序 + 账户名称。账户名称的 left 等于序的实际宽度（渲染后由 JS 写入）。
+     —— 折叠功能已取消（类型 / 分类挪到表格最右），所以这里没有任何 .folded 规则。
    ============================================================ */
-table#stats-sum-table th.folded,
-table#stats-sum-table td.folded {
-  /* 用 display:none 真正把列去掉。
-     之前试过 width:0 —— table-layout:fixed 下浏览器仍会给它留最小宽度，
-     省下来的空间被重新分配给最宽的「账户名称」，看起来就是「列宽保存不住」。 */
-  display: none !important;
-}
 table#stats-sum-table thead th.col-seq,
 table#stats-sum-table tbody td.col-seq {
   position: sticky; left: 0;
@@ -7906,22 +7833,6 @@ table#stats-sum-table thead th.col-name,
 table#stats-sum-table tbody td.col-name { box-shadow: inset -1px 0 0 var(--border-light); }
 [data-theme="dark"] table#stats-sum-table thead th.col-name,
 [data-theme="dark"] table#stats-sum-table tbody td.col-name { box-shadow: inset -1px 0 0 #343434; }
-/* 折叠按钮：**绝对贴住这一格的左边缘**，不随列宽变化跑位置。
-   注意 th 不要再加 padding-left —— 表头是 text-align:center，
-   加了左内距会把「账户名称」整体往右推，看起来就不居中了；
-   按钮用 absolute 定位，本来就不占文档流。 */
-table#stats-sum-table th.col-name .stats-fold-toggle {
-  position: absolute !important;
-  left: 4px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 14px; height: 14px; margin: 0 !important; padding: 0;
-  background: none !important; border: 0 !important; border-radius: 0 !important;
-  box-shadow: none !important;
-  color: inherit !important; font-size: 10px !important; line-height: 1 !important;
-  vertical-align: middle; cursor: pointer;
-}
 
 /* 「重置」弹窗：每个危险按钮靠左，紧贴它自己那段说明的上方。
    竖排、左对齐，说明与按钮成为一个整体，不用在上下之间来回找对应关系。 */
@@ -8205,7 +8116,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.59';
+const APP_VER = 'v13.60';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -11087,18 +10998,7 @@ function fmtOpening(v) {
    ------------------------------------------------------------
    顺序 = state.accounts 的原始顺序（就是设置页看到的顺序），
    只剔除「这一段区间里一点数据都没有」的账户。 */
-/* 统计·汇总：折叠「类型 / 分类」两列。
-   思路跟设置页那套一样（折叠按钮挂在关键列上、点一下收起次级信息），
-   区别是这里的冻结列是「账户名称」（设置页是简码），按钮就贴在账户名称左边。 */
-const STATS_FOLD_KEY = 'flow_stats_fold_v1';
-let statsFold = (() => {
-  try { const v = localStorage.getItem(STATS_FOLD_KEY); return v === null ? true : v === '1'; } catch (e) { return true; }
-})();
-function toggleStatsFold() {
-  statsFold = !statsFold;
-  try { localStorage.setItem(STATS_FOLD_KEY, statsFold ? '1' : '0'); } catch (e) {}
-  render();
-}
+/* 统计·汇总的折叠已取消：类型 / 分类直接挪到表格最右，不需要收起。 */
 
 /* 统计·汇总的冻结列「账户名称」的 left 必须跟着「序」列的实际宽度走。
    只在渲染时算一次不够 —— 拖动列宽后「序」变窄，left 还是旧值，
@@ -11165,18 +11065,21 @@ function renderStatsSum(main, footer) {
   wrap.className = 'grid-wrap';
   const table = document.createElement('table');
   table.className = 'grid'; table.id = 'stats-sum-table';
-  const foldCls = statsFold ? ' folded' : '';
+  /* 列序：类型 / 分类 放到**最后**（转入历史之后）。
+     它们只是辅助信息，放最左边会把「账户名称」挤走；放最后既不用折叠，
+     也不用为了它们牺牲冻结列的位置。
+     冻结：序 + 账户名称（key 换成 statsSum2：列序变了，旧存档对不上）。 */
   table.innerHTML = `
     <thead><tr>
       <th class="col-seq">序</th>
-      <th class="col-cat${foldCls}">类型</th>
-      <th class="col-sub${foldCls}">分类</th>
-      <th class="col-name"><button type="button" class="stats-fold-toggle" title="${statsFold ? '展开类型 / 分类' : '收起类型 / 分类'}">${statsFold ? '▶' : '◀'}</button>账户名称</th>
+      <th class="col-name">账户名称</th>
       <th class="col-bal">当前结余</th>
       <th class="col-out">转出</th>
       <th class="col-in">转入</th>
       <th class="col-hout">转出历史</th>
       <th class="col-hin">转入历史</th>
+      <th class="col-cat">类型</th>
+      <th class="col-sub">分类</th>
     </tr></thead>
     <tbody></tbody>`;
   const tbody = table.querySelector('tbody');
@@ -11191,28 +11094,22 @@ function renderStatsSum(main, footer) {
       const tr = document.createElement('tr');
       tr.innerHTML =
         '<td class="col-seq">' + (n++) + '</td>' +
-        '<td class="col-cat' + foldCls + '">' + mwEsc(a.cat || '') + '</td>' +
-        '<td class="col-sub' + foldCls + '">' + mwEsc(a.sub || '') + '</td>' +
         '<td class="col-name">' + mwEsc(a.name || '') + '</td>' +
         '<td class="col-bal">' + f2(st.balance) + '</td>' +
         '<td class="col-out">' + f2(st.mOut) + '</td>' +
         '<td class="col-in">' + f2(st.mIn) + '</td>' +
         '<td class="col-hout">' + f2(st.hOut) + '</td>' +
-        '<td class="col-hin">' + f2(st.hIn) + '</td>';
+        '<td class="col-hin">' + f2(st.hIn) + '</td>' +
+        '<td class="col-cat">' + mwEsc(a.cat || '') + '</td>' +
+        '<td class="col-sub">' + mwEsc(a.sub || '') + '</td>';
       tbody.appendChild(tr);
     }
   }
   wrap.appendChild(table);
   main.appendChild(wrap);
-  /* 折叠态只有 7 列，用独立的存档 key（statsSumFold），别和 9 列的 statsSum 混。
-     混在一起时折叠会写 7 个值，展开时 9 列对不上就回落默认。 */
-  try { initColResize(table, statsFold ? 'statsSumFold' : 'statsSum'); } catch (e) {}
+  try { initColResize(table, 'statsSum2'); } catch (e) {}
 
-  const foldBtn = table.querySelector('.stats-fold-toggle');
-  if (foldBtn) foldBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); toggleStatsFold(); };
-  /* 冻结「账户名称」的 left 要按「序」列的**实际**宽度来算：
-     写死 52px 时，一旦序列表头被内容撑宽（折叠后实测 64px），
-     横向滚动就会让账户名称压在序上面 10 多像素。 */
+  /* 冻结「账户名称」的 left 要按「序」列的实际宽度算（写死会在序被撑宽时压上去） */
   try {
     const seqW = Math.round(table.querySelector('thead th.col-seq').getBoundingClientRect().width);
     if (seqW > 0) {
@@ -15112,9 +15009,7 @@ function renderSummary(main, footer) {
   table.innerHTML = `
     <thead><tr>
       <th class="col-seq">序</th>
-      <th class="col-cat">类型</th>
-      <th class="col-sub">分类</th>
-      <th class="col-code"><button type="button" class="sum-fold-toggle" aria-label="展开或收起类型 / 分类"></button>简码</th>
+      <th class="col-code">简码</th>
       <th class="col-name">账户名称</th>
       <th class="col-bal">当前结余</th>
       <th class="col-out">转出</th>
@@ -15122,6 +15017,8 @@ function renderSummary(main, footer) {
       <th class="col-hout">转出历史</th>
       <th class="col-hin">转入历史</th>
       <th class="col-open">期初</th>
+      <th class="col-cat">类型</th>
+      <th class="col-sub">分类</th>
       <th class="col-move" title="点 ▲ 与上一行交换位置（同「类型」内）"></th>
       <th class="col-del"></th>
       <th class="col-bill"></th>
@@ -15167,10 +15064,8 @@ function renderSummary(main, footer) {
     const isDebt = cat === '负债类';
     cr.innerHTML =
       `<td class="col-seq cat-tag">${esc(shortCat(cat))}</td>` +
-      // 拆成独立格子（而不是 colspan=4）：这样「账户名称」那格也是真实单元格，
-      // 它会跟着 sticky，分组行滚过来时不会露出透明的空洞。
-      `<td class="col-cat"></td>` +
-      `<td class="col-sub"></td>` +
+      // 拆成独立格子（而不是 colspan）：这样每一列都是真实单元格，
+      // 冻结列在分组行滚过来时也不会露出透明空洞。
       `<td class="col-code"></td>` +
       `<td class="col-name"></td>` +
       `<td class="cat-sum col-bal">${money(s.bal)}</td>` +
@@ -15179,6 +15074,8 @@ function renderSummary(main, footer) {
       `<td class="cat-sum col-hout">${dash(s.hout)}</td>` +
       `<td class="cat-sum col-hin">${dash(s.hin)}</td>` +
       `<td class="cat-sum col-open">${dash(s.open)}</td>` +
+      `<td class="col-cat"></td>` +
+      `<td class="col-sub"></td>` +
       `<td class="col-move"></td>` +
       `<td class="col-del"></td>` +
       `<td class="col-bill">${isDebt ? '<span class="cat-col">账单日</span>' : ''}</td>` +
@@ -15209,82 +15106,25 @@ function renderSummary(main, footer) {
     applySummaryPaste(matrix, rowIdx < 0 ? 0 : rowIdx, colIdx);
   });
 
-  initColResize(table, 'summary');
-  // 账户名称列标题左边的小三角：点一下展开/收起类型、分类、简码三列
-  const foldBtn = table.querySelector('.sum-fold-toggle');
-  if (foldBtn) {
-    foldBtn.onclick = ev => {
-      ev.preventDefault(); ev.stopPropagation();
-      setSummaryFold(!summaryFold);
-      // 收起/展开会改表格总宽，工具栏右端对齐要跟着走
-      try { syncGridRight(); } catch (e) {}
-    };
-  }
-  // 汇总页的可编辑单元格（类型/分类/简码/名称/期初/账单日/还款日）全靠这个绑定，
+  initColResize(table, 'summary2');
+  // 汇总页的可编辑单元格（简码/名称/期初/类型/分类/账单日/还款日）全靠这个绑定，
   // 之前漏了调用 → 手打的内容不进 state、切页就回滚、页脚永远空。
   bindSummaryEvents(tbody);
-  applySummaryFold();
+  applySummarySticky();
   updateSummaryFooter(footer, range);
   syncSummaryDelBorder();
 }
 
-/* ---------- 账户汇总：类型 / 分类 / 简码 默认收起 ----------
-   打开汇总页时左侧只留「序号 + 账户名称」；点账户名称列标题左边那个小三角形
-   按钮展开/收起（收起时尖朝右、展开时尖朝左）。收起状态会记住。
-   账户名称列右缘的拖拽手柄只负责调列宽，不再兼做展开。 */
-const SUMMARY_FOLD_KEY = 'flow_summary_fold_v1';
-let summaryFold = (() => {
-  try { const v = localStorage.getItem(SUMMARY_FOLD_KEY); return v === null ? true : v === '1'; } catch (e) { return true; }
-})();
-// 展开状态下三列的真实宽度快照（折叠时 colWidths 里会临时出现 0）
-let summaryRealW = null;
+/* ---------- 账户汇总的折叠功能已移除 ----------
+   类型 / 分类 现在直接排在「期初」之后，不需要收起；
+   「简码」成为冻结列（序 + 简码）。
+   原来那套 summaryFold / applySummaryFold / summaryBaseWidths 与
+   initColResize 的列宽存档互相覆盖，是「折叠展开后列宽回默认」的根源，整段删除。 */
 
-// 汇总表 colgroup 里 type/sub/code 三列的位置：0 是序号列，1=类型 2=分类 3=简码
-const SUMMARY_FOLD_COLS = [1, 2];   // 1=类型、2=分类（简码不再收起：它是冻结列之一）
-
-// 真实宽度只认 colWidths.summary。以前这里用一份单独记的 summaryFoldW 覆盖前三列，
-// 于是「把三列调窄 → 折叠 → 再展开」宽度又弹回 76/59/73，怎么调都存不住。
-// 若前三列被写成 0（老版本折叠时落盘的脏值），用快照 / 默认值补回来。
-function summaryBaseWidths() {
-  const base = (Array.isArray(colWidths.summary) && colWidths.summary.length === 14)
-    ? colWidths.summary.slice() : DEFAULT_COL_WIDTHS.summary.slice();
-  const broken = SUMMARY_FOLD_COLS.some(ci => !base[ci]);
-  if (broken) {
-    const fb = summaryRealW || DEFAULT_COL_WIDTHS.summary;
-    SUMMARY_FOLD_COLS.forEach(ci => {
-      if (!base[ci]) base[ci] = fb[ci] || DEFAULT_COL_WIDTHS.summary[ci];
-    });
-  }
-  return base;
-}
-
-function applySummaryFold() {
-  const table = document.getElementById('summary-table');
-  if (!table) return;
-  const real = summaryBaseWidths();
-  summaryRealW = real.slice();              // 记下真实宽度，折叠只改「视图」
-  const view = real.slice();
-  if (summaryFold) SUMMARY_FOLD_COLS.forEach(ci => { view[ci] = 0; });
-  applyWidths(table, 'summary', view);
-  // 落盘的永远是真实宽度（applyWidths 会用传进去的 view 覆盖 colWidths）
-  colWidths.summary = real;
-  table.classList.toggle('sum-cols-folded', summaryFold);
-  // 三角形按钮的方向由 .sum-cols-folded 控制，这里只同步提示文字
-  const btn = table.querySelector('.sum-fold-toggle');
-  if (btn) btn.title = summaryFold ? '展开类型 / 分类' : '收起类型 / 分类';
-  applySummarySticky();
-}
-
-function setSummaryFold(on) {
-  summaryFold = !!on;
-  try { localStorage.setItem(SUMMARY_FOLD_KEY, summaryFold ? '1' : '0'); } catch (e) {}
-  applySummaryFold();
-}
-
-// 汇总表「序号」「账户名称」两列横向滚动时固定在左侧。
-// 序号列的 left 由 CSS 变量控制：列宽直接取 colgroup 里记下的值，
-// 不再 getBoundingClientRect() —— 对上千个单元格的表做一次强制布局要 30ms 以上，
-// 这是切汇总页卡顿的大头。
+/* 汇总表「序号」「简码」两列横向滚动时固定在左侧。
+   序号列的 left 由 CSS 变量控制：列宽直接取 colgroup 里记下的值，
+   不再 getBoundingClientRect() —— 对上千个单元格的表做一次强制布局要 30ms 以上，
+   这是切汇总页卡顿的大头。 */
 function applySummarySticky() {
   const table = document.getElementById('summary-table');
   if (!table) return;
@@ -15304,7 +15144,7 @@ function applySummarySticky() {
        · 冻结只有 序 和 简码 两列。所有 thead th 本来就 position: sticky（吸顶），
          只要再给它写 left 就等于同时横向冻结了 —— 所以 col-name 绝不能收到 left，
          否则「账户名称」也会被一起冻住（这正是上一版冻结成三列的原因）。 */
-  const ACCUM_CLS = ['col-seq', 'col-cat', 'col-sub', 'col-code', 'col-name'];
+  const ACCUM_CLS = ['col-seq', 'col-code'];
   const FROZEN_CLS = ['col-seq', 'col-code'];
   const measureAndApply = () => {
     const ths = table.querySelectorAll('thead th');
@@ -15495,9 +15335,7 @@ function makeSummaryRow(acc, idx, range) {
     td.appendChild(input); return td;
   };
 
-  // 「类型」= cat（资产类/负债类/…，算账用）；「分类」= sub（储蓄/现金/生活…，统计用）
-  tr.appendChild(mkInputCell('cat', 'text', 'col-cat'));
-  tr.appendChild(mkInputCell('sub', 'text', 'col-sub'));
+  // 列序与表头一致：序 | 简码 | 账户名称 | 结余 | 转出 | 转入 | 转出历史 | 转入历史 | 期初 | 类型 | 分类 | 上移 | 删除 | 账单日 | 还款日
   tr.appendChild(mkInputCell('code', 'text', 'col-code'));
   tr.appendChild(mkInputCell('name', 'text', 'col-name'));
 
@@ -15515,6 +15353,11 @@ function makeSummaryRow(acc, idx, range) {
 
   const tdOpen = mkInputCell('opening', 'text', 'col-open');
   tdOpen.querySelector('input').style.textAlign = 'right'; tr.appendChild(tdOpen);
+
+  // 「类型 / 分类」放在期初之后 —— 它们只是辅助信息，原来摆在最左边会把
+  // 冻结的「简码」挤走，还逼出一整套折叠逻辑（已删除）。
+  tr.appendChild(mkInputCell('cat', 'text', 'col-cat'));
+  tr.appendChild(mkInputCell('sub', 'text', 'col-sub'));
 
 
   // 「上移」：与上一个同类型的行交换位置，点一次挪一格
@@ -18063,6 +17906,9 @@ function openSyncDialog() {
 const DEFAULT_COL_WIDTHS = {
   flow:    [50, 77, 107, 117, 109, 179, 52],
   summary: [52, 76, 59, 73, 127, 0, 0, 0, 0, 0, 137, 34, 34, 64],
+  /* 设置页新列序：序 | 简码 | 账户名称 | 结余 | 转出 | 转入 | 转出历史 | 转入历史 |
+     期初 | 类型 | 分类 | 上移 | 删除 | 账单日 | 还款日   （类型/分类挪到期初之后） */
+  summary2: [52, 73, 127, 0, 0, 0, 0, 0, 137, 76, 59, 34, 34, 64, 64],
   query:   [54, 65, 109, 116, 96, 184],
   fixed:   [56, 70, 70, 150, 150, 108, 150, 84, 64],   // 9 列（加了「频率」后从 8 变 9）
   // 分类表去掉「类型」列后是 5 列，用户给的 6 个值取前 2 个 + 后 3 个
@@ -18071,6 +17917,9 @@ const DEFAULT_COL_WIDTHS = {
   // 设置页 7 列：序 / 类型 / 分类 / 简码 / 账户名称 / 期初 / 删除
   settings: [52, 96, 96, 84, 168, 110, 46, 44],
   statsSum: [52, 84, 84, 150, 120, 100, 100, 100, 100],
+  /* 统计·汇总新列序（类型/分类挪到末尾）。列序变了，旧序存档会错位，
+     所以换一个 key，让它从默认值起步。 */
+  statsSum2: [52, 150, 120, 100, 100, 100, 100, 84, 84],
   /* 折叠态是 7 列（去掉类型/分类），单独一套存档 key，避免和 9 列的那份互相覆盖 ——
      混在一起时折叠会写入 7 个值、展开时 9 列对不上就回落默认（账户名称被压成 84）。 */
   statsSumFold: [52, 150, 120, 100, 100, 100, 100]
@@ -18484,12 +18333,7 @@ function initColResize(table, key) {
         grip.removeEventListener('pointercancel', onUp);
         grip.classList.remove('dragging');
         if (moved) {
-          // 收起状态下拖任何一列，前三列的 0 宽都会被 paintWidths 写进 colWidths；
-          // 保存前换回真实宽度，别把 0 存进 localStorage（展开时要用它还原）
-          if (key === 'summary' && summaryFold) {
-            colWidths.summary = summaryBaseWidths();
-          }
-          // 再按列名记一份：列数变化（折叠/展开）后仍能还原
+          // 再按列名记一份（列数变化时仍能还原）
           snapshotClassWidths(table, key);
           saveColWidths(); syncFlowTitleWidth(); syncGridRight();
           try { applySummarySticky(); } catch (e) {}
