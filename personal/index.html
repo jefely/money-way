@@ -641,7 +641,7 @@ table.query-table tbody td {
   /* 边框：**暗紫**（--primary-dark #4c3d80），并且只有 1px 一层 ——
      原来边框外还有一层 `0 0 0 1px` 的亮紫描边光，两层叠在一起看着像 2px，
      这次把那层描边去掉，视觉上就细下来了。 */
-  border: 1px solid rgba(76, 61, 128, .52);
+  border: 1px solid rgba(76, 61, 128, .50);
   box-shadow:
     0 0 9px rgba(139, 108, 255, .34),
     0 12px 34px rgba(40, 28, 80, .20),
@@ -654,7 +654,7 @@ table.query-table tbody td {
 [data-theme="dark"] .cell-pop {
   background: rgba(18, 15, 28, .22);
   /* 深色下暗紫要抬一点，否则在黑底上看不见（#4c3d80 于深底几乎隐形） */
-  border-color: rgba(155, 138, 210, .55);
+  border-color: rgba(155, 138, 210, .50);
   color: #f2effa;
   box-shadow:
     0 0 11px rgba(139, 108, 255, .42),
@@ -7876,7 +7876,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.18';
+const APP_VER = 'v13.19';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
