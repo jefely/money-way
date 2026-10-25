@@ -5984,6 +5984,12 @@ table.set-table td.col-open {
 }
 table.set-table th.col-open { text-align: center; }
 table.set-table td.col-del, table.set-table th.col-del { width: 44px; text-align: center; }
+table.set-table th.col-move, table.set-table td.col-move { width: 46px; text-align: center; }
+table.set-table tbody td.col-move > .pin-btn {
+  background: transparent !important; border: 0 !important; box-shadow: none !important;
+  color: var(--border); font-size: 11px; line-height: 1; cursor: pointer; padding: 2px 4px;
+}
+table.set-table tbody td.col-move > .pin-btn:hover { color: var(--primary) !important; }
 /* 删除按钮沿用流水页那套 .row-del（静止时几乎看不见，hover/按下才显红） */
 table.set-table tbody td.col-del { position: relative; }
 /* 删除按钮：无底色、无边框，只有 × 本身在 hover 时变色 */
@@ -6213,7 +6219,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.49';
+const APP_VER = 'v11.51';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6677,7 +6683,7 @@ function openExtractAccountsDialog() {
 }
 
 /* 上移：与「上一个同类型的行」交换位置。点一次挪一格，跨类型不换。 */
-function pinAccountToTop(id) {
+function pinAccountToTop(id, tableId) {
   const arr = state.accounts;
   const i = arr.findIndex(a => a.id === id);
   if (i < 0) return;
@@ -6693,7 +6699,7 @@ function pinAccountToTop(id) {
   save();                       // 只存数据，不 render —— render 会重建表格，把用户调过的列宽冲掉
 
   // 只把这两个 DOM 行换个位置，表格其它部分（colgroup / 列宽 / 滚动位置）原地不动
-  const t = document.getElementById('summary-table');
+  const t = document.getElementById(tableId || 'summary-table');
   if (!t) { toast('已上移：' + (arr[j].name || '这一行'), { duration: 1500 }); return; }
   const rowTop = t.querySelector('tbody tr[data-id="' + arr[j].id + '"]');   // 换序后它在上面
   const rowBot = t.querySelector('tbody tr[data-id="' + arr[i].id + '"]');   // 它在下面
@@ -9050,6 +9056,7 @@ function renderSettings(main, footer) {
       <th class="col-code">简码</th>
       <th class="col-name">账户名称</th>
       <th class="col-open">期初金额</th>
+      <th class="col-move" title="点 ▲ 与同类型上一行交换位置">上移</th>
       <th class="col-del"></th>
     </tr></thead>
     <tbody></tbody>`;
@@ -9063,6 +9070,7 @@ function renderSettings(main, footer) {
   for (const a of list) {
     const tr = document.createElement('tr');
     tr.dataset.acc = a.name || '';
+    if (a.id) tr.dataset.id = a.id;
     tr.innerHTML =
       '<td class="col-seq">' + (n++) + '</td>' +
       '<td class="col-cat">' + mwEsc(a.cat || '') + '</td>' +
@@ -9070,7 +9078,10 @@ function renderSettings(main, footer) {
       '<td class="col-code">' + mwEsc(a.code || '') + '</td>' +
       '<td class="col-name">' + mwEsc(a.name || '') + '</td>' +
       '<td class="col-open">' + fmtOpening(a.opening) + '</td>' +
+      '<td class="col-move"><button type="button" class="pin-btn" title="上移：与同类型上一行交换位置">▲</button></td>' +
       '<td class="col-del"><button type="button" class="row-del" title="删除账户">×</button></td>';
+    const pin = tr.querySelector('.pin-btn');
+    if (pin) pin.onclick = (ev) => { ev.stopPropagation(); pinAccountToTop(a.id, 'settings-table'); };
     const del = tr.querySelector('.row-del');
     if (del) del.onclick = () => {
       if (!confirm('删除账户「' + (a.name || '') + '」？\n流水里用到这个名字的行会变成对不上的名称。')) return;
@@ -15485,7 +15496,7 @@ const DEFAULT_COL_WIDTHS = {
   cat:     [62, 88, 122, 90, 99],
   installFixed: [113, 60, 99],   // 分期表前三列（账户名称/账单日/每月合计）
   // 设置页 7 列：序 / 类型 / 分类 / 简码 / 账户名称 / 期初 / 删除
-  settings: [52, 96, 96, 84, 168, 110, 44]
+  settings: [52, 96, 96, 84, 168, 110, 46, 44]
 };
 
 // 列宽的 localStorage 键。v3 统一存像素；v1 同格式可直接用；v2 曾经存过比例（×1000 折算）。
