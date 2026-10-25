@@ -638,10 +638,12 @@ table.query-table tbody td {
   background: rgba(255, 255, 255, .10);
   -webkit-backdrop-filter: blur(6px) saturate(160%);
   backdrop-filter: blur(6px) saturate(160%);
-  border: 1px solid rgba(139, 108, 255, .55);
+  /* 边框：**暗紫**（--primary-dark #4c3d80），并且只有 1px 一层 ——
+     原来边框外还有一层 `0 0 0 1px` 的亮紫描边光，两层叠在一起看着像 2px，
+     这次把那层描边去掉，视觉上就细下来了。 */
+  border: 1px solid rgba(76, 61, 128, .52);
   box-shadow:
-    0 0 0 1px rgba(139, 108, 255, .16),
-    0 0 9px rgba(139, 108, 255, .38),
+    0 0 9px rgba(139, 108, 255, .34),
     0 12px 34px rgba(40, 28, 80, .20),
     inset 0 1px 0 rgba(255, 255, 255, .90);
   color: var(--text-main);
@@ -651,11 +653,11 @@ table.query-table tbody td {
 }
 [data-theme="dark"] .cell-pop {
   background: rgba(18, 15, 28, .22);
-  border-color: rgba(185, 166, 255, .55);
+  /* 深色下暗紫要抬一点，否则在黑底上看不见（#4c3d80 于深底几乎隐形） */
+  border-color: rgba(155, 138, 210, .55);
   color: #f2effa;
   box-shadow:
-    0 0 0 1px rgba(185, 166, 255, .18),
-    0 0 11px rgba(139, 108, 255, .45),
+    0 0 11px rgba(139, 108, 255, .42),
     0 12px 34px rgba(0, 0, 0, .60),
     inset 0 1px 0 rgba(255, 255, 255, .12);
   text-shadow: 0 1px 3px rgba(0, 0, 0, .95);
@@ -7874,7 +7876,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.17';
+const APP_VER = 'v13.18';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
