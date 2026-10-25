@@ -6471,6 +6471,82 @@ table#stats-sum-table td.col-hin {
   padding-right: 8px !important;
   font-variant-numeric: tabular-nums;
 }
+
+/* 账本行：输入框 + 方形勾选 + 改名 + 删除 —— 任何宽度都不溢出 */
+.book-row {
+  display: flex; align-items: center; gap: 5px;
+  flex-wrap: nowrap; min-width: 0;
+}
+.book-name-inp {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 60px !important;
+  max-width: none !important;
+  height: 30px; padding: 0 9px;
+  border: 1px solid var(--border-light); border-radius: 8px;
+  background: var(--bg-main); color: var(--text-main);
+  font-size: 13px; font-weight: 600; outline: none;
+  box-sizing: border-box;
+}
+.book-name-inp:focus { border-color: var(--primary); }
+
+/* 方形切换按钮：空心 = 不是当前，实心 = 当前在用 */
+.book-pick {
+  flex: 0 0 auto;
+  width: 22px; height: 22px;
+  padding: 0; margin: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1.5px solid #8b6cff; border-radius: 5px;
+  background: transparent; cursor: pointer;
+  box-sizing: border-box;
+}
+.book-pick > i { display: block; width: 0; height: 0; border-radius: 2px; background: #8b6cff; }
+.book-pick.on { border-color: #8b6cff; }
+.book-pick.on > i { width: 12px; height: 12px; }
+.book-pick:hover { border-color: #6b5bc4; }
+.book-pick.on:hover { border-color: #6b5bc4; }
+[data-theme="dark"] .book-pick { border-color: #b6a8f5; }
+[data-theme="dark"] .book-pick > i { background: #b6a8f5; }
+
+.book-ops {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 4px;
+  flex: 0 0 auto;
+}
+.book-ops button {
+  white-space: nowrap !important;
+  flex: 0 0 auto;
+  height: 26px; padding: 0 7px; border-radius: 7px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1px solid #cbbcf0 !important; background: #fff !important; color: #5b4ea8 !important;
+}
+.book-ops button:hover { background: #f6f1ff !important; }
+.book-row-add .book-name-inp { border-style: dashed; font-weight: 400; }
+.book-row-add .book-name-inp::placeholder { color: var(--text-muted); opacity: .8; }
+.book-add-btn { background: #f6f1ff !important; }
+[data-theme="dark"] .book-name-inp { background: #1b1630; border-color: #3a2f66; }
+[data-theme="dark"] .book-ops button { background: #1b1630 !important; border-color: #3a2f66 !important; color: #cfc4f5 !important; }
+[data-theme="dark"] .book-add-btn { background: #241d3d !important; }
+
+/* 账本方形切换按钮不受「弹窗按钮统一」影响
+   —— 对手是 (0,8,3) 的那条，这里用同结构 + .book-pick 抬到 (0,8,4) */
+html body .confirm-mask .sync-box button.book-pick:not(.sync-tab):not(.row-del):not(.rowmenu-item),
+html body .confirm-mask .book-section .book-pick {
+  width: 22px !important; min-width: 22px !important; max-width: 22px !important;
+  height: 22px !important; min-height: 22px !important; max-height: 22px !important;
+  padding: 0 !important; flex: 0 0 22px !important;
+  align-self: center !important;
+  border-radius: 5px !important;
+  border: 1.5px solid #8b6cff !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html body .confirm-mask .book-section .book-pick.on {
+  border-color: #8b6cff !important;
+}
+[data-theme="dark"] html body .confirm-mask .book-section .book-pick {
+  border-color: #b6a8f5 !important;
+}
 </style>
 </head>
 <body>
@@ -6682,7 +6758,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.88';
+const APP_VER = 'v11.94';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -11333,14 +11409,36 @@ function openImportXlsxDialog(preFile) {
       for (const b of bookState.list) {
         const row = document.createElement('div');
         row.className = 'book-row' + (b.id === cur.id ? ' active' : '');
+        const on = b.id === cur.id;
         row.innerHTML = `
           <input class="book-name-inp" type="text" value="${esc(b.name)}" maxlength="24">
-          ${b.id === cur.id ? '<span class="book-cur">当前</span>' : ''}
+          <button type="button" class="book-pick${on ? ' on' : ''}" data-op="pick"
+                  title="${on ? '当前账本' : '点一下加载这个账本'}"><i></i></button>
           <span class="book-ops">
-            <button type="button" data-op="pick"${b.id === cur.id ? ' disabled' : ''}>${b.id === cur.id ? '在用' : '加载'}</button>
             <button type="button" data-op="rename">改名</button>
             ${bookState.list.length > 1 ? '<button type="button" data-op="del">删除</button>' : ''}
           </span>`;
+        // 账本区按钮的样式用 inline 钉住 —— 弹窗里那批 !important 规则太霸道
+        row.querySelectorAll('.book-ops button').forEach(function (bb) {
+          bb.style.setProperty('height', '26px', 'important');
+          bb.style.setProperty('padding', '0 8px', 'important');
+          bb.style.setProperty('border-radius', '7px', 'important');
+          bb.style.setProperty('font-size', '12px', 'important');
+          bb.style.setProperty('font-weight', '600', 'important');
+          bb.style.setProperty('white-space', 'nowrap', 'important');
+          bb.style.setProperty('box-shadow', 'none', 'important');
+          bb.style.setProperty('background', 'var(--bg-main)', 'important');
+          bb.style.setProperty('background-image', 'none', 'important');
+          bb.style.setProperty('border', '1px solid var(--border)', 'important');
+          bb.style.setProperty('color', 'var(--text-main)', 'important');
+          bb.style.setProperty('flex', '0 0 auto', 'important');
+        });
+        const addBtn = row.querySelector('.book-add-btn');
+        if (addBtn) {
+          addBtn.style.setProperty('background', 'var(--primary)', 'important');
+          addBtn.style.setProperty('border-color', 'var(--primary)', 'important');
+          addBtn.style.setProperty('color', '#fff', 'important');
+        }
         const inp = row.querySelector('.book-name-inp');
         inp.addEventListener('keydown', (e) => {
           if (e.key === 'Enter') { e.preventDefault(); row.querySelector('[data-op="rename"]').click(); }
@@ -11350,6 +11448,7 @@ function openImportXlsxDialog(preFile) {
             ev.stopPropagation();
             const op = btn.dataset.op;
             if (op === 'pick') {
+              if (b.id === bookState.current) { toast('已经是当前账本'); return; }
               await switchBook(b.id);
             } else if (op === 'rename') {
               const t = String(inp.value || '').trim();
@@ -11386,6 +11485,20 @@ function openImportXlsxDialog(preFile) {
       };
       newInp.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); doAdd(); }
+      });
+      addRow.querySelectorAll('.book-ops button').forEach(function (bb) {
+        bb.style.setProperty('height', '26px', 'important');
+        bb.style.setProperty('padding', '0 10px', 'important');
+        bb.style.setProperty('border-radius', '7px', 'important');
+        bb.style.setProperty('font-size', '12px', 'important');
+        bb.style.setProperty('font-weight', '600', 'important');
+        bb.style.setProperty('white-space', 'nowrap', 'important');
+        bb.style.setProperty('box-shadow', 'none', 'important');
+        bb.style.setProperty('background', 'var(--primary)', 'important');
+        bb.style.setProperty('background-image', 'none', 'important');
+        bb.style.setProperty('border', '1px solid var(--primary)', 'important');
+        bb.style.setProperty('color', '#fff', 'important');
+        bb.style.setProperty('flex', '0 0 auto', 'important');
       });
       addRow.querySelector('[data-op="add"]').onclick = (ev) => { ev.stopPropagation(); doAdd(); };
       list.appendChild(addRow);
@@ -11476,7 +11589,6 @@ function openImportTextDialog() {
       <div class="sync-sec">
         <div class="add-sec-head">
           <span class="add-sec-title">添加账本</span>
-          <button type="button" class="ghost add-sec-btn" id="imp-book-new">新建</button>
         </div>
         <div id="book-slot"></div>
       </div>
@@ -11516,11 +11628,6 @@ function openImportTextDialog() {
   const slot = mask.querySelector('#book-slot');
   if (slot) slot.appendChild(buildBookSection());
   // 顶部的「新建」转发给账本区里那个按钮，保持逻辑只有一份
-  const newBtn = mask.querySelector('#imp-book-new');
-  if (newBtn) newBtn.onclick = () => {
-    const inner = mask.querySelector('.book-section .book-new');
-    if (inner) inner.click();
-  };
   const close = () => mask.remove();
   bindMaskClose(mask, close);
   const ta = mask.querySelector('#imp-text');
@@ -16589,7 +16696,9 @@ function mwSelfHeal() {
     if (!mask || mask.nodeType !== 1) return;
     mask.querySelectorAll('button').forEach(function (b) {
       // 跳过表格里的行内按钮（删除/上移那些有自己的样式）
-      if (b.classList.contains('row-del') || b.classList.contains('rowmenu-item')) return;
+      if (b.classList.contains('row-del') || b.classList.contains('rowmenu-item')
+          || b.classList.contains('book-pick') || b.classList.contains('book-add-btn')
+          || b.closest('.book-section') || b.closest('.book-ops')) return;
       var danger = b.classList.contains('danger-btn');
       var dark = document.documentElement.getAttribute('data-theme') === 'dark';
       b.style.setProperty('height', '26px', 'important');
