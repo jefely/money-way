@@ -6027,6 +6027,50 @@ table#summary-table th.col-hin, table#summary-table td.col-hin {
   overflow: hidden !important; white-space: nowrap !important;
   font-size: 0 !important; line-height: 0 !important;
 }
+
+/* ============================================================
+   工具栏第二行（bar2）三种模式高度统一
+   · range：两个日期框 + 「至」
+   · year ：年份格子
+   · month：1~12 月份格子
+   原来 range 是 36px、year/month 是 40px，切换模式整行会跳一下。
+   ============================================================ */
+html body .toolbar.bar2 {
+  min-height: 40px !important;
+  height: 40px !important;
+  align-items: center !important;
+  padding-top: 3px !important;
+  padding-bottom: 3px !important;
+  box-sizing: border-box !important;
+}
+
+/* 年份格子：和月份格子一样 12 列均分，单个不超过 56px，窄屏自动缩 */
+html body .toolbar.bar2 > .month-row.plan-years {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: 900px !important;
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  gap: 4px !important;
+}
+html body .toolbar.bar2 > .month-row.plan-years .m-btn {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 56px !important;
+  height: 26px !important;
+  font-size: 13px !important;
+  padding: 0 !important;
+}
+@media (max-width: 900px) {
+  html body .toolbar.bar2 > .month-row.plan-years { max-width: none !important; }
+}
+
+/* 月份模式的年份输入框：和同排按钮等高 */
+html body .toolbar.bar2 > input.year-input {
+  height: 26px !important;
+  line-height: 24px !important;
+  box-sizing: border-box !important;
+}
 </style>
 </head>
 <body>
@@ -6238,7 +6282,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.59';
+const APP_VER = 'v11.60';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
