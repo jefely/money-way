@@ -5977,32 +5977,31 @@ table.set-table td.col-cat,
 table.set-table td.col-sub,
 table.set-table td.col-code,
 table.set-table td.col-name { text-align: center; }
+/* 期初金额：数据靠右（财务习惯），列标居中 */
 table.set-table td.col-open {
   text-align: right; padding-right: 10px;
   font-variant-numeric: tabular-nums; font-weight: 600;
 }
-table.set-table th.col-open { text-align: right; padding-right: 10px; }
+table.set-table th.col-open { text-align: center; }
 table.set-table td.col-del, table.set-table th.col-del { width: 44px; text-align: center; }
 /* 删除按钮沿用流水页那套 .row-del（静止时几乎看不见，hover/按下才显红） */
 table.set-table tbody td.col-del { position: relative; }
+/* 删除按钮：无底色、无边框，只有 × 本身在 hover 时变色 */
 table.set-table tbody td.col-del > .row-del {
   position: absolute; inset: 0; width: 100%;
-  padding: 0; background: none; border: 0;
+  padding: 0; margin: 0;
+  background: transparent !important; border: 0 !important;
+  box-shadow: none !important;
   color: var(--border); font-size: 15px; line-height: 1; cursor: pointer;
 }
-table.set-table tbody td.col-del > .row-del:hover { color: var(--danger); background: #fee2e2; }
-[data-theme="dark"] table.set-table tbody td.col-del > .row-del:hover { background: rgba(255,80,80,.18); }
+table.set-table tbody td.col-del > .row-del:hover,
+table.set-table tbody td.col-del > .row-del:active {
+  color: var(--danger) !important;
+  background: transparent !important; border: 0 !important;
+}
 /* 统计页的子按钮组：并进 bar1，跟在按钮后面 */
 span.stats-sub { display: inline-flex; gap: 4px; align-items: center; flex: 0 0 auto; margin-left: 2px; }
-span.stats-sub button {
-  height: 26px; padding: 0 10px; border-radius: 6px;
-  border: 1px solid var(--border); background: #fff; color: var(--text-muted);
-  font-size: 13px; font-weight: 600; cursor: pointer; flex: 0 0 auto;
-}
-span.stats-sub button:hover { color: var(--primary); border-color: var(--primary); }
-span.stats-sub button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
-[data-theme="dark"] span.stats-sub button { background: #241b3a; border-color: #3d3159; color: var(--text-main); }
-[data-theme="dark"] span.stats-sub button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+span.stats-sub button { flex: 0 0 auto; }
 </style>
 </head>
 <body>
@@ -6214,7 +6213,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v11.48';
+const APP_VER = 'v11.49';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -9024,6 +9023,14 @@ function catRangeLabel() {
   return summaryMonth.year + ' 年 ' + summaryMonth.month + ' 月';
 }
 
+/* 期初金额的财务格式：¥1,234.56；正好为 0 时显示横线 */
+function fmtOpening(v) {
+  const n = Number(v) || 0;
+  if (Math.abs(n) < 0.005) return '—';
+  const sign = n < 0 ? '-¥' : '¥';
+  return sign + Math.abs(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 /* 设置页：账本设置（账户的类型 / 分类 / 简码 / 名称 / 期初） */
 function renderSettings(main, footer) {
   const bar1 = document.createElement('div');
@@ -9042,7 +9049,7 @@ function renderSettings(main, footer) {
       <th class="col-sub">分类</th>
       <th class="col-code">简码</th>
       <th class="col-name">账户名称</th>
-      <th class="col-open">期初</th>
+      <th class="col-open">期初金额</th>
       <th class="col-del"></th>
     </tr></thead>
     <tbody></tbody>`;
@@ -9062,7 +9069,7 @@ function renderSettings(main, footer) {
       '<td class="col-sub">' + mwEsc(a.sub || '') + '</td>' +
       '<td class="col-code">' + mwEsc(a.code || '') + '</td>' +
       '<td class="col-name">' + mwEsc(a.name || '') + '</td>' +
-      '<td class="col-open">' + (Number(a.opening) || 0).toFixed(2) + '</td>' +
+      '<td class="col-open">' + fmtOpening(a.opening) + '</td>' +
       '<td class="col-del"><button type="button" class="row-del" title="删除账户">×</button></td>';
     const del = tr.querySelector('.row-del');
     if (del) del.onclick = () => {
@@ -9089,8 +9096,10 @@ function renderStats(main, footer) {
   const grp = document.createElement('span');
   grp.className = 'stats-sub';
   grp.innerHTML =
-    '<button type="button" data-s="cat"' + (statsSub === 'cat' ? ' class="active"' : '') + '>分类</button>' +
-    '<button type="button" data-s="sum"' + (statsSub === 'sum' ? ' class="active"' : '') + '>汇总</button>';
+    '<button type="button" class="ghost plan-btn" data-s="cat"'
+      + (statsSub === 'cat' ? ' data-active="true"' : '') + '>分类</button>' +
+    '<button type="button" class="ghost plan-btn" data-s="sum"'
+      + (statsSub === 'sum' ? ' data-active="true"' : '') + '>汇总</button>';
   const clearBtn = [].slice.call(bar1.querySelectorAll('button'))
     .find(b => /清空/.test(b.textContent || ''));
   if (clearBtn) bar1.insertBefore(grp, clearBtn);
