@@ -7825,23 +7825,9 @@ html:not([data-theme="dark"]) .confirm-mask .sync-box button.ghost {
    头部不再自带背景，直接透出弹窗本身那一层，颜色与模糊自然一致。
    代价：内容很长、弹窗需要滚动时，头部不再挡住下面滚上来的内容
    （弹窗 max-height 88vh，绝大多数弹窗不用滚，先按视觉一致优先）。 */
-.confirm-mask .sync-box > .sync-sticky {
-  background: transparent !important;
-  background-color: transparent !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  box-shadow: none !important;
-  /* 原来是 z-index: 8，比右上角 × 的 5 高，于是头部把关闭按钮压在底下点不到 */
-  z-index: 4 !important;
-}
-[data-theme="dark"] .confirm-mask .sync-box > .sync-sticky {
-  background: transparent !important;
-  background-color: transparent !important;
-}
-html[data-theme="dark"] .confirm-mask .sync-box > .sync-sticky {
-  background: transparent !important;
-  background-color: transparent !important;
-}
+/* 头部底色/模糊统一由下面「弹窗头部：吸顶 + 一层遮罩」那一节给。
+   这里曾经是「全透明 + backdrop-filter:none」的版本，因为带了 !important，
+   会把后面新写的 blur 盖掉（实测 backdropFilter 读回 none），所以整段移除。 */
 /* × 提到最上层，任何头部/吸顶层都盖不住它 */
 html body .confirm-mask .dlg-x { z-index: 30 !important; }
 
@@ -7853,6 +7839,49 @@ html body .confirm-mask .dlg-x { z-index: 30 !important; }
    手机上本来就是触摸滚动，桌面端鼠标滚轮照样能滚，只是看不到滚动条。 */
 .confirm-mask .sync-box::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none !important; }
 .confirm-mask .sync-box { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+
+/* ---- 弹窗里的多行输入框 ----
+   ① 去掉右下角的拖拽手柄（那个斜线会把卡片撑变形，手机上还会误触）；
+   ② 内部滚动条也收细到 2px，和整体一致。 */
+.confirm-mask .sync-box textarea {
+  resize: none !important;
+  scrollbar-width: thin !important;
+}
+.confirm-mask .sync-box textarea::-webkit-scrollbar { width: 2px !important; height: 2px !important; }
+.confirm-mask .sync-box textarea::-webkit-scrollbar-track { background: transparent !important; }
+.confirm-mask .sync-box textarea::-webkit-scrollbar-thumb {
+  background: rgba(139, 108, 255, .55) !important;
+  border-radius: 2px !important;
+  border: 0 !important;
+  min-height: 30px !important;
+}
+
+/* ---- 弹窗头部：吸顶 + 一层遮罩 ----
+   头部做成全透明后，一滚动内容就从它下面穿上来，和标题字叠在一起（实测很清楚）。
+   但不吸顶又会让标题滚走、卡片一打开就到内容，没有层次。
+   所以：位置改回 sticky，同时给头部一层**与弹窗同色系的半透明遮罩 + 同样的模糊**
+   —— 挡住滚上来的内容，又不像实色块那样与毛玻璃打架。 */
+.confirm-mask .sync-box > .sync-sticky {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 4 !important;              /* 必须低于 .dlg-x，否则盖住右上角关闭按钮 */
+  /* 62% → 85% 仍有明显灰影，再提到 95% + 更重的模糊才真正「挡住」；
+     头部本身是弹窗的一部分，颜色与弹窗同系，不是另贴一块色板。 */
+  background: rgba(255, 255, 255, .95) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(170%) !important;
+  backdrop-filter: blur(28px) saturate(170%) !important;
+  margin-top: 0 !important;
+  margin-left: -40px !important;
+  margin-right: -40px !important;
+  padding-left: 40px !important;
+  padding-right: 40px !important;
+  box-sizing: content-box !important;
+}
+[data-theme="dark"] .confirm-mask .sync-box > .sync-sticky {
+  background: rgba(20, 16, 32, .96) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
+  backdrop-filter: blur(28px) saturate(160%) !important;
+}
 </style>
 </head><body>
 
@@ -8063,7 +8092,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.34';
+const APP_VER = 'v13.35';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
