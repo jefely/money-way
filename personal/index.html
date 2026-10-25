@@ -7036,6 +7036,23 @@ html body table#fixed-table td.col-del .row-del {
 }
 .book-line { gap: 9px !important; }
 .book-line > .book-pick { flex: 0 0 11px !important; width: 11px !important; }
+
+/* 「更新」按钮：浅色主题也是紫底白字（之前被通用按钮规则刷成深色字） */
+html body #ver-update-help,
+html[data-theme="dark"] #ver-update-help {
+  background: var(--primary) !important;
+  border: 1px solid var(--primary) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: none !important;
+}
+html body #ver-update-help:hover,
+html[data-theme="dark"] #ver-update-help:hover {
+  background: var(--primary-dark) !important;
+  border-color: var(--primary-dark) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
 </style>
 </head>
 <body>
@@ -7247,7 +7264,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v12.41';
+const APP_VER = 'v12.42';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
