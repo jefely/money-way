@@ -145,6 +145,98 @@
   --nt-footer-bg: #0e0b16;
 }
 
+/* ---------- 备选1：暖色（浅） ---------- */
+[data-theme="alt1"] {
+  --nt-primary: #b8860b;
+  --nt-primary-dark: #8a6408;
+  --nt-primary-light: #d4a017;
+  --nt-accent: #d4a017;
+
+  --nt-bg: #faf6ef;
+  --nt-bg-soft: #f3ece0;
+  --nt-bg-cell: #fffdf8;
+  --nt-bg-zebra: #f7f1e6;
+
+  --nt-bg-line: #e5dcc9;
+  --nt-line-strong: #cfc2a5;
+
+  --nt-text: #2a2418;
+  --nt-text-muted: #6b5f48;
+  --nt-text-light: #8a7d63;
+  --nt-text-on-primary: #fffaf0;
+
+  --nt-head-bg: #b8860b;
+  --nt-head-text: #fffaf0;
+  --nt-head-line: #c9a227;
+
+  --nt-ok: #15803d;
+  --nt-ok-bg: #e9f7ef;
+  --nt-bad: #dc2626;
+  --nt-bad-bg: #fdecec;
+  --nt-warn: #b45309;
+
+  --nt-backdrop: rgba(42, 36, 24, 0.42);
+  --nt-shadow: 0 18px 40px -12px rgba(107, 95, 72, 0.28);
+  --nt-shadow-soft: 0 8px 24px -10px rgba(107, 95, 72, 0.22);
+
+  --nt-tabs-color: #6b5f48;
+  --nt-tabs-bg: #f3ece0;
+  --nt-vbar-color: #2a2418;
+  --nt-vbar-bg: #f3ece0;
+  --nt-th-color: #6b5f48;
+  --nt-th-bg: #f3ece0;
+  --nt-cell-color: #2a2418;
+  --nt-cell-bg: #fffdf8;
+  --nt-footer-color: #6b5f48;
+  --nt-footer-bg: #f3ece0;
+}
+
+/* ---------- 备选2：暗绿（深） ---------- */
+[data-theme="alt2"] {
+  --nt-primary: #4ade80;
+  --nt-primary-dark: #22c55e;
+  --nt-primary-light: #86efac;
+  --nt-accent: #86efac;
+
+  --nt-bg: #0a1410;
+  --nt-bg-soft: #0f1f18;
+  --nt-bg-cell: #0a1410;
+  --nt-bg-zebra: #0d1a14;
+
+  --nt-bg-line: #1e3328;
+  --nt-line-strong: #2c4a3a;
+
+  --nt-text: #e0f2e8;
+  --nt-text-muted: #9ec4ae;
+  --nt-text-light: #6b8f7a;
+  --nt-text-on-primary: #06140c;
+
+  --nt-head-bg: #12291e;
+  --nt-head-text: #c8f0d8;
+  --nt-head-line: #2c4a3a;
+
+  --nt-ok: #6ee7b7;
+  --nt-ok-bg: rgba(110, 231, 183, 0.12);
+  --nt-bad: #ff9b9b;
+  --nt-bad-bg: rgba(255, 155, 155, 0.12);
+  --nt-warn: #fdba74;
+
+  --nt-backdrop: rgba(0, 0, 0, 0.62);
+  --nt-shadow: 0 18px 48px rgba(0, 0, 0, 0.72);
+  --nt-shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.55);
+
+  --nt-tabs-color: #9ec4ae;
+  --nt-tabs-bg: #0f1f18;
+  --nt-vbar-color: #e0f2e8;
+  --nt-vbar-bg: #0f1f18;
+  --nt-th-color: #9ec4ae;
+  --nt-th-bg: #0f1f18;
+  --nt-cell-color: #e0f2e8;
+  --nt-cell-bg: #0a1410;
+  --nt-footer-color: #9ec4ae;
+  --nt-footer-bg: #0f1f18;
+}
+
 /* 主题切换时给一个很短的过渡，避免"闪一下" */
 html[data-theme] body {
   transition: background-color 0.18s ease, color 0.18s ease;

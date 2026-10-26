@@ -8,13 +8,14 @@
 
 const KEY = 'nt_theme';
 
-export const THEME = { LIGHT: 'light', DARK: 'dark' };
+export const THEME = { LIGHT: 'light', DARK: 'dark', ALT1: 'alt1', ALT2: 'alt2' };
+const VALID = [THEME.LIGHT, THEME.DARK, THEME.ALT1, THEME.ALT2];
 
 /** 读已保存的选择；没有就跟随系统 */
 export function readTheme() {
   try {
     const v = localStorage.getItem(KEY);
-    if (v === THEME.LIGHT || v === THEME.DARK) return { theme: v, source: 'saved' };
+    if (VALID.includes(v)) return { theme: v, source: 'saved' };
   } catch (e) { /* 隐私模式读不到，继续走系统判断 */ }
 
   const prefersDark = typeof matchMedia === 'function'
@@ -24,7 +25,7 @@ export function readTheme() {
 
 /** 应用主题（只改一个属性） */
 export function applyTheme(theme) {
-  const t = theme === THEME.DARK ? THEME.DARK : THEME.LIGHT;
+  const t = VALID.includes(theme) ? theme : THEME.LIGHT;
   document.documentElement.setAttribute('data-theme', t);
   const meta = document.querySelector('meta[name="theme-color"]');
   // 页头两主题统一深色，状态栏跟着走
@@ -35,7 +36,7 @@ export function applyTheme(theme) {
 /** 记住选择（用户显式切换时才调用） */
 export function saveTheme(theme) {
   try {
-    localStorage.setItem(KEY, theme === THEME.DARK ? THEME.DARK : THEME.LIGHT);
+    localStorage.setItem(KEY, VALID.includes(theme) ? theme : THEME.LIGHT);
     return true;
   } catch (e) {
     return false;
@@ -44,13 +45,14 @@ export function saveTheme(theme) {
 
 /** 当前生效的主题 */
 export function currentTheme() {
-  return document.documentElement.getAttribute('data-theme') === THEME.DARK
-    ? THEME.DARK : THEME.LIGHT;
+  const t = document.documentElement.getAttribute('data-theme');
+  return VALID.includes(t) ? t : THEME.LIGHT;
 }
 
 /** 切换（返回切换后的主题） */
 export function toggleTheme() {
-  const next = currentTheme() === THEME.DARK ? THEME.LIGHT : THEME.DARK;
+  const cur = currentTheme();
+  const next = cur === THEME.LIGHT || cur === THEME.ALT1 ? THEME.DARK : THEME.LIGHT;
   applyTheme(next);
   saveTheme(next);
   return next;

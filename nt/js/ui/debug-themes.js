@@ -18,6 +18,7 @@ export function currentTheme() {
 
 export function applyTheme(id) {
   document.documentElement.setAttribute('data-theme', id);
+  try { localStorage.setItem('nt_theme', id); } catch (e) { /* ignore */ }
 }
 
 /** 创建 1/2/3/4 主题按钮；onPick(id, button, wrapper) */
