@@ -171,6 +171,7 @@
   background: transparent;
   z-index: 5;
   touch-action: none;
+  pointer-events: none;
 }
 
 .nt-col-handle::after {

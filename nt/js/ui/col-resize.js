@@ -2,14 +2,16 @@
  * 表格列宽拖动手柄
  * 层：第五层 · UI
  *
- * 手柄挂在列标行每个 th 的右边缘；拖动时同时改列标行与数据区（colgroup 共用列宽）。
- * 拖动即时改 CSS 变量，松手回调 onResize(col, width)，由调用方同步到「默认列宽」并保存。
+ * 手柄只做视觉提示（pointer-events:none）；
+ * 真正的拖动在 th 上监听：鼠标按在 th 右边缘 10px 内即开始拖。
+ * 拖动时同时改列标行与数据区（colgroup 共用列宽）；松手回调 onResize(col, width)。
  */
 
 import { COL_KEYS } from '../core/settings.js';
 
 const MIN_W = 20;
 const MAX_W = 600;
+const EDGE = 10;
 
 export function mountColResize(tableEl, opts) {
   const o = opts || {};
@@ -24,17 +26,21 @@ export function mountColResize(tableEl, opts) {
     if (!col) return;
     th.setAttribute('data-col', col);
 
+    // 视觉手柄（不拦截事件）
     const handle = document.createElement('span');
     handle.className = 'nt-col-handle';
     handle.setAttribute('data-col', col);
+    th.appendChild(handle);
 
-    handle.addEventListener('pointerdown', (e) => {
+    th.addEventListener('pointerdown', (e) => {
+      const r = th.getBoundingClientRect();
+      if (e.clientX < r.right - EDGE) return; // 只在右边缘触发
       e.preventDefault();
       e.stopPropagation();
+
       const startX = e.clientX;
-      const startW = th.getBoundingClientRect().width;
+      const startW = r.width;
       let width = Math.round(startW);
-      try { handle.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
 
       const onMove = (ev) => {
         width = Math.max(MIN_W, Math.min(MAX_W, Math.round(startW + (ev.clientX - startX))));
@@ -45,11 +51,8 @@ export function mountColResize(tableEl, opts) {
         document.removeEventListener('pointerup', onUp);
         if (o.onResize) o.onResize(col, width);
       };
-      // 监听挂到 document：鼠标移出 7px 热区也不丢事件
       document.addEventListener('pointermove', onMove);
       document.addEventListener('pointerup', onUp);
     });
-
-    th.appendChild(handle);
   });
 }
