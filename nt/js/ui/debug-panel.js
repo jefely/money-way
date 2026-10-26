@@ -8,6 +8,7 @@
 
 import { GROUPS, SCREENS, SCHEMA, DEFAULTS, normalize, toText } from '../core/settings.js';
 import { applySettings } from './apply-settings.js';
+import { openColorPicker } from './color-picker.js';
 
 const POS_KEY = 'nt_debug_pos';
 
@@ -50,6 +51,14 @@ export function mountDebugPanel(opts) {
     tabBtns[s.id] = b;
     tabs.appendChild(b);
   }
+
+  // 取色按钮：和「主界面」标签并列
+  const colorBtn = document.createElement('button');
+  colorBtn.type = 'button';
+  colorBtn.className = 'nt-debug-color';
+  colorBtn.textContent = '取色';
+  colorBtn.addEventListener('click', () => openColorPicker({ initial: '#ffffff' }));
+  tabs.appendChild(colorBtn);
 
   const closeBtn = document.createElement('button');
   closeBtn.type = 'button';
