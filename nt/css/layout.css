@@ -40,14 +40,3 @@
   line-height: 1.6;
   text-align: center;
 }
-
-/* 窄屏：面板之间收紧，表格允许横向滚动 */
-@media (max-width: 720px) {
-  .nt-main {
-    padding: 8px;
-    gap: 8px;
-  }
-  .nt-panel {
-    padding: 10px;
-  }
-}

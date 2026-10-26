@@ -13,6 +13,11 @@ html,
 body {
   margin: 0;
   padding: 0;
+  min-width: 960px;
+}
+
+html {
+  overflow-x: auto;
 }
 
 body {
