@@ -158,8 +158,15 @@
   border-bottom: 1px solid var(--nt-th-border, var(--nt-bg-line));
 }
 
-:root[data-th-border="none"] .nt-th {
+:root[data-th-border="none"] .nt-th,
+:root[data-th-border="plain"] .nt-th {
   border-bottom: 0;
+}
+
+/* 竖线：th 右边缘，和下方数据区的竖线按列对齐 */
+:root[data-th-border="line"] .nt-th {
+  border-bottom: 0;
+  border-right: 1px solid var(--nt-th-border, var(--nt-bg-line));
 }
 
 .nt-cell {
@@ -170,6 +177,16 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 数据区边框方案 */
+:root[data-cell-border="plain"] .nt-cell {
+  border-bottom: 0;
+}
+
+:root[data-cell-border="line"] .nt-cell {
+  border-bottom: 0;
+  border-right: 1px solid var(--nt-cell-border, var(--nt-bg-line));
 }
 
 /* 行内编辑：格子里的输入框「隐形」，看上去就是表格文字 */

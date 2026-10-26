@@ -23,7 +23,7 @@ export const SCHEMA = [
   { key: '标签栏文字颜色', group: '标签栏', def: '#b9b2d0', cssVar: '--nt-tabs-color' },
   { key: '标签栏背景颜色', group: '标签栏', def: '#0e0b16', cssVar: '--nt-tabs-bg' },
   { key: '标签栏行背景色', group: '标签栏', def: '#0e0b16', cssVar: '--nt-tab-bg' },
-  { key: '标签栏边框', group: '标签栏', type: 'enum', options: ['显示', '无'], values: ['line', 'none'], def: '显示', attr: 'data-tabs-border' },
+  { key: '标签栏边框', group: '标签栏', type: 'enum', options: ['按钮框', '竖线', '直角框', '无边框'], values: ['solid', 'line', 'sharp', 'plain'], def: '按钮框', attr: 'data-tabs-border' },
   { key: '标签栏边框颜色', group: '标签栏', def: '#2a2438', cssVar: '--nt-tabs-border' },
 
   /* ---------- 按钮区 ---------- */
@@ -44,7 +44,7 @@ export const SCHEMA = [
   { key: '列标行文字颜色', group: '列标行', def: '#b9b2d0', cssVar: '--nt-th-color' },
   { key: '列标行背景颜色', group: '列标行', def: '#0e0b16', cssVar: '--nt-th-bg' },
   { key: '列标行行背景色', group: '列标行', def: '#0e0b16', cssVar: '--nt-th-row-bg' },
-  { key: '列标行边框', group: '列标行', type: 'enum', options: ['显示', '无'], values: ['line', 'none'], def: '显示', attr: 'data-th-border' },
+  { key: '列标行边框', group: '列标行', type: 'enum', options: ['按钮框', '竖线', '直角框', '无边框'], values: ['solid', 'line', 'sharp', 'plain'], def: '按钮框', attr: 'data-th-border' },
   { key: '列标行边框颜色', group: '列标行', def: '#2a2438', cssVar: '--nt-th-border' },
 
   /* ---------- 数据区 ---------- */
@@ -52,6 +52,8 @@ export const SCHEMA = [
   { key: '数据区字号', group: '数据区', def: 14, unit: 'px', cssVar: '--nt-cell-font' },
   { key: '数据区文字颜色', group: '数据区', def: '#f2eeff', cssVar: '--nt-cell-color' },
   { key: '数据区背景颜色', group: '数据区', def: '#000000', cssVar: '--nt-cell-bg' },
+  { key: '数据区边框', group: '数据区', type: 'enum', options: ['按钮框', '竖线', '直角框', '无边框'], values: ['solid', 'line', 'sharp', 'plain'], def: '按钮框', attr: 'data-cell-border' },
+  { key: '数据区边框颜色', group: '数据区', def: '#2a2438', cssVar: '--nt-cell-border' },
 
   /* ---------- 信息栏 ---------- */
   { key: '信息栏行高', group: '信息栏', def: 28, unit: 'px', cssVar: '--nt-footer-h' },
