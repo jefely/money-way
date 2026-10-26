@@ -240,17 +240,17 @@ body {
   width: auto;
 }
 
-.nt-c-seq { width: 44px; }
-.nt-c-date { width: 84px; }
-.nt-c-type { width: 72px; }
-.nt-c-cat { width: 76px; }
-.nt-c-code { width: 64px; }
-.nt-c-num { width: 100px; }
-.nt-c-amount { width: 96px; }
-.nt-c-action { width: 40px; }
-.nt-c-state { width: 64px; }
-.nt-c-freq { width: 64px; }
-.nt-c-day { width: 64px; }
+.nt-c-seq { width: var(--nt-col-seq, 44px); }
+.nt-c-date { width: var(--nt-col-date, 84px); }
+.nt-c-type { width: var(--nt-col-type, 72px); }
+.nt-c-cat { width: var(--nt-col-cat, 76px); }
+.nt-c-code { width: var(--nt-col-code, 64px); }
+.nt-c-num { width: var(--nt-col-num, 100px); }
+.nt-c-amount { width: var(--nt-col-amount, 96px); }
+.nt-c-action { width: var(--nt-col-action, 40px); }
+.nt-c-state { width: var(--nt-col-state, 64px); }
+.nt-c-freq { width: var(--nt-col-freq, 64px); }
+.nt-c-day { width: var(--nt-col-day, 64px); }
 
 /* ---------- 小号按钮 ---------- */
 

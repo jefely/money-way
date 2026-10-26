@@ -9,7 +9,7 @@
  * 加参数只改 SCHEMA 一处：面板、应用、导出都从它派生。
  */
 
-export const GROUPS = ['标签栏', '按钮区', '列标行', '数据区', '信息栏'];
+export const GROUPS = ['标签栏', '按钮区', '列标行', '数据区', '列宽', '信息栏'];
 
 /** 调试面板的界面标签（第一个固定为「主界面」，以后可加「设置界面」等） */
 export const SCREENS = [
@@ -54,6 +54,20 @@ export const SCHEMA = [
   { key: '数据区背景颜色', group: '数据区', def: '#000000', cssVar: '--nt-cell-bg' },
   { key: '数据区边框', group: '数据区', type: 'enum', options: ['按钮框', '竖线', '直角框', '无边框'], values: ['solid', 'line', 'sharp', 'plain'], def: '按钮框', attr: 'data-cell-border' },
   { key: '数据区边框颜色', group: '数据区', def: '#2a2438', cssVar: '--nt-cell-border' },
+
+  /* ---------- 列宽（colgroup，列标行与数据行共用） ---------- */
+  { key: '列宽序', group: '列宽', def: 44, unit: 'px', cssVar: '--nt-col-seq' },
+  { key: '列宽日期', group: '列宽', def: 84, unit: 'px', cssVar: '--nt-col-date' },
+  { key: '列宽类型', group: '列宽', def: 72, unit: 'px', cssVar: '--nt-col-type' },
+  { key: '列宽分类', group: '列宽', def: 76, unit: 'px', cssVar: '--nt-col-cat' },
+  { key: '列宽编码', group: '列宽', def: 64, unit: 'px', cssVar: '--nt-col-code' },
+  { key: '列宽账户', group: '列宽', def: 100, unit: 'px', cssVar: '--nt-col-num' },
+  { key: '列宽金额', group: '列宽', def: 96, unit: 'px', cssVar: '--nt-col-amount' },
+  { key: '列宽操作', group: '列宽', def: 40, unit: 'px', cssVar: '--nt-col-action' },
+  { key: '列宽状态', group: '列宽', def: 64, unit: 'px', cssVar: '--nt-col-state' },
+  { key: '列宽频率', group: '列宽', def: 64, unit: 'px', cssVar: '--nt-col-freq' },
+  { key: '列宽天', group: '列宽', def: 64, unit: 'px', cssVar: '--nt-col-day' },
+  { key: '单元格间距', group: '列宽', def: 0, unit: 'px', cssVar: '--nt-cell-gap' },
 
   /* ---------- 信息栏 ---------- */
   { key: '信息栏行高', group: '信息栏', def: 28, unit: 'px', cssVar: '--nt-footer-h' },
