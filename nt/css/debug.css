@@ -163,21 +163,6 @@
   flex: 1;
   overflow-y: auto;
   padding: 8px 10px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--nt-line-strong) transparent;
-}
-
-.nt-debug-body::-webkit-scrollbar {
-  width: 8px;
-}
-
-.nt-debug-body::-webkit-scrollbar-thumb {
-  background: var(--nt-line-strong);
-  border-radius: 4px;
-}
-
-.nt-debug-body::-webkit-scrollbar-track {
-  background: transparent;
 }
 
 /* 标签栏里的「取色」按钮（和主界面标签并列） */
