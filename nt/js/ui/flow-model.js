@@ -4,7 +4,7 @@
  * 纯函数（公约 3.2）：只吃 state，不碰 DOM，不写回。
  */
 
-import { money, moneyAlways, shortDate } from '../core/format.js';
+import { money, moneyAlways, moneyOrBlank, shortDate } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
 
 /** 流水 → 渲染行。排序：seq 升序（与旧版一致）。 */
@@ -15,11 +15,16 @@ export function buildFlowRows(state) {
   return rows.map((t) => ({
     id: t.id,
     seq: Number(t.seq) || 0,
-    dateText: shortDate(t.date),
+    // 编辑框里用「可编辑的原始值」，展示用「算好的文本」，两者分开：
+    date: t.date,
     from: t.from,
     to: t.to,
-    amountText: money(t.amount),
+    amount: t.amount,
     note: t.note,
+    dateEdit: shortDate(t.date),
+    amountEdit: moneyOrBlank(t.amount),
+    dateText: shortDate(t.date),
+    amountText: money(t.amount),
   }));
 }
 

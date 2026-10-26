@@ -9,15 +9,18 @@
  * 密钥只在 core/auth-manager 的闭包里，本文件不持有、也不外传。
  */
 
-import { createState, addTransaction, removeTransaction } from './core/state.js';
-import { buildFlowRows, buildFooterInfo, buildAccountOptions } from './ui/flow-model.js';
+import { createState, addTransaction, updateTransaction, removeTransaction } from './core/state.js';
+import { buildFlowRows, buildFooterInfo } from './ui/flow-model.js';
 import { loadTemplates, renderRows } from './ui/render-transactions.js';
+import { bindRowEditing } from './ui/row-editor.js';
 import { showGate, hideGate } from './ui/gate.js';
 import { checkBalanced, checkAccountingIdentity } from './core/validate.js';
 import { statsForAccounts } from './core/stats.js';
 import { hasVault, createVault, unlockVault, saveState } from './browser/storage-adapter.js';
 
 let state = createState();
+/** 存盘防抖句柄 */
+let _saveTimer = 0;
 
 function seedState() {
   const s = createState();
@@ -35,6 +38,13 @@ function seedState() {
 async function commit(nextState) {
   state = nextState;
   render();
+  await flushSave();
+}
+
+/** 立即加密写盘。 */
+async function flushSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = 0;
   try {
     await saveState(state);
     showStatus('');
@@ -43,37 +53,24 @@ async function commit(nextState) {
   }
 }
 
+/**
+ * 行内编辑：只改 state 不重渲染（否则光标会丢），300ms 后统一加密写盘。
+ * 加密 649KB 账本约 2ms，所以这个防抖纯粹是为了减少 IndexedDB 事务次数。
+ */
+function scheduleSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(flushSave, 300);
+}
+
 function render() {
   renderRows(document.getElementById('nt-flow-body'), buildFlowRows(state));
   renderFooterEl(buildFooterInfo(state));
-  renderOptions();
   renderChecks();
 }
 
 function renderFooterEl(info) {
   const el = document.getElementById('nt-footer');
   if (el) el.textContent = `共 ${info.count} 笔 · 合计 ${info.totalText}`;
-}
-
-function renderOptions() {
-  const opts = buildAccountOptions(state);
-  for (const id of ['nt-from', 'nt-to']) {
-    const sel = document.getElementById(id);
-    if (!sel) continue;
-    const current = sel.value;
-    sel.textContent = '';
-    const blank = document.createElement('option');
-    blank.value = '';
-    blank.textContent = '请选择';
-    sel.appendChild(blank);
-    for (const o of opts) {
-      const el = document.createElement('option');
-      el.value = o.value;
-      el.textContent = o.label;
-      sel.appendChild(el);
-    }
-    if (current) sel.value = current;
-  }
 }
 
 /** 两条校验 + 统计（全部来自 core） */
@@ -97,22 +94,6 @@ function showStatus(msg) {
   if (el) el.textContent = msg;
 }
 
-function onSubmit(ev) {
-  ev.preventDefault();
-  const date = document.getElementById('nt-date').value;
-  const from = document.getElementById('nt-from').value;
-  const to = document.getElementById('nt-to').value;
-  const amount = document.getElementById('nt-amount').value;
-  const note = document.getElementById('nt-note').value;
-
-  if (!date || !from || !to) { showStatus('日期 / 转出 / 转入 都要填'); return; }
-  if (from === to) { showStatus('转出与转入不能是同一个账户'); return; }
-
-  commit(addTransaction(state, { date, from, to, amount, note }));
-  showStatus('');
-  ev.target.reset();
-}
-
 /** 列表删除：事件委托（公约 1.1） */
 function onListClick(ev) {
   const btn = ev.target.closest('.nt-cell-action button');
@@ -120,6 +101,57 @@ function onListClick(ev) {
   const tr = btn.closest('tr');
   if (!tr || !tr.dataset.id) return;
   commit(removeTransaction(state, tr.dataset.id));
+}
+
+/**
+ * 行内编辑的三个回调（由 ui/row-editor.js 触发）。
+ * 注意：编辑时不重渲染 —— 重渲染会让输入框失焦、光标跳到开头。
+ */
+function onRowEdit(id, field, value) {
+  const patch = {};
+  if (field === 'date') patch.date = normalizeDateInput(value);
+  else if (field === 'amount') patch.amount = normalizeAmountInput(value);
+  else patch[field] = value;
+  state = updateTransaction(state, id, patch);
+  // 改了金额/日期会影响页脚与校验，这两处要实时刷新（不重建行）
+  renderFooterEl(buildFooterInfo(state));
+  renderChecks();
+  scheduleSave();
+}
+
+function onRowCreate(fields) {
+  state = addTransaction(state, {
+    date: normalizeDateInput(fields.date || ''),
+    from: fields.from || '',
+    to: fields.to || '',
+    amount: normalizeAmountInput(fields.amount || ''),
+    note: fields.note || '',
+  });
+  render();
+  scheduleSave();
+}
+
+function onRowDelete(id) {
+  commit(removeTransaction(state, id));
+}
+
+/** 把 "26-08-30" / "2026-08-30" 统一成 ISO；认不出就原样留着。 */
+function normalizeDateInput(v) {
+  const s = String(v || '').trim();
+  const digits = s.replace(/[^0-9]/g, '');
+  if (digits.length === 8) return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+  if (digits.length === 6) {
+    const y = new Date().getFullYear();
+    const yy = Number(digits.slice(0, 2));
+    const full = yy > y % 100 ? 1900 + yy : 2000 + yy;
+    return `${full}-${digits.slice(2, 4)}-${digits.slice(4, 6)}`;
+  }
+  return s;
+}
+
+/** 剥掉 ¥ 与千分位，只留数字。 */
+function normalizeAmountInput(v) {
+  return String(v || '').replace(/[¥,\s]/g, '');
 }
 
 /** 解锁成功 → 显示主界面 */
@@ -132,8 +164,20 @@ function enterApp() {
 async function boot() {
   await loadTemplates();
 
-  document.getElementById('nt-form').addEventListener('submit', onSubmit);
-  document.getElementById('nt-flow-body').addEventListener('click', onListClick);
+  // 行内编辑版没有顶部表单；这里保留一处兼容：若页面里还有 #nt-form 就走老路径。
+
+  // 行内编辑：改已有行不重渲染（保住光标），新增行填完才建单
+  bindRowEditing(document.getElementById('nt-flow-body'), {
+    onEdit: onRowEdit,
+    onCreate: onRowCreate,
+    onDelete: onRowDelete,
+    onCommit: () => { flushSave(); },
+  });
+
+  // 关页面前把没落盘的改动写掉
+  window.addEventListener('beforeunload', () => {
+    if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = 0; }
+  });
 
   const exists = await hasVault();
 

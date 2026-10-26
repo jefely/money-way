@@ -24,42 +24,6 @@
     </header>
 
     <main class="nt-main">
-      <!-- 录入区 -->
-      <section class="nt-panel" aria-labelledby="nt-entry-title">
-        <h2 class="nt-panel-title" id="nt-entry-title">记一笔</h2>
-
-        <form class="nt-form" id="nt-form">
-          <div class="nt-field">
-            <label class="nt-label" for="nt-date">日期</label>
-            <input class="nt-input" id="nt-date" name="date" type="date" required>
-          </div>
-
-          <div class="nt-field">
-            <label class="nt-label" for="nt-from">转出</label>
-            <select class="nt-input" id="nt-from" name="from" required></select>
-          </div>
-
-          <div class="nt-field">
-            <label class="nt-label" for="nt-to">转入</label>
-            <select class="nt-input" id="nt-to" name="to" required></select>
-          </div>
-
-          <div class="nt-field">
-            <label class="nt-label" for="nt-amount">金额</label>
-            <input class="nt-input" id="nt-amount" name="amount" type="text" inputmode="decimal" placeholder="0.00">
-          </div>
-
-          <div class="nt-field nt-field-wide">
-            <label class="nt-label" for="nt-note">备注</label>
-            <input class="nt-input" id="nt-note" name="note" type="text" placeholder="可选">
-          </div>
-
-          <button class="nt-btn nt-btn-primary" type="submit">记下</button>
-        </form>
-
-        <p class="nt-status" id="nt-status" role="status"></p>
-      </section>
-
       <!-- 校验区 -->
       <section class="nt-panel" aria-labelledby="nt-check-title">
         <h2 class="nt-panel-title" id="nt-check-title">校验</h2>
@@ -70,9 +34,10 @@
           <dd class="nt-check-value" id="nt-check-identity">—</dd>
         </dl>
         <p class="nt-hint" id="nt-check-detail"></p>
+        <p class="nt-status" id="nt-status" role="status"></p>
       </section>
 
-      <!-- 流水列表 -->
+      <!-- 流水列表：行内直接编辑，末尾固定一行「新增」 -->
       <section class="nt-panel" aria-labelledby="nt-list-title">
         <h2 class="nt-panel-title" id="nt-list-title">流水</h2>
         <table class="nt-table">

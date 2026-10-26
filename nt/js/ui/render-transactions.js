@@ -47,36 +47,39 @@ export function tpl(id) {
 }
 
 /**
- * 渲染流水表体。
+ * 渲染流水表体（行内可编辑）。
  * @param {HTMLElement} tbody
  * @param {Array<{id:any,seq:number,date:string,from:string,to:string,amount:any,note:string}>} rows
- *        这里的每一条都应该是**已经算好**的展示数据
  */
 export function renderRows(tbody, rows) {
   tbody.textContent = '';
   const rowTpl = tpl('tpl-flow-row');
+  const newTpl = tpl('tpl-flow-new');
   const emptyTpl = tpl('tpl-empty');
 
-  if (!rows || !rows.length) {
-    if (emptyTpl) tbody.appendChild(emptyTpl.cloneNode(true));
-    return;
-  }
   if (!rowTpl) return;
 
   const frag = document.createDocumentFragment();
-  for (const r of rows) {
-    const tr = rowTpl.cloneNode(true);
-    tr.dataset.id = r.id;
-    setText(tr, CLASS.seq, String(r.seq));
-    // 优先用 model 已经算好的展示字段（dateText / amountText）；
-    // 退回原始值时才现场格式化 —— 这样视图层永远不会把 undefined 当成 0 显示成「—」。
-    setText(tr, CLASS.date, r.dateText != null ? r.dateText : shortDate(r.date));
-    setText(tr, CLASS.from, r.from || '—');
-    setText(tr, CLASS.to, r.to || '—');
-    setText(tr, CLASS.amount, r.amountText != null ? r.amountText : money(r.amount));
-    setText(tr, CLASS.note, r.note || '');
-    frag.appendChild(tr);
+
+  if (!rows || !rows.length) {
+    if (emptyTpl) frag.appendChild(emptyTpl.cloneNode(true));
+  } else {
+    for (const r of rows) {
+      const tr = rowTpl.cloneNode(true);
+      tr.dataset.id = r.id;
+      setText(tr, CLASS.seq, String(r.seq));
+      setInput(tr, 'date', r.dateEdit != null ? r.dateEdit : r.date);
+      setInput(tr, 'from', r.from);
+      setInput(tr, 'to', r.to);
+      setInput(tr, 'amount', r.amountEdit != null ? r.amountEdit : r.amount);
+      setInput(tr, 'note', r.note);
+      frag.appendChild(tr);
+    }
   }
+
+  // 末尾永远留一行「新增」
+  if (newTpl) frag.appendChild(newTpl.cloneNode(true));
+
   tbody.appendChild(frag);
 }
 
@@ -97,4 +100,9 @@ export function renderSegments(tbody, segments) {
 function setText(root, cls, text) {
   const el = root.querySelector('.' + cls);
   if (el) el.textContent = text;
+}
+
+function setInput(root, field, value) {
+  const el = root.querySelector(`input[data-field="${field}"]`);
+  if (el) el.value = value == null ? '' : String(value);
 }

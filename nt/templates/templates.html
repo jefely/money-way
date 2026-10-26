@@ -11,18 +11,51 @@
     · 不写业务计算：{{ }} 之外只有结构
 -->
 
-<!-- 流水行：只读，不再是每行 6 个 input -->
+<!-- 流水行：行内直接编辑（5 个可编辑格 + 序号 + 删除） -->
 <template id="tpl-flow-row">
   <tr class="nt-row">
     <td class="nt-cell nt-cell-seq"></td>
-    <td class="nt-cell nt-cell-date"></td>
-    <td class="nt-cell nt-cell-from"></td>
-    <td class="nt-cell nt-cell-to"></td>
-    <td class="nt-cell nt-cell-amount"></td>
-    <td class="nt-cell nt-cell-note"></td>
+    <td class="nt-cell nt-cell-date">
+      <input class="nt-cell-input" type="text" inputmode="numeric" data-field="date" aria-label="日期">
+    </td>
+    <td class="nt-cell nt-cell-from">
+      <input class="nt-cell-input" type="text" data-field="from" aria-label="转出账户">
+    </td>
+    <td class="nt-cell nt-cell-to">
+      <input class="nt-cell-input" type="text" data-field="to" aria-label="转入账户">
+    </td>
+    <td class="nt-cell nt-cell-amount">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="amount" aria-label="金额">
+    </td>
+    <td class="nt-cell nt-cell-note">
+      <input class="nt-cell-input" type="text" data-field="note" aria-label="备注">
+    </td>
     <td class="nt-cell nt-cell-action">
       <button class="nt-btn nt-btn-icon" type="button" aria-label="删除这笔流水">×</button>
     </td>
+  </tr>
+</template>
+
+<!-- 新增行：任何时候都在表格末尾，填了内容才建单 -->
+<template id="tpl-flow-new">
+  <tr class="nt-row nt-row-new" data-new="1">
+    <td class="nt-cell nt-cell-seq">+</td>
+    <td class="nt-cell nt-cell-date">
+      <input class="nt-cell-input" type="text" inputmode="numeric" data-field="date" aria-label="日期" placeholder="260830">
+    </td>
+    <td class="nt-cell nt-cell-from">
+      <input class="nt-cell-input" type="text" data-field="from" aria-label="转出账户" placeholder="转出">
+    </td>
+    <td class="nt-cell nt-cell-to">
+      <input class="nt-cell-input" type="text" data-field="to" aria-label="转入账户" placeholder="转入">
+    </td>
+    <td class="nt-cell nt-cell-amount">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="amount" aria-label="金额" placeholder="0.00">
+    </td>
+    <td class="nt-cell nt-cell-note">
+      <input class="nt-cell-input" type="text" data-field="note" aria-label="备注" placeholder="备注">
+    </td>
+    <td class="nt-cell nt-cell-action"></td>
   </tr>
 </template>
 
