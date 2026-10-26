@@ -247,7 +247,8 @@ function enableDrag(host, handle) {
   let drag = null;
 
   handle.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('.nt-debug-close')) return;
+    // 关闭按钮和主题按钮不是拖动把手，否则真实点击会被拖拽吞掉
+    if (e.target.closest('.nt-debug-close') || e.target.closest('.nt-debug-theme')) return;
     // 如果还有生效的 transform（居中），先转成绝对 left/top，避免拖动时叠加偏移
     const cs = getComputedStyle(host);
     if (cs.transform && cs.transform !== 'none') {
