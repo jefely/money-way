@@ -139,9 +139,11 @@ function enterApp() {
   hideGate();
   document.getElementById('nt-app').hidden = false;
 
-  // 应用已保存的界面参数（state.settings，正常打开也生效）
+  // 应用已保存的界面参数（按当前主题取 state.settings[theme]，兼容旧的平铺结构）
   if (state.settings && Object.keys(state.settings).length) {
-    applySettings(state.settings);
+    const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const s = state.settings;
+    applySettings(s[theme] && typeof s[theme] === 'object' ? s[theme] : s);
   }
 
   mountViews();

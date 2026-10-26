@@ -9,12 +9,14 @@
 import { GROUPS, SCREENS, GROUP_SCREEN, SCHEMA, DEFAULTS, normalize } from '../core/settings.js';
 import { applySettings } from './apply-settings.js';
 import { openColorPicker } from './color-picker.js';
+import { createThemeButtons, currentTheme, applyTheme, saveThemeSettings, loadThemeSettings } from './debug-themes.js';
 
 const POS_KEY = 'nt_debug_pos';
 
 export function mountDebugPanel(opts) {
   const o = opts || {};
-  const initialState = o.initial || (o.getState ? o.getState().settings : {});
+  let theme = currentTheme();
+  const initialState = o.initial || (o.getState ? loadThemeSettings(o, theme) : {});
   let current = normalize(initialState);
   let screen = SCREENS[0].id;
   let history = [];
@@ -34,6 +36,21 @@ export function mountDebugPanel(opts) {
 
   const dragBar = document.createElement('div');
   dragBar.className = 'nt-debug-drag';
+
+  // 左：主题切换 1=浅色 2=深色 3=备选1 4=备选2
+  dragBar.appendChild(createThemeButtons(theme, (id, btn, wrap) => {
+    if (id === theme) return;
+    saveThemeSettings(o, theme, normalize(current));
+    theme = id;
+    applyTheme(theme);
+    for (const el of wrap.children) {
+      el.setAttribute('aria-pressed', el === btn ? 'true' : 'false');
+    }
+    current = normalize(loadThemeSettings(o, theme));
+    renderBody();
+    applySettings(current);
+  }));
+
   const dragTitle = document.createElement('span');
   dragTitle.className = 'nt-debug-drag-title';
   dragTitle.textContent = '界面参数';
@@ -114,9 +131,7 @@ export function mountDebugPanel(opts) {
 
   closeBtn.addEventListener('click', () => host.remove());
   saveBtn.addEventListener('click', () => {
-    if (o.setState && o.getState) {
-      o.setState({ ...o.getState(), settings: normalize(current) });
-    }
+    saveThemeSettings(o, theme, normalize(current));
     if (o.save) o.save();
     saveBtn.textContent = '已保存';
     setTimeout(() => { saveBtn.textContent = '保存'; }, 1200);
