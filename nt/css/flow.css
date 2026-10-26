@@ -250,18 +250,40 @@
 
 /* ---------- 添加账本 / 流水 弹窗 ---------- */
 
+/* ---------- 添加账本 / 流水 弹窗 ---------- */
+
 .nt-add-group {
   margin-bottom: 10px;
-  padding: 10px;
+  padding: 8px;
   border: 1px solid var(--nt-bg-line);
   border-radius: var(--nt-radius);
 }
 
+.nt-add-group:last-child {
+  margin-bottom: 0;
+}
+
 .nt-add-group-title {
-  margin-bottom: 6px;
   font-size: 12px;
   font-weight: 700;
   color: var(--nt-text-muted);
+}
+
+.nt-add-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.nt-add-bar {
+  display: flex;
+  gap: 6px;
+}
+
+.nt-add-bar .nt-btn {
+  height: 32px;
+  padding: 0 12px;
 }
 
 .nt-add-ledger {
@@ -271,263 +293,36 @@
   margin-bottom: 4px;
 }
 
-.nt-add-ledger-name {
-  flex: 1;
-  min-width: 0;
-  padding: 4px 8px;
-  border: 1px solid var(--nt-bg-line);
-  border-radius: var(--nt-radius);
-  background: var(--nt-bg);
-  color: var(--nt-text);
-  text-align: left;
-  cursor: pointer;
-}
-
-.nt-add-ledger-active .nt-add-ledger-name {
-  border-color: var(--nt-primary);
-  color: var(--nt-primary);
-}
-
-.nt-add-ledger-new {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.nt-add-ledger-input {
-  flex: 1;
-  min-width: 0;
-  padding: 4px 8px;
-  border: 1px solid var(--nt-bg-line);
-  border-radius: var(--nt-radius);
-  background: var(--nt-bg);
-  color: var(--nt-text);
-}
-
-.nt-add-text {
-  width: 100%;
-  height: 260px;
-  padding: 10px;
-  border: 1px solid var(--nt-bg-line);
-  border-radius: var(--nt-radius);
-  background: var(--nt-bg);
-  color: var(--nt-text);
-  font: inherit;
-  resize: vertical;
-}
-
-.nt-add-bar {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.nt-add-info {
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--nt-text-muted);
-}
-.nt-table tbody tr {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 var(--nt-row-h, 32px);
-}
-
-/* 列标行对齐（--nt-th-align-*，每列） */
-.nt-table .nt-th:nth-child(1) { text-align: var(--nt-th-align-seq, left); }
-
-.nt-table .nt-th:nth-child(2) { text-align: var(--nt-th-align-date, left); }
-
-.nt-table .nt-th:nth-child(3) { text-align: var(--nt-th-align-type, left); }
-
-.nt-table .nt-th:nth-child(4) { text-align: var(--nt-th-align-cat, left); }
-
-.nt-table .nt-th:nth-child(5) { text-align: var(--nt-th-align-code, left); }
-
-.nt-table .nt-th:nth-child(6) { text-align: var(--nt-th-align-num, right); }
-
-.nt-table .nt-th:nth-child(7) { text-align: var(--nt-th-align-amount, right); }
-
-.nt-table .nt-th:nth-child(8) { text-align: var(--nt-th-align-action, center); }
-
-.nt-table .nt-th:nth-child(9) { text-align: var(--nt-th-align-state, center); }
-
-.nt-table .nt-th:nth-child(10) { text-align: var(--nt-th-align-freq, center); }
-
-.nt-table .nt-th:nth-child(11) { text-align: var(--nt-th-align-day, center); }
-
-/* 数据行对齐（--nt-align-*，每列） */
-.nt-table .nt-cell:nth-child(1) { text-align: var(--nt-align-seq, left); }
-
-.nt-table .nt-cell:nth-child(2) { text-align: var(--nt-align-date, left); }
-
-.nt-table .nt-cell:nth-child(3) { text-align: var(--nt-align-type, left); }
-
-.nt-table .nt-cell:nth-child(4) { text-align: var(--nt-align-cat, left); }
-
-.nt-table .nt-cell:nth-child(5) { text-align: var(--nt-align-code, left); }
-
-.nt-table .nt-cell:nth-child(6) { text-align: var(--nt-align-num, right); }
-
-.nt-table .nt-cell:nth-child(7) { text-align: var(--nt-align-amount, right); }
-
-.nt-table .nt-cell:nth-child(8) { text-align: var(--nt-align-action, center); }
-
-.nt-table .nt-cell:nth-child(9) { text-align: var(--nt-align-state, center); }
-
-.nt-table .nt-cell:nth-child(10) { text-align: var(--nt-align-freq, center); }
-
-.nt-table .nt-cell:nth-child(11) { text-align: var(--nt-align-day, center); }
-
-/* 数据区边框方案 */
-[data-cell-border="plain"] .nt-cell {
-  border-bottom: 0;
-}
-
-[data-cell-border="line"] .nt-cell {
-  border-bottom: 0;
-  border-right: 1px solid var(--nt-cell-border, var(--nt-bg-line));
-}
-
-/* 行内编辑：格子里的输入框「隐形」，看上去就是表格文字 */
-.nt-cell-input {
-  width: 100%;
-  height: calc(var(--nt-row-h) - 2px);
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: inherit;
-}
-
-.nt-cell-input:focus {
-  outline: none;
-  box-shadow: inset 0 0 0 2px rgba(139, 108, 255, 0.45);
-  border-radius: 3px;
-}
-
-.nt-cell-input-num {
-  text-align: right;
-  font-weight: 700;
-}
-
-/* 新增行：虚线提示「在这一行填」 */
-.nt-row-new .nt-cell {
-  border-bottom-style: dashed;
-}
-
-.nt-row-new .nt-cell-seq {
-  color: var(--nt-primary);
-  font-weight: 700;
-}
-
-/* 新增行的输入框是空的，靠占位文字指出每一格该填什么 */
-.nt-row-new .nt-cell-input::placeholder {
-  color: var(--nt-text-light);
-  opacity: 0.7;
-}
-
-.nt-cell-amount {
-  text-align: right;
-  font-weight: 700;
-}
-
-.nt-cell-seq,
-.nt-cell-date {
-  text-align: center;
-  color: var(--nt-text-muted);
-}
-
-.nt-cell-action {
-  width: 40px;
-  text-align: center;
-}
-
-.nt-empty {
-  height: 56px;
-  text-align: center;
-  color: var(--nt-text-light);
-}
-
-/* ---------- 校验 ---------- */
-
-.nt-checks {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px 12px;
-  font-size: 13px;
-}
-
-.nt-check-name {
-  color: var(--nt-text-muted);
-}
-
-.nt-check-value {
-  font-weight: 700;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ---------- 窄屏 ---------- */
-
-@media (max-width: 720px) {
-  .nt-form {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .nt-field-wide {
-    grid-column: span 2;
-  }
-  /* 窄屏优先保证「金额」可见：备注整列让位，表格因此不再需要横向滚动 */
-  .nt-table {
-    min-width: 0;
-  }
-  .nt-th.nt-cell-note,
-  .nt-cell-note {
-    display: none;
-  }
-  .nt-cell-date {
-    width: 78px;
-  }
-  .nt-cell-seq {
-    width: 40px;
-  }
-  .nt-cell-amount {
-    width: 88px;
-  }
-  .nt-cell-action {
-    width: 30px;
-  }
-  .nt-cell {
-    padding: 0 5px;
-  }
-}
-
-/* 添加弹窗：标题与按钮同排、删除按钮统一在「改名/添加」左侧、输入框加高 */
-.nt-add-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.nt-add-head .nt-add-group-title {
-  margin-bottom: 0;
-}
-
-.nt-add-bar {
-  display: flex;
-  gap: 6px;
-  margin-top: 0;
+.nt-add-ledger-check {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--nt-primary);
 }
 
 .nt-add-ledger-name,
 .nt-add-ledger-input {
+  flex: 1;
+  min-width: 0;
   height: 32px;
   padding: 0 8px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  background: var(--nt-bg);
+  color: var(--nt-text);
 }
 
-.nt-add-ledger-check {
-  flex: none;
+.nt-add-ledger-name {
+  text-align: left;
+}
+
+.nt-add-ledger-new {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding-left: 26px;
 }
 
 .nt-add-del {
@@ -539,36 +334,20 @@
   pointer-events: none;
 }
 
-.nt-add-spacer {
-  flex: none;
-  width: 14px;
-}
-/* 新增行左边界与账本行输入框对齐（checkbox 14px + gap 6px） */
-.nt-add-ledger-new {
-  padding-left: 20px;
-}
-/* 添加流水：按钮加高、文本框加高 */
-.nt-add-bar .nt-btn {
-  height: 32px;
-  padding: 0 12px;
-}
-
 .nt-add-text {
-  height: 340px;
-}
-/* 对照单文件版：文本框回到紧凑高度 */
-.nt-add-text {
+  width: 100%;
   height: 200px;
+  padding: 10px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  background: var(--nt-bg);
+  color: var(--nt-text);
+  font: inherit;
+  resize: vertical;
 }
 
-.nt-add-group {
-  padding: 8px;
-}
-/* 实测：账本名输入框左边界 480，新增行 474 —— 补 6px 对齐 */
-.nt-add-ledger-new {
-  padding-left: 26px;
-}
-/* 最后一个分组框不要底边距，弹窗底部距离 = 右侧距离 */
-.nt-add-group:last-child {
-  margin-bottom: 0;
+.nt-add-info {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--nt-text-muted);
 }
