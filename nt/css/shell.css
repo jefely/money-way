@@ -253,6 +253,16 @@ body {
 .nt-c-state { width: var(--nt-col-state, 64px); }
 .nt-c-freq { width: var(--nt-col-freq, 64px); }
 .nt-c-day { width: var(--nt-col-day, 64px); }
+.nt-c-date { width: var(--nt-col-date, 84px); }
+.nt-c-type { width: var(--nt-col-type, 72px); }
+.nt-c-cat { width: var(--nt-col-cat, 76px); }
+.nt-c-code { width: var(--nt-col-code, 64px); }
+.nt-c-num { width: var(--nt-col-num, 100px); }
+.nt-c-amount { width: var(--nt-col-amount, 96px); }
+.nt-c-action { width: var(--nt-col-action, 40px); }
+.nt-c-state { width: var(--nt-col-state, 64px); }
+.nt-c-freq { width: var(--nt-col-freq, 64px); }
+.nt-c-day { width: var(--nt-col-day, 64px); }
 
 /* ---------- 小号按钮 ---------- */
 

@@ -15,6 +15,9 @@ import { toCssList, GROUP_SCOPE } from '../core/settings.js';
 export function applySettings(settings, theme) {
   const root = document.documentElement;
   if (!root) return;
+
+  let totalColW = 0;
+
   for (const item of toCssList(settings, theme)) {
     const scope = GROUP_SCOPE[item.group] || 'global';
     const target = scope === 'global' ? root : document.querySelector('[data-view="' + scope + '"]');
@@ -27,10 +30,17 @@ export function applySettings(settings, theme) {
         const name = item.cssVar.slice(9);
         const col = document.querySelector('col.nt-c-' + name);
         if (col) {
+          // 只累加实际存在的 <col>，否则会把不存在的列也算进表格宽度
+          totalColW += parseFloat(item.value) || 0;
           col.style.width = item.value;
           col.setAttribute('width', String(parseFloat(item.value) || 0));
         }
       }
     }
   }
+
+  // 表格宽度必须等于各列宽总和：否则 table-layout:fixed 会把列按比例拉宽，
+  // 出现「col 设了 84px、实际渲染 193px」的错乱。
+  const table = document.querySelector('.nt-table');
+  if (table && totalColW > 0) table.style.width = totalColW + 'px';
 }

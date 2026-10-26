@@ -48,6 +48,12 @@ export function mountColResize(tableEl, opts) {
           colEl.style.width = width + 'px';
           colEl.setAttribute('width', String(width));
         }
+        // 表格宽度 = 所有列宽总和，否则 table-layout:fixed 会把列按比例拉回去
+        let total = 0;
+        tableEl.querySelectorAll('colgroup col').forEach((c) => {
+          total += parseFloat(c.style.width) || parseFloat(getComputedStyle(c).width) || 0;
+        });
+        if (total > 0) tableEl.style.width = total + 'px';
       };
       const onUp = () => {
         document.removeEventListener('pointermove', onMove);

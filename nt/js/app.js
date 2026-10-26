@@ -157,15 +157,14 @@ function enterApp() {
   hideGate();
   document.getElementById('nt-app').hidden = false;
 
-  // 应用已保存的界面参数（按当前主题取 state.settings[theme]，兼容旧的平铺结构）
-  if (state.settings && Object.keys(state.settings).length) {
-    const theme = document.documentElement.getAttribute('data-theme') || 'dark';
-    const s = state.settings;
-    const themeSettings = s[theme] && typeof s[theme] === 'object' ? s[theme] : s;
-    const merged = { ...themeSettings };
-    if (themeSettings['用户列宽']) merged['默认列宽'] = themeSettings['用户列宽'];
-    applySettings(merged, theme);
-  }
+  // 应用界面参数：即使 settings 为空也要跑一次，用 SCHEMA 默认值补齐
+  // （否则新账本没有 --nt-col-*，列宽会被表格拉伸，拖动也看不出效果）
+  const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const s = state.settings || {};
+  const themeSettings = (s[theme] && typeof s[theme] === 'object') ? s[theme] : s;
+  const merged = { ...themeSettings };
+  if (themeSettings['用户列宽']) merged['默认列宽'] = themeSettings['用户列宽'];
+  applySettings(merged, theme);
 
   // 列宽拖动手柄：拖动后同步到当前主题的「默认列宽」并保存
   const tableEl = document.querySelector('.nt-table');
