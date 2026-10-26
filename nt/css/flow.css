@@ -64,14 +64,14 @@
 }
 
 /* 方案二：竖线 —— 上下消隐，竖线落在「按钮间距的中线」 */
-:root[data-btn-style="line"] .nt-vbar .nt-btn {
+[data-btn-style="line"] .nt-vbar .nt-btn {
   position: relative;
   border: 0;
   border-radius: 0;
   background: transparent;
 }
 
-:root[data-btn-style="line"] .nt-vbar .nt-btn::before {
+[data-btn-style="line"] .nt-vbar .nt-btn::before {
   content: '';
   position: absolute;
   left: calc(-1 * var(--nt-btn-gap, 6px) / 2);
@@ -82,12 +82,12 @@
 }
 
 /* 方案三：直角框 —— 矩形边框，无圆角 */
-:root[data-btn-style="sharp"] .nt-btn {
+[data-btn-style="sharp"] .nt-btn {
   border-radius: 0;
 }
 
 /* 方案四：无边框 —— 无边框、无底色，只留文字 */
-:root[data-btn-style="plain"] .nt-btn {
+[data-btn-style="plain"] .nt-btn {
   border: 0;
   background: transparent;
 }
@@ -158,13 +158,13 @@
   border-bottom: 1px solid var(--nt-th-border, var(--nt-bg-line));
 }
 
-:root[data-th-border="none"] .nt-th,
-:root[data-th-border="plain"] .nt-th {
+[data-th-border="none"] .nt-th,
+[data-th-border="plain"] .nt-th {
   border-bottom: 0;
 }
 
 /* 竖线：th 右边缘，和下方数据区的竖线按列对齐 */
-:root[data-th-border="line"] .nt-th {
+[data-th-border="line"] .nt-th {
   border-bottom: 0;
   border-right: 1px solid var(--nt-th-border, var(--nt-bg-line));
 }
@@ -180,11 +180,11 @@
 }
 
 /* 数据区边框方案 */
-:root[data-cell-border="plain"] .nt-cell {
+[data-cell-border="plain"] .nt-cell {
   border-bottom: 0;
 }
 
-:root[data-cell-border="line"] .nt-cell {
+[data-cell-border="line"] .nt-cell {
   border-bottom: 0;
   border-right: 1px solid var(--nt-cell-border, var(--nt-bg-line));
 }

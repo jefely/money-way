@@ -55,17 +55,17 @@ body {
   scrollbar-width: none;
 }
 
-:root[data-tabs-border="none"] .nt-tabs,
-:root[data-tabs-border="plain"] .nt-tabs {
+[data-tabs-border="none"] .nt-tabs,
+[data-tabs-border="plain"] .nt-tabs {
   border-bottom: 0;
 }
 
-:root[data-tabs-border="line"] .nt-tabs {
+[data-tabs-border="line"] .nt-tabs {
   border-bottom: 0;
 }
 
 /* 竖线：tab 右边缘，tab 之间等分 */
-:root[data-tabs-border="line"] .nt-tab {
+[data-tabs-border="line"] .nt-tab {
   border-right: 1px solid var(--nt-tabs-border, var(--nt-bg-line));
 }
 

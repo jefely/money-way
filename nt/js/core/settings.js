@@ -27,6 +27,16 @@ export const GROUP_SCREEN = {
   列宽: 'flow',
 };
 
+/** 参数作用域：global=写全局(:root)；其余=写到对应标签页容器 [data-view] */
+export const GROUP_SCOPE = {
+  标签栏: 'global',
+  信息栏: 'global',
+  按钮区: 'flow',
+  列标行: 'flow',
+  数据区: 'flow',
+  列宽: 'flow',
+};
+
 export const SCHEMA = [
   /* ---------- 标签栏 ---------- */
   { key: '标签栏行高', group: '标签栏', def: 40, unit: 'px', cssVar: '--nt-tabs-h' },
@@ -126,9 +136,9 @@ export function toCssList(settings) {
       else if (v === '不显示') val = 'plain';   // 兼容旧值
       else if (v === '显示') val = 'solid';     // 兼容旧值
       else val = 'solid';
-      out.push({ attr: item.attr, value: val });
+      out.push({ group: item.group, attr: item.attr, value: val });
     } else {
-      out.push({ cssVar: item.cssVar, value: item.unit === 'px' ? v + 'px' : v });
+      out.push({ group: item.group, cssVar: item.cssVar, value: item.unit === 'px' ? v + 'px' : v });
     }
   }
   return out;
