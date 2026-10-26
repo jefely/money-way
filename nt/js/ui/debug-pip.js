@@ -58,6 +58,14 @@ export function createPiPButton(host) {
   btn.textContent = '⧉';
   btn.setAttribute('aria-label', '独立窗口（画中画）');
   btn.title = '独立窗口';
-  btn.addEventListener('click', () => { openDebugPiP(host).catch(() => {}); });
+  btn.addEventListener('click', () => {
+    if (!isPiPSupported()) {
+      alert('当前浏览器不支持画中画独立窗口（需要 Chrome/Edge 116+，无痕/受限模式不可用）');
+      return;
+    }
+    openDebugPiP(host).catch((err) => {
+      alert('打开独立窗口失败：' + (err && err.message ? err.message : String(err)));
+    });
+  });
   return btn;
 }
