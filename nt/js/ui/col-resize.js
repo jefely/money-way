@@ -41,12 +41,13 @@ export function mountColResize(tableEl, opts) {
         scope.style.setProperty('--nt-col-' + col, width + 'px');
       };
       const onUp = () => {
-        handle.removeEventListener('pointermove', onMove);
-        handle.removeEventListener('pointerup', onUp);
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
         if (o.onResize) o.onResize(col, width);
       };
-      handle.addEventListener('pointermove', onMove);
-      handle.addEventListener('pointerup', onUp);
+      // 监听挂到 document：鼠标移出 7px 热区也不丢事件
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
     });
 
     th.appendChild(handle);
