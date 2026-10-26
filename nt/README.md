@@ -31,6 +31,20 @@
 
 ---
 
+## 硬约定：UI 调整必须先用探针量
+
+改任何 CSS / 布局之前，先量出**实际像素**，改完再量一次确认。
+
+```powershell
+node nt/tools/probe.mjs http://127.0.0.1:8082/nt/index.html "document.querySelector('.目标').getBoundingClientRect().left"
+```
+
+- 探针会起临时 headless Chrome（独立 profile、空账本、自动设密码），执行表达式后打印 JSON；
+- **不许靠猜**，也不许改完让用户肉眼验证——先出数字，再改，再出数字；
+- 理由：多次「改了没效果」都是实际值与假设不符（checkbox 实际 13px、空 actions 占 18px、分组 margin 10px 等）。
+
+---
+
 ## 二、目录结构
 
 ```
