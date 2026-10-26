@@ -93,8 +93,9 @@ export function mountFlow(section, ctx) {
 /* ---------- 工具条 ---------- */
 
 function bindToolbar(section, ctx) {
-  const add = section.querySelector('[data-act="add"]');
-  if (add) add.addEventListener('click', () => openAddDialog(ctx));
+  section.querySelectorAll('[data-act="add"]').forEach((b) => {
+    b.addEventListener('click', () => openAddDialog(ctx));
+  });
 
   const sync = section.querySelector('[data-act="sync"]');
   if (sync) sync.addEventListener('click', () => NtModal.info('同步', (b) => { b.textContent = WIP; }));
