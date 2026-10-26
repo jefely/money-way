@@ -75,8 +75,8 @@
   content: '';
   position: absolute;
   left: calc(-1 * var(--nt-btn-gap, 6px) / 2);
-  top: 2px;
-  bottom: 2px;
+  top: 0;
+  bottom: 0;
   width: 1px;
   background: var(--nt-btn-border-color, var(--nt-bg-line));
 }
