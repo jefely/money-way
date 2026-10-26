@@ -139,7 +139,7 @@
 /* ---------- 表格 ---------- */
 
 .nt-table {
-  width: 100%;
+  width: auto;
   border-collapse: separate;
   border-spacing: var(--nt-cell-gap, 0);
   table-layout: fixed;
