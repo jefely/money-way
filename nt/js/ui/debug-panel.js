@@ -148,6 +148,27 @@ export function mountDebugPanel(opts) {
     key.textContent = item.key.startsWith(item.group) ? item.key.slice(item.group.length) : item.key;
     key.title = item.key;
 
+    row.appendChild(key);
+
+    if (item.type === 'enum') {
+      const sel = document.createElement('select');
+      sel.className = 'nt-debug-input';
+      sel.setAttribute('aria-label', item.key);
+      for (const opt of item.options) {
+        const o = document.createElement('option');
+        o.value = opt;
+        o.textContent = opt;
+        sel.appendChild(o);
+      }
+      sel.value = String(current[item.key]);
+      sel.addEventListener('change', () => {
+        current[item.key] = sel.value;
+        applySettings(normalize(current));
+      });
+      row.appendChild(sel);
+      return row;
+    }
+
     const input = document.createElement('input');
     input.className = 'nt-debug-input';
     input.type = 'text';
@@ -158,9 +179,7 @@ export function mountDebugPanel(opts) {
       applySettings(normalize(current));
     });
 
-    row.appendChild(key);
     row.appendChild(input);
-
     return row;
   }
 

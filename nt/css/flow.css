@@ -53,13 +53,19 @@
   justify-content: center;
   height: 32px;
   padding: 0 14px;
-  border: 1px solid var(--nt-bg-line);
+  border: 1px solid var(--nt-btn-border-color, var(--nt-bg-line));
   border-radius: var(--nt-radius);
-  background: var(--nt-bg);
+  background: var(--nt-btn-bg-color, var(--nt-bg));
   color: var(--nt-text);
   font-weight: 600;
   white-space: nowrap;
   text-decoration: none;
+}
+
+/* 按钮边框/底色：不显示（调试面板「按钮边框」= 不显示时） */
+:root[data-btn-style="plain"] .nt-btn {
+  border-color: transparent;
+  background: transparent;
 }
 
 .nt-btn:hover {

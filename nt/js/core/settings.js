@@ -28,6 +28,9 @@ export const SCHEMA = [
   { key: '按钮区字号', group: '按钮区', def: 12, unit: 'px', cssVar: '--nt-vbar-font' },
   { key: '按钮区文字颜色', group: '按钮区', def: '#f2eeff', cssVar: '--nt-vbar-color' },
   { key: '按钮区背景颜色', group: '按钮区', def: '#0e0b16', cssVar: '--nt-vbar-bg' },
+  { key: '按钮边框', group: '按钮区', type: 'enum', options: ['显示', '不显示'], def: '显示', attr: 'data-btn-style' },
+  { key: '按钮边框颜色', group: '按钮区', def: '#2a2438', cssVar: '--nt-btn-border-color' },
+  { key: '按钮底色', group: '按钮区', def: '#000000', cssVar: '--nt-btn-bg-color' },
 
   /* ---------- 列标行 ---------- */
   { key: '列标行行高', group: '列标行', def: 26, unit: 'px', cssVar: '--nt-th-h' },
@@ -76,10 +79,16 @@ export function normalize(raw) {
 /** 设置 → CSS 变量列表（供 apply-settings 使用） */
 export function toCssList(settings) {
   const s = normalize(settings);
-  return SCHEMA.map((item) => ({
-    cssVar: item.cssVar,
-    value: item.unit === 'px' ? s[item.key] + 'px' : s[item.key],
-  }));
+  const out = [];
+  for (const item of SCHEMA) {
+    const v = s[item.key];
+    if (item.type === 'enum') {
+      out.push({ attr: item.attr, value: v === '不显示' ? 'plain' : 'solid' });
+    } else {
+      out.push({ cssVar: item.cssVar, value: item.unit === 'px' ? v + 'px' : v });
+    }
+  }
+  return out;
 }
 
 /** 设置 → 纯文本（键=值，中文逗号分隔），供导出/对话粘贴 */

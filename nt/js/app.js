@@ -26,6 +26,7 @@ import { mountSettings } from './views/settings.js';
 import { mountValidate } from './views/validate.js';
 import { mountPath } from './views/path.js';
 import { mountDebugPanel } from './ui/debug-panel.js';
+import { applySettings } from './ui/apply-settings.js';
 
 let state = createState();
 let index = buildAccountIndex(state.accounts);
@@ -137,6 +138,12 @@ function adoptState(raw) {
 function enterApp() {
   hideGate();
   document.getElementById('nt-app').hidden = false;
+
+  // 应用已保存的界面参数（state.settings，正常打开也生效）
+  if (state.settings && Object.keys(state.settings).length) {
+    applySettings(state.settings);
+  }
+
   mountViews();
   bindTabs({
     defaultTab: 'flow',

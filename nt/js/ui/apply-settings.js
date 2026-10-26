@@ -14,6 +14,7 @@ export function applySettings(settings) {
   const root = document.documentElement;
   if (!root) return;
   for (const item of toCssList(settings)) {
-    root.style.setProperty(item.cssVar, item.value);
+    if (item.attr) root.setAttribute(item.attr, item.value);
+    else if (item.cssVar) root.style.setProperty(item.cssVar, item.value);
   }
 }
