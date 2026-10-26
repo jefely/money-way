@@ -24,7 +24,8 @@ export function applySettings(settings, theme) {
       target.style.setProperty(item.cssVar, item.value);
       // <col> 的 CSS width 用 var() 在表格布局里不生效，同步写 inline width
       if (item.cssVar.startsWith('--nt-col-')) {
-        const col = document.querySelector('.nt-c-' + item.cssVar.slice(9));
+        const name = item.cssVar.slice(9);
+        const col = document.querySelector('col.nt-c-' + name);
         if (col) {
           col.style.width = item.value;
           col.setAttribute('width', String(parseFloat(item.value) || 0));
