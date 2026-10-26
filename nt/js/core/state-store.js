@@ -23,6 +23,10 @@ export function createState() {
     scheduled: [],
     // 界面参数（调试面板「保存」写这里，随账本加密存盘）
     settings: {},
+    // 多账本：活动账本的数据在 accounts/transactions/scheduled；其余账本快照在 ledgers
+    ledgers: {},
+    ledgerNames: { main: '主账本' },
+    activeLedger: 'main',
     meta: { lastSync: '' },
   };
 }

@@ -80,6 +80,9 @@ export function migrate(raw) {
     const normalized = Object.assign({}, src, {
       scheduled: Array.isArray(src.scheduled) ? src.scheduled : [],
       settings: src.settings && typeof src.settings === 'object' ? src.settings : {},
+      ledgers: src.ledgers && typeof src.ledgers === 'object' ? src.ledgers : {},
+      ledgerNames: src.ledgerNames && typeof src.ledgerNames === 'object' ? src.ledgerNames : { main: '主账本' },
+      activeLedger: src.activeLedger || 'main',
     });
     return { state: normalized, migrated: false, from: from, to: SCHEMA_VERSION, stats: {} };
   }
@@ -176,6 +179,9 @@ export function migrate(raw) {
     transactions: transactions,
     scheduled: scheduled,
     settings: settings,
+    ledgers: src.ledgers && typeof src.ledgers === 'object' ? src.ledgers : {},
+    ledgerNames: src.ledgerNames && typeof src.ledgerNames === 'object' ? src.ledgerNames : { main: '主账本' },
+    activeLedger: src.activeLedger || 'main',
     meta: { lastSync: String(meta.lastSync || '') },
   };
 
