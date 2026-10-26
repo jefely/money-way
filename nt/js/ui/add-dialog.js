@@ -2,13 +2,13 @@
  * 添加账本 / 流水 弹窗（SPA 内，不跳转、不重输密码）
  * 层：第五层 · UI
  *
- * 复用一个文本框：粘贴或载入 .txt，实时解析预览，确认后追加到当前账本。
+ * 布局按单文件版：两个分组框 —— 「添加账本」「添加流水」。
  */
 
 import * as NtModal from './modal.js';
 import { parseLedgerText } from '../core/import-parser.js';
 import { appendLedgerFromText } from '../core/flow-text.js';
-import { listLedgers, createLedger, switchLedger, renameLedger } from '../core/ledgers.js';
+import { listLedgers, createLedger, switchLedger, renameLedger, removeLedger } from '../core/ledgers.js';
 
 const PLACEHOLDER = [
   '账户：',
@@ -28,6 +28,16 @@ export function openAddDialog(ctx) {
   let ta = null;
   let info = null;
 
+  function applyState(next) {
+    ctx.setState(next);
+    if (ctx.save) ctx.save();
+  }
+
+  function reopen() {
+    NtModal.closeAll();
+    openAddDialog(ctx);
+  }
+
   function updateInfo() {
     if (!info) return;
     const parsed = parseLedgerText(text);
@@ -40,8 +50,7 @@ export function openAddDialog(ctx) {
     const t = String(text || '').trim();
     if (!t) return;
     const r = appendLedgerFromText(ctx.getState(), t);
-    ctx.setState(r.state);
-    if (ctx.save) ctx.save();
+    applyState(r.state);
     NtModal.closeAll();
     if (ctx.setFooter) {
       const extra = r.created.length ? `，新建 ${r.created.length} 个账户` : '';
@@ -49,76 +58,160 @@ export function openAddDialog(ctx) {
     }
   }
 
-  function applyState(next) {
-    ctx.setState(next);
-    if (ctx.save) ctx.save();
-  }
-
-  function reopen() {
-    NtModal.closeAll();
-    openAddDialog(ctx);
-  }
-
   function buildLedgers() {
     const box = document.createElement('div');
-    box.className = 'nt-add-ledgers';
+    box.className = 'nt-add-group';
 
-    const title = document.createElement('div');
-    title.className = 'nt-add-ledgers-title';
-    title.textContent = '添加账本';
-    box.appendChild(title);
+    const head = document.createElement('div');
+    head.className = 'nt-add-group-title';
+    head.textContent = '添加账本';
+    box.appendChild(head);
 
     const st = ctx.getState();
     for (const l of listLedgers(st)) {
       const row = document.createElement('div');
-      row.className = 'nt-add-ledger' + (l.active ? ' nt-add-ledger-active' : '');
+      row.className = 'nt-add-ledger';
 
-      const sw = document.createElement('button');
-      sw.type = 'button';
-      sw.className = 'nt-add-ledger-name';
-      sw.textContent = l.name;
-      sw.addEventListener('click', () => {
-        if (l.active) return;
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'nt-add-ledger-check';
+      cb.checked = l.active;
+      cb.addEventListener('change', () => {
+        if (l.active) { cb.checked = true; return; }
         applyState(switchLedger(ctx.getState(), l.id));
         reopen();
       });
 
+      const name = document.createElement('input');
+      name.className = 'nt-add-ledger-name';
+      name.value = l.name;
+      name.readOnly = true;
+
       const rn = document.createElement('button');
       rn.type = 'button';
-      rn.className = 'nt-btn nt-btn-sm nt-add-ledger-rn';
+      rn.className = 'nt-btn nt-btn-sm';
       rn.textContent = '改名';
       rn.addEventListener('click', () => {
-        const name = window.prompt('账本名称', l.name);
-        if (!name || !name.trim()) return;
-        applyState(renameLedger(ctx.getState(), l.id, name));
+        const v = window.prompt('账本名称', l.name);
+        if (!v || !v.trim()) return;
+        applyState(renameLedger(ctx.getState(), l.id, v));
         reopen();
       });
 
-      row.appendChild(sw);
+      row.appendChild(cb);
+      row.appendChild(name);
       row.appendChild(rn);
+
+      if (!l.active) {
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'nt-btn nt-btn-sm';
+        del.textContent = '×';
+        del.title = '删除账本';
+        del.addEventListener('click', () => {
+          applyState(removeLedger(ctx.getState(), l.id));
+          reopen();
+        });
+        row.appendChild(del);
+      }
+
       box.appendChild(row);
     }
 
-    const input = document.createElement('input');
-    input.className = 'nt-add-ledger-input';
-    input.placeholder = '输入新账本名称…';
+    const nrow = document.createElement('div');
+    nrow.className = 'nt-add-ledger-new';
 
-    const addBtn = document.createElement('button');
-    addBtn.type = 'button';
-    addBtn.className = 'nt-btn nt-btn-sm';
-    addBtn.textContent = '添加';
-    addBtn.addEventListener('click', () => {
-      const n = input.value.trim();
+    const nin = document.createElement('input');
+    nin.className = 'nt-add-ledger-input';
+    nin.placeholder = '输入新账本名称…';
+
+    const clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'nt-btn nt-btn-sm';
+    clear.textContent = '×';
+    clear.title = '清空';
+    clear.addEventListener('click', () => { nin.value = ''; });
+
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'nt-btn nt-btn-sm';
+    add.textContent = '添加';
+    add.addEventListener('click', () => {
+      const n = nin.value.trim();
       if (!n) return;
       applyState(createLedger(ctx.getState(), n));
       reopen();
     });
 
-    const row = document.createElement('div');
-    row.className = 'nt-add-ledger-new';
-    row.appendChild(input);
-    row.appendChild(addBtn);
-    box.appendChild(row);
+    nrow.appendChild(nin);
+    nrow.appendChild(clear);
+    nrow.appendChild(add);
+    box.appendChild(nrow);
+
+    return box;
+  }
+
+  function buildFlow() {
+    const box = document.createElement('div');
+    box.className = 'nt-add-group';
+
+    const head = document.createElement('div');
+    head.className = 'nt-add-group-title';
+    head.textContent = '添加流水';
+    box.appendChild(head);
+
+    const bar = document.createElement('div');
+    bar.className = 'nt-add-bar';
+
+    const loadBtn = document.createElement('button');
+    loadBtn.type = 'button';
+    loadBtn.className = 'nt-btn nt-btn-sm';
+    loadBtn.textContent = '载入 .txt';
+
+    const file = document.createElement('input');
+    file.type = 'file';
+    file.accept = '.txt,text/plain';
+    file.hidden = true;
+    loadBtn.addEventListener('click', () => file.click());
+    file.addEventListener('change', async () => {
+      const f = file.files && file.files[0];
+      if (!f) return;
+      text = await f.text();
+      ta.value = text;
+      updateInfo();
+    });
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'nt-btn nt-btn-sm';
+    saveBtn.textContent = '另存 .txt';
+    saveBtn.addEventListener('click', () => {
+      const blob = new Blob([ta.value], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'nt-流水.txt';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    bar.appendChild(loadBtn);
+    bar.appendChild(saveBtn);
+    bar.appendChild(file);
+    box.appendChild(bar);
+
+    ta = document.createElement('textarea');
+    ta.className = 'nt-add-text';
+    ta.placeholder = PLACEHOLDER;
+    ta.addEventListener('input', () => {
+      text = ta.value;
+      updateInfo();
+    });
+    box.appendChild(ta);
+
+    info = document.createElement('div');
+    info.className = 'nt-add-info';
+    info.textContent = '识别到：账户 0 个，流水 0 笔';
+    box.appendChild(info);
 
     return box;
   }
@@ -127,61 +220,7 @@ export function openAddDialog(ctx) {
     title: '添加账本 · 流水记录',
     build: (body) => {
       body.appendChild(buildLedgers());
-
-      ta = document.createElement('textarea');
-      ta.className = 'nt-add-text';
-      ta.placeholder = PLACEHOLDER;
-
-      const bar = document.createElement('div');
-      bar.className = 'nt-add-bar';
-
-      const loadBtn = document.createElement('button');
-      loadBtn.type = 'button';
-      loadBtn.className = 'nt-btn nt-btn-sm';
-      loadBtn.textContent = '载入 .txt';
-
-      const file = document.createElement('input');
-      file.type = 'file';
-      file.accept = '.txt,text/plain';
-      file.hidden = true;
-      loadBtn.addEventListener('click', () => file.click());
-      file.addEventListener('change', async () => {
-        const f = file.files && file.files[0];
-        if (!f) return;
-        text = await f.text();
-        ta.value = text;
-        updateInfo();
-      });
-
-      const saveBtn = document.createElement('button');
-      saveBtn.type = 'button';
-      saveBtn.className = 'nt-btn nt-btn-sm';
-      saveBtn.textContent = '另存 .txt';
-      saveBtn.addEventListener('click', () => {
-        const blob = new Blob([ta.value], { type: 'text/plain;charset=utf-8' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'nt-流水.txt';
-        a.click();
-        URL.revokeObjectURL(a.href);
-      });
-
-      bar.appendChild(loadBtn);
-      bar.appendChild(saveBtn);
-      bar.appendChild(file);
-
-      info = document.createElement('div');
-      info.className = 'nt-add-info';
-      info.textContent = '识别到：账户 0 个，流水 0 笔';
-
-      ta.addEventListener('input', () => {
-        text = ta.value;
-        updateInfo();
-      });
-
-      body.appendChild(ta);
-      body.appendChild(bar);
-      body.appendChild(info);
+      body.appendChild(buildFlow());
     },
     actions: [
       { label: '确认添加', kind: 'primary', onClick: applyAdd },
