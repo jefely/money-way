@@ -174,3 +174,8 @@
 .nt-modal-kv dd.bad {
   color: var(--nt-bad);
 }
+
+/* actions 为空时不要占位（否则弹窗底部多出一截空白） */
+.nt-modal-actions:empty {
+  display: none;
+}
