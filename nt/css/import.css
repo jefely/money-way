@@ -1,0 +1,139 @@
+/* ============================================================
+   NT账本 · 导入 / 账户管理
+   ============================================================ */
+
+/* ---------- 导入 ---------- */
+
+.nt-import-text {
+  width: 100%;
+  min-height: 130px;
+  max-height: 34vh;
+  padding: 8px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  background: var(--nt-bg-cell);
+  color: var(--nt-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  resize: vertical;
+  white-space: pre;
+  overflow: auto;
+}
+
+.nt-import-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.nt-btn-ghost {
+  background: transparent;
+  border-color: var(--nt-bg-line);
+  color: var(--nt-text-muted);
+}
+
+.nt-import-preview {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.9;
+}
+
+.nt-import-line.ok {
+  color: var(--nt-ok);
+  font-weight: 700;
+}
+
+.nt-import-line.bad {
+  color: var(--nt-bad);
+  font-weight: 700;
+}
+
+.nt-import-line.warn {
+  color: var(--nt-warn);
+}
+
+.nt-import-line.dim {
+  color: var(--nt-text-light);
+}
+
+.nt-import-err {
+  margin-top: 8px;
+  color: var(--nt-bad);
+}
+
+.nt-import-errors {
+  margin: 4px 0;
+  padding-left: 18px;
+  color: var(--nt-bad);
+}
+
+.nt-import-sample {
+  margin: 4px 0 0;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: var(--nt-bg-soft);
+  color: var(--nt-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.7;
+  overflow-x: auto;
+}
+
+/* ---------- 账户管理 ---------- */
+
+.nt-acc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.nt-acc-empty {
+  color: var(--nt-text-light);
+  font-size: 13px;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.nt-acc-row {
+  display: grid;
+  grid-template-columns: 64px 1fr 76px 84px 28px;
+  gap: 4px;
+  align-items: center;
+}
+
+.nt-acc-row .nt-input {
+  height: 30px;
+  font-size: 12px;
+  padding: 0 6px;
+}
+
+.nt-acc-code {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--nt-primary);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.nt-acc-type {
+  font-size: 11px;
+}
+
+.nt-acc-cat {
+  font-size: 11px;
+}
+
+.nt-acc-add {
+  width: 100%;
+}
+
+@media (max-width: 520px) {
+  .nt-acc-row {
+    grid-template-columns: 56px 1fr 68px 28px;
+  }
+  .nt-acc-cat {
+    display: none;
+  }
+}

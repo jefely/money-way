@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="./css/flow.css">
   <link rel="stylesheet" href="./css/suggest.css">
   <link rel="stylesheet" href="./css/modal.css">
+  <link rel="stylesheet" href="./css/import.css">
   <link rel="stylesheet" href="./css/gate.css">
   <script type="module" src="./js/app.js"></script>
 </head>
@@ -31,6 +32,13 @@
     </header>
 
     <main class="nt-main">
+      <!-- 工具栏 -->
+      <div class="nt-toolbar">
+        <button class="nt-btn nt-btn-primary" type="button" id="nt-import">导入数据</button>
+        <button class="nt-btn" type="button" id="nt-accounts">账户</button>
+        <span class="nt-toolbar-hint" id="nt-toolbar-hint"></span>
+      </div>
+
       <!-- 校验区 -->
       <section class="nt-panel" aria-labelledby="nt-check-title">
         <h2 class="nt-panel-title" id="nt-check-title">校验</h2>

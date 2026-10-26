@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 入口：装配（门禁 → state → 索引 → 视图 → 事件）。
  *
  * 数据流（ID 模型 + 简码 + 零知识）：
@@ -10,19 +10,24 @@
  */
 
 import {
-  createState, addAccount, addTransaction, updateTransaction,
-  removeTransaction, nextSeq,
+  createState, addAccount, addTransaction, updateTransaction, updateAccount,
+  removeTransaction, removeAccount, nextSeq,
 } from './core/state-store.js';
 import { ACCOUNT_TYPE, normalizeCode } from './core/schema.js';
-import { balancesOf } from './core/balance-calculator.js';
 import { buildAccountIndex } from './core/account-index.js';
 import { parseAccountInput, suggestAccounts as suggestByIndex } from './core/account-resolver.js';
+import { applyImportToState, uniqueCode } from './core/import-apply.js';
 import { buildFlowRows, buildFooterInfo } from './ui/flow-model.js';
 import { loadTemplates, renderRows } from './ui/render-transactions.js';
+import { paintChecks } from './ui/checks-view.js';
 import { bindRowEditing } from './ui/row-editor.js';
 import { showGate, hideGate } from './ui/gate.js';
-import { initTheme, toggleTheme, currentTheme } from './ui/theme-manager.js';
+import { bindHeaderTools } from './ui/header-tools.js';
+import { openAccountsWith } from './ui/account-actions.js';
+import { initTheme } from './ui/theme-manager.js';
 import * as NtModal from './ui/modal.js';
+import { openImportDialog } from './ui/import-dialog.js';
+import { openAccountDialog } from './ui/account-dialog.js';
 import { hasVault, createVault, unlockVault, saveState } from './browser/db.js';
 import { migrate } from './core/migrate.js';
 
@@ -75,30 +80,9 @@ function renderFooterEl(info) {
   if (el) el.textContent = `共 ${info.count} 笔 · 合计 ${info.totalText}`;
 }
 
+/** 校验区交给 ui/checks-view.js 绘制（本文件不再算余额） */
 function renderChecks() {
-  const rows = balancesOf(state.accounts, state.transactions);
-  const sum = {};
-  for (const r of rows) sum[r.acc.type] = (sum[r.acc.type] || 0) + r.balance;
-
-  const diff = Math.round((
-    (sum[ACCOUNT_TYPE.ASSET] || 0) + (sum[ACCOUNT_TYPE.EXPENSE] || 0)
-    - (sum[ACCOUNT_TYPE.LIABILITY] || 0) - (sum[ACCOUNT_TYPE.EQUITY] || 0)
-    - (sum[ACCOUNT_TYPE.INCOME] || 0)
-  ) * 100) / 100;
-
-  const brokenTx = (state.transactions || []).filter((t) => !t.from_id || !t.to_id).length;
-  const codesOk = index.duplicateCodes.length === 0 && index.missingCode.length === 0;
-
-  setText('nt-check-balanced', brokenTx === 0 ? '0 ✓' : `${brokenTx} 笔断链 ✗`);
-  setText('nt-check-identity', Math.abs(diff) < 0.005 ? '0 ✓' : `${diff}  ✗`);
-  setText('nt-check-detail',
-    `${state.transactions.length} 笔 · ${rows.length} 账户`
-    + (codesOk ? '' : ` · 简码有问题：重复 ${index.duplicateCodes.length} / 缺失 ${index.missingCode.length}`));
-}
-
-function setText(id, text) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = text;
+  paintChecks({ state, index });
 }
 
 function showStatus(msg) {
@@ -195,47 +179,27 @@ function enterApp() {
   document.getElementById('nt-app').hidden = false;
 }
 
-/* ---------- 顶栏工具（主题 / 关于） ---------- */
+/* ---------- 导入 ---------- */
 
-function bindHeaderTools() {
-  const themeBtn = document.getElementById('nt-theme-toggle');
-  if (themeBtn) {
-    themeBtn.addEventListener('click', () => {
-      const next = toggleTheme();
-      themeBtn.setAttribute('aria-label', next === 'dark' ? '切换到浅色' : '切换到深色');
-    });
+/** 落库：纯函数算新 state，这里只负责保存与提示 */
+async function applyImport(parsed) {
+  const r = applyImportToState(state, parsed);
+  setState(r.state);
+  render();
+  try {
+    await flushSave();
+  } catch (e) {
+    return { ok: false, message: '保存失败：' + e.message };
   }
+  setHint(`已导入 ${r.added} 笔`
+    + (r.created ? `，新建 ${r.created} 个账户` : '')
+    + (r.skipped ? `，跳过 ${r.skipped} 行` : ''));
+  return { ok: true };
+}
 
-  const aboutBtn = document.getElementById('nt-about');
-  if (aboutBtn) {
-    aboutBtn.addEventListener('click', () => {
-      NtModal.open({
-        title: '关于 NT账本',
-        build: (body) => {
-          const dl = document.createElement('dl');
-          dl.className = 'nt-modal-kv';
-          const rows = [
-            ['版本', 'nt-v0.02'],
-            ['主题', currentTheme() === 'dark' ? '深色' : '浅色'],
-            ['账户', String(index.size)],
-            ['流水', String(state.transactions.length) + ' 笔'],
-            ['加密', 'PBKDF2 150k → AES-GCM 256'],
-            ['存储', 'IndexedDB（仅密文）'],
-          ];
-          for (const [k, v] of rows) {
-            const dt = document.createElement('dt');
-            dt.textContent = k;
-            const dd = document.createElement('dd');
-            dd.textContent = v;
-            dl.appendChild(dt);
-            dl.appendChild(dd);
-          }
-          body.appendChild(dl);
-        },
-        actions: [{ label: '知道了', kind: 'ghost', close: true }],
-      });
-    });
-  }
+function setHint(text) {
+  const el = document.getElementById('nt-toolbar-hint');
+  if (el) el.textContent = text || '';
 }
 
 function adoptState(raw) {
@@ -247,7 +211,36 @@ async function boot() {
   initTheme();
   await loadTemplates();
 
-  bindHeaderTools();
+  bindHeaderTools({
+    getSummary: () => [
+      ['版本', 'nt-v0.02'],
+      ['账户', String(index.size)],
+      ['流水', String(state.transactions.length) + ' 笔'],
+      ['加密', 'PBKDF2 150k → AES-GCM 256'],
+      ['存储', 'IndexedDB（仅密文）'],
+    ],
+  });
+
+  // 工具栏
+  const impBtn = document.getElementById('nt-import');
+  if (impBtn) {
+    impBtn.addEventListener('click', () => {
+      openImportDialog({
+        knownAccounts: (state.accounts || []).map((a) => a.name),
+        onImport: applyImport,
+      });
+    });
+  }
+  const accBtn = document.getElementById('nt-accounts');
+  if (accBtn) {
+    accBtn.addEventListener('click', () => openAccountsWith({
+      getState: () => state,
+      setState,
+      render,
+      save: flushSave,
+      reopen: () => accBtn.click(),
+    }));
+  }
 
   bindRowEditing(document.getElementById('nt-flow-body'), {
     onEdit: onRowEdit,
