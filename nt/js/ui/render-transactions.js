@@ -1,13 +1,12 @@
 /**
- * ☐12 流水渲染器
+ * ☐12 流水渲染器（虚拟滚动）
  * 层：第五层 · UI 渲染
  *
  * 消费 timeline/time-state.js 的切分结果，套 templates/templates.html 的模板生成 DOM。
+ * 950 行全量渲染会让窗口 resize 卡顿，这里只渲染可视区几十行 + 上下占位行。
  *
  * 铁律：**本文件不许算钱。**
  *   金额只能来自 format.money()，不允许出现 `a + b`、`a - b` 这类运算。
- *
- * 验收：代码里没有 `+`/`-`/`*`/`/` 参与金额运算。
  */
 
 import { money, shortDate } from '../core/format.js';
@@ -39,6 +38,16 @@ export async function loadTemplates(url = './templates/templates.html') {
   return found.length;
 }
 
+function setText(tr, cls, text) {
+  const cell = tr.querySelector('.' + cls);
+  if (cell) cell.textContent = text;
+}
+
+function setInput(tr, field, value) {
+  const input = tr.querySelector('[data-field="' + field + '"]');
+  if (input) input.value = value == null ? '' : String(value);
+}
+
 /** 模板 → 根元素（content 是 DocumentFragment，必须取 firstElementChild）。 */
 export function tpl(id) {
   const el = document.getElementById(id);
@@ -46,25 +55,67 @@ export function tpl(id) {
   return el.content.firstElementChild;
 }
 
-/**
- * 渲染流水表体（行内可编辑）。
- * @param {HTMLElement} tbody
- * @param {Array<{id:any,seq:number,date:string,from:string,to:string,amount:any,note:string}>} rows
- */
-export function renderRows(tbody, rows) {
-  tbody.textContent = '';
+/* ---------- 虚拟滚动状态 ---------- */
+
+let currentRows = [];
+let currentTbody = null;
+let raf = 0;
+
+function getRowH() {
+  const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nt-row-h'));
+  return Number.isFinite(v) && v > 0 ? v : 32;
+}
+
+function spacerRow(h) {
+  const tr = document.createElement('tr');
+  tr.className = 'nt-row-spacer';
+  tr.style.height = h + 'px';
+  const td = document.createElement('td');
+  td.colSpan = 7;
+  tr.appendChild(td);
+  return tr;
+}
+
+function bindScroll(tbody) {
+  const wrap = tbody.closest('.nt-tablewrap');
+  if (!wrap || wrap.dataset.virtual === '1') return;
+  wrap.dataset.virtual = '1';
+  wrap.addEventListener('scroll', () => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      renderWindow();
+    });
+  }, { passive: true });
+}
+
+/** 只渲染可视区窗口（上下用占位行撑起总高度） */
+function renderWindow() {
+  const tbody = currentTbody;
+  if (!tbody) return;
   const rowTpl = tpl('tpl-flow-row');
   const newTpl = tpl('tpl-flow-new');
   const emptyTpl = tpl('tpl-empty');
-
   if (!rowTpl) return;
+
+  const rows = currentRows;
+  const wrap = tbody.closest('.nt-tablewrap');
+  const rowH = getRowH();
+  const scrollTop = wrap ? wrap.scrollTop : 0;
+  const viewH = wrap ? wrap.clientHeight : 800;
+
+  const start = Math.max(0, Math.floor(scrollTop / rowH) - 2);
+  const end = Math.min(rows.length, Math.ceil((scrollTop + viewH) / rowH) + 2);
 
   const frag = document.createDocumentFragment();
 
-  if (!rows || !rows.length) {
+  if (!rows.length) {
     if (emptyTpl) frag.appendChild(emptyTpl.cloneNode(true));
   } else {
-    for (const r of rows) {
+    if (start > 0) frag.appendChild(spacerRow(start * rowH));
+
+    for (let i = start; i < end; i += 1) {
+      const r = rows[i];
       const tr = rowTpl.cloneNode(true);
       tr.dataset.id = r.id;
       setText(tr, CLASS.seq, r.isOpening ? '' : String(r.seq));
@@ -75,12 +126,26 @@ export function renderRows(tbody, rows) {
       setInput(tr, 'note', r.note);
       frag.appendChild(tr);
     }
+
+    if (end < rows.length) frag.appendChild(spacerRow((rows.length - end) * rowH));
   }
 
   // 末尾永远留一行「新增」
   if (newTpl) frag.appendChild(newTpl.cloneNode(true));
 
-  tbody.appendChild(frag);
+  tbody.replaceChildren(frag);
+}
+
+/**
+ * 渲染流水表体（行内可编辑，虚拟滚动）
+ * @param {HTMLElement} tbody
+ * @param {Array<{id:any,seq:number,date:string,from:string,to:string,amount:any,note:string}>} rows
+ */
+export function renderRows(tbody, rows) {
+  currentRows = rows || [];
+  currentTbody = tbody;
+  bindScroll(tbody);
+  renderWindow();
 }
 
 /** 按分段渲染（过去 / 当前 / 未来）。 */
@@ -95,14 +160,4 @@ export function renderSegments(tbody, segments) {
   }
   renderRows(tbody, rows);
   return rows.length;
-}
-
-function setText(root, cls, text) {
-  const el = root.querySelector('.' + cls);
-  if (el) el.textContent = text;
-}
-
-function setInput(root, field, value) {
-  const el = root.querySelector(`input[data-field="${field}"]`);
-  if (el) el.value = value == null ? '' : String(value);
 }
