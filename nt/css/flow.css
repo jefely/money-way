@@ -501,3 +501,45 @@
     padding: 0 5px;
   }
 }
+
+/* 添加弹窗：标题与按钮同排、删除按钮统一在「改名/添加」左侧、输入框加高 */
+.nt-add-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.nt-add-head .nt-add-group-title {
+  margin-bottom: 0;
+}
+
+.nt-add-bar {
+  display: flex;
+  gap: 6px;
+  margin-top: 0;
+}
+
+.nt-add-ledger-name,
+.nt-add-ledger-input {
+  height: 32px;
+  padding: 0 8px;
+}
+
+.nt-add-ledger-check {
+  flex: none;
+}
+
+.nt-add-del {
+  flex: none;
+}
+
+.nt-add-del-off {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.nt-add-spacer {
+  flex: none;
+  width: 14px;
+}

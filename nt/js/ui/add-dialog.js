@@ -3,6 +3,8 @@
  * 层：第五层 · UI
  *
  * 布局按单文件版：两个分组框 —— 「添加账本」「添加流水」。
+ * 账本行：[勾选][名字][×删除/占位][改名]
+ * 新增行：[占位][输入][×清空][添加]
  */
 
 import * as NtModal from './modal.js';
@@ -63,8 +65,11 @@ export function openAddDialog(ctx) {
     box.className = 'nt-add-group';
 
     const head = document.createElement('div');
-    head.className = 'nt-add-group-title';
-    head.textContent = '添加账本';
+    head.className = 'nt-add-head';
+    const title = document.createElement('div');
+    title.className = 'nt-add-group-title';
+    title.textContent = '添加账本';
+    head.appendChild(title);
     box.appendChild(head);
 
     const st = ctx.getState();
@@ -87,6 +92,21 @@ export function openAddDialog(ctx) {
       name.value = l.name;
       name.readOnly = true;
 
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'nt-btn nt-btn-sm nt-add-del';
+      del.textContent = '×';
+      del.title = '删除账本';
+      if (l.active) {
+        del.classList.add('nt-add-del-off');
+        del.disabled = true;
+      } else {
+        del.addEventListener('click', () => {
+          applyState(removeLedger(ctx.getState(), l.id));
+          reopen();
+        });
+      }
+
       const rn = document.createElement('button');
       rn.type = 'button';
       rn.className = 'nt-btn nt-btn-sm';
@@ -100,26 +120,16 @@ export function openAddDialog(ctx) {
 
       row.appendChild(cb);
       row.appendChild(name);
+      row.appendChild(del);
       row.appendChild(rn);
-
-      if (!l.active) {
-        const del = document.createElement('button');
-        del.type = 'button';
-        del.className = 'nt-btn nt-btn-sm';
-        del.textContent = '×';
-        del.title = '删除账本';
-        del.addEventListener('click', () => {
-          applyState(removeLedger(ctx.getState(), l.id));
-          reopen();
-        });
-        row.appendChild(del);
-      }
-
       box.appendChild(row);
     }
 
     const nrow = document.createElement('div');
     nrow.className = 'nt-add-ledger-new';
+
+    const spacer = document.createElement('span');
+    spacer.className = 'nt-add-spacer';
 
     const nin = document.createElement('input');
     nin.className = 'nt-add-ledger-input';
@@ -127,7 +137,7 @@ export function openAddDialog(ctx) {
 
     const clear = document.createElement('button');
     clear.type = 'button';
-    clear.className = 'nt-btn nt-btn-sm';
+    clear.className = 'nt-btn nt-btn-sm nt-add-del';
     clear.textContent = '×';
     clear.title = '清空';
     clear.addEventListener('click', () => { nin.value = ''; });
@@ -143,6 +153,7 @@ export function openAddDialog(ctx) {
       reopen();
     });
 
+    nrow.appendChild(spacer);
     nrow.appendChild(nin);
     nrow.appendChild(clear);
     nrow.appendChild(add);
@@ -156,9 +167,12 @@ export function openAddDialog(ctx) {
     box.className = 'nt-add-group';
 
     const head = document.createElement('div');
-    head.className = 'nt-add-group-title';
-    head.textContent = '添加流水';
-    box.appendChild(head);
+    head.className = 'nt-add-head';
+
+    const title = document.createElement('div');
+    title.className = 'nt-add-group-title';
+    title.textContent = '添加流水';
+    head.appendChild(title);
 
     const bar = document.createElement('div');
     bar.className = 'nt-add-bar';
@@ -197,7 +211,8 @@ export function openAddDialog(ctx) {
     bar.appendChild(loadBtn);
     bar.appendChild(saveBtn);
     bar.appendChild(file);
-    box.appendChild(bar);
+    head.appendChild(bar);
+    box.appendChild(head);
 
     ta = document.createElement('textarea');
     ta.className = 'nt-add-text';
