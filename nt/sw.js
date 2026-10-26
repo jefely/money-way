@@ -4,7 +4,7 @@
  * 只预缓存「壳 + 入口 + 主题」，其余模块由 fetch 事件按需缓存。
  * 这样新增模块不用同步改这里，也不会因为漏列一个文件而让整个 install 失败。
  */
-const CACHE_NAME = 'nt-v0.03.88';
+const CACHE_NAME = 'nt-v0.03.89';
 
 const ASSETS = [
   './index.html',

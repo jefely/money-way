@@ -568,3 +568,7 @@
 .nt-add-ledger-new {
   padding-left: 26px;
 }
+/* 最后一个分组框不要底边距，弹窗底部距离 = 右侧距离 */
+.nt-add-group:last-child {
+  margin-bottom: 0;
+}
