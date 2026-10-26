@@ -1,0 +1,99 @@
+/* ============================================================
+   NT账本 · 门禁（锁屏 / 设置密码）
+   ============================================================ */
+
+.nt-gate-host {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(900px 480px at 50% 0%, rgba(139, 108, 255, 0.22), transparent 62%),
+    linear-gradient(160deg, #221a3d 0%, #16112a 55%, #0d0a18 100%);
+}
+
+.nt-gate-host[hidden] {
+  display: none;
+}
+
+.nt-gate {
+  width: 100%;
+  max-width: 320px;
+  padding: 24px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f4f1ff;
+}
+
+.nt-gate-title {
+  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.nt-gate-hint {
+  margin: 0 0 14px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: rgba(244, 241, 255, 0.6);
+  text-align: center;
+}
+
+.nt-gate-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.nt-gate-input {
+  height: 44px;
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f4f1ff;
+  letter-spacing: 0.1em;
+}
+
+.nt-gate-input::placeholder {
+  color: rgba(244, 241, 255, 0.34);
+  letter-spacing: 0;
+}
+
+.nt-gate-btn {
+  height: 44px;
+  font-size: 15px;
+}
+
+.nt-gate-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* 「忘记即丢」强制确认 */
+.nt-gate-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(244, 241, 255, 0.72);
+  cursor: pointer;
+}
+
+.nt-gate-confirm input {
+  margin: 3px 0 0;
+  flex: 0 0 auto;
+}
+
+.nt-gate-msg {
+  min-height: 18px;
+  margin: 12px 0 0;
+  font-size: 12px;
+  text-align: center;
+  color: #fca5a5;
+}

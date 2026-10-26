@@ -1,4 +1,4 @@
-# NT账本 · 多文件版（nt-v0.01）
+﻿# NT账本 · 多文件版（nt-v0.01）
 
 > 与单文件版 `personal/index.html` **并列存在、互不干扰**。
 > 新功能一律写在这里；旧版只修致命 bug（公约 1.4）。
@@ -97,7 +97,7 @@ nt/
 python -m http.server 8080 --directory money-way
 
 # 纯函数测试
-node --test nt/tests/
+node --test nt/tests/*.test.mjs
 
 # 公约检查（提交前必跑）
 node nt/tools/check-rules.mjs

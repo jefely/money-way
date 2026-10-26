@@ -60,15 +60,38 @@
   </form>
 </template>
 
-<!-- 密码锁屏 -->
+<!-- 密码锁屏（已有保险库：只解锁） -->
 <template id="tpl-lock">
-  <section class="nt-lock" aria-labelledby="nt-lock-title">
-    <h2 class="nt-lock-title" id="nt-lock-title">解锁账本</h2>
-    <form class="nt-lock-form" id="nt-lock-form">
+  <section class="nt-gate nt-gate-lock" aria-labelledby="nt-gate-title">
+    <h2 class="nt-gate-title" id="nt-gate-title">解锁账本</h2>
+    <form class="nt-gate-form" id="nt-lock-form">
       <label class="nt-visually-hidden" for="nt-lock-pw">密码</label>
-      <input class="nt-input nt-lock-input" id="nt-lock-pw" type="password" autocomplete="current-password" placeholder="密码">
-      <button class="nt-btn nt-btn-primary" type="submit">进入</button>
+      <input class="nt-input nt-gate-input" id="nt-lock-pw" type="password"
+             autocomplete="current-password" placeholder="密码" required>
+      <button class="nt-btn nt-btn-primary nt-gate-btn" type="submit">解锁</button>
     </form>
-    <p class="nt-lock-hint" id="nt-lock-hint" role="status"></p>
+    <p class="nt-gate-msg" id="nt-lock-msg" role="status"></p>
+  </section>
+</template>
+
+<!-- 首次设置密码（含"忘记即丢"强制确认） -->
+<template id="tpl-lock-setup">
+  <section class="nt-gate nt-gate-setup" aria-labelledby="nt-setup-title">
+    <h2 class="nt-gate-title" id="nt-setup-title">设置密码</h2>
+    <p class="nt-gate-hint">密码用来加密本机账本。数据只存在这台设备上，不上传任何服务器。</p>
+    <form class="nt-gate-form" id="nt-setup-form">
+      <label class="nt-visually-hidden" for="nt-setup-pw">密码</label>
+      <input class="nt-input nt-gate-input" id="nt-setup-pw" type="password"
+             autocomplete="new-password" placeholder="密码" required>
+      <label class="nt-visually-hidden" for="nt-setup-pw2">再输一次</label>
+      <input class="nt-input nt-gate-input" id="nt-setup-pw2" type="password"
+             autocomplete="new-password" placeholder="再输一次" required>
+      <label class="nt-gate-confirm">
+        <input type="checkbox" id="nt-setup-ack">
+        <span>我知道：忘记密码将永久丢失全部数据，没有任何找回途径</span>
+      </label>
+      <button class="nt-btn nt-btn-primary nt-gate-btn" type="submit" id="nt-setup-go" disabled>设置并进入</button>
+    </form>
+    <p class="nt-gate-msg" id="nt-setup-msg" role="status"></p>
   </section>
 </template>

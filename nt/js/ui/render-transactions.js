@@ -68,10 +68,12 @@ export function renderRows(tbody, rows) {
     const tr = rowTpl.cloneNode(true);
     tr.dataset.id = r.id;
     setText(tr, CLASS.seq, String(r.seq));
-    setText(tr, CLASS.date, shortDate(r.date));
+    // 优先用 model 已经算好的展示字段（dateText / amountText）；
+    // 退回原始值时才现场格式化 —— 这样视图层永远不会把 undefined 当成 0 显示成「—」。
+    setText(tr, CLASS.date, r.dateText != null ? r.dateText : shortDate(r.date));
     setText(tr, CLASS.from, r.from || '—');
     setText(tr, CLASS.to, r.to || '—');
-    setText(tr, CLASS.amount, money(r.amount));
+    setText(tr, CLASS.amount, r.amountText != null ? r.amountText : money(r.amount));
     setText(tr, CLASS.note, r.note || '');
     frag.appendChild(tr);
   }

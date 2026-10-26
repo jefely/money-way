@@ -73,6 +73,50 @@
 
 ---
 
+## 🔐 第一层·补：零知识加密（**必须在第三层图表之前完成**）
+
+> 用户定的红线：**开源软件的数据必须做到「拿到文件也解不开」**。
+> 所以密码与加密只允许出现在这三个模块里，**绝不散落到 UI 或图表层**。
+> 详细验证见 [`nt/tests/crypto.test.mjs`](nt/tests/crypto.test.mjs)（10 条，真实 WebCrypto）。
+
+### ☐14 加密引擎 `js/core/crypto-engine.js` ✅
+
+- **任务**：PBKDF2(SHA-256, 150000) → AES-GCM-256 的派生 / 加密 / 解密 / 随机盐 IV。
+- **约束**：纯算法、**无状态**、不碰 IndexedDB、不碰 DOM → 能在 Node 下直接测。
+- **验收**：加解密往返一致；密码错必抛错（GCM 认证失败）；**同一数据两次加密的 IV 与密文都不同**。
+
+### ☐15 密钥管理器 `js/core/auth-manager.js` ✅
+
+- **任务**：整个软件**唯一**持有密钥的地方（模块闭包 `let _activeKey`）。
+- **绝对红线**：不写 localStorage / IndexedDB、不挂 `window`、不导出可写引用。
+- **解锁判定**：用「真的把密文解开」来判，**不用哈希比对**（哈希等于把密码摘要送人）。
+- **验收**：解锁失败后 `isUnlocked() === false`；`lock()` 后 `getKey()` 抛错。
+
+### ☐16 保险库适配器 `js/browser/storage-adapter.js` ✅
+
+- **任务**：把 state 加密后写 IndexedDB；读出来解密后交给 state。
+- **为什么在 `browser/` 而不是 `core/`**：它用 IndexedDB，`core/` 必须能脱离浏览器跑（公约 3.3），门禁会拦。
+- **盘上只有**：`{ version, salt, iv, ciphertext, updatedAt }` —— 没有密码、没有哈希、没有密钥。
+- **验收**：写入后直接扫 IndexedDB 的原始记录，**搜不到任何账户名或密码明文**。
+
+| 架构 | 内容 |
+|---|---|
+| 存储 | IndexedDB（`nt_vault` / store `vault` / key `state`） |
+| 算法 | PBKDF2-SHA256 ×150000 → AES-GCM 256 |
+| 盐 | 每库 16 字节，**不变**（同一密码要能派生出同一把钥匙） |
+| IV | 每次加密 12 字节，**必变**（AES-GCM 硬要求） |
+| 密钥 | 只在内存闭包，刷新即消失 |
+
+**三个天坑的处置**：
+
+| 坑 | 处置 |
+|---|---|
+| `window.state = state` 泄漏明文 | 公约新增禁令，代码里零处；`core/state.js` 只返回新对象 |
+| 旧版明文数据迁移 | `hasVault()` 为 false 时进「设置密码」态，首次加密时把迁移后的 state 一起写进保险库 |
+| 忘记密码 = 永久丢失 | 设置密码表单有**强制勾选**，不勾则提交按钮禁用 |
+
+---
+
 ## ⏳ 第二层：时间轴引擎（Time-Travel）— 解决"过去/现在/未来"
 
 > 目标：过滤和重组数据，为 UI 和图表提供**多维度视角**。
@@ -161,6 +205,9 @@
 | 1 | 余额计算器 | `core/balance-calculator.js` | ✅ | ☐ | ☐ |
 | 1 | 分期推算器 | `core/installment-engine.js` | ✅ | ☐ | ☐ |
 | 1 | 校验规则池 | `core/validator.js` | ✅ | ☐ | ☐ |
+| 1 | **加密引擎** | `core/crypto-engine.js` | ✅ | ✅ | ✅ 10 条测试 |
+| 1 | **密钥管理器** | `core/auth-manager.js` | ✅ | ✅ | ✅ |
+| 1 | **保险库适配器** | `browser/storage-adapter.js` | ✅ | ✅ | ✅ 端到端 |
 | 2 | 时间状态机 | `timeline/time-state.js` | ✅ | ☐ | ☐ |
 | 3 | 图数据切片器 | `graph/mw-data-fetcher.js` | ✅ | ☐ | ☐ |
 | 3 | 槽位角度计算器 | `graph/mw-slot-calculator.js` | ✅ | ☐ | ☐ |
