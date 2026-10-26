@@ -90,7 +90,6 @@ export function openAddDialog(ctx) {
       const name = document.createElement('input');
       name.className = 'nt-add-ledger-name';
       name.value = l.name;
-      name.readOnly = true;
 
       const del = document.createElement('button');
       del.type = 'button';
@@ -112,8 +111,8 @@ export function openAddDialog(ctx) {
       rn.className = 'nt-btn nt-btn-sm';
       rn.textContent = '改名';
       rn.addEventListener('click', () => {
-        const v = window.prompt('账本名称', l.name);
-        if (!v || !v.trim()) return;
+        const v = name.value.trim();
+        if (!v) return;
         applyState(renameLedger(ctx.getState(), l.id, v));
         reopen();
       });
@@ -208,8 +207,15 @@ export function openAddDialog(ctx) {
       URL.revokeObjectURL(a.href);
     });
 
+    const confirm = document.createElement('button');
+    confirm.type = 'button';
+    confirm.className = 'nt-btn nt-btn-sm nt-btn-primary';
+    confirm.textContent = '确认添加';
+    confirm.addEventListener('click', applyAdd);
+
     bar.appendChild(loadBtn);
     bar.appendChild(saveBtn);
+    bar.appendChild(confirm);
     bar.appendChild(file);
     head.appendChild(bar);
     box.appendChild(head);
@@ -237,8 +243,6 @@ export function openAddDialog(ctx) {
       body.appendChild(buildLedgers());
       body.appendChild(buildFlow());
     },
-    actions: [
-      { label: '确认添加', kind: 'primary', onClick: applyAdd },
-    ],
+    actions: [],
   });
 }

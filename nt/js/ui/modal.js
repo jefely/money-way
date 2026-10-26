@@ -60,9 +60,7 @@ export function open(opts) {
   const actionsEl = dlg.querySelector('.nt-modal-actions');
   if (actionsEl) {
     actionsEl.textContent = '';
-    const list = Array.isArray(o.actions) && o.actions.length
-      ? o.actions
-      : [{ label: '关闭', kind: 'ghost', close: true }];
+    const list = Array.isArray(o.actions) ? o.actions : [{ label: '关闭', kind: 'ghost', close: true }];
 
     for (const a of list) {
       const btn = document.createElement('button');
