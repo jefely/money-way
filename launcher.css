@@ -135,9 +135,15 @@ body {
   color: #6ee7b7;
 }
 
-.la-badge-wip {
-  background: rgba(253, 186, 116, 0.18);
-  color: #fdba74;
+.la-badge-mild {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(244, 241, 255, 0.7);
+}
+
+.la-badge-single,
+.la-badge-multi {
+  background: rgba(139, 108, 255, 0.22);
+  color: #c4b5fd;
 }
 
 .la-card-ver {

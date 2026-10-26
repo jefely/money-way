@@ -11,43 +11,16 @@
 <body>
   <header class="la-header">
     <h1 class="la-title">NT账本</h1>
-    <p class="la-sub">两个版本并存，数据互不影响</p>
+    <p class="la-sub">同一本账的多个阶段，点一个进去</p>
   </header>
 
   <main class="la-main">
-    <ul class="la-list">
-      <!-- 单文件版 -->
-      <li class="la-item">
-        <a class="la-card" href="./personal/index.html">
-          <span class="la-card-head">
-            <span class="la-card-name">单文件版</span>
-            <span class="la-badge la-badge-stable">稳定</span>
-          </span>
-          <span class="la-card-ver" id="ver-personal">读取中…</span>
-          <span class="la-card-desc">全部功能都在一个 HTML 里，密码加密、同步、导入导出齐备。日常用这个。</span>
-          <span class="la-card-go">进入 →</span>
-        </a>
-      </li>
-
-      <!-- 多文件版 -->
-      <li class="la-item">
-        <a class="la-card la-card-alt" href="./nt/index.html">
-          <span class="la-card-head">
-            <span class="la-card-name">多文件版</span>
-            <span class="la-badge la-badge-wip">重构中</span>
-          </span>
-          <span class="la-card-ver" id="ver-nt">读取中…</span>
-          <span class="la-card-desc">按五层架构重写：算钱 / 切时间 / 算图 / 适配设备 / 画界面各自独立。功能尚不完整。</span>
-          <span class="la-card-go">进入 →</span>
-        </a>
-      </li>
-    </ul>
-
-    <p class="la-note" id="la-note" role="status"></p>
+    <ul class="la-list" id="la-list"></ul>
+    <p class="la-note" id="la-note" role="status">正在读取版本清单…</p>
   </main>
 
   <footer class="la-footer">
-    <span>密码与数据都在各自版本内部，两者互不共享</span>
+    <span>各版本的数据与密码都在自己内部，互不共享</span>
   </footer>
 </body>
 </html>
