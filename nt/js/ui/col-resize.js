@@ -34,7 +34,9 @@ export function mountColResize(tableEl, opts) {
 
     th.addEventListener('pointerdown', (e) => {
       const r = th.getBoundingClientRect();
-      if (e.clientX < r.right - EDGE) return; // 只在右边缘触发
+      // 手柄位置偏移（px，负值左移）同时作用于视觉与感应区
+      const offset = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nt-handle-offset')) || 0;
+      if (e.clientX < r.right + offset - EDGE) return; // 只在右边缘附近触发
       e.preventDefault();
       e.stopPropagation();
 

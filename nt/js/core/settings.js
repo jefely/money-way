@@ -78,7 +78,7 @@ export const SCHEMA = [
   { key: '纵向边框', group: '表格', type: 'enum', options: ['无', '虚线', '实线'], values: ['none', 'dashed', 'solid'], def: '无', attr: 'data-border-v' },
   { key: '纵向边框线粗', group: '表格', def: 1, unit: 'px', cssVar: '--nt-border-v-width' },
   { key: '纵向边框颜色', group: '表格', def: '#2a2438', cssVar: '--nt-border-v-color' },
-  { key: '手柄位置', group: '表格', def: 0, unit: 'px', cssVar: '--nt-handle-offset' },
+  { key: '手柄位置', group: '表格', def: -3, unit: 'px', cssVar: '--nt-handle-offset' },
   { key: '手柄颜色', group: '表格', def: '#5f5878', cssVar: '--nt-handle-color' },
 
   /* ---------- 信息栏（公共） ---------- */
