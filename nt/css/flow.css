@@ -56,8 +56,8 @@
   padding: 0 14px;
   border: 1px solid var(--nt-btn-border-color, var(--nt-bg-line));
   border-radius: var(--nt-radius);
-  background: var(--nt-btn-bg-color, var(--nt-bg));
-  color: var(--nt-text);
+  background: var(--nt-btn-bg, var(--nt-bg));
+  color: var(--nt-btn-text, var(--nt-text));
   font-weight: 600;
   white-space: nowrap;
   text-decoration: none;
@@ -155,7 +155,7 @@
   font-weight: 700;
   color: var(--nt-unit-text, var(--nt-text));
   background: var(--nt-unit-bg, var(--nt-bg-soft));
-  border-bottom: 1px solid var(--nt-th-border, var(--nt-bg-line));
+  border-bottom: 0;
 }
 
 [data-th-border="none"] .nt-th,
@@ -174,22 +174,76 @@
   padding: 0 8px;
   font-size: var(--nt-cell-font);
   color: var(--nt-unit-text, var(--nt-text));
-  border-bottom: 1px solid var(--nt-bg-line);
+  border-bottom: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* 公共边框开关：横向 / 纵向 */
-[data-border-h="0"] .nt-th,
-[data-border-h="0"] .nt-cell {
+/* 公共边框：横向 / 纵向（无 / 虚线 / 实线 + 线粗 + 颜色） */
+[data-border-h="solid"] .nt-th,
+[data-border-h="solid"] .nt-cell {
+  border-bottom: var(--nt-border-h-width, 1px) solid var(--nt-border-h-color, var(--nt-bg-line));
+}
+
+[data-border-h="dashed"] .nt-th,
+[data-border-h="dashed"] .nt-cell {
+  border-bottom: var(--nt-border-h-width, 1px) dashed var(--nt-border-h-color, var(--nt-bg-line));
+}
+
+[data-border-h="none"] .nt-th,
+[data-border-h="none"] .nt-cell {
   border-bottom: 0;
 }
 
-[data-border-v="1px"] .nt-th,
-[data-border-v="1px"] .nt-cell {
-  border-right: 1px solid var(--nt-bg-line);
+[data-border-v="solid"] .nt-th,
+[data-border-v="solid"] .nt-cell {
+  border-right: var(--nt-border-v-width, 1px) solid var(--nt-border-v-color, var(--nt-bg-line));
 }
+
+[data-border-v="dashed"] .nt-th,
+[data-border-v="dashed"] .nt-cell {
+  border-right: var(--nt-border-v-width, 1px) dashed var(--nt-border-v-color, var(--nt-bg-line));
+}
+
+[data-border-v="none"] .nt-th,
+[data-border-v="none"] .nt-cell {
+  border-right: 0;
+}
+
+/* 列对齐（--nt-align-*，按列生效） */
+.nt-table .nt-th:nth-child(1),
+.nt-table .nt-cell:nth-child(1) { text-align: var(--nt-align-seq, left); }
+
+.nt-table .nt-th:nth-child(2),
+.nt-table .nt-cell:nth-child(2) { text-align: var(--nt-align-date, left); }
+
+.nt-table .nt-th:nth-child(3),
+.nt-table .nt-cell:nth-child(3) { text-align: var(--nt-align-type, left); }
+
+.nt-table .nt-th:nth-child(4),
+.nt-table .nt-cell:nth-child(4) { text-align: var(--nt-align-cat, left); }
+
+.nt-table .nt-th:nth-child(5),
+.nt-table .nt-cell:nth-child(5) { text-align: var(--nt-align-code, left); }
+
+.nt-table .nt-th:nth-child(6),
+.nt-table .nt-cell:nth-child(6) { text-align: var(--nt-align-num, right); }
+
+.nt-table .nt-th:nth-child(7),
+.nt-table .nt-cell:nth-child(7) { text-align: var(--nt-align-amount, right); }
+
+.nt-table .nt-th:nth-child(8),
+.nt-table .nt-cell:nth-child(8) { text-align: var(--nt-align-action, center); }
+
+.nt-table .nt-th:nth-child(9),
+.nt-table .nt-cell:nth-child(9) { text-align: var(--nt-align-state, center); }
+
+.nt-table .nt-th:nth-child(10),
+.nt-table .nt-cell:nth-child(10) { text-align: var(--nt-align-freq, center); }
+
+.nt-table .nt-th:nth-child(11),
+.nt-table .nt-cell:nth-child(11) { text-align: var(--nt-align-day, center); }
 
 /* 数据区边框方案 */
 [data-cell-border="plain"] .nt-cell {
