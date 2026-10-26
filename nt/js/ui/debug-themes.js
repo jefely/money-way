@@ -2,8 +2,10 @@
  * 调试面板的主题切换（1=浅色 2=深色 3=备选1 4=备选2）
  * 层：第五层 · UI
  *
- * 每个主题各存一套参数：state.settings[theme]。
+ * 与软件主题切换共用 theme-manager：同一份 data-theme / nt_theme，天然联动。
  */
+
+import { applyTheme as applyThemeManager, saveTheme, currentTheme as currentThemeManager } from './theme-manager.js';
 
 export const THEMES = [
   { id: 'light', label: '1' },
@@ -13,12 +15,12 @@ export const THEMES = [
 ];
 
 export function currentTheme() {
-  return document.documentElement.getAttribute('data-theme') || 'dark';
+  return currentThemeManager();
 }
 
 export function applyTheme(id) {
-  document.documentElement.setAttribute('data-theme', id);
-  try { localStorage.setItem('nt_theme', id); } catch (e) { /* ignore */ }
+  applyThemeManager(id);
+  saveTheme(id);
 }
 
 /** 创建 1/2/3/4 主题按钮；onPick(id, button, wrapper) */
