@@ -41,7 +41,7 @@ export function chordPath(p) {
  * @param {{
  *   blocks:Array, chords:Array, sectors?:Array,
  *   pointAt:(cx:number,cy:number,r:number,a:number)=>number[],
- *   colorOf:(groupKey:string)=>string,
+ *   colorOf:(colorKey:string)=>string,
  *   opacityOf?:(chord:object)=>number,
  *   highlight?:Set<number>|null
  * }} data
@@ -84,7 +84,7 @@ export function renderChart(data) {
   // ③ 弧块
   for (const b of blocks) {
     parts.push(`<path class="mw-ring" d="${arcPath(rOut, rIn, b.a1, b.a2, pointAt, cx, cy)}"`
-      + ` fill="${colorOf(b.groupKey)}" fill-opacity="1"`
+      + ` fill="${colorOf(b.colorKey)}" fill-opacity="1"`
       + ` stroke="var(--nt-bg-line)" stroke-width="0.6"`
       + ` data-node="${esc(b.acc)}"/>`);
   }

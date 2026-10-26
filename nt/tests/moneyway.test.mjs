@@ -148,22 +148,52 @@ test('线宽：由「转入方」决定，不是转出方', () => {
 /* ---------- 颜色绑定 ---------- */
 
 test('★ 颜色：同一统计分类永远同一色', () => {
-  const colorIndex = new Map([['费用类|餐饮', 0], ['费用类|交通', 1], ['资产类|储蓄', 2]]);
-  const c1 = categoryColor(colorIndex, '费用类|餐饮');
-  const c2 = categoryColor(colorIndex, '费用类|餐饮');
-  const c3 = categoryColor(colorIndex, '费用类|交通');
+  const colorIndex = new Map([['餐饮', 0], ['交通', 1], ['储蓄', 2]]);
+  const c1 = categoryColor(colorIndex, '餐饮');
+  const c2 = categoryColor(colorIndex, '餐饮');
+  const c3 = categoryColor(colorIndex, '交通');
   assert.equal(c1, c2, '同分类必须同色');
   assert.notEqual(c1, c3, '不同分类应该不同色');
 });
 
-test('颜色：跟随转入方', () => {
-  const colorIndex = new Map([['费用类|餐饮', 0], ['资产类|储蓄', 1]]);
-  const ctx = { byId, groupKeyOf: (id) => (id === 'a_food' ? '费用类|餐饮' : '资产类|储蓄'), colorIndex };
+test('★ 颜色数 = 统计分类数（与账户类型无关）', () => {
+  // 同一个统计分类「餐饮」跨了费用类和资产类两种账户类型
+  const accs = [
+    { id: 'x1', type: ACCOUNT_TYPE.EXPENSE, category: '餐饮' },
+    { id: 'x2', type: ACCOUNT_TYPE.ASSET, category: '餐饮' },
+    { id: 'x3', type: ACCOUNT_TYPE.EXPENSE, category: '交通' },
+  ];
+  const map = new Map(accs.map((a) => [a.id, a]));
+  const get = (id) => map.get(id);
+
+  // 本模块的槽位计算会给出 colorList
+  const r = computeSlots(
+    [{ from_id: 'x1', to_id: 'x2', amount: 1, date: '2026-08-01' }, { from_id: 'x2', to_id: 'x3', amount: 1, date: '2026-08-02' }],
+    { accOf: get, outerRadius: 640 },
+  );
+
+  // 三个账户、两种统计分类 → 颜色只应有 2 种
+  assert.deepEqual(r.colorList.slice().sort(), ['交通', '餐饮']);
+  // 两个「餐饮」账户共享同一 colorKey
+  const foodBlocks = r.blocks.filter((b) => b.colorKey === '餐饮');
+  assert.equal(foodBlocks.length >= 1, true);
+  assert.equal(r.colorIndex.size, 2, '颜色数 = 分类数，不因类型不同而增加');
+});
+
+test('颜色：跟随转入方的统计分类', () => {
+  const colorIndex = new Map([['餐饮', 0], ['储蓄', 1]]);
+  const ctx = {
+    byId,
+    colorKeyOf: (id) => (id === 'a_food' ? '餐饮' : '储蓄'),
+    colorIndex,
+  };
 
   const toFood = calcLinkStyle({ from_id: 'a_bank', to_id: 'a_food' }, ctx, 5);
   const toBank = calcLinkStyle({ from_id: 'a_food', to_id: 'a_bank' }, ctx, 5);
 
-  assert.notEqual(toFood.strokeColor, toBank.strokeColor, '线色应由转入方决定');
+  assert.notEqual(toFood.strokeColor, toBank.strokeColor, '线色应由转入方的统计分类决定');
+  assert.equal(toFood.colorKey, '餐饮');
+  assert.equal(toBank.colorKey, '储蓄');
 });
 
 /* ---------- 几何 ---------- */
