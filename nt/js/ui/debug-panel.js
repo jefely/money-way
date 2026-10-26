@@ -10,6 +10,8 @@
 import { GROUPS, SCHEMA, DEFAULTS, normalize, toText } from '../core/settings.js';
 import { applySettings } from './apply-settings.js';
 
+const POS_KEY = 'nt_debug_pos';
+
 /**
  * @param {{initial?:object}} [opts]
  * @returns {{el:HTMLElement, get:()=>object, close:()=>void}}
@@ -92,6 +94,8 @@ export function mountDebugPanel(opts) {
   document.body.appendChild(host);
 
   applySettings(current);
+  restorePos(host);
+  enableDrag(host, head);
 
   closeBtn.addEventListener('click', () => host.remove());
 
@@ -110,7 +114,51 @@ export function mountDebugPanel(opts) {
   };
 }
 
-/** 导出层：只读 textarea + 复制/关闭 */
+/** 记住上次拖动位置 */
+function restorePos(host) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(POS_KEY) || 'null');
+    if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) {
+      host.style.left = saved.left + 'px';
+      host.style.top = saved.top + 'px';
+      host.style.right = 'auto';
+      host.style.bottom = 'auto';
+    }
+  } catch (e) { /* ignore */ }
+}
+
+/** 按住标题栏拖动面板 */
+function enableDrag(host, head) {
+  let drag = null;
+
+  head.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.nt-debug-close')) return;
+    const r = host.getBoundingClientRect();
+    drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+    try { head.setPointerCapture(e.pointerId); } catch (err) { /* 合成事件可能无 pointerId */ }
+    head.classList.add('is-dragging');
+  });
+
+  head.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    host.style.left = (e.clientX - drag.dx) + 'px';
+    host.style.top = (e.clientY - drag.dy) + 'px';
+    host.style.right = 'auto';
+    host.style.bottom = 'auto';
+  });
+
+  head.addEventListener('pointerup', () => {
+    if (!drag) return;
+    drag = null;
+    head.classList.remove('is-dragging');
+    try {
+      localStorage.setItem(POS_KEY, JSON.stringify({
+        left: parseInt(host.style.left, 10) || 0,
+        top: parseInt(host.style.top, 10) || 0,
+      }));
+    } catch (e) { /* ignore */ }
+  });
+}
 function showExport(text) {
   const mask = document.createElement('div');
   mask.className = 'nt-debug-mask';

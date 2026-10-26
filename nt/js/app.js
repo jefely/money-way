@@ -183,7 +183,8 @@ async function boot() {
 boot();
 
 /* PWA：注册 Service Worker（file:// 下会失败，静默忽略）
- * CACHE_NAME 与 sw.js 里的版本号一起改（公约 4.4）。 */
-if ('serviceWorker' in navigator) {
+ * CACHE_NAME 与 sw.js 里的版本号一起改（公约 4.4）。
+ * ?debug=1 时不注册，避免本地调试拿到旧缓存。 */
+if ('serviceWorker' in navigator && !new URLSearchParams(location.search).has('debug')) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
 }

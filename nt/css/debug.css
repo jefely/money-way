@@ -26,6 +26,9 @@
   padding: 6px 10px;
   background: rgba(155, 140, 255, 0.16);
   border-bottom: 1px solid rgba(155, 140, 255, 0.28);
+  cursor: move;
+  user-select: none;
+  touch-action: none;
 }
 
 .nt-debug-title {
