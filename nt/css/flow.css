@@ -556,3 +556,11 @@
 .nt-add-text {
   height: 340px;
 }
+/* 对照单文件版：文本框回到紧凑高度 */
+.nt-add-text {
+  height: 200px;
+}
+
+.nt-add-group {
+  padding: 8px;
+}
