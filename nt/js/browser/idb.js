@@ -1,3 +1,4 @@
+// 界面：（无界面）IndexedDB 打开
 /**
  * IndexedDB 薄封装（只有 open / get / put / del）。
  *

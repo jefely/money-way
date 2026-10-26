@@ -1,3 +1,4 @@
+// 界面：（无界面）多账本 create/switch/rename/remove
 /**
  * 多账本（纯函数）
  * 层：第一层 · 数据基座

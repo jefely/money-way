@@ -1,3 +1,4 @@
+// 界面：?debug=1 → 界面参数独立窗口（画中画）
 /**
  * 调试面板的独立窗口（Document Picture-in-Picture）
  * 层：第五层 · UI

@@ -1,3 +1,4 @@
+// 界面：（无界面）IndexedDB 数据库封装
 /**
  * 物理存储（IndexedDB + 加密）
  * 层：browser/（浏览器边界）

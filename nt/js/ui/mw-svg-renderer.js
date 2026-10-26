@@ -1,3 +1,4 @@
+// 界面：路径 tab / path.html → SVG 渲染
 ﻿/**
  * Money Way · 纯 SVG 渲染器
  * 层：第五层 · UI（只拼字符串）

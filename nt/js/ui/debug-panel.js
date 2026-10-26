@@ -1,5 +1,5 @@
+// 界面：?debug=1 → 界面参数浮层
 /** 界面参数调试面板（UI 层）：按标签页分组，改值实时生效，可保存/撤销/恢复默认。 */
-
 import { GROUPS, SCREENS, GROUP_SCREEN, SCHEMA, DEFAULTS, normalize } from '../core/settings.js';
 import { applySettings } from './apply-settings.js';
 import { openColorPicker } from './color-picker.js';
