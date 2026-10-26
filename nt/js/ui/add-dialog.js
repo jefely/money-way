@@ -107,7 +107,6 @@ export function openAddDialog(ctx) {
       body.appendChild(info);
     },
     actions: [
-      { label: '关闭', kind: 'ghost', close: true },
       { label: '确认添加', kind: 'primary', onClick: applyAdd },
     ],
   });
