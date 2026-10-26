@@ -1,116 +1,53 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Money Way · 资金路径记账</title>
-<meta name="description" content="看见每一笔钱的来路与去向。NT账本（个人）+ 经营账（规划中）。零依赖单文件 PWA，离线可用，本地加密。">
-<link rel="icon" href="personal/nt-192.png">
-<style>
-  :root {
-    --primary: #6b5bc4;
-    --primary-light: #8b6cff;
-    --text: #1f2430;
-    --text-muted: #6b7280;
-    --bg: #f6f4fb;
-    --card: #ffffff;
-    --border: #e6e1f5;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --text: #e8e4f5;
-      --text-muted: #9ca3af;
-      --bg: #0f0d17;
-      --card: #1a1626;
-      --border: #2e2843;
-    }
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; min-height: 100vh;
-    background: var(--bg); color: var(--text);
-    font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-    display: flex; flex-direction: column; align-items: center;
-    padding: 12vh 20px 40px;
-  }
-  .brand {
-    font-size: 13px; letter-spacing: .32em; text-transform: uppercase;
-    color: var(--text-muted); margin-bottom: 6px;
-  }
-  h1 {
-    font-size: clamp(28px, 7vw, 44px); margin: 0 0 10px; font-weight: 800;
-    background: linear-gradient(135deg, var(--primary-light), var(--primary));
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-  .tagline { color: var(--text-muted); font-size: 15px; margin-bottom: 42px; text-align: center; }
-
-  .grid { display: grid; gap: 16px; width: 100%; max-width: 640px; }
-
-  a.card {
-    display: block; text-decoration: none; color: inherit;
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 16px; padding: 22px 24px;
-    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
-  }
-  a.card:hover {
-    transform: translateY(-2px);
-    border-color: var(--primary);
-    box-shadow: 0 12px 28px -14px rgba(107, 91, 196, .5);
-  }
-  a.card.disabled { pointer-events: none; opacity: .58; }
-  .card-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
-  .card-title { font-size: 18px; font-weight: 700; }
-  .badge {
-    font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
-    background: rgba(139, 108, 255, .14); color: var(--primary);
-  }
-  .badge.wip { background: rgba(156, 163, 175, .18); color: var(--text-muted); }
-  .card-desc { font-size: 13.5px; color: var(--text-muted); line-height: 1.65; }
-
-  footer {
-    margin-top: 48px; font-size: 12px; color: var(--text-muted);
-    text-align: center; line-height: 1.9;
-  }
-  footer a { color: var(--primary); text-decoration: none; }
-  footer a:hover { text-decoration: underline; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>NT账本 · 选择版本</title>
+  <meta name="theme-color" content="#4c3d80">
+  <link rel="stylesheet" href="./launcher.css">
+  <script type="module" src="./launcher.js"></script>
 </head>
 <body>
+  <header class="la-header">
+    <h1 class="la-title">NT账本</h1>
+    <p class="la-sub">两个版本并存，数据互不影响</p>
+  </header>
 
-  <div class="brand">Money Way</div>
-  <h1>资金路径记账</h1>
-  <p class="tagline">看见每一笔钱的来路与去向</p>
+  <main class="la-main">
+    <ul class="la-list">
+      <!-- 单文件版 -->
+      <li class="la-item">
+        <a class="la-card" href="./personal/index.html">
+          <span class="la-card-head">
+            <span class="la-card-name">单文件版</span>
+            <span class="la-badge la-badge-stable">稳定</span>
+          </span>
+          <span class="la-card-ver" id="ver-personal">读取中…</span>
+          <span class="la-card-desc">全部功能都在一个 HTML 里，密码加密、同步、导入导出齐备。日常用这个。</span>
+          <span class="la-card-go">进入 →</span>
+        </a>
+      </li>
 
-  <div class="grid">
+      <!-- 多文件版 -->
+      <li class="la-item">
+        <a class="la-card la-card-alt" href="./nt/index.html">
+          <span class="la-card-head">
+            <span class="la-card-name">多文件版</span>
+            <span class="la-badge la-badge-wip">重构中</span>
+          </span>
+          <span class="la-card-ver" id="ver-nt">读取中…</span>
+          <span class="la-card-desc">按五层架构重写：算钱 / 切时间 / 算图 / 适配设备 / 画界面各自独立。功能尚不完整。</span>
+          <span class="la-card-go">进入 →</span>
+        </a>
+      </li>
+    </ul>
 
-    <a class="card" href="personal/">
-      <div class="card-head">
-        <span class="card-title">NT账本</span>
-        <span class="badge">使用中</span>
-      </div>
-      <div class="card-desc">
-        个人记账：流水 / 汇总 / 分类 / 查询 / 分期 / 固定收支。<br>
-        纯前端单文件 PWA，离线可用，AES-GCM 本地加密。
-      </div>
-    </a>
+    <p class="la-note" id="la-note" role="status"></p>
+  </main>
 
-    <a class="card disabled" href="#" aria-disabled="true">
-      <div class="card-head">
-        <span class="card-title">经营账</span>
-        <span class="badge wip">规划中</span>
-      </div>
-      <div class="card-desc">
-        经营类计算：成本、库存、应收应付、报表。<br>
-        与 NT账本共用流水与记账逻辑，账户体系与报表各自独立。
-      </div>
-    </a>
-
-  </div>
-
-  <footer>
-    <div>零依赖 · 无后端 · 数据只存在你自己的浏览器里</div>
-    <div><a href="https://github.com/jefely/money-way">GitHub</a> · AGPL-3.0</div>
+  <footer class="la-footer">
+    <span>密码与数据都在各自版本内部，两者互不共享</span>
   </footer>
-
 </body>
 </html>
