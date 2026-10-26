@@ -140,7 +140,6 @@ export function mountDebugPanel(opts) {
   });
   resetBtn.addEventListener('click', () => {
     pushHistory();
-    // 恢复默认 = 回到上次保存的值；没保存过才用该主题内置默认
     current = normalize(o.getState ? loadThemeSettings(o, theme) : {}, theme);
     renderBody();
     applySettings(current, theme);
