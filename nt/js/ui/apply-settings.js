@@ -25,7 +25,10 @@ export function applySettings(settings, theme) {
       // <col> 的 CSS width 用 var() 在表格布局里不生效，同步写 inline width
       if (item.cssVar.startsWith('--nt-col-')) {
         const col = document.querySelector('.nt-c-' + item.cssVar.slice(9));
-        if (col) col.style.width = item.value;
+        if (col) {
+          col.style.width = item.value;
+          col.setAttribute('width', String(parseFloat(item.value) || 0));
+        }
       }
     }
   }

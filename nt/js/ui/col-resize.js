@@ -43,9 +43,12 @@ export function mountColResize(tableEl, opts) {
       const onMove = (ev) => {
         width = Math.max(MIN_W, Math.min(MAX_W, Math.round(startW + (ev.clientX - startX))));
         scope.style.setProperty('--nt-col-' + col, width + 'px');
-        // <col> 的 CSS width 用 var() 不生效，直接写 inline width
+        // <col> 的 CSS width 在 table-layout:fixed 下不生效，改 HTML width 属性
         const colEl = tableEl.querySelector('.nt-c-' + col);
-        if (colEl) colEl.style.width = width + 'px';
+        if (colEl) {
+          colEl.style.width = width + 'px';
+          colEl.setAttribute('width', String(width));
+        }
       };
       const onUp = () => {
         document.removeEventListener('pointermove', onMove);
