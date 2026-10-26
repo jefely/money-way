@@ -1,0 +1,74 @@
+<!--
+  ☐11 模板库
+  层：第五层 · UI 渲染
+  ------------------------------------------------------------
+  所有页面结构都集中在这里。index.html 只留容器，不再内联模板。
+  由 js/ui/render-transactions.js 里的 loadTemplates() 一次注入到 <body>。
+
+  约定（CODE-RULES.md）：
+    · 不写任何内联事件（onclick 等）
+    · 不写任何内联 style
+    · 不写业务计算：{{ }} 之外只有结构
+-->
+
+<!-- 流水行：只读，不再是每行 6 个 input -->
+<template id="tpl-flow-row">
+  <tr class="nt-row">
+    <td class="nt-cell nt-cell-seq"></td>
+    <td class="nt-cell nt-cell-date"></td>
+    <td class="nt-cell nt-cell-from"></td>
+    <td class="nt-cell nt-cell-to"></td>
+    <td class="nt-cell nt-cell-amount"></td>
+    <td class="nt-cell nt-cell-note"></td>
+    <td class="nt-cell nt-cell-action">
+      <button class="nt-btn nt-btn-icon" type="button" aria-label="删除这笔流水">×</button>
+    </td>
+  </tr>
+</template>
+
+<!-- 空状态 -->
+<template id="tpl-empty">
+  <tr class="nt-row">
+    <td class="nt-cell nt-empty" colspan="7">还没有流水，先在上面记一笔</td>
+  </tr>
+</template>
+
+<!-- 记一笔表单 -->
+<template id="tpl-flow-form">
+  <form class="nt-form" id="nt-form">
+    <div class="nt-field">
+      <label class="nt-label" for="nt-date">日期</label>
+      <input class="nt-input" id="nt-date" name="date" type="date" required>
+    </div>
+    <div class="nt-field">
+      <label class="nt-label" for="nt-from">转出</label>
+      <select class="nt-input" id="nt-from" name="from" required></select>
+    </div>
+    <div class="nt-field">
+      <label class="nt-label" for="nt-to">转入</label>
+      <select class="nt-input" id="nt-to" name="to" required></select>
+    </div>
+    <div class="nt-field">
+      <label class="nt-label" for="nt-amount">金额</label>
+      <input class="nt-input" id="nt-amount" name="amount" type="text" inputmode="decimal" placeholder="0.00">
+    </div>
+    <div class="nt-field nt-field-wide">
+      <label class="nt-label" for="nt-note">备注</label>
+      <input class="nt-input" id="nt-note" name="note" type="text" placeholder="可选">
+    </div>
+    <button class="nt-btn nt-btn-primary" type="submit">记下</button>
+  </form>
+</template>
+
+<!-- 密码锁屏 -->
+<template id="tpl-lock">
+  <section class="nt-lock" aria-labelledby="nt-lock-title">
+    <h2 class="nt-lock-title" id="nt-lock-title">解锁账本</h2>
+    <form class="nt-lock-form" id="nt-lock-form">
+      <label class="nt-visually-hidden" for="nt-lock-pw">密码</label>
+      <input class="nt-input nt-lock-input" id="nt-lock-pw" type="password" autocomplete="current-password" placeholder="密码">
+      <button class="nt-btn nt-btn-primary" type="submit">进入</button>
+    </form>
+    <p class="nt-lock-hint" id="nt-lock-hint" role="status"></p>
+  </section>
+</template>

@@ -70,13 +70,16 @@ for (const file of files) {
         problems.push(`${rel(file)} import 指向不存在的文件：${spec}（应解析为 ${rel(target)}）`);
       }
     }
-    // ⑥ 核心层禁止碰浏览器 API
-    if (rel(file).includes('/core/')) {
+    // ⑥ 纯计算层禁止碰浏览器 API（core / timeline / graph 都是「脱离浏览器能用 Node 跑」的层）
+    const pureLayers = ['/core/', '/timeline/', '/graph/'];
+    if (pureLayers.some((p) => rel(file).includes(p))) {
       const banned = ['window.', 'document.', 'localStorage', 'navigator.userAgent'];
       lines.forEach((line, i) => {
+        const t = line.trim();
+        if (t.startsWith('*') || t.startsWith('//')) return;
         for (const b of banned) {
-          if (line.includes(b) && !line.trim().startsWith('*') && !line.trim().startsWith('//')) {
-            problems.push(`${rel(file)}:${i + 1} core/ 里出现 ${b}（公约 3.3）`);
+          if (line.includes(b)) {
+            problems.push(`${rel(file)}:${i + 1} 纯计算层里出现 ${b}（公约 3.3：必须能脱离浏览器跑测试）`);
           }
         }
       });

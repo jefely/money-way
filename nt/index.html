@@ -88,25 +88,7 @@
 
   <footer class="nt-footer" id="nt-footer"></footer>
 
-  <!-- 模板：改 UI 只改这里，JS 不用动 -->
-  <template id="tpl-flow-row">
-    <tr class="nt-row">
-      <td class="nt-cell nt-cell-seq"></td>
-      <td class="nt-cell nt-cell-date"></td>
-      <td class="nt-cell nt-cell-from"></td>
-      <td class="nt-cell nt-cell-to"></td>
-      <td class="nt-cell nt-cell-amount"></td>
-      <td class="nt-cell nt-cell-note"></td>
-      <td class="nt-cell nt-cell-action">
-        <button class="nt-btn nt-btn-icon" type="button" aria-label="删除这笔流水">×</button>
-      </td>
-    </tr>
-  </template>
-
-  <template id="tpl-empty">
-    <tr class="nt-row">
-      <td class="nt-cell nt-empty" colspan="7">还没有流水，先在上面记一笔</td>
-    </tr>
-  </template>
+  <!-- 模板统一放在 templates/templates.html，由 js/ui/render-transactions.js 注入。
+       这里不再内联任何 <template>（公约 2.2：结构只定义一次）。 -->
 </body>
 </html>

@@ -27,37 +27,66 @@
 
 ---
 
-## 二、目录结构
+## 二、目录结构（五层）
+
+> 完整检查清单与逐项验收标准见仓库根目录 [`REFACTOR-CHECKLIST.md`](../REFACTOR-CHECKLIST.md)。
+> 标 ☐ 的是已建骨架、待填实现。
 
 ```
 nt/
-├── index.html              语义化骨架 + <template>（无内联事件/样式）
+├── index.html                    语义化容器（不含模板、不含内联事件/样式）
 ├── manifest.json
-├── sw.js                   CACHE_NAME = nt-v0.01
+├── sw.js                         CACHE_NAME = nt-v0.01
 ├── css/
-│   ├── base.css            变量 + 重置 + 排版
-│   ├── layout.css          页头 / 主区 / 面板 / 页脚
-│   └── flow.css            表单 / 表格 / 校验
+│   ├── base.css                  变量 + 重置 + 排版
+│   ├── layout.css                页头 / 主区 / 面板 / 页脚
+│   └── flow.css                  表单 / 表格 / 校验
+├── templates/
+│   └── templates.html            ☐11 模板库（流水行 / 空状态 / 记一笔 / 锁屏）
 ├── js/
-│   ├── app.js              入口：装配 state → view → events
-│   ├── core/               纯函数层（不碰 DOM/存储，Node 可测）
-│   │   ├── state.js        不可变更新（add/update/remove）
-│   │   ├── stats.js        余额聚合（六个桶）
-│   │   ├── validate.js     两条校验
-│   │   ├── migrate.js      版本迁移（幂等）
-│   │   └── format.js       金额 / 日期 / 数字
+│   ├── app.js                    入口：装配 state → view → events
+│   │
+│   ├── core/                     ── 第一层：数据基座（纯数据，零依赖）
+│   │   ├── opening-migrator.js   ☐1 期初迁移器
+│   │   ├── balance-calculator.js ☐2 余额计算器（唯一 Σ流水）
+│   │   ├── installment-engine.js ☐3 分期推算器（不存盘）
+│   │   ├── validator.js          ☐4 校验规则池（V1~V6）
+│   │   ├── state.js              ✅ 不可变更新
+│   │   ├── stats.js              ✅ 六桶聚合
+│   │   ├── validate.js           ✅ 两条校验
+│   │   ├── migrate.js            ✅ 版本迁移（幂等）
+│   │   └── format.js             ✅ 金额 / 日期格式化
+│   │
+│   ├── timeline/                 ── 第二层：时间轴引擎
+│   │   └── time-state.js         ☐5 past / current / future 切分
+│   │
+│   ├── graph/                    ── 第三层：Money Way 数学引擎（纯几何）
+│   │   ├── mw-data-fetcher.js    ☐6 图数据切片（区间 / 折叠 TopN / 1.5% 阈值）
+│   │   ├── mw-slot-calculator.js ☐7 槽位角度 ★核心
+│   │   ├── mw-path-calculator.js ☐8 贝塞尔 + BFS 层级 ★核心
+│   │   └── path-tracer.js        ☐9 DFS 路径追溯
+│   │
+│   ├── platform/                 ── 第四层：平台适配
+│   │   └── device-profile.js     ☐10 设备特征（只读环境）
+│   │
 │   ├── browser/
-│   │   └── store.js        localStorage 读写（唯一允许碰存储的地方）
-│   └── ui/
-│       ├── flow-model.js   state → 渲染行（纯函数）
-│       └── flow-view.js    渲染行 → DOM（只克隆模板、填值）
+│   │   └── store.js              ✅ localStorage 读写（唯一允许碰存储的地方）
+│   │
+│   └── ui/                       ── 第五层：UI 渲染（只拼字符串 / 挂 DOM）
+│       ├── render-transactions.js ☐12 流水渲染器 + 模板注入
+│       ├── mw-svg-renderer.js     ☐13 纯 SVG 渲染（禁止 Math.sin / Math.cos）
+│       ├── flow-model.js          ✅ state → 渲染行
+│       └── (flow-view.js 已并入 render-transactions.js)
+│
 ├── tools/
-│   └── check-rules.mjs     公约检查（不过 → 退出码 1）
+│   └── check-rules.mjs           公约门禁（不过 → 退出码 1）
 └── tests/
-    └── core.test.mjs       纯函数测试
+    └── core.test.mjs             纯函数测试
 ```
 
-**分层铁律**：`core/` 不许 import `browser/` 或 `ui/`；`ui/` 不许 import `browser/`；只有 `app.js` 同时认识三层。
+**分层铁律**：`core/` `timeline/` `graph/` 不许 import `browser/` 或 `ui/`；
+`ui/` 不许 import `browser/`；只有 `app.js` 同时认识三层。
+门禁会扫「纯计算层出现 `window`/`document`/`localStorage`」并直接判失败。
 
 ---
 

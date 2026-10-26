@@ -6,7 +6,7 @@
 
 import { createState, addTransaction, removeTransaction } from './core/state.js';
 import { buildFlowRows, buildFooterInfo, buildAccountOptions } from './ui/flow-model.js';
-import { renderFlowList, renderFooter, CLASS } from './ui/flow-view.js';
+import { loadTemplates, renderRows } from './ui/render-transactions.js';
 import { checkBalanced, checkAccountingIdentity } from './core/validate.js';
 import { statsForAccounts } from './core/stats.js';
 import { loadState, saveState } from './browser/store.js';
@@ -34,10 +34,16 @@ function commit(nextState) {
 }
 
 function render() {
-  renderFlowList(document.getElementById('nt-flow-body'), buildFlowRows(state));
-  renderFooter(document.getElementById('nt-footer'), buildFooterInfo(state));
+  renderRows(document.getElementById('nt-flow-body'), buildFlowRows(state));
+  renderFooterEl(buildFooterInfo(state));
   renderOptions();
   renderChecks();
+}
+
+/** 页脚：只填字符串，不做计算。 */
+function renderFooterEl(info) {
+  const el = document.getElementById('nt-footer');
+  if (el) el.textContent = `共 ${info.count} 笔 · 合计 ${info.totalText}`;
 }
 
 function renderOptions() {
@@ -100,7 +106,7 @@ function onSubmit(ev) {
 
 /** 列表删除：事件委托在 tbody 上（公约 1.1：不用内联 onclick）。 */
 function onListClick(ev) {
-  const btn = ev.target.closest('.' + CLASS.action);
+  const btn = ev.target.closest('.nt-cell-action button, .' + 'nt-btn-icon');
   if (!btn) return;
   const tr = btn.closest('tr');
   if (!tr || !tr.dataset.id) return;
@@ -113,8 +119,6 @@ function init() {
   render();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
+// module 默认 defer，执行到这里时 DOM 已解析完；先把模板注入再装配。
+await loadTemplates();
+init();
