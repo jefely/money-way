@@ -22,6 +22,7 @@ export const SCHEMA = [
   { key: '标签栏字号', group: '标签栏', def: 13, unit: 'px', cssVar: '--nt-tab-font' },
   { key: '标签栏文字颜色', group: '标签栏', def: '#b9b2d0', cssVar: '--nt-tabs-color' },
   { key: '标签栏背景颜色', group: '标签栏', def: '#0e0b16', cssVar: '--nt-tabs-bg' },
+  { key: '标签栏行背景色', group: '标签栏', def: '#0e0b16', cssVar: '--nt-tab-bg' },
   { key: '标签栏边框', group: '标签栏', type: 'enum', options: ['显示', '无'], values: ['line', 'none'], def: '显示', attr: 'data-tabs-border' },
   { key: '标签栏边框颜色', group: '标签栏', def: '#2a2438', cssVar: '--nt-tabs-border' },
 
@@ -30,18 +31,19 @@ export const SCHEMA = [
   { key: '按钮区字号', group: '按钮区', def: 12, unit: 'px', cssVar: '--nt-vbar-font' },
   { key: '按钮区文字颜色', group: '按钮区', def: '#f2eeff', cssVar: '--nt-vbar-color' },
   { key: '按钮区背景颜色', group: '按钮区', def: '#0e0b16', cssVar: '--nt-vbar-bg' },
-  { key: '按钮边框', group: '按钮区', type: 'enum', options: ['按钮框', '竖线', '直角框', '无边框'], values: ['solid', 'line', 'sharp', 'plain'], def: '按钮框', attr: 'data-btn-style' },
-  { key: '按钮边框颜色', group: '按钮区', def: '#2a2438', cssVar: '--nt-btn-border-color' },
-  { key: '按钮底色', group: '按钮区', def: '#000000', cssVar: '--nt-btn-bg-color' },
-  { key: '按钮高度', group: '按钮区', def: 26, unit: 'px', cssVar: '--nt-btn-h' },
-  { key: '按钮宽度', group: '按钮区', def: 64, unit: 'px', cssVar: '--nt-btn-w' },
-  { key: '按钮间距', group: '按钮区', def: 6, unit: 'px', cssVar: '--nt-btn-gap' },
+  { key: '按钮区行背景色', group: '按钮区', def: '#000000', cssVar: '--nt-btn-bg-color' },
+  { key: '按钮区边框', group: '按钮区', type: 'enum', options: ['按钮框', '竖线', '直角框', '无边框'], values: ['solid', 'line', 'sharp', 'plain'], def: '按钮框', attr: 'data-btn-style' },
+  { key: '按钮区边框颜色', group: '按钮区', def: '#2a2438', cssVar: '--nt-btn-border-color' },
+  { key: '按钮区按钮高度', group: '按钮区', def: 26, unit: 'px', cssVar: '--nt-btn-h' },
+  { key: '按钮区按钮宽度', group: '按钮区', def: 64, unit: 'px', cssVar: '--nt-btn-w' },
+  { key: '按钮区按钮间距', group: '按钮区', def: 6, unit: 'px', cssVar: '--nt-btn-gap' },
 
   /* ---------- 列标行 ---------- */
   { key: '列标行行高', group: '列标行', def: 26, unit: 'px', cssVar: '--nt-th-h' },
   { key: '列标行字号', group: '列标行', def: 12, unit: 'px', cssVar: '--nt-th-font' },
   { key: '列标行文字颜色', group: '列标行', def: '#b9b2d0', cssVar: '--nt-th-color' },
   { key: '列标行背景颜色', group: '列标行', def: '#0e0b16', cssVar: '--nt-th-bg' },
+  { key: '列标行行背景色', group: '列标行', def: '#0e0b16', cssVar: '--nt-th-row-bg' },
   { key: '列标行边框', group: '列标行', type: 'enum', options: ['显示', '无'], values: ['line', 'none'], def: '显示', attr: 'data-th-border' },
   { key: '列标行边框颜色', group: '列标行', def: '#2a2438', cssVar: '--nt-th-border' },
 
