@@ -127,7 +127,9 @@ export function mountDebugPanel(opts) {
 
     const key = document.createElement('span');
     key.className = 'nt-debug-key';
-    key.textContent = item.key;
+    // 分组标题已经写了「标签栏」「按钮区」，键名不再重复前缀
+    key.textContent = item.key.startsWith(item.group) ? item.key.slice(item.group.length) : item.key;
+    key.title = item.key;
 
     const input = document.createElement('input');
     input.className = 'nt-debug-input';
