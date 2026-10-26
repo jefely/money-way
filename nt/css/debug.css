@@ -20,6 +20,14 @@
   overflow: hidden;
 }
 
+.nt-debug-drag {
+  height: 12px;
+  background: rgba(155, 140, 255, 0.06);
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+}
+
 .nt-debug-tabs {
   display: flex;
   align-items: center;
@@ -27,9 +35,6 @@
   padding: 4px 6px;
   background: rgba(155, 140, 255, 0.16);
   border-bottom: 1px solid rgba(155, 140, 255, 0.28);
-  cursor: move;
-  user-select: none;
-  touch-action: none;
 }
 
 .nt-debug-tab {

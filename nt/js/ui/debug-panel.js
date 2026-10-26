@@ -19,7 +19,12 @@ export function mountDebugPanel(opts) {
   const host = document.createElement('aside');
   host.className = 'nt-debug';
 
-  /* ---------- 第一行：界面标签栏（同时是拖动把手） ---------- */
+  /* ---------- 第一行：拖动条（空行，只负责拖动） ---------- */
+
+  const dragBar = document.createElement('div');
+  dragBar.className = 'nt-debug-drag';
+
+  /* ---------- 第二行：界面标签栏 ---------- */
 
   const tabs = document.createElement('div');
   tabs.className = 'nt-debug-tabs';
@@ -69,6 +74,7 @@ export function mountDebugPanel(opts) {
   foot.appendChild(exportBtn);
   foot.appendChild(resetBtn);
 
+  host.appendChild(dragBar);
   host.appendChild(tabs);
   host.appendChild(body);
   host.appendChild(foot);
@@ -76,7 +82,7 @@ export function mountDebugPanel(opts) {
 
   applySettings(current);
   restorePos(host);
-  enableDrag(host, tabs);
+  enableDrag(host, dragBar);
 
   closeBtn.addEventListener('click', () => host.remove());
   exportBtn.addEventListener('click', () => showExport(toText(current)));
