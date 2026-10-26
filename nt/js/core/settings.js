@@ -28,7 +28,7 @@ export const SCHEMA = [
   { key: '按钮区字号', group: '按钮区', def: 12, unit: 'px', cssVar: '--nt-vbar-font' },
   { key: '按钮区文字颜色', group: '按钮区', def: '#f2eeff', cssVar: '--nt-vbar-color' },
   { key: '按钮区背景颜色', group: '按钮区', def: '#0e0b16', cssVar: '--nt-vbar-bg' },
-  { key: '按钮边框', group: '按钮区', type: 'enum', options: ['显示', '不显示'], def: '显示', attr: 'data-btn-style' },
+  { key: '按钮边框', group: '按钮区', type: 'enum', options: ['按钮框', '竖线', '直角框'], values: ['solid', 'line', 'sharp'], def: '按钮框', attr: 'data-btn-style' },
   { key: '按钮边框颜色', group: '按钮区', def: '#2a2438', cssVar: '--nt-btn-border-color' },
   { key: '按钮底色', group: '按钮区', def: '#000000', cssVar: '--nt-btn-bg-color' },
 
@@ -83,7 +83,13 @@ export function toCssList(settings) {
   for (const item of SCHEMA) {
     const v = s[item.key];
     if (item.type === 'enum') {
-      out.push({ attr: item.attr, value: v === '不显示' ? 'plain' : 'solid' });
+      let val;
+      const idx = item.options ? item.options.indexOf(v) : -1;
+      if (item.values && idx >= 0) val = item.values[idx];
+      else if (v === '不显示') val = 'plain';   // 兼容旧值
+      else if (v === '显示') val = 'solid';     // 兼容旧值
+      else val = 'solid';
+      out.push({ attr: item.attr, value: val });
     } else {
       out.push({ cssVar: item.cssVar, value: item.unit === 'px' ? v + 'px' : v });
     }

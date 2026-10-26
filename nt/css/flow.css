@@ -62,7 +62,20 @@
   text-decoration: none;
 }
 
-/* 按钮边框/底色：不显示（调试面板「按钮边框」= 不显示时） */
+/* 方案二：竖线 —— 上下消隐，只留左竖线，无底色 */
+:root[data-btn-style="line"] .nt-btn {
+  border: 0;
+  border-left: 1px solid var(--nt-btn-border-color, var(--nt-bg-line));
+  border-radius: 0;
+  background: transparent;
+}
+
+/* 方案三：直角框 —— 矩形边框，无圆角 */
+:root[data-btn-style="sharp"] .nt-btn {
+  border-radius: 0;
+}
+
+/* 兼容旧值：plain = 不显示 */
 :root[data-btn-style="plain"] .nt-btn {
   border-color: transparent;
   background: transparent;
