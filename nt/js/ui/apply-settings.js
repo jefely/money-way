@@ -12,10 +12,10 @@ import { toCssList, GROUP_SCOPE } from '../core/settings.js';
 /**
  * @param {object} settings 完整设置（normalize 过的）
  */
-export function applySettings(settings) {
+export function applySettings(settings, theme) {
   const root = document.documentElement;
   if (!root) return;
-  for (const item of toCssList(settings)) {
+  for (const item of toCssList(settings, theme)) {
     const scope = GROUP_SCOPE[item.group] || 'global';
     const target = scope === 'global' ? root : document.querySelector('[data-view="' + scope + '"]');
     if (!target) continue;

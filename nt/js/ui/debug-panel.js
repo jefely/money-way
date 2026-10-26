@@ -17,7 +17,7 @@ export function mountDebugPanel(opts) {
   const o = opts || {};
   let theme = currentTheme();
   const initialState = o.initial || (o.getState ? loadThemeSettings(o, theme) : {});
-  let current = normalize(initialState);
+  let current = normalize(initialState, theme);
   let screen = SCREENS[0].id;
   let history = [];
 
@@ -40,15 +40,15 @@ export function mountDebugPanel(opts) {
   // 左：主题切换 1=浅色 2=深色 3=备选1 4=备选2
   dragBar.appendChild(createThemeButtons(theme, (id, btn, wrap) => {
     if (id === theme) return;
-    saveThemeSettings(o, theme, normalize(current));
+    saveThemeSettings(o, theme, normalize(current, theme));
     theme = id;
     applyTheme(theme);
     for (const el of wrap.children) {
       el.setAttribute('aria-pressed', el === btn ? 'true' : 'false');
     }
-    current = normalize(loadThemeSettings(o, theme));
+    current = normalize(loadThemeSettings(o, theme), theme);
     renderBody();
-    applySettings(current);
+    applySettings(current, theme);
   }));
 
   const dragTitle = document.createElement('span');
@@ -126,27 +126,27 @@ export function mountDebugPanel(opts) {
   host.appendChild(foot);
   document.body.appendChild(host);
 
-  applySettings(current);
+  applySettings(current, theme);
   enableDrag(host, dragBar);
 
   closeBtn.addEventListener('click', () => host.remove());
   saveBtn.addEventListener('click', () => {
-    saveThemeSettings(o, theme, normalize(current));
+    saveThemeSettings(o, theme, normalize(current, theme));
     if (o.save) o.save();
     saveBtn.textContent = '已保存';
     setTimeout(() => { saveBtn.textContent = '保存'; }, 1200);
   });
   resetBtn.addEventListener('click', () => {
     pushHistory();
-    current = normalize(DEFAULTS);
+    current = normalize({}, theme);
     renderBody();
-    applySettings(current);
+    applySettings(current, theme);
   });
   undoBtn.addEventListener('click', () => {
     if (!history.length) return;
     current = history.pop();
     renderBody();
-    applySettings(normalize(current));
+    applySettings(normalize(current, theme), theme);
   });
 
   /* ---------- 渲染当前界面的参数 ---------- */
@@ -200,7 +200,7 @@ export function mountDebugPanel(opts) {
       sel.addEventListener('change', () => {
         pushHistory();
         current[item.key] = sel.value;
-        applySettings(normalize(current));
+        applySettings(normalize(current, theme), theme);
       });
       row.appendChild(sel);
       return row;
@@ -214,7 +214,7 @@ export function mountDebugPanel(opts) {
     input.addEventListener('input', () => {
       pushHistory();
       current[item.key] = input.value;
-      applySettings(normalize(current));
+      applySettings(normalize(current, theme), theme);
     });
 
     row.appendChild(input);
@@ -236,7 +236,7 @@ export function mountDebugPanel(opts) {
 
   return {
     el: host,
-    get: () => normalize(current),
+    get: () => normalize(current, theme),
     close: () => host.remove(),
   };
 }

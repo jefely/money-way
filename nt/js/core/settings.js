@@ -6,8 +6,8 @@
  *   公共（global，主界面）：标签栏 / 按钮区 / 表格 / 信息栏
  *   流水独立（flow）：按钮尺寸 / 列标行 / 数据区 / 列宽
  *
+ * 主题：1=浅色 2=深色 3=备选1 4=备选2，每个主题一套默认值（THEME_DEFAULTS）。
  * 每项：key、group、def、unit、cssVar / type / attr / options / values。
- * 加参数只改 SCHEMA 一处：面板、应用、导出都从它派生。
  */
 
 export const GROUPS = ['标签栏', '按钮区', '表格', '信息栏', '按钮尺寸', '列标行', '数据区', '列宽'];
@@ -47,6 +47,9 @@ export const COL_KEYS = ['seq', 'date', 'type', 'cat', 'code', 'num', 'amount', 
 
 export const DEFAULT_COL_WIDTHS = '44,84,72,76,64,100,96,40,64,64,64';
 export const DEFAULT_COL_ALIGN = '左,左,左,左,左,右,右,中,中,中,中';
+
+/** 主题 id 列表（与 theme-manager 的 VALID 一致） */
+export const THEME_IDS = ['light', 'dark', 'alt1', 'alt2'];
 
 export const SCHEMA = [
   /* ---------- 标签栏（公共） ---------- */
@@ -99,18 +102,58 @@ export const SCHEMA = [
   { key: '列宽对齐', group: '列宽', type: 'align', def: DEFAULT_COL_ALIGN },
 ];
 
-export const DEFAULTS = SCHEMA.reduce((acc, s) => {
+/** 尺寸/枚举类共用的默认值（四主题一致） */
+const BASE = SCHEMA.reduce((acc, s) => {
   acc[s.key] = s.def;
   return acc;
 }, {});
 
+/** 颜色类默认值：每个主题一套 */
+const THEME_COLORS = {
+  light: {
+    标签栏文字颜色: '#5f5878', 标签栏背景颜色: '#f8f7fd', 标签栏行背景色: '#f8f7fd', 标签栏边框颜色: '#e6e2f5',
+    按钮区文字颜色: '#1b1430', 按钮区背景颜色: '#f8f7fd', 按钮区行背景色: '#ffffff',
+    默认文字颜色: '#1b1430', 默认背景颜色: '#ffffff', 整行背景色: '#f8f7fd', 横向边框颜色: '#e6e2f5', 纵向边框颜色: '#e6e2f5',
+    信息栏文字颜色: '#5f5878', 信息栏背景颜色: '#f8f7fd',
+  },
+  dark: {
+    标签栏文字颜色: '#b9b2d0', 标签栏背景颜色: '#0e0b16', 标签栏行背景色: '#0e0b16', 标签栏边框颜色: '#2a2438',
+    按钮区文字颜色: '#f2eeff', 按钮区背景颜色: '#0e0b16', 按钮区行背景色: '#000000',
+    默认文字颜色: '#f2eeff', 默认背景颜色: '#000000', 整行背景色: '#0e0b16', 横向边框颜色: '#2a2438', 纵向边框颜色: '#2a2438',
+    信息栏文字颜色: '#b9b2d0', 信息栏背景颜色: '#0e0b16',
+  },
+  alt1: {
+    标签栏文字颜色: '#6b5f48', 标签栏背景颜色: '#f3ece0', 标签栏行背景色: '#f3ece0', 标签栏边框颜色: '#e5dcc9',
+    按钮区文字颜色: '#2a2418', 按钮区背景颜色: '#f3ece0', 按钮区行背景色: '#fffdf8',
+    默认文字颜色: '#2a2418', 默认背景颜色: '#fffdf8', 整行背景色: '#f3ece0', 横向边框颜色: '#e5dcc9', 纵向边框颜色: '#e5dcc9',
+    信息栏文字颜色: '#6b5f48', 信息栏背景颜色: '#f3ece0',
+  },
+  alt2: {
+    标签栏文字颜色: '#9ec4ae', 标签栏背景颜色: '#0f1f18', 标签栏行背景色: '#0f1f18', 标签栏边框颜色: '#1e3328',
+    按钮区文字颜色: '#e0f2e8', 按钮区背景颜色: '#0f1f18', 按钮区行背景色: '#0a1410',
+    默认文字颜色: '#e0f2e8', 默认背景颜色: '#0a1410', 整行背景色: '#0f1f18', 横向边框颜色: '#1e3328', 纵向边框颜色: '#1e3328',
+    信息栏文字颜色: '#9ec4ae', 信息栏背景颜色: '#0f1f18',
+  },
+};
+
+/** 每个主题一套完整默认值 */
+export const THEME_DEFAULTS = THEME_IDS.reduce((acc, id) => {
+  acc[id] = { ...BASE, ...THEME_COLORS[id] };
+  return acc;
+}, {});
+
+/** 兼容旧代码：无主题时的默认（深色） */
+export const DEFAULTS = THEME_DEFAULTS.dark;
+
 /**
- * 归一化：px 项转数字，数组/对齐项保留逗号串，其余保留字符串；非法值落回默认。
+ * 归一化：px 项转数字，数组/对齐项保留逗号串，颜色项保留字符串；非法值落回该主题默认。
  * @param {object} raw
+ * @param {string} [theme]
  * @returns {object} 完整设置
  */
-export function normalize(raw) {
-  const out = { ...DEFAULTS };
+export function normalize(raw, theme) {
+  const base = THEME_DEFAULTS[theme] || THEME_DEFAULTS.dark;
+  const out = { ...base };
   for (const s of SCHEMA) {
     const v = raw ? raw[s.key] : undefined;
     if (v == null || v === '') continue;
@@ -137,8 +180,8 @@ export function parseAligns(text) {
 }
 
 /** 设置 → CSS 变量列表（供 apply-settings 使用） */
-export function toCssList(settings) {
-  const s = normalize(settings);
+export function toCssList(settings, theme) {
+  const s = normalize(settings, theme);
   const out = [];
   for (const item of SCHEMA) {
     const v = s[item.key];
@@ -168,8 +211,8 @@ export function toCssList(settings) {
 }
 
 /** 设置 → 纯文本（键=值，中文逗号分隔），供导出/对话粘贴 */
-export function toText(settings) {
-  const s = normalize(settings);
+export function toText(settings, theme) {
+  const s = normalize(settings, theme);
   const parts = [];
   let lastGroup = '';
   for (const item of SCHEMA) {

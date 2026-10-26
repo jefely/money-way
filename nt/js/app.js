@@ -143,7 +143,7 @@ function enterApp() {
   if (state.settings && Object.keys(state.settings).length) {
     const theme = document.documentElement.getAttribute('data-theme') || 'dark';
     const s = state.settings;
-    applySettings(s[theme] && typeof s[theme] === 'object' ? s[theme] : s);
+    applySettings(s[theme] && typeof s[theme] === 'object' ? s[theme] : s, theme);
   }
 
   mountViews();
