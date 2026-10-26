@@ -3968,6 +3968,9 @@ table.grid thead th { overflow: visible !important; }
   overflow-y: hidden;
   white-space: nowrap;
   -webkit-overflow-scrolling: touch;
+  /* 版本号是 #footer::after 的绝对定位伪元素，浮在文字上方；
+     右侧留出它的宽度，正文才不会和它挤在一起 */
+  padding-right: 60px;
 }
 #footer::-webkit-scrollbar { height: 0; }
 /* 简介里的「简单开始」四步 */
@@ -7894,28 +7897,28 @@ html body .confirm-mask .dlg-x { z-index: 30 !important; }
   padding-right: 40px !important;
   box-sizing: content-box !important;
 }
-/* 固定页里的「分期」图标：切换两个子视图 */
-.fixed-sub-ico {
+/* 固定页里的「分期」按钮：它是固定收支的子模块，不占主导航 */
+.fixed-sub-btn {
   flex: 0 0 auto;
-  width: 26px;
   height: 26px;
-  padding: 0;
-  margin: 0 8px 0 2px;
+  padding: 0 11px;
+  margin: 0 10px 0 2px;
   border: 1px solid #cfc9e8;
   border-radius: 5px;
   background: transparent;
   color: #6b5bc4;
-  font-size: 14px;
-  line-height: 1;
+  font-size: 12px;
+  line-height: 24px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
 }
-.fixed-sub-ico.on {
+.fixed-sub-btn.on {
   background: #6b5bc4;
   border-color: #6b5bc4;
   color: #fff;
 }
-.fixed-sub-ico:active { transform: scale(0.9); }
+.fixed-sub-btn:active { transform: scale(0.96); }
 
 </style>
 </head><body>
@@ -10658,7 +10661,7 @@ function renderFixed(main, footer) {
   bar.className = 'toolbar flow-bar fixed-bar';
   bar.innerHTML = `
     <span class="fixed-title">固定收支</span>
-    <button class="fixed-sub-ico" type="button" id="fixed-go-install" title="分期" aria-label="分期">▦</button>
+    <button class="fixed-sub-btn" type="button" id="fixed-go-install" title="分期（固定收支的子模块）">分期</button>
     <span class="fixed-sum"><i>收入合计：</i><b class="in">${fmtMoney(sumIn)}</b></span>
     <span class="fixed-sum"><i>支出合计：</i><b class="out">${fmtMoney(sumOut)}</b></span>
   `;
@@ -15987,7 +15990,7 @@ function renderInstall(main, footer) {
   bar.className = 'toolbar install-bar';
   bar.innerHTML = `
     <span class="bar-title">分期统计</span>
-    <button class="fixed-sub-ico on" type="button" id="install-go-fixed" title="回到固定收支" aria-label="回到固定收支">▦</button>
+    <button class="fixed-sub-btn on" type="button" id="install-go-fixed" title="回到固定收支">分期</button>
     <button class="ghost" id="i-add">新增</button>
     <button class="ghost" id="i-copy">复制</button>
     <label class="inst-label">起 <input id="i-from" class="inst-input" inputmode="numeric" maxlength="6" title="如 2610 表示 2026 年 10 月" value="${ymShort(installState.from)}"></label>
