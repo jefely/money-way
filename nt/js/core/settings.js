@@ -10,7 +10,7 @@
  * 每项：key、group、def、unit、cssVar / type / attr / options / values。
  */
 
-export const GROUPS = ['标签栏', '按钮区', '表格', '信息栏', '按钮尺寸', '列标行', '数据区', '列宽'];
+export const GROUPS = ['标签栏', '按钮区', '表格', '信息栏', '按钮尺寸', '列标行', '数据区'];
 
 /** 调试面板的界面标签 */
 export const SCREENS = [
@@ -27,7 +27,6 @@ export const GROUP_SCREEN = {
   按钮尺寸: 'flow',
   列标行: 'flow',
   数据区: 'flow',
-  列宽: 'flow',
 };
 
 /** 参数作用域：global=写全局(:root)；其余=写到对应标签页容器 [data-view] */
@@ -39,7 +38,6 @@ export const GROUP_SCOPE = {
   按钮尺寸: 'flow',
   列标行: 'flow',
   数据区: 'flow',
-  列宽: 'flow',
 };
 
 /** 列宽/对齐数组的列顺序（对应 colgroup 的 .nt-c-*） */
@@ -94,16 +92,14 @@ export const SCHEMA = [
   /* ---------- 列标行（独立） ---------- */
   { key: '列标行行高', group: '列标行', def: 26, unit: 'px', cssVar: '--nt-th-h' },
   { key: '列标行字号', group: '列标行', def: 12, unit: 'px', cssVar: '--nt-th-font' },
-  { key: '列标行对齐', group: '列标行', type: 'align-one', options: ['左', '中', '右'], def: '左', cssVar: '--nt-th-align' },
+  { key: '列标行对齐', group: '列标行', type: 'align', prefix: '--nt-th-align-', def: DEFAULT_COL_ALIGN },
   { key: '手柄高度', group: '列标行', def: 26, unit: 'px', cssVar: '--nt-handle-h' },
 
   /* ---------- 数据区（独立） ---------- */
   { key: '数据区行高', group: '数据区', def: 32, unit: 'px', cssVar: '--nt-row-h' },
   { key: '数据区字号', group: '数据区', def: 14, unit: 'px', cssVar: '--nt-cell-font' },
-
-  /* ---------- 列宽（独立，数组） ---------- */
-  { key: '默认列宽', group: '列宽', type: 'array', def: DEFAULT_COL_WIDTHS },
-  { key: '列宽对齐', group: '列宽', type: 'align', def: DEFAULT_COL_ALIGN },
+  { key: '默认列宽', group: '数据区', type: 'array', def: DEFAULT_COL_WIDTHS },
+  { key: '对齐', group: '数据区', type: 'align', prefix: '--nt-align-', def: DEFAULT_COL_ALIGN },
 ];
 
 /** 尺寸/枚举类共用的默认值（四主题一致） */
@@ -196,11 +192,10 @@ export function toCssList(settings, theme) {
       });
     } else if (item.type === 'align') {
       const aligns = parseAligns(v);
+      const prefix = item.prefix || '--nt-align-';
       COL_KEYS.forEach((c, i) => {
-        out.push({ group: item.group, cssVar: '--nt-align-' + c, value: aligns[i] === '中' ? 'center' : aligns[i] === '右' ? 'right' : 'left' });
+        out.push({ group: item.group, cssVar: prefix + c, value: aligns[i] === '中' ? 'center' : aligns[i] === '右' ? 'right' : 'left' });
       });
-    } else if (item.type === 'align-one') {
-      out.push({ group: item.group, cssVar: item.cssVar, value: v === '中' ? 'center' : v === '右' ? 'right' : 'left' });
     } else if (item.type === 'enum') {
       let val;
       const idx = item.options ? item.options.indexOf(v) : -1;
