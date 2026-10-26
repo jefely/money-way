@@ -31,6 +31,7 @@ const server = createServer(async (req, res) => {
   try {
     let p = decodeURIComponent((req.url || '/').split('?')[0]);
     if (p === '/') p = '/nt/index.html';
+    else if (p.endsWith('/')) p += 'index.html';
     const file = resolve(join(ROOT, p));
     if (!file.startsWith(resolve(ROOT))) {
       res.writeHead(403);
