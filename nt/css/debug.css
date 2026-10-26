@@ -155,3 +155,113 @@
   font: inherit;
   resize: none;
 }
+
+/* ---------- 取色按钮（颜色项右侧） ---------- */
+
+.nt-debug-pick {
+  flex: 0 0 40px;
+  height: 22px;
+  border: 1px solid rgba(155, 140, 255, 0.38);
+  border-radius: 4px;
+  background: rgba(155, 140, 255, 0.16);
+  color: #f2eeff;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+/* ---------- 拾色器 ---------- */
+
+.nt-cpick-mask {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.62);
+  z-index: 10001;
+}
+
+.nt-cpick {
+  width: min(94vw, 360px);
+  background: #161222;
+  border: 1px solid rgba(155, 140, 255, 0.38);
+  border-radius: 10px;
+  overflow: hidden;
+  color: #f2eeff;
+  font-size: 12px;
+}
+
+.nt-cpick-title {
+  padding: 8px 10px;
+  background: rgba(155, 140, 255, 0.16);
+  border-bottom: 1px solid rgba(155, 140, 255, 0.28);
+  font-weight: 700;
+}
+
+.nt-cpick-body {
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+}
+
+.nt-cpick-sat {
+  width: 220px;
+  height: 160px;
+  border-radius: 4px;
+  cursor: crosshair;
+}
+
+.nt-cpick-hue {
+  width: 20px;
+  height: 160px;
+  border-radius: 4px;
+  cursor: ns-resize;
+}
+
+.nt-cpick-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 8px;
+}
+
+.nt-cpick-preview {
+  flex: 0 0 28px;
+  height: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: #000;
+}
+
+.nt-cpick-hex {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid rgba(155, 140, 255, 0.28);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  color: #f2eeff;
+  font: inherit;
+}
+
+.nt-cpick-lib {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 0 10px 10px;
+}
+
+.nt-cpick-lib-title {
+  color: #b9b2d0;
+}
+
+.nt-cpick-sw {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 4px;
+  cursor: pointer;
+}
