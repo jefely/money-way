@@ -564,3 +564,7 @@
 .nt-add-group {
   padding: 8px;
 }
+/* 实测：账本名输入框左边界 480，新增行 474 —— 补 6px 对齐 */
+.nt-add-ledger-new {
+  padding-left: 26px;
+}
