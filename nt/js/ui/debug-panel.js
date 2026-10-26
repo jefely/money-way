@@ -17,6 +17,15 @@ export function mountDebugPanel(opts) {
   const initialState = o.initial || (o.getState ? o.getState().settings : {});
   let current = normalize(initialState);
   let screen = SCREENS[0].id;
+  let history = [];
+
+  /** 记录改动前的状态（撤销用，最多 50 步） */
+  function pushHistory() {
+    const last = history[history.length - 1];
+    if (last && JSON.stringify(last) === JSON.stringify(current)) return;
+    history.push({ ...current });
+    if (history.length > 50) history.shift();
+  }
 
   const host = document.createElement('aside');
   host.className = 'nt-debug';
@@ -82,11 +91,16 @@ export function mountDebugPanel(opts) {
   resetBtn.type = 'button';
   resetBtn.className = 'nt-debug-btn';
   resetBtn.textContent = '恢复默认';
+  const undoBtn = document.createElement('button');
+  undoBtn.type = 'button';
+  undoBtn.className = 'nt-debug-btn';
+  undoBtn.textContent = '撤销';
   const saveBtn = document.createElement('button');
   saveBtn.type = 'button';
   saveBtn.className = 'nt-debug-btn';
   saveBtn.textContent = '保存';
   foot.appendChild(resetBtn);
+  foot.appendChild(undoBtn);
   foot.appendChild(saveBtn);
 
   host.appendChild(dragBar);
@@ -108,9 +122,16 @@ export function mountDebugPanel(opts) {
     setTimeout(() => { saveBtn.textContent = '保存'; }, 1200);
   });
   resetBtn.addEventListener('click', () => {
+    pushHistory();
     current = normalize(DEFAULTS);
     renderBody();
     applySettings(current);
+  });
+  undoBtn.addEventListener('click', () => {
+    if (!history.length) return;
+    current = history.pop();
+    renderBody();
+    applySettings(normalize(current));
   });
 
   /* ---------- 渲染当前界面的参数 ---------- */
@@ -162,6 +183,7 @@ export function mountDebugPanel(opts) {
       }
       sel.value = String(current[item.key]);
       sel.addEventListener('change', () => {
+        pushHistory();
         current[item.key] = sel.value;
         applySettings(normalize(current));
       });
@@ -175,6 +197,7 @@ export function mountDebugPanel(opts) {
     input.setAttribute('aria-label', item.key);
     input.value = String(current[item.key]);
     input.addEventListener('input', () => {
+      pushHistory();
       current[item.key] = input.value;
       applySettings(normalize(current));
     });
@@ -243,45 +266,4 @@ function enableDrag(host, handle) {
       }));
     } catch (e) { /* ignore */ }
   });
-}
-
-/* ---------- 导出层 ---------- */
-
-function showExport(text) {
-  const mask = document.createElement('div');
-  mask.className = 'nt-debug-mask';
-
-  const box = document.createElement('div');
-  box.className = 'nt-debug-export';
-
-  const ta = document.createElement('textarea');
-  ta.className = 'nt-debug-ta';
-  ta.readOnly = true;
-  ta.value = text;
-
-  const bar = document.createElement('div');
-  bar.className = 'nt-debug-foot';
-
-  const copy = document.createElement('button');
-  copy.type = 'button';
-  copy.className = 'nt-debug-btn';
-  copy.textContent = '复制';
-  copy.addEventListener('click', () => {
-    ta.select();
-    try { document.execCommand('copy'); } catch (e) { /* ignore */ }
-    if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
-  });
-
-  const close = document.createElement('button');
-  close.type = 'button';
-  close.className = 'nt-debug-btn';
-  close.textContent = '关闭';
-  close.addEventListener('click', () => mask.remove());
-
-  bar.appendChild(copy);
-  bar.appendChild(close);
-  box.appendChild(ta);
-  box.appendChild(bar);
-  mask.appendChild(box);
-  document.body.appendChild(mask);
 }
