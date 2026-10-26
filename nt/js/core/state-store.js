@@ -21,6 +21,8 @@ export function createState() {
     transactions: [],
     // 计划流水（固定收支 + 分期）只存规则，虚拟流水由 scheduler-engine 现算
     scheduled: [],
+    // 界面参数（调试面板「保存」写这里，随账本加密存盘）
+    settings: {},
     meta: { lastSync: '' },
   };
 }

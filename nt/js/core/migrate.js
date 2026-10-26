@@ -79,6 +79,7 @@ export function migrate(raw) {
     // 已经是新结构：只补上可能缺失的 scheduled 数组，别的原样返回
     const normalized = Object.assign({}, src, {
       scheduled: Array.isArray(src.scheduled) ? src.scheduled : [],
+      settings: src.settings && typeof src.settings === 'object' ? src.settings : {},
     });
     return { state: normalized, migrated: false, from: from, to: SCHEMA_VERSION, stats: {} };
   }
@@ -168,11 +169,13 @@ export function migrate(raw) {
 
   const meta = src.meta && typeof src.meta === 'object' ? src.meta : {};
   const scheduled = Array.isArray(src.scheduled) ? src.scheduled : [];
+  const settings = src.settings && typeof src.settings === 'object' ? src.settings : {};
   const state = {
     version: SCHEMA_VERSION,
     accounts: accounts,
     transactions: transactions,
     scheduled: scheduled,
+    settings: settings,
     meta: { lastSync: String(meta.lastSync || '') },
   };
 

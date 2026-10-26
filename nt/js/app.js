@@ -145,7 +145,7 @@ function enterApp() {
 
   // 界面参数调试面板：只在 ?debug=1 时出现，不影响正常用户
   if (new URLSearchParams(location.search).has('debug')) {
-    mountDebugPanel();
+    mountDebugPanel({ getState, setState, save: flushSave });
   }
 }
 

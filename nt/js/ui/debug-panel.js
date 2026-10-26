@@ -6,7 +6,7 @@
  * 改任意一项实时生效；可导出/恢复默认；面板可拖动。
  */
 
-import { GROUPS, SCREENS, SCHEMA, DEFAULTS, normalize, toText } from '../core/settings.js';
+import { GROUPS, SCREENS, SCHEMA, DEFAULTS, normalize } from '../core/settings.js';
 import { applySettings } from './apply-settings.js';
 import { openColorPicker } from './color-picker.js';
 
@@ -14,7 +14,8 @@ const POS_KEY = 'nt_debug_pos';
 
 export function mountDebugPanel(opts) {
   const o = opts || {};
-  let current = normalize(o.initial);
+  const initialState = o.initial || (o.getState ? o.getState().settings : {});
+  let current = normalize(initialState);
   let screen = SCREENS[0].id;
 
   const host = document.createElement('aside');
@@ -77,16 +78,16 @@ export function mountDebugPanel(opts) {
 
   const foot = document.createElement('div');
   foot.className = 'nt-debug-foot';
-  const exportBtn = document.createElement('button');
-  exportBtn.type = 'button';
-  exportBtn.className = 'nt-debug-btn';
-  exportBtn.textContent = '导出参数';
   const resetBtn = document.createElement('button');
   resetBtn.type = 'button';
   resetBtn.className = 'nt-debug-btn';
   resetBtn.textContent = '恢复默认';
-  foot.appendChild(exportBtn);
+  const saveBtn = document.createElement('button');
+  saveBtn.type = 'button';
+  saveBtn.className = 'nt-debug-btn';
+  saveBtn.textContent = '保存';
   foot.appendChild(resetBtn);
+  foot.appendChild(saveBtn);
 
   host.appendChild(dragBar);
   host.appendChild(tabs);
@@ -98,7 +99,14 @@ export function mountDebugPanel(opts) {
   enableDrag(host, dragBar);
 
   closeBtn.addEventListener('click', () => host.remove());
-  exportBtn.addEventListener('click', () => showExport(toText(current)));
+  saveBtn.addEventListener('click', () => {
+    if (o.setState && o.getState) {
+      o.setState({ ...o.getState(), settings: normalize(current) });
+    }
+    if (o.save) o.save();
+    saveBtn.textContent = '已保存';
+    setTimeout(() => { saveBtn.textContent = '保存'; }, 1200);
+  });
   resetBtn.addEventListener('click', () => {
     current = normalize(DEFAULTS);
     renderBody();
