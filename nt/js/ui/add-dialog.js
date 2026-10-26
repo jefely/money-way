@@ -127,9 +127,6 @@ export function openAddDialog(ctx) {
     const nrow = document.createElement('div');
     nrow.className = 'nt-add-ledger-new';
 
-    const spacer = document.createElement('span');
-    spacer.className = 'nt-add-spacer';
-
     const nin = document.createElement('input');
     nin.className = 'nt-add-ledger-input';
     nin.placeholder = '输入新账本名称…';
@@ -152,7 +149,6 @@ export function openAddDialog(ctx) {
       reopen();
     });
 
-    nrow.appendChild(spacer);
     nrow.appendChild(nin);
     nrow.appendChild(clear);
     nrow.appendChild(add);
@@ -209,7 +205,7 @@ export function openAddDialog(ctx) {
 
     const confirm = document.createElement('button');
     confirm.type = 'button';
-    confirm.className = 'nt-btn nt-btn-sm nt-btn-primary';
+    confirm.className = 'nt-btn nt-btn-sm';
     confirm.textContent = '确认添加';
     confirm.addEventListener('click', applyAdd);
 

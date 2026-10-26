@@ -543,3 +543,7 @@
   flex: none;
   width: 14px;
 }
+/* 新增行左边界与账本行输入框对齐（checkbox 14px + gap 6px） */
+.nt-add-ledger-new {
+  padding-left: 20px;
+}
