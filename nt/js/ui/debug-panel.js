@@ -26,7 +26,7 @@ export function mountDebugPanel(opts) {
   dragBar.className = 'nt-debug-drag';
   const dragTitle = document.createElement('span');
   dragTitle.className = 'nt-debug-drag-title';
-  dragTitle.textContent = '调试面板';
+  dragTitle.textContent = '界面参数';
   dragBar.appendChild(dragTitle);
 
   // 关闭按钮：放拖动条右侧（与「调试面板」同一行）
@@ -95,7 +95,6 @@ export function mountDebugPanel(opts) {
   document.body.appendChild(host);
 
   applySettings(current);
-  restorePos(host);
   enableDrag(host, dragBar);
 
   closeBtn.addEventListener('click', () => host.remove());
@@ -177,25 +176,20 @@ export function mountDebugPanel(opts) {
   };
 }
 
-/* ---------- 位置记忆 + 拖动 ---------- */
-
-function restorePos(host) {
-  try {
-    const saved = JSON.parse(localStorage.getItem(POS_KEY) || 'null');
-    if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) {
-      host.style.left = saved.left + 'px';
-      host.style.top = saved.top + 'px';
-      host.style.right = 'auto';
-      host.style.bottom = 'auto';
-    }
-  } catch (e) { /* ignore */ }
-}
+/* ---------- 拖动 ---------- */
 
 function enableDrag(host, handle) {
   let drag = null;
 
   handle.addEventListener('pointerdown', (e) => {
     if (e.target.closest('.nt-debug-close')) return;
+    // 还在居中（transform）时先转成绝对 left/top，避免拖动时叠加偏移
+    if (host.style.transform && host.style.transform !== 'none') {
+      const r0 = host.getBoundingClientRect();
+      host.style.left = r0.left + 'px';
+      host.style.top = r0.top + 'px';
+      host.style.transform = 'none';
+    }
     const r = host.getBoundingClientRect();
     drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
     try { handle.setPointerCapture(e.pointerId); } catch (err) { /* 合成事件可能无 pointerId */ }
