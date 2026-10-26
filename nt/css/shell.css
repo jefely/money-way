@@ -90,7 +90,7 @@ body {
 .nt-vbar {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--nt-btn-gap, 6px);
   flex-wrap: wrap;
   padding: 2px 10px;
   min-height: var(--nt-vbar-h);
@@ -241,7 +241,7 @@ body {
 /* ---------- 小号按钮 ---------- */
 
 .nt-btn-sm {
-  height: 26px;
+  height: var(--nt-btn-h, 26px);
   padding: 0 10px;
   font-size: 12px;
 }

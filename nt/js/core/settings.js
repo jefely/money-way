@@ -31,6 +31,9 @@ export const SCHEMA = [
   { key: '按钮边框', group: '按钮区', type: 'enum', options: ['按钮框', '竖线', '直角框'], values: ['solid', 'line', 'sharp'], def: '按钮框', attr: 'data-btn-style' },
   { key: '按钮边框颜色', group: '按钮区', def: '#2a2438', cssVar: '--nt-btn-border-color' },
   { key: '按钮底色', group: '按钮区', def: '#000000', cssVar: '--nt-btn-bg-color' },
+  { key: '按钮高度', group: '按钮区', def: 26, unit: 'px', cssVar: '--nt-btn-h' },
+  { key: '按钮宽度', group: '按钮区', def: 64, unit: 'px', cssVar: '--nt-btn-w' },
+  { key: '按钮间距', group: '按钮区', def: 6, unit: 'px', cssVar: '--nt-btn-gap' },
 
   /* ---------- 列标行 ---------- */
   { key: '列标行行高', group: '列标行', def: 26, unit: 'px', cssVar: '--nt-th-h' },
