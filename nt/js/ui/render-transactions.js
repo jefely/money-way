@@ -119,8 +119,8 @@ function renderWindow() {
       const tr = rowTpl.cloneNode(true);
       tr.dataset.id = r.id;
       if (r.isOpening) {
-        // 期初行：日期显示长横线、不可编辑、不能删除
-        setText(tr, CLASS.seq, '');
+        // 期初行：日期显示长横线、不可编辑、不能删除；序号照常显示
+        setText(tr, CLASS.seq, String(r.seq));
         setInput(tr, 'date', '—');
         const d = tr.querySelector('[data-field="date"]');
         if (d) d.readOnly = true;
