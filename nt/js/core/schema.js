@@ -112,6 +112,72 @@ export function createTransaction(patch = {}) {
   };
 }
 
+/* ---------- 计划流水（固定收支 + 分期，统一结构） ---------- */
+
+/** 频率 */
+export const FREQ = { DAILY: 'daily', MONTHLY: 'monthly' };
+
+/**
+ * 造一条「计划流水」。
+ *
+ * 固定收支与分期**共用这一个结构** —— 分期只是多带了一个 inst 字段：
+ *   固定房租：{ freq:'monthly', day:25, from_id, to_id, amount:900 }
+ *   分期还款：{ ...同上, inst:{ periods:12, firstMonth:'2026-08', principal:12000, interest:720 } }
+ *
+ * 它不产生真实流水，只是「规则」；未来的虚拟流水由 scheduler-engine 现算。
+ */
+export function createScheduled(patch = {}) {
+  const amount = Number(String(patch.amount == null ? 0 : patch.amount).replace(/[¥,\s]/g, ''));
+  const base = {
+    id: patch.id || makeId('sched'),
+    isScheduled: true,
+    freq: patch.freq === FREQ.DAILY ? FREQ.DAILY : FREQ.MONTHLY,
+    day: clampDay(patch.day),
+    from_id: patch.from_id || null,
+    to_id: patch.to_id || null,
+    amount: Number.isFinite(amount) ? Math.abs(amount) : 0,
+    note: String(patch.note || ''),
+  };
+
+  if (patch.inst) {
+    base.inst = {
+      periods: Math.max(0, Math.floor(Number(patch.inst.periods) || 0)),
+      firstMonth: normalizeMonth(patch.inst.firstMonth),
+      principal: Math.max(0, Number(patch.inst.principal) || 0),
+      interest: Math.max(0, Number(patch.inst.interest) || 0),
+    };
+  }
+  return base;
+}
+
+/** 把「几号」钳到 1~31 */
+export function clampDay(raw) {
+  const n = Math.floor(Number(raw) || 0);
+  if (n < 1) return 1;
+  if (n > 31) return 31;
+  return n;
+}
+
+/** 月份归一化成 YYYY-MM；认不出返回空串 */
+export function normalizeMonth(raw) {
+  const s = String(raw || '').trim();
+  const m = s.match(/^(\d{4})-(\d{1,2})/);
+  if (m) {
+    const mm = Number(m[2]);
+    if (mm >= 1 && mm <= 12) return `${m[1]}-${String(mm).padStart(2, '0')}`;
+    return '';
+  }
+  // 支持 "202608" / "2608" 这种紧凑写法
+  const d = s.replace(/[^0-9]/g, '');
+  if (d.length === 6) return `${d.slice(0, 4)}-${d.slice(4, 6)}`;
+  if (d.length === 4) {
+    const yy = Number(d.slice(0, 2));
+    const full = yy > 50 ? 1900 + yy : 2000 + yy;
+    return `${full}-${d.slice(2, 4)}`;
+  }
+  return '';
+}
+
 /* ---------- 轻量校验（结构层，不涉及业务规则） ---------- */
 
 export function isAccountShape(a) {
