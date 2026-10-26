@@ -10,7 +10,7 @@
   top: 50%;
   transform: translate(-50%, -50%);
   width: 320px;
-  max-height: 78vh;
+  height: 78vh;
   display: flex;
   flex-direction: column;
   background: var(--nt-bg-soft);
