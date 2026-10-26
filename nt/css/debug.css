@@ -56,19 +56,19 @@
 .nt-debug-theme {
   width: 22px;
   height: 22px;
-  border: 1px solid var(--nt-text-light);
+  border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 3px;
-  background: var(--nt-bg);
-  color: var(--nt-text);
+  background: transparent;
+  color: #fff;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
 }
 
 .nt-debug-theme[aria-pressed="true"] {
-  background: var(--nt-primary);
-  color: #fff;
-  border-color: var(--nt-primary);
+  background: #fff;
+  color: #14101f;
+  border-color: #fff;
 }
 
 /* ---------- 标签栏 ---------- */
