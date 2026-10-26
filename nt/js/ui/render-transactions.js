@@ -67,7 +67,7 @@ export function renderRows(tbody, rows) {
     for (const r of rows) {
       const tr = rowTpl.cloneNode(true);
       tr.dataset.id = r.id;
-      setText(tr, CLASS.seq, String(r.seq));
+      setText(tr, CLASS.seq, r.isOpening ? '' : String(r.seq));
       setInput(tr, 'date', r.dateEdit != null ? r.dateEdit : r.date);
       setInput(tr, 'from', r.from);
       setInput(tr, 'to', r.to);
