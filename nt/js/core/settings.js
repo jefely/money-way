@@ -94,6 +94,7 @@ export const SCHEMA = [
   /* ---------- 列标行（独立） ---------- */
   { key: '列标行行高', group: '列标行', def: 26, unit: 'px', cssVar: '--nt-th-h' },
   { key: '列标行字号', group: '列标行', def: 12, unit: 'px', cssVar: '--nt-th-font' },
+  { key: '列标行对齐', group: '列标行', type: 'align-one', options: ['左', '中', '右'], def: '左', cssVar: '--nt-th-align' },
   { key: '手柄高度', group: '列标行', def: 26, unit: 'px', cssVar: '--nt-handle-h' },
 
   /* ---------- 数据区（独立） ---------- */
@@ -198,6 +199,8 @@ export function toCssList(settings, theme) {
       COL_KEYS.forEach((c, i) => {
         out.push({ group: item.group, cssVar: '--nt-align-' + c, value: aligns[i] === '中' ? 'center' : aligns[i] === '右' ? 'right' : 'left' });
       });
+    } else if (item.type === 'align-one') {
+      out.push({ group: item.group, cssVar: item.cssVar, value: v === '中' ? 'center' : v === '右' ? 'right' : 'left' });
     } else if (item.type === 'enum') {
       let val;
       const idx = item.options ? item.options.indexOf(v) : -1;

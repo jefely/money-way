@@ -151,7 +151,7 @@
   position: relative;
   height: var(--nt-th-h);
   padding: 0 8px;
-  text-align: left;
+  text-align: var(--nt-th-align, left);
   font-size: var(--nt-th-font);
   font-weight: 700;
   color: var(--nt-unit-text, var(--nt-text));
@@ -249,37 +249,26 @@
 }
 
 /* 列对齐（--nt-align-*，按列生效） */
-.nt-table .nt-th:nth-child(1),
 .nt-table .nt-cell:nth-child(1) { text-align: var(--nt-align-seq, left); }
 
-.nt-table .nt-th:nth-child(2),
 .nt-table .nt-cell:nth-child(2) { text-align: var(--nt-align-date, left); }
 
-.nt-table .nt-th:nth-child(3),
 .nt-table .nt-cell:nth-child(3) { text-align: var(--nt-align-type, left); }
 
-.nt-table .nt-th:nth-child(4),
 .nt-table .nt-cell:nth-child(4) { text-align: var(--nt-align-cat, left); }
 
-.nt-table .nt-th:nth-child(5),
 .nt-table .nt-cell:nth-child(5) { text-align: var(--nt-align-code, left); }
 
-.nt-table .nt-th:nth-child(6),
 .nt-table .nt-cell:nth-child(6) { text-align: var(--nt-align-num, right); }
 
-.nt-table .nt-th:nth-child(7),
 .nt-table .nt-cell:nth-child(7) { text-align: var(--nt-align-amount, right); }
 
-.nt-table .nt-th:nth-child(8),
 .nt-table .nt-cell:nth-child(8) { text-align: var(--nt-align-action, center); }
 
-.nt-table .nt-th:nth-child(9),
 .nt-table .nt-cell:nth-child(9) { text-align: var(--nt-align-state, center); }
 
-.nt-table .nt-th:nth-child(10),
 .nt-table .nt-cell:nth-child(10) { text-align: var(--nt-align-freq, center); }
 
-.nt-table .nt-th:nth-child(11),
 .nt-table .nt-cell:nth-child(11) { text-align: var(--nt-align-day, center); }
 
 /* 数据区边框方案 */
