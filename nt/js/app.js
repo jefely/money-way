@@ -193,7 +193,22 @@ boot();
 
 /* PWA：注册 Service Worker（file:// 下会失败，静默忽略）
  * CACHE_NAME 与 sw.js 里的版本号一起改（公约 4.4）。
- * ?debug=1 时不注册，避免本地调试拿到旧缓存。 */
-if ('serviceWorker' in navigator && !new URLSearchParams(location.search).has('debug')) {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+ * ?debug=1 时反而要清除旧 SW，避免本地调试被旧缓存挡住。 */
+const isDebugMode = new URLSearchParams(location.search).has('debug');
+if ('serviceWorker' in navigator) {
+  if (isDebugMode) {
+    navigator.serviceWorker.getRegistrations()
+      .then((regs) => {
+        if (!regs.length) return;
+        regs.forEach((r) => r.unregister());
+        // 只自动重载一次，避免循环
+        if (navigator.serviceWorker.controller && !sessionStorage.getItem('nt_sw_cleared')) {
+          sessionStorage.setItem('nt_sw_cleared', '1');
+          location.reload();
+        }
+      })
+      .catch(() => {});
+  } else {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
 }
