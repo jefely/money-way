@@ -1,0 +1,17 @@
+{
+  "id": "/money-way/versions/v13.41/",
+  "name": "NT账本 · v13.41",
+  "short_name": "NT v13.41",
+  "description": "表格最早那版（设置页折叠、宽度按索引存）",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6b5bc4",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "../../personal/nt-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "../../personal/nt-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "../../personal/nt-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
