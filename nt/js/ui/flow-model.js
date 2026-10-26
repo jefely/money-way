@@ -19,9 +19,9 @@ export function buildFlowRows(state) {
   const rows = (state.transactions || []).slice()
     .sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0));
 
-  return rows.map((t) => ({
+  return rows.map((t, i) => ({
     id: t.id,
-    seq: Number(t.seq) || 0,
+    seq: i + 1,
     // 编辑框里用「可编辑的名字」，提交时再解析回 ID
     date: t.date,
     from: nameOf(t.from_id),
