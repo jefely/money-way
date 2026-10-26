@@ -3,24 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>NT账本 · 选择版本</title>
+  <title>NT账本</title>
   <meta name="theme-color" content="#4c3d80">
   <link rel="stylesheet" href="./launcher.css">
   <script type="module" src="./launcher.js"></script>
 </head>
 <body>
-  <header class="la-header">
-    <h1 class="la-title">NT账本</h1>
-    <p class="la-sub">同一本账的多个阶段，点一个进去</p>
-  </header>
-
   <main class="la-main">
-    <ul class="la-list" id="la-list"></ul>
-    <p class="la-note" id="la-note" role="status">正在读取版本清单…</p>
-  </main>
+    <h1 class="la-title">NT账本</h1>
 
-  <footer class="la-footer">
-    <span>各版本的数据与密码都在自己内部，互不共享</span>
-  </footer>
+    <form class="la-form" id="la-form">
+      <label class="la-label" for="la-select">版本</label>
+      <select class="la-select" id="la-select"></select>
+      <button class="la-btn" type="submit">进入</button>
+    </form>
+
+    <p class="la-note" id="la-note" role="status"></p>
+  </main>
 </body>
 </html>
