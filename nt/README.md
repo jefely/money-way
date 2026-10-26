@@ -1,4 +1,4 @@
-﻿# NT账本 · 多文件版（nt-v0.01）
+# NT账本 · 多文件版（nt-v0.01）
 
 > 与单文件版 `personal/index.html` **并列存在、互不干扰**。
 > 新功能一律写在这里；旧版只修致命 bug（公约 1.4）。
@@ -134,8 +134,22 @@ node nt/tools/check-rules.mjs
 
 ---
 
-## 六、版本记录
+## 六、文档索引
+
+| 文件 | 管什么 |
+|---|---|
+| [GLOSSARY.md](GLOSSARY.md) | **术语**：账户类型 vs 统计分类（最容易混的一条） |
+| [UI-SPEC.md](UI-SPEC.md) | **页面与组件拆分清单**：7 个模块的列标、冻结列、弹窗、交互 |
+| [MONEYWAY-SPEC.md](MONEYWAY-SPEC.md) | **路径图设计**：线宽权重、颜色绑定、单位角公式、反序溯源 |
+| [TESTING-NOTES.md](TESTING-NOTES.md) | **探针的坑**：transition / blob import / hidden 三处误判 |
+| [REFACTOR-CHECKLIST.md](../REFACTOR-CHECKLIST.md) | 16 个模块的进度与验收标准 |
+| [CODE-RULES.md](../CODE-RULES.md) | 建设公约（门禁强制） |
+
+---
+
+## 七、版本记录
 
 | 版本 | 内容 |
 |---|---|
 | `nt-v0.01` | 骨架落地：流水录入 / 列表 / 删除 / 校验 / 迁移 / 测试 / 门禁 |
+| `nt-v0.02` | 零知识加密（PBKDF2→AES-GCM + IndexedDB）、ID 存储框架（存 ID / 看名字 / 算类型）、简码体系（O(1) 索引 + 候选气泡 + V7）、计划引擎（固定 + 分期整合）、Money Way 数学引擎、双主题、NtModal |

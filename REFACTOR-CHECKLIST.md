@@ -149,20 +149,25 @@
 - **输出**：带角度的纯数据（弧度，`START_ANG = -π/2`，分类间隙 `0.8°`）。
 - **验收**：传入流水列表，输出带角度的 JSON 数组；`Σ(单位角) + Σ(间隙角) = 2π`。
 
-### ☐ 8. 和弦路径与层级计算器 `js/graph/mw-path-calculator.js` ★核心
+### ☐ 8. 和弦路径与层级计算器 `js/graph/mw-path-calculator.js` ★核心 ✅
 
 - **任务**：
   1. 根据槽位角度，算三次贝塞尔控制点坐标（`k = 0.34` 向圆心收缩）；
-  2. 用 **BFS** 从费用端出发算出层级 `depth`，映射线宽 `[6, 4.8, 3.6, 2.4, 1.2]`。
-- **输出**：只含坐标点、`depth`、颜色等**纯数据 JSON**。
-- **验收**：输出里没有任何字符串拼接（不许出现 `<path`）。
+  2. 算**线宽**：`unitArcLen × 0.8 × 权重`，权重按**转入账户类型**：费用 4 / 资产 3 / 负债 2 / 权益·收入 1；
+  3. 算**线色**：只由**转入账户的统计分类**决定（**颜色数 = 分类数**，与账户类型无关）；
+  4. 用 BFS 算 `depth`（供聚焦模式分级）。
+- **输出**：只含坐标点、线宽、颜色、透明度的**纯数据 JSON**。
+- **验收**：输出里没有字符串拼接（不许出现 `<path`）；渲染器出现三角函数即被门禁拦下。
 
-### ☐ 9. 路径追溯器 `js/graph/path-tracer.js`
+> 设计细节见 [`nt/MONEYWAY-SPEC.md`](nt/MONEYWAY-SPEC.md)；术语见 [`nt/GLOSSARY.md`](nt/GLOSSARY.md)。
 
-- **任务**：实现 **DFS**，点费用时向上游追溯。
-- **输入**：`(transactions, startIndex)`
-- **输出**：高亮链路的**流水 id 集合**（`Set<number>`）
-- **验收**：输入起点，输出集合；环状转账不会死循环（有 `seen` 保护）。
+### ☐ 9. 路径追溯器 `js/graph/path-tracer.js` ✅
+
+- **任务**：实现反向 **BFS**（从费用端往上溯源），并给每种交互提供入口：
+  `traceUpstream`（功能一）、`traceByAccount`（点弧块）、`extractLeverageLinks`（功能二）、`hasCycle`（检测倒卡环）。
+- **输入**：`(links, startAccountId)`
+- **输出**：`{ linkIndices, accountIds, depths }`
+- **验收**：输入起点能追到最上游；环状转账不会死循环（visited 保护）。
 
 ---
 
