@@ -49,6 +49,14 @@ const server = createServer(async (req, res) => {
   }
 });
 
+server.on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    console.log(`端口 ${PORT} 已被占用（服务器可能已在运行）`);
+    process.exit(0);
+  }
+  throw e;
+});
+
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`NT 本地调试: http://127.0.0.1:${PORT}/nt/index.html?debug=1`);
   console.log(`               http://127.0.0.1:${PORT}/nt/index.html`);
