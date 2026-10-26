@@ -4164,25 +4164,6 @@ table#summary-table.sum-cols-folded .sum-fold-toggle::before {
 }
 [data-theme="dark"] table#summary-table.sum-cols-folded .sum-fold-toggle::before { border-left-color: #ffffff; }
 
-/* ⑤-b 冻结列的 position 必须显式给 sticky。
-    表头 th 本来就是 sticky（吸顶），所以表头看起来是冻住的；
-    而 tbody td 默认 position:static —— applySummarySticky 写进去的 left 对它**完全不生效**，
-    于是横滑时数据行照样跑、只有表头不动。这就是「冻结的前两列会跑」的真因。
-    这里把可能被冻结的几列统一设成 sticky；left 仍由 applySummarySticky 决定，
-    没被冻结的列收不到 left，就不会横向吸附。 */
-table#summary-table thead th.col-seq,
-table#summary-table tbody td.col-seq,
-table#summary-table thead th.col-cat,
-table#summary-table tbody td.col-cat,
-table#summary-table thead th.col-code,
-table#summary-table tbody td.col-code { position: sticky; }
-table#summary-table thead th.col-seq,
-table#summary-table tbody td.col-seq { z-index: 5; }
-table#summary-table thead th.col-cat,
-table#summary-table tbody td.col-cat { z-index: 4; }
-table#summary-table thead th.col-code,
-table#summary-table tbody td.col-code { z-index: 6; }
-
 /* ⑥ 列宽手柄：命中区收在本列内，平时完全透明，只在悬停/拖动时露一条 1px 竖线。
    以前手柄 right:-16px / width:32px，有 16px 盖在右边那一格上 —— 看起来像一层
    1.5mm 的遮罩把紧挨着的文字挡住，其实那一小条也确实点不到。 */
@@ -4523,34 +4504,28 @@ table#summary-table td input {
   /* 与弹窗标题同一套间距：正文从标题下 28px 开始（原来 18 太挤） */
   margin: 0 0 28px 0 !important;
   /* 与其它弹窗一样：紫渐变标题（深紫底上整体提亮一档） */
-  background: none !important;
-  -webkit-background-clip: border-box !important;
-  background-clip: border-box !important;
-  color: rgba(255, 255, 255, .88) !important;
-  -webkit-text-fill-color: rgba(255, 255, 255, .88) !important;
+  background: linear-gradient(135deg, #d9ccff, #9b7fff) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
 }
 .lock-title { font-size: 22px !important; font-weight: 700; color: #fff !important; letter-spacing: .08em; }
 .lock-sub { margin-top: 0; font-size: 13px !important; line-height: 1.65; color: rgba(255, 255, 255, .6) !important; }
-.lock-sub:empty { display: none !important; }
-#lock-hint-show { text-align: left !important; }
 .lock-field { position: relative; margin: 20px 0 4px; }
 .lock-field input {
   width: 100%; height: 48px; padding: 0 14px; box-sizing: border-box;
   /* 原来只有 6% 白底 + 18% 白边，压在紫色页面上不聚焦时几乎看不见，
      看起来像「输入框一下在一下不在」（聚焦才显出紫边和光）。
      现在常态就有紫边 + 10% 白底，聚焦再加强。 */
-  /* 必须带 !important：208 行那条 `[data-theme="dark"] input { border:none !important }`
-     本是给表格内联编辑器用的，同样命中锁屏输入框 —— 不加就被剥光，
-     表现就是「只有深色主题时密码框看不见」。 */
-  border-radius: 12px !important; border: 1px solid rgba(170, 150, 255, .60) !important;
-  background: rgba(255, 255, 255, .16) !important; color: #fff !important; font-size: 17px !important;
-  outline: none !important; transition: border-color .18s, background .18s, box-shadow .18s;
+  border-radius: 12px; border: 1px solid rgba(160, 140, 255, .45);
+  background: rgba(255, 255, 255, .10); color: #fff !important; font-size: 17px !important;
+  outline: none; transition: border-color .18s, background .18s, box-shadow .18s;
 }
-.lock-field input::placeholder { color: rgba(255, 255, 255, .38) !important; }
+.lock-field input::placeholder { color: rgba(255, 255, 255, .36); }
 .lock-field input:focus {
-  border-color: #a98cff !important;
-  background: rgba(139, 108, 255, .22) !important;
-  box-shadow: 0 0 0 3px rgba(139, 108, 255, .22) !important;
+  border-color: #8b6cff;
+  background: rgba(139, 108, 255, .13);
+  box-shadow: 0 0 0 3px rgba(139, 108, 255, .22);
 }
 .lock-field + .lock-field { margin-top: 10px; }
 .lock-err { min-height: 18px; margin-top: 12px; font-size: 12px; color: #ffb3b3; letter-spacing: .02em; }
@@ -6866,34 +6841,6 @@ input::selection, textarea::selection { background: rgba(139, 108, 255, .70); co
 *::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,.8); background-clip: padding-box; }
 *::-webkit-scrollbar-thumb:active { background: rgba(139,108,255,.9); background-clip: padding-box; }
 *::-webkit-scrollbar-corner { background: transparent; }
-
-/* 弹窗里的多行输入框：去掉右下角拖拽手柄（会把卡片撑变形），内部滚动条细到 1px */
-.confirm-mask .sync-box textarea {
-  resize: none !important;
-  scrollbar-width: thin !important;
-  scrollbar-color: rgba(139, 108, 255, .22) transparent !important;
-}
-.confirm-mask .sync-box textarea::-webkit-scrollbar { width: 1px !important; height: 1px !important; }
-.confirm-mask .sync-box textarea::-webkit-scrollbar-track { background: transparent !important; border: 0 !important; }
-.confirm-mask .sync-box textarea::-webkit-scrollbar-thumb {
-  background: rgba(139, 108, 255, .22) !important;
-  border-radius: 1px !important; border: 0 !important; min-height: 24px !important;
-}
-.confirm-mask .sync-box textarea::-webkit-scrollbar-thumb:hover { background: rgba(139, 108, 255, .45) !important; }
-
-/* 「重置」弹窗：每个危险按钮紧贴它自己那段说明上方，整体靠左 */
-.confirm-mask .reset-item {
-  display: flex !important; flex-direction: column !important;
-  align-items: flex-start !important; gap: 6px !important; margin: 14px 0 !important;
-}
-.confirm-mask .reset-item > button { align-self: flex-start !important; margin: 0 !important; }
-.confirm-mask .reset-item .reset-note { text-align: left !important; line-height: 1.65 !important; margin: 0 !important; }
-
-
-/* 弹窗滚动条直接隐藏：它贯穿整块卡片高度、会从 NT 那一带开始画，像棍子戳穿标题 */
-.confirm-mask .sync-box::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none !important; }
-.confirm-mask .sync-box { scrollbar-width: none !important; -ms-overflow-style: none !important; }
-
 *::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
 [data-theme="dark"] *::-webkit-scrollbar-thumb { background: rgba(180,180,190,.5); background-clip: padding-box; }
 [data-theme="dark"] *::-webkit-scrollbar-thumb:hover { background: rgba(180,180,190,.75); background-clip: padding-box; }
@@ -7269,10 +7216,10 @@ html body #ver-update-help {
 /* 「更新」按钮：和「载入.txt」同款 —— 白底 / 淡紫边 / 紫字，深色主题换暗紫底 */
 html body #ver-update-help,
 html[data-theme="dark"] #ver-update-help {
-  background: #6b5bc4 !important;
-  border: 1px solid #5b4ea8 !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 1px solid #cbbcf0 !important;
+  color: #5b4ea8 !important;
+  -webkit-text-fill-color: #5b4ea8 !important;
   box-shadow: none !important;
 }
 html[data-theme="dark"] #ver-update-help {
@@ -7785,18 +7732,18 @@ html:not([data-theme="dark"]) body table.grid tbody tr:hover td {
        固定的 col-state、统计的 col-hin），单独把圆角补回来。
    ------------------------------------------------------------ */
 html:not([data-theme="dark"]) body table.grid > thead > tr > th:first-child {
-  border-top-left-radius: 6px !important;
+  border-top-left-radius: 12px !important;
 }
 html:not([data-theme="dark"]) body table.grid > thead > tr > th:last-child {
-  border-top-right-radius: 6px !important;
+  border-top-right-radius: 12px !important;
 }
 /* 查询页的表不是 .grid（是 .query-table），上面那两条碰不到它 ——
    所以三栏的紫色列标一直是方角。这里单独给它两端的圆角。 */
 html:not([data-theme="dark"]) body table.query-table > thead > tr.q-head-row > th:first-child {
-  border-top-left-radius: 6px !important;
+  border-top-left-radius: 12px !important;
 }
 html:not([data-theme="dark"]) body table.query-table > thead > tr.q-head-row > th:last-child {
-  border-top-right-radius: 6px !important;
+  border-top-right-radius: 12px !important;
 }
 html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-op,
 html:not([data-theme="dark"]) body table.grid > thead > tr > th.col-ops,
@@ -7814,14 +7761,14 @@ html:not([data-theme="dark"]) body table.query-table > thead > tr.q-head-row > t
 html:not([data-theme="dark"]) body table#summary-table > thead > tr > th.col-open,
 html:not([data-theme="dark"]) body table#fixed-table > thead > tr > th.col-state,
 html:not([data-theme="dark"]) body table#stats-sum-table > thead > tr > th.col-hin {
-  border-top-right-radius: 6px !important;
+  border-top-right-radius: 12px !important;
 }
 /* 表格最后一行也收个下圆角，和外框对齐 */
 html:not([data-theme="dark"]) body table.grid > tbody > tr:last-child > td:first-child {
-  border-bottom-left-radius: 6px !important;
+  border-bottom-left-radius: 12px !important;
 }
 html:not([data-theme="dark"]) body table.grid > tbody > tr:last-child > td:last-child {
-  border-bottom-right-radius: 6px !important;
+  border-bottom-right-radius: 12px !important;
 }
 /* ============================================================
    弹窗皮肤（v13.21）：30% 透明 + 毛玻璃 + 紫边
@@ -7947,43 +7894,29 @@ html body .confirm-mask .dlg-x { z-index: 30 !important; }
   padding-right: 40px !important;
   box-sizing: content-box !important;
 }
+/* 固定页里的「分期」图标：切换两个子视图 */
+.fixed-sub-ico {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  margin: 0 8px 0 2px;
+  border: 1px solid #cfc9e8;
+  border-radius: 5px;
+  background: transparent;
+  color: #6b5bc4;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.fixed-sub-ico.on {
+  background: #6b5bc4;
+  border-color: #6b5bc4;
+  color: #fff;
+}
+.fixed-sub-ico:active { transform: scale(0.9); }
 
-/* ---- 弹窗毛玻璃：8% 透明 + blur 42（越透越要靠模糊把底层糊成一片底色） ---- */
-html:not([data-theme="dark"]) .confirm-mask .sync-box {
-  background: rgba(255, 255, 255, .08) !important;
-  -webkit-backdrop-filter: blur(42px) saturate(190%) !important;
-  backdrop-filter: blur(42px) saturate(190%) !important;
-  border: 1px solid rgba(139, 108, 255, .34) !important;
-  border-radius: 18px !important;
-  box-shadow:
-    0 0 0 1px rgba(139, 108, 255, .06),
-    0 0 34px rgba(139, 108, 255, .14),
-    inset 0 0 70px rgba(255, 255, 255, .62),
-    inset 0 1px 0 rgba(255, 255, 255, .95),
-    0 24px 56px -18px rgba(76, 61, 128, .40) !important;
-}
-[data-theme="dark"] .confirm-mask .sync-box {
-  background: rgba(20, 16, 32, .08) !important;
-  -webkit-backdrop-filter: blur(42px) saturate(180%) !important;
-  backdrop-filter: blur(42px) saturate(180%) !important;
-  border: 1px solid rgba(155, 138, 210, .42) !important;
-  border-radius: 18px !important;
-  box-shadow:
-    0 0 0 1px rgba(139, 108, 255, .10),
-    0 0 40px rgba(139, 108, 255, .18),
-    inset 0 0 80px rgba(139, 108, 255, .20),
-    inset 0 1px 0 rgba(255, 255, 255, .14),
-    0 26px 64px rgba(0, 0, 0, .70) !important;
-}
-/* 深色遮罩压到 30%：92% 不透明时弹窗透出来的是那块实心板，怎么调都不显透 */
-.confirm-mask {
-  background:
-    radial-gradient(1100px 560px at 18% 8%, rgba(124, 92, 255, .12), transparent 62%),
-    radial-gradient(880px 500px at 88% 86%, rgba(76, 61, 128, .15), transparent 62%),
-    linear-gradient(160deg, rgba(27, 18, 51, .30) 0%, rgba(11, 8, 22, .30) 100%) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-}
 </style>
 </head><body>
 
@@ -7992,7 +7925,6 @@ html:not([data-theme="dark"]) .confirm-mask .sync-box {
   <button data-tab="cat">统计</button>
   <button data-tab="query">查询</button>
   <button data-tab="money">路径</button>
-  <button data-tab="install">分期</button>
   <button data-tab="fixed">固定</button>
   <button data-tab="settings">设置</button>
   <button data-tab="audit">校验</button>
@@ -8194,7 +8126,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.65';
+const APP_VER = 'v13.66';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -8717,16 +8649,14 @@ function openConfigDialog() {
 function openResetChoiceDialog() {
   const mask = mkDialog(`
     <div class="sync-title">重置</div>
-    <div class="reset-item">
+    <div class="sync-hint small">
+      <b>重置账户（保留数据）</b>：只把账户表恢复成内置默认，流水 / 分期 / 固定都留着。<br><br>
+      <b>重置账本（清空数据）</b>：全部清空并恢复默认账户，
+      <b style="color:#dc2626">不可撤销</b>，请先「配置 → 复制账户设置」或导出备份。
+    </div>
+    <div class="sync-actions" style="flex-wrap:wrap;gap:8px">
       <button type="button" class="danger-btn" id="rst-keep">重置账户（保留数据）</button>
-      <div class="sync-hint small reset-note">只把账户表恢复成内置默认，流水 / 分期 / 固定都留着。</div>
-    </div>
-    <div class="reset-item">
       <button type="button" class="danger-btn" id="rst-wipe">重置账本（清空数据）</button>
-      <div class="sync-hint small reset-note">全部清空并恢复默认账户，
-        <b style="color:#dc2626">不可撤销</b>，请先「配置 → 复制账户设置」或导出备份。</div>
-    </div>
-    <div class="sync-actions" style="justify-content:flex-start;margin-top:4px">
       <button type="button" class="ghost" data-act="close">关闭</button>
     </div>
   `);
@@ -10342,7 +10272,6 @@ function renderAudit(main, footer) {
     const TABS = [
       ['help', '账本说明'],
       ['verify', '账本校验'],
-      ['version', '账本配置'],
       ['thanks', '赞助感谢']
     ];
     ubar.innerHTML = TABS.map(([k, label]) =>
@@ -10607,6 +10536,20 @@ function renderAudit(main, footer) {
 
     <div class="intro-foot">你负责记录钱的去向，软件负责让账永远是平的。</div>
   `;
+  // 「提取流水账户」从已删除的账本配置页搬来
+  {
+    const card = document.createElement('div');
+    card.className = 'audit-card';
+    card.innerHTML = `
+      <div class="audit-title">提取流水账户</div>
+      <div class="sync-hint small" style="margin-top:8px">
+        把流水里出现过、但账户表里还没有的名字，自动追加到账户表<b>末尾</b>，
+        简码自动给（X1、X2…）。之后请到统计页/设置页校对类型与简码，不要的可以删掉。
+      </div>
+      <div style="margin-top:12px"><button type="button" id="acc-extract">提取流水账户</button></div>`;
+    intro.appendChild(card);
+  }
+
   main.appendChild(intro);
 
   // 说明页两排小字里的「远端版本」：静默读一次 sw.js
@@ -10633,21 +10576,9 @@ function renderAudit(main, footer) {
     });
   }
 
-  // ── 账本配置 pane：每块功能各一个圆角卡片 ──
-  const vpane = document.createElement('div');
-  vpane.className = 'audit-pane audit-cards';
-  vpane.dataset.pane = 'version';
-  vpane.innerHTML = `
-
-    <div class="audit-card">
-      <div class="audit-title">提取流水账户</div>
-      <div class="sync-hint small" style="margin-top:8px">
-        把流水里出现过、但账户表里还没有的名字，自动追加到账户表<b>末尾</b>，
-        简码自动给（X1、X2…）。之后请到统计页/设置页校对类型与简码，不要的可以删掉。
-      </div>
-      <div style="margin-top:12px"><button type="button" id="acc-extract">提取流水账户</button></div>
-    </div>`;
-  main.appendChild(vpane);
+  // 「账本配置」页已按要求删除。
+  // 其中唯一还有用的「提取流水账户」，搬到「账本说明」页底部。
+  const vpane = { querySelector: () => null };   // 占位：下面绑定会安全地取不到元素
 
   // ── 赞助感谢 pane：二维码一块、感谢墙单独一块 ──
   const tpane = document.createElement('div');
@@ -10686,7 +10617,7 @@ function renderAudit(main, footer) {
     if ($ax) $ax.onclick = () => copyAccountsText();
     const $ai = vpane.querySelector('#acc-import');
     if ($ai) $ai.onclick = () => openImportAccountsDialog();
-    const $ae = vpane.querySelector('#acc-extract');
+    const $ae = main.querySelector('#acc-extract');
     if ($ae) $ae.onclick = () => openExtractAccountsDialog();
     const $pc = vpane.querySelector('#pw-change');
     if ($pc) $pc.onclick = () => openChangePasswordDialog();
@@ -10701,6 +10632,9 @@ function renderAudit(main, footer) {
 }
 
 // 固定收支页
+// 固定页有两个子视图：固定收支 / 分期（分期不再占主导航一格）
+let fixedSub = 'fixed';
+
 function renderFixed(main, footer) {
   const list = (state.fixed || []).slice().sort((a, b) => {
     const fa = a.freq === 'day' ? 0 : 1, fb = b.freq === 'day' ? 0 : 1;
@@ -10724,10 +10658,15 @@ function renderFixed(main, footer) {
   bar.className = 'toolbar flow-bar fixed-bar';
   bar.innerHTML = `
     <span class="fixed-title">固定收支</span>
+    <button class="fixed-sub-ico" type="button" id="fixed-go-install" title="分期" aria-label="分期">▦</button>
     <span class="fixed-sum"><i>收入合计：</i><b class="in">${fmtMoney(sumIn)}</b></span>
     <span class="fixed-sum"><i>支出合计：</i><b class="out">${fmtMoney(sumOut)}</b></span>
   `;
   main.appendChild(bar);
+    {
+      const ico = bar.querySelector('#fixed-go-install');
+      if (ico) ico.onclick = () => { fixedSub = 'install'; render(); };
+    }
   if (dailyIn || dailyOut) {
     const tip = document.createElement('div');
     tip.className = 'fixed-daily-tip';
@@ -14211,7 +14150,11 @@ function render() {
   else if (currentTab === 'cat') renderStats(main, footer);
   else if (currentTab === 'settings') renderSummary(main, footer);
   else if (currentTab === 'install') renderInstall(main, footer);
-  else if (currentTab === 'fixed') renderFixed(main, footer);
+  else if (currentTab === 'fixed') {
+    // 分期是固定页的子视图（由标题栏那个图标切换）
+    if (fixedSub === 'install') renderInstall(main, footer);
+    else renderFixed(main, footer);
+  }
   else if (currentTab === 'query') renderQuery(main, footer);
   else if (currentTab === 'audit') renderAudit(main, footer);
   else if (currentTab === 'money') renderMoneyWay(main, footer);
@@ -14237,7 +14180,8 @@ function render() {
 // 页脚文字统一入口
 function setFooterText(text) {
   const el = document.getElementById('footer-text');
-  if (el) el.textContent = text;
+  // 版本号是固定挂在页脚右侧的，正文末尾补个空格，避免「¥0.00v13.66」挤在一起
+  if (el) el.textContent = text ? text + ' ' : text;
   else { const f = document.getElementById('footer'); if (f) f.textContent = text; }
 }
 
@@ -15245,10 +15189,7 @@ function applySummarySticky() {
          只要再给它写 left 就等于同时横向冻结了 —— 所以 col-name 绝不能收到 left，
          否则「账户名称」也会被一起冻住（这正是上一版冻结成三列的原因）。 */
   const ACCUM_CLS = ['col-seq', 'col-cat', 'col-sub', 'col-code', 'col-name'];
-  /* 冻结「最左两列」：折叠态是「序 + 简码」，展开态是「序 + 类型」。
-     原来固定冻 seq+code —— 展开后最左两列变成「序 + 类型」，
-     类型没冻，横向一滑前两列就跑走。 */
-  const FROZEN_CLS = summaryFold ? ['col-seq', 'col-code'] : ['col-seq', 'col-cat'];
+  const FROZEN_CLS = ['col-seq', 'col-code'];
   const measureAndApply = () => {
     const ths = table.querySelectorAll('thead th');
     if (!ths.length) return;
@@ -16046,6 +15987,7 @@ function renderInstall(main, footer) {
   bar.className = 'toolbar install-bar';
   bar.innerHTML = `
     <span class="bar-title">分期统计</span>
+    <button class="fixed-sub-ico on" type="button" id="install-go-fixed" title="回到固定收支" aria-label="回到固定收支">▦</button>
     <button class="ghost" id="i-add">新增</button>
     <button class="ghost" id="i-copy">复制</button>
     <label class="inst-label">起 <input id="i-from" class="inst-input" inputmode="numeric" maxlength="6" title="如 2610 表示 2026 年 10 月" value="${ymShort(installState.from)}"></label>
@@ -16053,6 +15995,10 @@ function renderInstall(main, footer) {
     <span style="flex:1"></span>
   `;
   main.appendChild(bar);
+    {
+      const ico = bar.querySelector('#install-go-fixed');
+      if (ico) ico.onclick = () => { fixedSub = 'fixed'; render(); };
+    }
 
   // 表格主体
   const wrap = document.createElement('div');
@@ -19496,7 +19442,7 @@ function showLockScreen(mode, payload) {
       <div class="lock-card">
         <div class="lock-logo">NT</div>
         <div class="lock-title">${isSetup ? '设置账本密码' : '解锁账本'}</div>
-        <div class="lock-sub">${isSetup ? '密码用于加密本机数据与同步文件' : ''}</div>
+        <div class="lock-sub">${isSetup ? '密码用于加密本机数据与同步文件' : '输入密码进入账本'}</div>
         <div class="lock-field">
           <input id="lock-pw" type="password" autocomplete="off" placeholder="${isSetup ? '设置密码（至少 1 个字符）' : '密码'}">
         </div>
@@ -19507,7 +19453,7 @@ function showLockScreen(mode, payload) {
         <div class="lock-field">
           <input id="lock-hint" type="text" autocomplete="off" maxlength="60" placeholder="密码提示（可选）">
         </div>` : ''}
-        ${!isSetup ? `<div id="lock-hint-show" class="lock-sub" style="min-height:18px;margin-top:10px;text-align:left"></div>` : ''}
+        ${!isSetup ? `<div id="lock-hint-show" class="lock-sub" style="min-height:18px;margin-top:10px"></div>` : ''}
         <div id="lock-err" class="lock-err"></div>
         <button type="button" id="lock-go" class="lock-btn">${isSetup ? '设置并进入' : '解锁'}</button>
         ${isSetup ? '<div class="lock-warn">忘记密码 = 数据永久无法恢复，请务必记住</div>' : ''}

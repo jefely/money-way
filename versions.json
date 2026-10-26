@@ -1,51 +1,42 @@
 {
-  "generated": "2026-10-26",
-  "note": "版本清单：每一项是一个可点选进入的确定阶段快照。kind = single（单文件版）/ multi（多文件版）",
+  "current": "v13.66",
   "items": [
     {
-      "id": "v13.65",
-      "kind": "single",
-      "label": "v13.65",
+      "id": "v13.66",
+      "label": "v13.66",
+      "kind": "单文件版",
       "path": "./personal/index.html",
-      "stage": "当前",
-      "note": "最新单文件版。全功能：密码加密、同步、导入导出、统计、路径图。",
-      "current": true
+      "note": "回到 v13.41 的表格与交互；删校验页「账本配置」；分期并入固定页为图标"
+    },
+    {
+      "id": "v13.65",
+      "label": "v13.65",
+      "kind": "单文件版",
+      "path": "./versions/v13.65/index.html"
     },
     {
       "id": "v13.61",
-      "kind": "single",
       "label": "v13.61",
-      "path": "./versions/v13.61/index.html",
-      "stage": "回退点",
-      "note": "表格引擎整体回退到 v13.41 后的状态，再把做对的 UI 修复逐项找回。界面能用的基线。",
-      "current": false
+      "kind": "单文件版",
+      "path": "./versions/v13.61/index.html"
     },
     {
       "id": "v13.51",
-      "kind": "single",
       "label": "v13.51",
-      "path": "./versions/v13.51/index.html",
-      "stage": "旧稳定",
-      "note": "列宽按列名持久化之前的最后一版，统计表已有折叠。",
-      "current": false
+      "kind": "单文件版",
+      "path": "./versions/v13.51/index.html"
     },
     {
       "id": "v13.41",
-      "kind": "single",
       "label": "v13.41",
-      "path": "./versions/v13.41/index.html",
-      "stage": "最早基线",
-      "note": "表格最早那版：设置页折叠、宽度按索引存。后来五轮补丁就是从这之后开始的。",
-      "current": false
+      "kind": "单文件版",
+      "path": "./versions/v13.41/index.html"
     },
     {
-      "id": "nt-v0.01",
-      "kind": "multi",
-      "label": "nt-v0.01",
-      "path": "./nt/index.html",
-      "stage": "重构中",
-      "note": "五层架构重写：算钱 / 切时间 / 算图 / 适配设备 / 画界面各自独立。目前只做了流水录入与校验。",
-      "current": true
+      "id": "nt-v0.02",
+      "label": "nt-v0.02",
+      "kind": "多文件版",
+      "path": "./nt/index.html"
     }
   ]
 }
