@@ -84,10 +84,20 @@ body {
   box-shadow: 0 0 0 3px rgba(139, 108, 255, 0.25);
 }
 
-/* 下拉展开后的选项（部分浏览器支持着色） */
 .la-select option {
   background: #1b1430;
   color: var(--la-text);
+}
+
+/* 密码框：和下拉框同高同边，但保留文本光标样式 */
+.la-pw {
+  font-variant-numeric: normal;
+  letter-spacing: 0.12em;
+}
+
+.la-pw::placeholder {
+  color: rgba(244, 241, 255, 0.32);
+  letter-spacing: 0;
 }
 
 .la-btn {

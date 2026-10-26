@@ -8194,7 +8194,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.64';
+const APP_VER = 'v13.65';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -19572,6 +19572,19 @@ function showLockScreen(mode, payload) {
     };
 
     go.onclick = submit;
+    /* 启动器（仓库根 index.html）可以把密码带过来，省掉二次输入。
+       只在「解锁」态生效；新装（isSetup）不代填，避免绕过「再输一次确认」。
+       读到就立刻删掉，不在会话里多留。 */
+    try {
+      const bootPw = sessionStorage.getItem('nt_boot_pw');
+      if (bootPw) {
+        sessionStorage.removeItem('nt_boot_pw');
+        if (!isSetup) {
+          pw.value = bootPw;
+          setTimeout(() => { try { submit(); } catch (e) {} }, 60);
+        }
+      }
+    } catch (e) {}
     [pw, pw2].forEach(el => {
       if (!el) return;
       el.addEventListener('keydown', ev => {

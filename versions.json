@@ -3,9 +3,9 @@
   "note": "版本清单：每一项是一个可点选进入的确定阶段快照。kind = single（单文件版）/ multi（多文件版）",
   "items": [
     {
-      "id": "v13.64",
+      "id": "v13.65",
       "kind": "single",
-      "label": "v13.64",
+      "label": "v13.65",
       "path": "./personal/index.html",
       "stage": "当前",
       "note": "最新单文件版。全功能：密码加密、同步、导入导出、统计、路径图。",

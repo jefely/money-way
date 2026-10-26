@@ -26,6 +26,15 @@ function note(text, bad) {
 function go(index) {
   const item = items[index];
   if (!item || !item.path) return;
+
+  // 把密码交给目标版本（sessionStorage：同源、会话级、目标页读完即删）
+  const pwEl = document.getElementById('la-pw');
+  const pw = pwEl ? pwEl.value : '';
+  try {
+    if (pw) sessionStorage.setItem('nt_boot_pw', pw);
+    else sessionStorage.removeItem('nt_boot_pw');
+  } catch (e) { /* 隐私模式下写不进去，就让目标页再问一次 */ }
+
   location.href = item.path;
 }
 
