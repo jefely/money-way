@@ -26,8 +26,6 @@ import { bindHeaderTools } from './ui/header-tools.js';
 import { openAccountsWith } from './ui/account-actions.js';
 import { initTheme } from './ui/theme-manager.js';
 import * as NtModal from './ui/modal.js';
-import { openImportDialog } from './ui/import-dialog.js';
-import { openAccountDialog } from './ui/account-dialog.js';
 import { hasVault, createVault, unlockVault, saveState } from './browser/db.js';
 import { migrate } from './core/migrate.js';
 
@@ -222,15 +220,6 @@ async function boot() {
   });
 
   // 工具栏
-  const impBtn = document.getElementById('nt-import');
-  if (impBtn) {
-    impBtn.addEventListener('click', () => {
-      openImportDialog({
-        knownAccounts: (state.accounts || []).map((a) => a.name),
-        onImport: applyImport,
-      });
-    });
-  }
   const accBtn = document.getElementById('nt-accounts');
   if (accBtn) {
     accBtn.addEventListener('click', () => openAccountsWith({

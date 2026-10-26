@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>NT账本 · 流水文本</title>
+  <meta name="theme-color" content="#6b5bc4">
+  <link rel="stylesheet" href="./css/theme.css">
+  <link rel="stylesheet" href="./css/base.css">
+  <link rel="stylesheet" href="./css/text-editor.css">
+  <link rel="stylesheet" href="./css/gate.css">
+  <script type="module" src="./js/text-app.js"></script>
+</head>
+<body>
+  <div class="nt-gate-host" id="nt-gate" hidden></div>
+
+  <div class="te-app" id="te-app" hidden>
+    <header class="te-header">
+      <a class="te-back" href="./index.html" aria-label="返回">←</a>
+      <h1 class="te-title">流水文本</h1>
+      <span class="te-count" id="te-count"></span>
+      <button class="te-icon-btn" type="button" id="te-reload" aria-label="从账本重新载入">↻</button>
+    </header>
+
+    <!-- 主体：整页编辑器（不是弹窗） -->
+    <section class="te-main">
+      <textarea class="te-editor" id="te-editor" spellcheck="false"
+                autocomplete="off" autocapitalize="off" wrap="off"
+                aria-label="流水文本，每行一笔"></textarea>
+    </section>
+
+    <!-- 底部固定状态条：实时解析结果 + 保存 -->
+    <footer class="te-bar">
+      <div class="te-status" id="te-status" role="status">载入中…</div>
+      <div class="te-actions">
+        <button class="te-btn" type="button" id="te-append">追加</button>
+        <button class="te-btn te-btn-primary" type="button" id="te-save">保存</button>
+      </div>
+    </footer>
+
+    <div class="te-issues" id="te-issues" hidden></div>
+  </div>
+</body>
+</html>
