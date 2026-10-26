@@ -1,0 +1,15 @@
+/* ============================================================
+   设置页：账户列表（简码当冻结列，大号醒目）
+   ============================================================ */
+
+.nt-cell-code {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--nt-primary);
+}
+
+.nt-accounts-tools {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}

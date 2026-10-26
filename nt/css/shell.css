@@ -1,0 +1,268 @@
+/* ============================================================
+   NT账本 · 单页壳层（顶栏 7-tab / 胶囊子tab / 工具条 / 表格）
+   ------------------------------------------------------------
+   所有页面共用这一套：页面只填自己那一列，不另造样式。
+   加载顺序在 flow.css / modal.css 之后，因此可以覆盖布局层。
+   ============================================================ */
+
+/* ---------- 让整页固定高度：内部表格自己滚，页脚钉底 ---------- */
+
+body {
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.nt-app {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.nt-app[hidden] {
+  display: none;
+}
+
+/* ---------- 主区：让每个 view 撑满 ---------- */
+
+.nt-main {
+  padding: 0;
+  max-width: none;
+  gap: 0;
+  overflow: hidden;
+}
+
+.nt-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.nt-view[hidden] {
+  display: none;
+}
+
+/* ---------- 顶部 7-tab ---------- */
+
+.nt-tabs {
+  display: flex;
+  background: var(--nt-bg-soft);
+  border-bottom: 1px solid var(--nt-bg-line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nt-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.nt-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 9px 4px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--nt-text-muted);
+  font-weight: 600;
+  font-size: 13px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.nt-tab:hover {
+  color: var(--nt-text);
+}
+
+.nt-tab[aria-selected="true"] {
+  background: var(--nt-primary);
+  color: #fff;
+  border-bottom-color: var(--nt-primary-light);
+}
+
+/* ---------- 视图工具条 ---------- */
+
+.nt-vbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  background: var(--nt-bg-soft);
+  border-bottom: 1px solid var(--nt-bg-line);
+}
+
+.nt-vbar-title {
+  margin-right: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--nt-text-muted);
+}
+
+.nt-vbar-spacer {
+  margin-left: auto;
+}
+
+.nt-vbar-info {
+  font-size: 12px;
+  color: var(--nt-text-muted);
+}
+
+/* ---------- 胶囊子 tab ---------- */
+
+.nt-caps {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 999px;
+  background: var(--nt-bg);
+}
+
+.nt-cap {
+  border: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--nt-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.nt-cap:hover {
+  color: var(--nt-text);
+}
+
+.nt-cap[aria-selected="true"] {
+  background: var(--nt-primary);
+  color: #fff;
+}
+
+/* ---------- 月份 / 年份 pills ---------- */
+
+.nt-pills {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--nt-bg-line);
+  background: var(--nt-bg);
+}
+
+.nt-pills[hidden] {
+  display: none;
+}
+
+.nt-pill {
+  min-width: 30px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  background: var(--nt-bg);
+  color: var(--nt-text-muted);
+  font-size: 12px;
+}
+
+.nt-pill:hover {
+  border-color: var(--nt-primary);
+  color: var(--nt-text);
+}
+
+.nt-pill[aria-selected="true"] {
+  background: var(--nt-primary);
+  border-color: var(--nt-primary);
+  color: #fff;
+}
+
+/* ---------- 表格容器（横向滚动 + 表头吸顶） ---------- */
+
+.nt-tablewrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--nt-bg);
+}
+
+.nt-th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.nt-cell-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.nt-row-total {
+  background: var(--nt-bg-soft);
+  font-weight: 700;
+}
+
+.nt-row-total .nt-cell {
+  color: var(--nt-text);
+}
+
+/* ---------- 列宽（table-layout:fixed 认表头第一行） ---------- */
+
+.nt-table-flow .nt-cell-seq { width: 44px; }
+.nt-table-flow .nt-cell-date { width: 84px; }
+.nt-table-flow .nt-cell-amount { width: 104px; }
+.nt-table-flow .nt-cell-action { width: 40px; }
+
+/* 统计 / 计划 / 账户表：内容宽度、贴左（与单文件版一致，右侧留白） */
+.nt-table-stats,
+.nt-table-plan,
+.nt-table-accounts {
+  table-layout: auto;
+  width: auto;
+}
+
+.nt-c-seq { width: 44px; }
+.nt-c-date { width: 84px; }
+.nt-c-type { width: 72px; }
+.nt-c-cat { width: 76px; }
+.nt-c-code { width: 64px; }
+.nt-c-num { width: 100px; }
+.nt-c-amount { width: 96px; }
+.nt-c-action { width: 40px; }
+.nt-c-state { width: 64px; }
+.nt-c-freq { width: 64px; }
+.nt-c-day { width: 64px; }
+
+/* ---------- 小号按钮 ---------- */
+
+.nt-btn-sm {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+/* ---------- 状态块（建设中 / 空） ---------- */
+
+.nt-notice {
+  margin: 20px auto;
+  max-width: 560px;
+  padding: 20px;
+  text-align: center;
+  color: var(--nt-text-muted);
+  border: 1px dashed var(--nt-line-strong);
+  border-radius: var(--nt-radius-lg);
+  line-height: 1.9;
+}
+
+/* ---------- 窄屏 ---------- */
+
+@media (max-width: 720px) {
+  .nt-tab {
+    padding: 8px 2px;
+    font-size: 11px;
+  }
+  .nt-vbar {
+    padding: 5px 6px;
+  }
+}

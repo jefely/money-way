@@ -1,0 +1,30 @@
+/* ============================================================
+   计划页：固定收支表 + 分期矩阵
+   ============================================================ */
+
+.nt-plan-fixed {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.nt-plan-fixed[hidden] {
+  display: none;
+}
+
+.nt-plan-inst {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px;
+}
+
+.nt-plan-inst[hidden] {
+  display: none;
+}
+
+.nt-plan-matrix .nt-th,
+.nt-plan-matrix .nt-cell {
+  white-space: nowrap;
+}

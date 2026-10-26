@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>NT账本 · nt-v0.01</title>
-  <meta name="theme-color" content="#6b5bc4">
+  <title>NT账本 · nt-v0.03</title>
+  <meta name="theme-color" content="#14101f">
   <link rel="manifest" href="./manifest.json">
   <link rel="stylesheet" href="./css/theme.css">
   <link rel="stylesheet" href="./css/base.css">
@@ -14,67 +14,186 @@
   <link rel="stylesheet" href="./css/modal.css">
   <link rel="stylesheet" href="./css/import.css">
   <link rel="stylesheet" href="./css/gate.css">
+  <link rel="stylesheet" href="./css/shell.css">
+  <link rel="stylesheet" href="./css/query.css">
+  <link rel="stylesheet" href="./css/validate.css">
+  <link rel="stylesheet" href="./css/plan.css">
+  <link rel="stylesheet" href="./css/settings.css">
   <script type="module" src="./js/app.js"></script>
 </head>
 <body>
   <!-- 门禁：锁屏 / 设置密码（由 ui/gate.js 注入模板） -->
   <div class="nt-gate-host" id="nt-gate" hidden></div>
 
-  <!-- 主界面：解锁后才显示 -->
+  <!-- 单页壳：顶栏 + 7-tab + 各自视图 + 页脚 -->
   <div class="nt-app" id="nt-app" hidden>
     <header class="nt-header">
-      <h1 class="nt-title">NT账本</h1>
-      <span class="nt-version" id="nt-version">nt-v0.02</span>
+      <h1 class="nt-title">NT 账本</h1>
+      <span class="nt-version" id="nt-version">nt-v0.03</span>
       <span class="nt-header-tools">
         <button class="nt-btn nt-btn-icon nt-btn-head" type="button" id="nt-theme-toggle" aria-label="切换主题">◐</button>
         <button class="nt-btn nt-btn-icon nt-btn-head" type="button" id="nt-about" aria-label="关于">?</button>
       </span>
     </header>
 
-    <main class="nt-main">
-      <!-- 工具栏 -->
-      <div class="nt-toolbar">
-        <a class="nt-btn nt-btn-primary" href="./text.html" id="nt-import">文本编辑</a>
-        <button class="nt-btn" type="button" id="nt-accounts">账户</button>
-        <span class="nt-toolbar-hint" id="nt-toolbar-hint"></span>
-      </div>
+    <nav class="nt-tabs" aria-label="主导航">
+      <button class="nt-tab" type="button" data-tab="flow">流水</button>
+      <button class="nt-tab" type="button" data-tab="stats">统计</button>
+      <button class="nt-tab" type="button" data-tab="query">查询</button>
+      <button class="nt-tab" type="button" data-tab="path">路径</button>
+      <button class="nt-tab" type="button" data-tab="plan">固定</button>
+      <button class="nt-tab" type="button" data-tab="settings">设置</button>
+      <button class="nt-tab" type="button" data-tab="validate">校验</button>
+    </nav>
 
-      <!-- 校验区 -->
-      <section class="nt-panel" aria-labelledby="nt-check-title">
-        <h2 class="nt-panel-title" id="nt-check-title">校验</h2>
-        <dl class="nt-checks">
-          <dt class="nt-check-name">数据完整性</dt>
-          <dd class="nt-check-value" id="nt-check-balanced">—</dd>
-          <dt class="nt-check-name">会计恒等式</dt>
-          <dd class="nt-check-value" id="nt-check-identity">—</dd>
-        </dl>
-        <p class="nt-hint" id="nt-check-detail"></p>
-        <p class="nt-status" id="nt-status" role="status"></p>
+    <main class="nt-main">
+      <!-- ============ 流水：行内直接编辑，末尾固定一行「新增」 ============ -->
+      <section class="nt-view" data-view="flow">
+        <div class="nt-vbar">
+          <span class="nt-vbar-title">流水记录</span>
+          <a class="nt-btn nt-btn-sm nt-btn-primary" href="./text.html">添加</a>
+          <button class="nt-btn nt-btn-sm" type="button" data-act="sync">同步</button>
+          <a class="nt-btn nt-btn-sm" href="./text.html">导入</a>
+          <button class="nt-btn nt-btn-sm" type="button" data-act="export">导出</button>
+          <span class="nt-vbar-spacer"></span>
+          <button class="nt-btn nt-btn-sm" type="button" data-act="accounts">账户</button>
+        </div>
+        <div class="nt-tablewrap">
+          <table class="nt-table nt-table-flow">
+            <thead>
+              <tr>
+                <th class="nt-th nt-cell-seq" scope="col">序</th>
+                <th class="nt-th nt-cell-date" scope="col">日期</th>
+                <th class="nt-th" scope="col">转出账户</th>
+                <th class="nt-th" scope="col">转入账户</th>
+                <th class="nt-th nt-cell-amount" scope="col">金额</th>
+                <th class="nt-th" scope="col">备注</th>
+                <th class="nt-th nt-cell-action" scope="col"><span class="nt-visually-hidden">操作</span></th>
+              </tr>
+            </thead>
+            <tbody id="nt-flow-body"></tbody>
+          </table>
+        </div>
       </section>
 
-      <!-- 流水列表：行内直接编辑，末尾固定一行「新增」 -->
-      <section class="nt-panel" aria-labelledby="nt-list-title">
-        <h2 class="nt-panel-title" id="nt-list-title">流水</h2>
-        <table class="nt-table">
-          <thead>
-            <tr>
-              <th class="nt-th nt-cell-seq" scope="col">序</th>
-              <th class="nt-th nt-cell-date" scope="col">日期</th>
-              <th class="nt-th nt-cell-from" scope="col">转出</th>
-              <th class="nt-th nt-cell-to" scope="col">转入</th>
-              <th class="nt-th nt-cell-amount" scope="col">金额</th>
-              <th class="nt-th nt-cell-note" scope="col">备注</th>
-              <th class="nt-th nt-cell-action" scope="col"><span class="nt-visually-hidden">操作</span></th>
-            </tr>
-          </thead>
-          <tbody id="nt-flow-body"></tbody>
-        </table>
+      <!-- ============ 统计：分类 / 汇总 两个子视图 ============ -->
+      <section class="nt-view" data-view="stats" hidden>
+        <div class="nt-vbar">
+          <span class="nt-vbar-title">分类统计</span>
+          <div class="nt-caps" id="nt-stats-caps">
+            <button class="nt-cap" type="button" data-cap="category" aria-selected="true">分类</button>
+            <button class="nt-cap" type="button" data-cap="summary" aria-selected="false">汇总</button>
+          </div>
+          <span class="nt-vbar-spacer"></span>
+          <button class="nt-btn nt-btn-sm" type="button" data-scope="all">清空</button>
+          <div class="nt-caps" id="nt-stats-scope">
+            <button class="nt-cap" type="button" data-scope="range">区间</button>
+            <button class="nt-cap" type="button" data-scope="year">年份</button>
+            <button class="nt-cap" type="button" data-scope="month">月份</button>
+          </div>
+          <span class="nt-vbar-info" id="nt-stats-info"></span>
+        </div>
+        <div class="nt-pills" id="nt-stats-pills" hidden></div>
+        <div class="nt-tablewrap">
+          <table class="nt-table nt-table-stats" id="nt-stats-table">
+            <thead id="nt-stats-head"></thead>
+            <tbody id="nt-stats-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ 查询：三段独立查询表（模板克隆） ============ -->
+      <section class="nt-view" data-view="query" hidden>
+        <div class="nt-query-grid" id="nt-query-grid"></div>
+      </section>
+
+      <!-- ============ 路径：环网图在独立页打开（引擎/渲染已完成） ============ -->
+      <section class="nt-view" data-view="path" hidden>
+        <div class="nt-notice">
+          <p class="nt-block-line">Money Way 环网图的引擎与渲染都已完成（graph/ + mw-svg-renderer），</p>
+          <p class="nt-block-line">当前版本先在独立页面打开，下一版收进本页。</p>
+          <p><a class="nt-btn nt-btn-primary" href="./path.html">打开环网图</a></p>
+        </div>
+      </section>
+
+      <!-- ============ 固定：固定收支 + 分期 ============ -->
+      <section class="nt-view" data-view="plan" hidden>
+        <div class="nt-vbar">
+          <div class="nt-caps" id="nt-plan-caps">
+            <button class="nt-cap" type="button" data-cap="fixed" aria-selected="true">固定收支</button>
+            <button class="nt-cap" type="button" data-cap="inst" aria-selected="false">分期</button>
+          </div>
+          <span class="nt-vbar-info" id="nt-plan-info"></span>
+        </div>
+        <div class="nt-plan-fixed" id="nt-plan-fixed">
+          <div class="nt-tablewrap">
+            <table class="nt-table nt-table-plan">
+              <thead>
+                <tr>
+                  <th class="nt-th nt-c-seq" scope="col">序</th>
+                  <th class="nt-th nt-c-freq" scope="col">频率</th>
+                  <th class="nt-th nt-c-day" scope="col">日期</th>
+                  <th class="nt-th" scope="col">转出</th>
+                  <th class="nt-th" scope="col">转入</th>
+                  <th class="nt-th nt-c-amount" scope="col">金额</th>
+                  <th class="nt-th" scope="col">备注</th>
+                  <th class="nt-th nt-c-state" scope="col">本月</th>
+                </tr>
+              </thead>
+              <tbody id="nt-plan-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="nt-plan-inst" id="nt-plan-inst" hidden>
+          <p class="nt-notice">分期矩阵在下一版接入（引擎已就绪：installment-engine / scheduler-engine）。</p>
+        </div>
+      </section>
+
+      <!-- ============ 设置：账户结构 + 六个功能 ============ -->
+      <section class="nt-view" data-view="settings" hidden>
+        <div class="nt-vbar">
+          <span class="nt-vbar-title">账本设置</span>
+          <button class="nt-btn nt-btn-sm" type="button" data-act="balance">配平</button>
+          <button class="nt-btn nt-btn-sm" type="button" data-act="password">密码</button>
+          <button class="nt-btn nt-btn-sm" type="button" data-act="config">配置</button>
+          <button class="nt-btn nt-btn-sm" type="button" data-act="reset">重置</button>
+          <button class="nt-btn nt-btn-sm" type="button" data-act="theme">主题</button>
+          <button class="nt-btn nt-btn-sm" type="button" data-act="layout">布局</button>
+          <span class="nt-vbar-spacer"></span>
+          <button class="nt-btn nt-btn-sm nt-btn-primary" type="button" data-act="accounts">管理账户</button>
+        </div>
+        <div class="nt-tablewrap">
+          <table class="nt-table nt-table-accounts">
+            <thead>
+              <tr>
+                <th class="nt-th nt-c-seq" scope="col">序</th>
+                <th class="nt-th nt-c-type" scope="col">类型</th>
+                <th class="nt-th nt-c-cat" scope="col">分类</th>
+                <th class="nt-th nt-c-code" scope="col">简码</th>
+                <th class="nt-th" scope="col">账户名称</th>
+                <th class="nt-th nt-c-num" scope="col">期初</th>
+                <th class="nt-th nt-c-action" scope="col"><span class="nt-visually-hidden">操作</span></th>
+              </tr>
+            </thead>
+            <tbody id="nt-accounts-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ 校验：账本说明 / 账本校验 / 赞助感谢 ============ -->
+      <section class="nt-view" data-view="validate" hidden>
+        <div class="nt-vbar">
+          <div class="nt-caps" id="nt-validate-caps">
+            <button class="nt-cap" type="button" data-cap="about" aria-selected="true">账本说明</button>
+            <button class="nt-cap" type="button" data-cap="check" aria-selected="false">账本校验</button>
+            <button class="nt-cap" type="button" data-cap="thanks" aria-selected="false">赞助感谢</button>
+          </div>
+        </div>
+        <div class="nt-validate-body" id="nt-validate-body"></div>
       </section>
     </main>
 
     <footer class="nt-footer" id="nt-footer"></footer>
   </div>
-
-  <!-- 模板统一放在 templates/templates.html，由 js/ui/render-transactions.js 注入 -->
 </body>
 </html>

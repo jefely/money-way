@@ -76,7 +76,11 @@ export function migrate(raw) {
   const from = Number(src.version) || 1;
 
   if (isAlreadyV2(src)) {
-    return { state: src, migrated: false, from: from, to: SCHEMA_VERSION, stats: {} };
+    // 已经是新结构：只补上可能缺失的 scheduled 数组，别的原样返回
+    const normalized = Object.assign({}, src, {
+      scheduled: Array.isArray(src.scheduled) ? src.scheduled : [],
+    });
+    return { state: normalized, migrated: false, from: from, to: SCHEMA_VERSION, stats: {} };
   }
 
   // ---- 1. 账户 ----
@@ -163,10 +167,12 @@ export function migrate(raw) {
   }
 
   const meta = src.meta && typeof src.meta === 'object' ? src.meta : {};
+  const scheduled = Array.isArray(src.scheduled) ? src.scheduled : [];
   const state = {
     version: SCHEMA_VERSION,
     accounts: accounts,
     transactions: transactions,
+    scheduled: scheduled,
     meta: { lastSync: String(meta.lastSync || '') },
   };
 

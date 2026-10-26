@@ -19,6 +19,8 @@ export function createState() {
     version: SCHEMA_VERSION,
     accounts: [{ ...OPENING_ACCOUNT }],
     transactions: [],
+    // 计划流水（固定收支 + 分期）只存规则，虚拟流水由 scheduler-engine 现算
+    scheduled: [],
     meta: { lastSync: '' },
   };
 }

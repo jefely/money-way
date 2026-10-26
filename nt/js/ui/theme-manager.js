@@ -27,7 +27,8 @@ export function applyTheme(theme) {
   const t = theme === THEME.DARK ? THEME.DARK : THEME.LIGHT;
   document.documentElement.setAttribute('data-theme', t);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', t === THEME.DARK ? '#14101f' : '#6b5bc4');
+  // 页头两主题统一深色，状态栏跟着走
+  if (meta) meta.setAttribute('content', '#14101f');
   return t;
 }
 

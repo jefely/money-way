@@ -1,0 +1,106 @@
+/* ============================================================
+   校验页：三张校验卡片 + 说明/赞助的文本块
+   ============================================================ */
+
+.nt-validate-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+}
+
+.nt-card {
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius-lg);
+  background: var(--nt-bg-soft);
+}
+
+.nt-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.nt-card-title {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.nt-card-pass {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--nt-ok);
+}
+
+.nt-card-pass.bad {
+  color: var(--nt-bad);
+}
+
+.nt-card-desc {
+  margin-bottom: 10px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--nt-text-muted);
+}
+
+.nt-kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.nt-kv dt {
+  color: var(--nt-text-muted);
+}
+
+.nt-kv dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 700;
+}
+
+.nt-kv dd.ok {
+  color: var(--nt-ok);
+}
+
+.nt-kv dd.bad {
+  color: var(--nt-bad);
+}
+
+.nt-text-block {
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius-lg);
+  background: var(--nt-bg-soft);
+  line-height: 1.85;
+}
+
+.nt-block-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--nt-primary);
+}
+
+.nt-block-line {
+  margin: 0 0 6px;
+}
+
+.nt-block-steps {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.nt-block-tip {
+  padding: 10px 12px;
+  border-left: 3px solid var(--nt-primary);
+  background: var(--nt-bg);
+  border-radius: 4px;
+  font-size: 13px;
+}

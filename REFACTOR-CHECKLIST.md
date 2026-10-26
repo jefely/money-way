@@ -3,8 +3,17 @@
 > **目标**：把单文件版（`personal/index.html`，19,595 行）里被压在同一个文件里的五件事——
 > **算钱 / 切时间 / 算图 / 适配设备 / 画界面**——物理拆开，每一层只认识下一层的输出。
 >
-> **进度**：`nt-v0.01` 已完成骨架落地（所有文件已建、接口已定、门禁已通），
-> 各模块内部实现标 ☐ 待填。**下方每条都带验收标准**，没通过验收不算完成。
+> **进度**：`nt-v0.01` 已完成骨架落地（所有文件已建、接口已定、门禁已通）。
+> **`nt-v0.03` 已把 7 个 tab 落成单页壳**（见 [`nt/README.md`](nt/README.md) 版本记录）：
+> 流水 / 统计 / 查询 / 路径 / 固定 / 设置 / 校验 一次解锁、切换不刷新。
+> 下方每条都带验收标准，没通过验收不算完成。
+
+> **两处「真实现不在骨架文件里」的遗留（认真读，别被文件名骗）**：
+> - ☐1 期初迁移器：`core/opening-migrator.js` 仍是死桩；**真正的迁移在
+>   `core/state-store.js` 的 `migrateOpeningToTransactions`**（已有测试覆盖）。
+>   骨架文件要么补实现、要么删掉，别留两套。
+> - ☐5 时间状态机：`timeline/time-state.js` 的 `splitByTime` 尚未被任何页面接线，
+>   且「虚拟还款日期」仍是 TODO。单页壳目前直接按区间取数，没走这一层。
 >
 > 配套：建设公约见 [`CODE-RULES.md`](CODE-RULES.md)，架构总览见 [`nt/README.md`](nt/README.md)。
 
@@ -206,22 +215,33 @@
 
 | 层 | 模块 | 文件 | 骨架 | 实现 | 验收 |
 |---|---|---|---|---|---|
-| 1 | 期初迁移器 | `core/opening-migrator.js` | ✅ | ☐ | ☐ |
-| 1 | 余额计算器 | `core/balance-calculator.js` | ✅ | ☐ | ☐ |
-| 1 | 分期推算器 | `core/installment-engine.js` | ✅ | ☐ | ☐ |
-| 1 | 校验规则池 | `core/validator.js` | ✅ | ☐ | ☐ |
-| 1 | **加密引擎** | `core/crypto-engine.js` | ✅ | ✅ | ✅ 10 条测试 |
-| 1 | **密钥管理器** | `core/auth-manager.js` | ✅ | ✅ | ✅ |
-| 1 | **保险库适配器** | `browser/storage-adapter.js` | ✅ | ✅ | ✅ 端到端 |
-| 2 | 时间状态机 | `timeline/time-state.js` | ✅ | ☐ | ☐ |
-| 3 | 图数据切片器 | `graph/mw-data-fetcher.js` | ✅ | ☐ | ☐ |
-| 3 | 槽位角度计算器 | `graph/mw-slot-calculator.js` | ✅ | ☐ | ☐ |
-| 3 | 路径与层级计算器 | `graph/mw-path-calculator.js` | ✅ | ☐ | ☐ |
-| 3 | 路径追溯器 | `graph/path-tracer.js` | ✅ | ☐ | ☐ |
+| 1 | 余额计算器 | `core/balance-calculator.js` | ✅ | ✅ | ✅ 测试 |
+| 1 | 统计聚合 | `core/ledger-stats.js` | ✅ | ✅ | ✅ 8 条测试 |
+| 1 | 查询过滤 | `core/query-engine.js` | ✅ | ✅ | ✅ 测试 |
+| 1 | 分期推算器 | `core/installment-engine.js` | ✅ | ✅ | ✅ 测试 |
+| 1 | 计划引擎 | `core/scheduler-engine.js` | ✅ | ✅ | ✅ 18 条测试 |
+| 1 | 校验规则池 | `core/validator.js` | ✅ | ✅ | ✅ 测试 |
+| 1 | 加密 / 密钥 / 保险库 | `core/crypto-engine.js` · `core/auth-manager.js` · `browser/db.js` | ✅ | ✅ | ✅ 10 条加密测试 + 端到端 |
+| 1 | 期初迁移 | `core/state-store.js`（`migrateOpeningToTransactions`） | ✅ | ✅ | ✅ 测试；`opening-migrator.js` 仍为死桩待删 |
+| 2 | 时间状态机 | `timeline/time-state.js` | ✅ | ☐ 未接线 | ☐ |
+| 3 | 图数据切片器 | `graph/mw-data-fetcher.js` | ✅ | ✅ | ✅ path 页 |
+| 3 | 槽位角度计算器 | `graph/mw-slot-calculator.js` | ✅ | ✅ | ✅ |
+| 3 | 路径与层级计算器 | `graph/mw-path-calculator.js` | ✅ | ✅ | ✅ |
+| 3 | 路径追溯器 | `graph/path-tracer.js` | ✅ | ✅ | ✅ |
 | 4 | 设备特征库 | `platform/device-profile.js` | ✅ | ☐ | ☐ |
-| 5 | 模板库 | `templates/templates.html` | ✅ | ☐ | ☐ |
-| 5 | 流水渲染器 | `ui/render-transactions.js` | ✅ | ☐ | ☐ |
-| 5 | SVG 渲染器 | `ui/mw-svg-renderer.js` | ✅ | ☐ | ☐ |
+| 5 | 模板库 | `templates/templates.html` | ✅ | ✅ | ✅ |
+| 5 | 流水渲染器 | `ui/render-transactions.js` | ✅ | ✅ | ✅ |
+| 5 | SVG 渲染器 | `ui/mw-svg-renderer.js` | ✅ | ✅ | ✅ 门禁禁三角函数 |
+
+**`nt-v0.03` 单页壳新增**：
+
+| 层 | 模块 | 文件 | 实现 | 验收 |
+|---|---|---|---|---|
+| 5 | 7-tab 路由 | `ui/tabs.js` | ✅ | ✅ 探针（真实 Chrome 7 tab 切换） |
+| 5 | 表格助手（建表头 / 填行 / 空状态 / 异构混排） | `ui/table.js` | ✅ | ✅ 四个页面共用 |
+| 5 | 七个视图装配 | `views/flow · stats · query · plan · settings · validate · path` | ✅ | ✅ 探针零 console 报错 |
+| 5 | 查询面板同构模板 | `templates/templates.html` · `tpl-query-panel` | ✅ | ✅ 三份克隆 |
+| 5 | 账户类型分组行 | `tpl-account-row` · `tpl-account-group` | ✅ | ✅ 探针 |
 
 **图例**：✅ 完成 · ☐ 未开始
 

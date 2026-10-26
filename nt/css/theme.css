@@ -39,6 +39,10 @@
   --nt-head-text: #ffffff;
   --nt-head-line: #7d6ed0;
 
+  /* 顶部页头：两主题统一深色窄条（不跟主色走，避免深色主题下亮紫刺眼） */
+  --nt-header-bg: #14101f;
+  --nt-header-text: #f2eeff;
+
   /* 语义色 */
   --nt-ok: #15803d;
   --nt-ok-bg: #e9f7ef;

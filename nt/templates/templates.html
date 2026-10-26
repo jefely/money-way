@@ -143,3 +143,137 @@
     <p class="nt-gate-msg" id="nt-setup-msg" role="status"></p>
   </section>
 </template>
+
+<!-- ============================================================
+     统计 · 分类视图行：序 | 分类 | 当前结余 | 转出 | 转入
+     ============================================================ -->
+<template id="tpl-stat-cat">
+  <tr class="nt-row">
+    <td class="nt-cell nt-cell-seq" data-field="seq"></td>
+    <td class="nt-cell" data-field="category"></td>
+    <td class="nt-cell nt-cell-num" data-field="balance"></td>
+    <td class="nt-cell nt-cell-num" data-field="out"></td>
+    <td class="nt-cell nt-cell-num" data-field="iin"></td>
+  </tr>
+</template>
+
+<!-- 统计 · 类型合计行（资产类合计 / 负债类合计 …） -->
+<template id="tpl-stat-total">
+  <tr class="nt-row nt-row-total">
+    <td class="nt-cell nt-cell-seq"></td>
+    <td class="nt-cell" data-field="label"></td>
+    <td class="nt-cell nt-cell-num" data-field="balance"></td>
+    <td class="nt-cell nt-cell-num" data-field="out"></td>
+    <td class="nt-cell nt-cell-num" data-field="iin"></td>
+  </tr>
+</template>
+
+<!-- 统计 · 汇总视图行：序 | 类型 | 分类 | 账户名称 | 当前结余 | 转出 | 转入 | 转出历史 | 转入历史 -->
+<template id="tpl-stat-account">
+  <tr class="nt-row">
+    <td class="nt-cell nt-cell-seq" data-field="seq"></td>
+    <td class="nt-cell" data-field="type"></td>
+    <td class="nt-cell" data-field="category"></td>
+    <td class="nt-cell" data-field="name"></td>
+    <td class="nt-cell nt-cell-num" data-field="balance"></td>
+    <td class="nt-cell nt-cell-num" data-field="out"></td>
+    <td class="nt-cell nt-cell-num" data-field="iin"></td>
+    <td class="nt-cell nt-cell-num" data-field="histOut"></td>
+    <td class="nt-cell nt-cell-num" data-field="histIn"></td>
+  </tr>
+</template>
+
+<!-- 查询 · 结果行：序 | 日期 | 转出 | 转入 | 金额 | 备注 -->
+<template id="tpl-query-row">
+  <tr class="nt-row">
+    <td class="nt-cell nt-cell-seq" data-field="seq"></td>
+    <td class="nt-cell nt-cell-date" data-field="date"></td>
+    <td class="nt-cell" data-field="from"></td>
+    <td class="nt-cell" data-field="to"></td>
+    <td class="nt-cell nt-cell-num" data-field="amount"></td>
+    <td class="nt-cell" data-field="note"></td>
+  </tr>
+</template>
+
+<!-- 计划 · 固定收支行：序 | 频率 | 日期 | 转出 | 转入 | 金额 | 备注 | 本月 -->
+<template id="tpl-sched-row">
+  <tr class="nt-row">
+    <td class="nt-cell nt-cell-seq" data-field="seq"></td>
+    <td class="nt-cell" data-field="freq"></td>
+    <td class="nt-cell nt-cell-date" data-field="day"></td>
+    <td class="nt-cell" data-field="from"></td>
+    <td class="nt-cell" data-field="to"></td>
+    <td class="nt-cell nt-cell-num" data-field="amount"></td>
+    <td class="nt-cell" data-field="note"></td>
+    <td class="nt-cell" data-field="state"></td>
+  </tr>
+</template>
+
+<!-- 设置 · 账户行：序 | 类型 | 分类 | 简码 | 账户名称 | 期初 | 删除 -->
+<template id="tpl-account-row">
+  <tr class="nt-row">
+    <td class="nt-cell nt-cell-seq" data-field="seq"></td>
+    <td class="nt-cell" data-field="type"></td>
+    <td class="nt-cell" data-field="category"></td>
+    <td class="nt-cell nt-cell-code" data-field="code"></td>
+    <td class="nt-cell" data-field="name"></td>
+    <td class="nt-cell nt-cell-num" data-field="opening"></td>
+    <td class="nt-cell nt-cell-action">
+      <button class="nt-btn nt-btn-icon" type="button" data-act="del" aria-label="删除账户">×</button>
+    </td>
+  </tr>
+</template>
+
+<!-- 设置 · 类型分组行（资产 / 负债 …，合计 = 该类型期初之和） -->
+<template id="tpl-account-group">
+  <tr class="nt-row nt-row-total">
+    <td class="nt-cell nt-cell-seq"></td>
+    <td class="nt-cell" data-field="label"></td>
+    <td class="nt-cell"></td>
+    <td class="nt-cell"></td>
+    <td class="nt-cell"></td>
+    <td class="nt-cell nt-cell-num" data-field="total"></td>
+    <td class="nt-cell"></td>
+  </tr>
+</template>
+
+<!-- 通用空行：text 为空状态文案，colspan 由渲染时按表宽补 -->
+<template id="tpl-row-empty">
+  <tr class="nt-row">
+    <td class="nt-cell nt-empty" data-field="text"></td>
+  </tr>
+</template>
+
+<!-- 查询 · 一整段查询面板（A/B/C 各克隆一份，结构完全同构） -->
+<template id="tpl-query-panel">
+  <article class="nt-query-panel">
+    <header class="nt-query-head">
+      <span class="nt-query-title"></span>
+      <button class="nt-btn nt-btn-sm" type="button" data-act="clear">清空</button>
+      <span class="nt-query-total" data-total></span>
+    </header>
+    <div class="nt-query-filters">
+      <input class="nt-input nt-input-sm" type="text" data-cond="dateFrom" placeholder="日期 起" aria-label="日期起">
+      <input class="nt-input nt-input-sm" type="text" data-cond="dateTo" placeholder="止" aria-label="日期止">
+      <input class="nt-input nt-input-sm" type="text" data-cond="from" placeholder="转出" aria-label="转出账户">
+      <input class="nt-input nt-input-sm" type="text" data-cond="to" placeholder="转入" aria-label="转入账户">
+      <input class="nt-input nt-input-sm" type="text" data-cond="amount" placeholder="金额" aria-label="金额">
+      <input class="nt-input nt-input-sm" type="text" data-cond="note" placeholder="备注搜索" aria-label="备注">
+    </div>
+    <div class="nt-tablewrap">
+      <table class="nt-table nt-table-query">
+        <thead>
+          <tr>
+            <th class="nt-th nt-c-seq" scope="col">序</th>
+            <th class="nt-th nt-c-date" scope="col">日期</th>
+            <th class="nt-th" scope="col">转出</th>
+            <th class="nt-th" scope="col">转入</th>
+            <th class="nt-th nt-c-amount" scope="col">金额</th>
+            <th class="nt-th" scope="col">备注</th>
+          </tr>
+        </thead>
+        <tbody data-body></tbody>
+      </table>
+    </div>
+  </article>
+</template>

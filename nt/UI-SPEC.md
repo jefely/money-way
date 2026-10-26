@@ -12,15 +12,19 @@
 
 流水 · 统计 · 查询 · 路径 · 计划 · 设置 · 校验
 
-| 标签 | 全称 | 状态 |
+| 标签 | 全称 | 状态（`nt-v0.03`） |
 |---|---|---|
-| 流水 | 流水记录 | ✅ 已实现（行内编辑 + 简码） |
-| 统计 | 分类统计（分类 / 汇总 两个子视图） | ☐ |
-| 查询 | 流水查询（三段独立查询表） | ☐ |
-| 路径 | 路径追踪（环网图） | ☐ 引擎完成 |
-| 计划 | 固定收支 + 分期（两个子视图） | ☐ 引擎完成 |
-| 设置 | 账户结构与系统功能 | ☐ |
-| 校验 | 账本健康检查 | ☐ 规则完成 |
+| 流水 | 流水记录 | ✅ 行内编辑 + 简码 |
+| 统计 | 分类统计（分类 / 汇总 两个子视图） | ✅ |
+| 查询 | 流水查询（三段独立查询表） | ✅ |
+| 路径 | 路径追踪（环网图） | ✅ 独立页 · ☐ 收进单页 |
+| 固定 | 固定收支 + 分期（两个子视图） | ✅ 固定收支 · ☐ 分期矩阵 |
+| 设置 | 账户结构与系统功能 | ✅ 账户列表 · ☐ 密码 / 配置 / 布局 |
+| 校验 | 账本健康检查 | ✅ |
+
+> **命名对齐**：本文档早期把第 5 个 tab 叫「计划」，但 v13.66 的实际产品里叫
+> **「固定」**（其下分「固定收支 / 分期」两个子视图）。`nt/` 跟随产品用「固定」，
+> 术语含义不变：固定收支 = 计划流水的「无 inst」形态，分期 = 带 `inst` 的同一结构。
 
 切换主视图**不刷新页面**。
 
@@ -204,8 +208,9 @@ Tab：`账本说明 | 账本校验 | 账本配置 | 赞助感谢`
 |---|---|---|
 | Modal | `ui/modal.js` | ✅ |
 | Button / Input / Select | `css/flow.css` 的 `.nt-btn` / `.nt-input` | ✅ |
-| DatePicker（区间） | `ui/date-range.js` | ☐ |
+| DatePicker（区间） | `ui/date-range.js` | ✅ 精简版（原生 `input[type=date]` 嵌在 `ui/views/stats.js`） |
 | Suggester（简码候选） | `ui/suggest-popover.js` | ✅ |
+| 表格助手（建表头 / 填行 / 空状态 / 异构混排） | `ui/table.js` | ✅ |
 
 ### 8.2 业务组件
 
@@ -213,9 +218,11 @@ Tab：`账本说明 | 账本校验 | 账本配置 | 赞助感谢`
 |---|---|---|
 | FlowRow（流水行） | `ui/render-transactions.js` + `tpl-flow-row` | ✅ |
 | FlowRowEditor | `ui/row-editor.js` | ✅ |
-| AccountRow | `ui/render-accounts.js` | ☐ |
-| StatSummaryCard | `ui/render-stats.js` | ☐ |
-| MoneyWaySVG | `ui/mw-svg-renderer.js` | ✅（引擎完成，页面未接） |
+| AccountRow | `views/settings.js` + `tpl-account-row` / `tpl-account-group` | ✅ |
+| StatSummaryCard | `views/stats.js` + `tpl-stat-cat` / `tpl-stat-total` / `tpl-stat-account` | ✅ |
+| QueryPanel（A/B/C 同构） | `views/query.js` + `tpl-query-panel` | ✅ |
+| CheckCard（三卡） | `views/validate.js` 的 `card()` | ✅ |
+| MoneyWaySVG | `ui/mw-svg-renderer.js` | ✅ 独立页已接 · ☐ 收进单页 |
 
 ### 8.3 页面组装
 
