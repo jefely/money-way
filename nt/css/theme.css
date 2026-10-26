@@ -43,6 +43,18 @@
   --nt-header-bg: #14101f;
   --nt-header-text: #f2eeff;
 
+  /* 界面参数 · 浅色 */
+  --nt-tabs-color: #5f5878;
+  --nt-tabs-bg: #f8f7fd;
+  --nt-vbar-color: #1b1430;
+  --nt-vbar-bg: #f8f7fd;
+  --nt-th-color: #5f5878;
+  --nt-th-bg: #f8f7fd;
+  --nt-cell-color: #1b1430;
+  --nt-cell-bg: #ffffff;
+  --nt-footer-color: #5f5878;
+  --nt-footer-bg: #f8f7fd;
+
   /* 语义色 */
   --nt-ok: #15803d;
   --nt-ok-bg: #e9f7ef;
@@ -61,6 +73,17 @@
   --nt-row-h: 32px;
   --nt-head-h: 26px;
   --nt-gap: 10px;
+
+  /* 界面参数 · 尺寸（两主题共用） */
+  --nt-tabs-h: 40px;
+  --nt-tab-font: 13px;
+  --nt-th-h: 26px;
+  --nt-th-font: 12px;
+  --nt-vbar-h: 30px;
+  --nt-vbar-font: 12px;
+  --nt-cell-font: 14px;
+  --nt-footer-h: 28px;
+  --nt-footer-font: 12px;
 
   /* 弹窗专用 */
   --nt-modal-bg: rgba(255, 255, 255, 0.86);
@@ -108,6 +131,18 @@
   --nt-modal-line: rgba(155, 140, 255, 0.38);
   --nt-modal-glow: 0 0 48px rgba(139, 108, 255, 0.22);
   --nt-modal-logo: rgba(155, 140, 255, 0.12);
+
+  /* 界面参数 · 深色 */
+  --nt-tabs-color: #b9b2d0;
+  --nt-tabs-bg: #0e0b16;
+  --nt-vbar-color: #f2eeff;
+  --nt-vbar-bg: #0e0b16;
+  --nt-th-color: #b9b2d0;
+  --nt-th-bg: #0e0b16;
+  --nt-cell-color: #f2eeff;
+  --nt-cell-bg: #000000;
+  --nt-footer-color: #b9b2d0;
+  --nt-footer-bg: #0e0b16;
 }
 
 /* 主题切换时给一个很短的过渡，避免"闪一下" */

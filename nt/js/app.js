@@ -25,6 +25,7 @@ import { mountPlan } from './views/plan.js';
 import { mountSettings } from './views/settings.js';
 import { mountValidate } from './views/validate.js';
 import { mountPath } from './views/path.js';
+import { mountDebugPanel } from './ui/debug-panel.js';
 
 let state = createState();
 let index = buildAccountIndex(state.accounts);
@@ -141,6 +142,11 @@ function enterApp() {
     defaultTab: 'flow',
     onShow: (name) => { active = name; renderActive(); },
   });
+
+  // 界面参数调试面板：只在 ?debug=1 时出现，不影响正常用户
+  if (new URLSearchParams(location.search).has('debug')) {
+    mountDebugPanel();
+  }
 }
 
 async function boot() {

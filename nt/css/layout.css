@@ -31,11 +31,13 @@
 }
 
 .nt-footer {
-  padding: 8px 16px;
+  min-height: var(--nt-footer-h);
+  padding: 4px 16px;
   border-top: 1px solid var(--nt-bg-line);
-  background: var(--nt-bg-soft);
-  color: var(--nt-text-muted);
-  font-size: 12px;
+  background: var(--nt-footer-bg);
+  color: var(--nt-footer-color);
+  font-size: var(--nt-footer-font);
+  line-height: 1.6;
   text-align: center;
 }
 

@@ -1,0 +1,135 @@
+/* ============================================================
+   调试面板（界面参数）—— 固定右下角，不影响正常布局
+   ============================================================ */
+
+.nt-debug {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  width: 320px;
+  max-height: 78vh;
+  display: flex;
+  flex-direction: column;
+  background: rgba(22, 18, 34, 0.96);
+  border: 1px solid rgba(155, 140, 255, 0.38);
+  border-radius: 10px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.72);
+  color: #f2eeff;
+  font-size: 12px;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.nt-debug-head {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  background: rgba(155, 140, 255, 0.16);
+  border-bottom: 1px solid rgba(155, 140, 255, 0.28);
+}
+
+.nt-debug-title {
+  flex: 1;
+  font-weight: 700;
+}
+
+.nt-debug-close {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #f2eeff;
+  cursor: pointer;
+}
+
+.nt-debug-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px;
+}
+
+.nt-debug-group {
+  margin-bottom: 8px;
+}
+
+.nt-debug-group-title {
+  margin: 0 0 4px;
+  padding-left: 6px;
+  border-left: 2px solid #9b8cff;
+  font-size: 11px;
+  color: #9b8cff;
+}
+
+.nt-debug-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.nt-debug-key {
+  flex: 0 0 118px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #b9b2d0;
+}
+
+.nt-debug-input {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid rgba(155, 140, 255, 0.28);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  color: #f2eeff;
+  font: inherit;
+}
+
+.nt-debug-foot {
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px;
+  border-top: 1px solid rgba(155, 140, 255, 0.28);
+}
+
+.nt-debug-btn {
+  flex: 1;
+  height: 26px;
+  border: 1px solid rgba(155, 140, 255, 0.38);
+  border-radius: 5px;
+  background: rgba(155, 140, 255, 0.16);
+  color: #f2eeff;
+  cursor: pointer;
+}
+
+.nt-debug-mask {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.62);
+  z-index: 10000;
+}
+
+.nt-debug-export {
+  width: min(94vw, 520px);
+  overflow: hidden;
+  border: 1px solid rgba(155, 140, 255, 0.38);
+  border-radius: 10px;
+  background: #161222;
+}
+
+.nt-debug-ta {
+  width: 100%;
+  height: 240px;
+  padding: 10px;
+  border: 0;
+  background: transparent;
+  color: #f2eeff;
+  font: inherit;
+  resize: none;
+}

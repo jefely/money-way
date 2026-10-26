@@ -110,22 +110,24 @@
   border-spacing: 0;
   table-layout: fixed;
   font-variant-numeric: tabular-nums;
+  color: var(--nt-cell-color);
 }
 
 .nt-th {
-  height: var(--nt-head-h);
+  height: var(--nt-th-h);
   padding: 0 8px;
   text-align: left;
-  font-size: 12px;
+  font-size: var(--nt-th-font);
   font-weight: 700;
-  color: var(--nt-text-muted);
-  background: var(--nt-bg-soft);
+  color: var(--nt-th-color);
+  background: var(--nt-th-bg);
   border-bottom: 1px solid var(--nt-bg-line);
 }
 
 .nt-cell {
   height: var(--nt-row-h);
   padding: 0 8px;
+  font-size: var(--nt-cell-font);
   border-bottom: 1px solid var(--nt-bg-line);
   white-space: nowrap;
   overflow: hidden;
