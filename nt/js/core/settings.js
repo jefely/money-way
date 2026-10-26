@@ -78,6 +78,8 @@ export const SCHEMA = [
   { key: '纵向边框', group: '表格', type: 'enum', options: ['无', '虚线', '实线'], values: ['none', 'dashed', 'solid'], def: '无', attr: 'data-border-v' },
   { key: '纵向边框线粗', group: '表格', def: 1, unit: 'px', cssVar: '--nt-border-v-width' },
   { key: '纵向边框颜色', group: '表格', def: '#2a2438', cssVar: '--nt-border-v-color' },
+  { key: '手柄位置', group: '表格', def: 0, unit: 'px', cssVar: '--nt-handle-offset' },
+  { key: '手柄颜色', group: '表格', def: '#5f5878', cssVar: '--nt-handle-color' },
 
   /* ---------- 信息栏（公共） ---------- */
   { key: '信息栏行高', group: '信息栏', def: 28, unit: 'px', cssVar: '--nt-footer-h' },
@@ -92,6 +94,7 @@ export const SCHEMA = [
   /* ---------- 列标行（独立） ---------- */
   { key: '列标行行高', group: '列标行', def: 26, unit: 'px', cssVar: '--nt-th-h' },
   { key: '列标行字号', group: '列标行', def: 12, unit: 'px', cssVar: '--nt-th-font' },
+  { key: '手柄高度', group: '列标行', def: 26, unit: 'px', cssVar: '--nt-handle-h' },
 
   /* ---------- 数据区（独立） ---------- */
   { key: '数据区行高', group: '数据区', def: 32, unit: 'px', cssVar: '--nt-row-h' },

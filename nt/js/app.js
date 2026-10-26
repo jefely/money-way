@@ -27,6 +27,8 @@ import { mountValidate } from './views/validate.js';
 import { mountPath } from './views/path.js';
 import { mountDebugPanel } from './ui/debug-panel.js';
 import { applySettings } from './ui/apply-settings.js';
+import { mountColResize } from './ui/col-resize.js';
+import { COL_KEYS } from './core/settings.js';
 
 let state = createState();
 let index = buildAccountIndex(state.accounts);
@@ -135,6 +137,23 @@ function adoptState(raw) {
   return migrate(raw).state;
 }
 
+/** 拖动手柄改列宽后，同步到当前主题的「默认列宽」并保存 */
+function onColResize(col, width) {
+  const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const st = getState();
+  const all = { ...(st.settings && typeof st.settings === 'object' ? st.settings : {}) };
+  const cur = all[theme] && typeof all[theme] === 'object' ? all[theme] : {};
+  const widths = String(cur['默认列宽'] || '').split(',').map((x) => Number(x.trim()));
+  const idx = COL_KEYS.indexOf(col);
+  if (idx < 0) return;
+  while (widths.length < COL_KEYS.length) widths.push(64);
+  widths[idx] = width;
+  all[theme] = { ...cur, '默认列宽': widths.join(',') };
+  setState({ ...st, settings: all });
+  applySettings(all[theme], theme);
+  flushSave();
+}
+
 function enterApp() {
   hideGate();
   document.getElementById('nt-app').hidden = false;
@@ -145,6 +164,10 @@ function enterApp() {
     const s = state.settings;
     applySettings(s[theme] && typeof s[theme] === 'object' ? s[theme] : s, theme);
   }
+
+  // 列宽拖动手柄：拖动后同步到当前主题的「默认列宽」并保存
+  const tableEl = document.querySelector('.nt-table');
+  if (tableEl) mountColResize(tableEl, { onResize: onColResize });
 
   mountViews();
   bindTabs({
