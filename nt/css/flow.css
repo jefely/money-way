@@ -165,13 +165,23 @@
   top: 50%;
   transform: translateY(-50%);
   right: calc(-1 * var(--nt-handle-offset, 0px));
-  width: 7px;
+  width: 12px;
   height: var(--nt-handle-h, 100%);
   cursor: col-resize;
   background: transparent;
   z-index: 5;
   touch-action: none;
-  pointer-events: none;
+}
+
+.nt-col-handle::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--nt-handle-color, transparent);
+  border-radius: 1px;
 }
 
 .nt-col-handle::after {

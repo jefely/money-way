@@ -11,7 +11,6 @@ import { COL_KEYS } from '../core/settings.js';
 
 const MIN_W = 20;
 const MAX_W = 600;
-const EDGE = 10;
 
 export function mountColResize(tableEl, opts) {
   const o = opts || {};
@@ -33,15 +32,12 @@ export function mountColResize(tableEl, opts) {
     th.appendChild(handle);
 
     th.addEventListener('pointerdown', (e) => {
-      const r = th.getBoundingClientRect();
-      // 手柄位置偏移（px，负值左移）同时作用于视觉与感应区
-      const offset = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nt-handle-offset')) || 0;
-      if (e.clientX < r.right + offset - EDGE) return; // 只在右边缘附近触发
+      if (!e.target.closest('.nt-col-handle')) return; // 只从手柄上开始拖
       e.preventDefault();
       e.stopPropagation();
 
       const startX = e.clientX;
-      const startW = r.width;
+      const startW = th.getBoundingClientRect().width;
       let width = Math.round(startW);
 
       const onMove = (ev) => {
