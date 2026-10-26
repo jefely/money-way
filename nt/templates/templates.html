@@ -93,6 +93,21 @@
   </form>
 </template>
 
+<!-- 统一弹窗骨架（NtModal 用；页面里不再手写遮罩与关闭按钮） -->
+<template id="tpl-modal">
+  <dialog class="nt-modal">
+    <div class="nt-modal-shell">
+      <span class="nt-modal-logo" aria-hidden="true">NT</span>
+      <header class="nt-modal-head">
+        <h2 class="nt-modal-title"></h2>
+      </header>
+      <button class="nt-modal-close" type="button" aria-label="关闭">×</button>
+      <div class="nt-modal-body"></div>
+      <footer class="nt-modal-actions"></footer>
+    </div>
+  </dialog>
+</template>
+
 <!-- 密码锁屏（已有保险库：只解锁） -->
 <template id="tpl-lock">
   <section class="nt-gate nt-gate-lock" aria-labelledby="nt-gate-title">

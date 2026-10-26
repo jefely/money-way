@@ -21,6 +21,8 @@ import { buildFlowRows, buildFooterInfo } from './ui/flow-model.js';
 import { loadTemplates, renderRows } from './ui/render-transactions.js';
 import { bindRowEditing } from './ui/row-editor.js';
 import { showGate, hideGate } from './ui/gate.js';
+import { initTheme, toggleTheme, currentTheme } from './ui/theme-manager.js';
+import * as NtModal from './ui/modal.js';
 import { hasVault, createVault, unlockVault, saveState } from './browser/db.js';
 import { migrate } from './core/migrate.js';
 
@@ -193,13 +195,59 @@ function enterApp() {
   document.getElementById('nt-app').hidden = false;
 }
 
+/* ---------- 顶栏工具（主题 / 关于） ---------- */
+
+function bindHeaderTools() {
+  const themeBtn = document.getElementById('nt-theme-toggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      const next = toggleTheme();
+      themeBtn.setAttribute('aria-label', next === 'dark' ? '切换到浅色' : '切换到深色');
+    });
+  }
+
+  const aboutBtn = document.getElementById('nt-about');
+  if (aboutBtn) {
+    aboutBtn.addEventListener('click', () => {
+      NtModal.open({
+        title: '关于 NT账本',
+        build: (body) => {
+          const dl = document.createElement('dl');
+          dl.className = 'nt-modal-kv';
+          const rows = [
+            ['版本', 'nt-v0.02'],
+            ['主题', currentTheme() === 'dark' ? '深色' : '浅色'],
+            ['账户', String(index.size)],
+            ['流水', String(state.transactions.length) + ' 笔'],
+            ['加密', 'PBKDF2 150k → AES-GCM 256'],
+            ['存储', 'IndexedDB（仅密文）'],
+          ];
+          for (const [k, v] of rows) {
+            const dt = document.createElement('dt');
+            dt.textContent = k;
+            const dd = document.createElement('dd');
+            dd.textContent = v;
+            dl.appendChild(dt);
+            dl.appendChild(dd);
+          }
+          body.appendChild(dl);
+        },
+        actions: [{ label: '知道了', kind: 'ghost', close: true }],
+      });
+    });
+  }
+}
+
 function adoptState(raw) {
   if (!raw || !Array.isArray(raw.transactions)) return seedState();
   return migrate(raw).state;
 }
 
 async function boot() {
+  initTheme();
   await loadTemplates();
+
+  bindHeaderTools();
 
   bindRowEditing(document.getElementById('nt-flow-body'), {
     onEdit: onRowEdit,

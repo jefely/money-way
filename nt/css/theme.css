@@ -1,0 +1,120 @@
+/* ============================================================
+   NT账本 · 主题系统
+   ------------------------------------------------------------
+   两套主题：浅色（白 + 浅紫）/ 深色（暗黑 + 紫霓虹）。
+   切换方式：<html data-theme="light|dark">，所有颜色都走变量，
+   所以换主题时不需要任何 JS 重绘，浏览器自己就换完了。
+
+   变量命名约定：--nt-<用途>，不出现具体色名（如 --nt-purple-500），
+   这样换主题时只改值、不改引用点。
+   ============================================================ */
+
+/* ---------- 浅色（默认） ---------- */
+:root,
+[data-theme="light"] {
+  /* 品牌色 */
+  --nt-primary: #6b5bc4;
+  --nt-primary-dark: #4c3d80;
+  --nt-primary-light: #8b6cff;
+  --nt-accent: #8b6cff;
+
+  /* 背景层次：页面 → 面板 → 单元格 */
+  --nt-bg: #ffffff;
+  --nt-bg-soft: #f8f7fd;
+  --nt-bg-cell: #ffffff;
+  --nt-bg-zebra: #faf9ff;
+
+  /* 线条 */
+  --nt-bg-line: #e6e2f5;
+  --nt-line-strong: #cfc7ea;
+
+  /* 文字 */
+  --nt-text: #1b1430;
+  --nt-text-muted: #5f5878;
+  --nt-text-light: #8b85a6;
+  --nt-text-on-primary: #ffffff;
+
+  /* 表头（深紫底白字，这是"紫玉顶带"） */
+  --nt-head-bg: #6b5bc4;
+  --nt-head-text: #ffffff;
+  --nt-head-line: #7d6ed0;
+
+  /* 语义色 */
+  --nt-ok: #15803d;
+  --nt-ok-bg: #e9f7ef;
+  --nt-bad: #dc2626;
+  --nt-bad-bg: #fdecec;
+  --nt-warn: #b45309;
+
+  /* 遮罩与阴影 */
+  --nt-backdrop: rgba(20, 14, 40, 0.40);
+  --nt-shadow: 0 18px 40px -12px rgba(76, 61, 128, 0.28);
+  --nt-shadow-soft: 0 8px 24px -10px rgba(76, 61, 128, 0.22);
+
+  /* 尺寸 */
+  --nt-radius: 6px;
+  --nt-radius-lg: 14px;
+  --nt-row-h: 32px;
+  --nt-head-h: 26px;
+  --nt-gap: 10px;
+
+  /* 弹窗专用 */
+  --nt-modal-bg: rgba(255, 255, 255, 0.86);
+  --nt-modal-line: rgba(139, 108, 255, 0.34);
+  --nt-modal-glow: 0 0 40px rgba(139, 108, 255, 0.16);
+  --nt-modal-logo: rgba(139, 108, 255, 0.10);
+}
+
+/* ---------- 深色（暗黑 + 紫霓虹） ---------- */
+[data-theme="dark"] {
+  --nt-primary: #9b8cff;
+  --nt-primary-dark: #6b5bc4;
+  --nt-primary-light: #b6a9ff;
+  --nt-accent: #b6a9ff;
+
+  --nt-bg: #000000;
+  --nt-bg-soft: #0e0b16;
+  --nt-bg-cell: #000000;
+  --nt-bg-zebra: #0b0912;
+
+  --nt-bg-line: #2a2438;
+  --nt-line-strong: #3d3552;
+
+  --nt-text: #f2eeff;
+  --nt-text-muted: #b9b2d0;
+  --nt-text-light: #8a83a3;
+  --nt-text-on-primary: #14101f;
+
+  /* 深色表头：深底亮字 + 一条紫线 */
+  --nt-head-bg: #1a1526;
+  --nt-head-text: #d8ceff;
+  --nt-head-line: #3d3552;
+
+  --nt-ok: #6ee7b7;
+  --nt-ok-bg: rgba(110, 231, 183, 0.12);
+  --nt-bad: #ff9b9b;
+  --nt-bad-bg: rgba(255, 155, 155, 0.12);
+  --nt-warn: #fdba74;
+
+  --nt-backdrop: rgba(0, 0, 0, 0.62);
+  --nt-shadow: 0 18px 48px rgba(0, 0, 0, 0.72);
+  --nt-shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.55);
+
+  --nt-modal-bg: rgba(22, 18, 34, 0.88);
+  --nt-modal-line: rgba(155, 140, 255, 0.38);
+  --nt-modal-glow: 0 0 48px rgba(139, 108, 255, 0.22);
+  --nt-modal-logo: rgba(155, 140, 255, 0.12);
+}
+
+/* 主题切换时给一个很短的过渡，避免"闪一下" */
+html[data-theme] body {
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+/* 系统偏好：没有显式设置时跟随（由 theme-manager 决定是否写入 data-theme） */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) {
+    /* 变量回退到深色即可，具体值由 theme-manager 设定 data-theme 后生效 */
+    color-scheme: dark;
+  }
+}
