@@ -70,7 +70,16 @@ for (const file of files) {
         problems.push(`${rel(file)} import 指向不存在的文件：${spec}（应解析为 ${rel(target)}）`);
       }
     }
-    // ⑥ 纯计算层禁止碰浏览器 API（core / timeline / graph 都是「脱离浏览器能用 Node 跑」的层）
+    // ⑦ 渲染器禁止三角函数（坐标必须由 calculator 算好）
+    if (rel(file).includes('mw-svg-renderer')) {
+      lines.forEach((line, i) => {
+        if (/Math\.(sin|cos)\s*\(/.test(line)) {
+          problems.push(`${rel(file)}:${i + 1} 渲染器里出现三角函数 —— 坐标必须由 graph/ 算好（CHECKLIST ☐13）`);
+        }
+      });
+    }
+
+    // ⑧ 纯计算层禁止碰浏览器 API（core / timeline / graph 都是「脱离浏览器能用 Node 跑」的层）
     const pureLayers = ['/core/', '/timeline/', '/graph/'];
     if (pureLayers.some((p) => rel(file).includes(p))) {
       const banned = ['window.', 'document.', 'localStorage', 'navigator.userAgent'];

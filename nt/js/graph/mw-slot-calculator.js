@@ -1,65 +1,100 @@
 /**
- * ☐7 槽位角度计算器 ★核心
- * 层：第三层 · Money Way 数学引擎
+ * 槽位角度计算器 ★核心
+ * 层：第三层 · 数学引擎（纯计算）
  *
  * 把「一批单笔流水」变成「环上的角度」：
  *   · 单位数 N_UNITS = 笔数 × 2（每笔在转出端、转入端各占一个）
  *   · 每个统计分类之间固定留 GAP_DEG = 0.8° 的缝
  *   · 剩下角度平均分给所有单位
- *   · 排序键：分类 → 账户 → 时间
+ *   · 排序：类型 → 分类 → 账户 → 时间（同类聚集，类间留缝）
  *   · 相邻同账户的槽位合并成弧块 blocks
  *
- * 输出**纯数据**（弧度），不碰 SVG、不拼字符串。
- * 验收：Σ(单位角) + Σ(间隙角) = 2π（误差 < 1e-9）。
+ * 还负责给下游两个数：
+ *   unitDeg     单位角（度）
+ *   unitArcLen  1 个单位的弧长（像素）—— 线宽的基准
+ *
+ * 输出**纯数据**（弧度 / 像素），不碰 SVG、不拼字符串。
  */
 
-export const CAT_ORDER = ['权益类', '负债类', '费用类', '资产类', '收入类', '其它'];
+import { ACCOUNT_TYPE } from '../core/schema.js';
+
+/** 类型顺序：9 点钟起顺时针（上面收入、下面权益） */
+export const CAT_ORDER = [
+  ACCOUNT_TYPE.INCOME,     // 收入类
+  ACCOUNT_TYPE.ASSET,      // 资产类
+  ACCOUNT_TYPE.EXPENSE,    // 费用类
+  ACCOUNT_TYPE.LIABILITY,  // 负债类
+  ACCOUNT_TYPE.EQUITY,     // 权益类
+  '其它',
+];
+
 export const GAP_DEG = 0.8;
+export const GAP_RAD = (GAP_DEG * Math.PI) / 180;
 export const START_ANG = -Math.PI / 2;   // 9 点钟
 
 /**
- * @param {Array<{from:string,to:string,catFrom:string,catTo:string,date:string,amount:number,id:any}>} txs
- * @param {(name:string)=>string} subOf 取账户的统计子类
- * @returns {{slots:Array, blocks:Array, unit:number, gapRad:number, units:number, unitDeg:number}}
+ * 细粒度单位角（度）：(360 − 分类数 × 0.8) ÷ (笔数 × 2)
+ * 这是用户给的公式，单独导出便于测试。
  */
-export function computeSlots(txs, subOf) {
-  const list = txs || [];
-  const gapRad = (GAP_DEG * Math.PI) / 180;
+export function unitDegree(groupCount, txCount) {
+  const groups = Math.max(0, Math.floor(Number(groupCount) || 0));
+  const units = Math.max(0, Math.floor(Number(txCount) || 0)) * 2;
+  if (!units) return 0;
+  return Math.max(60, 360 - groups * GAP_DEG) / units;
+}
 
-  // ① 分类组（cat|sub），按 CAT_ORDER 再按 sub 排
+/**
+ * @param {Array} txs 单笔流水（mw-data-fetcher 的输出）
+ * @param {{accOf:(id:string)=>{type:string,category:string,code:string,name:string},
+ *          outerRadius:number}} opts
+ */
+export function computeSlots(txs, opts) {
+  const list = txs || [];
+  const o = opts || {};
+  const accOf = o.accOf || (() => null);
+  const R = Number(o.outerRadius) || 640;
+
+  // ① 分类组（类型|分类），按 CAT_ORDER 再按分类名排
   const groups = new Map();
   for (const x of list) {
-    const add = (name, cat) => {
-      if (!name) return;
-      const c = CAT_ORDER.includes(cat) ? cat : '其它';
-      const key = c + '|' + (subOf ? subOf(name) : '未分类');
-      if (!groups.has(key)) groups.set(key, { key, cat: c, sub: subOf ? subOf(name) : '未分类' });
-    };
-    add(x.from, x.catFrom);
-    add(x.to, x.catTo);
+    for (const id of [x.from_id, x.to_id]) {
+      if (!id) continue;
+      const acc = accOf(id);
+      if (!acc) continue;
+      const type = CAT_ORDER.includes(acc.type) ? acc.type : '其它';
+      const key = type + '|' + (acc.category || '未分类');
+      if (!groups.has(key)) groups.set(key, { key, type, category: acc.category || '未分类' });
+    }
   }
   const groupList = [...groups.values()].sort((A, B) => {
-    const ia = CAT_ORDER.indexOf(A.cat);
-    const ib = CAT_ORDER.indexOf(B.cat);
+    const ia = CAT_ORDER.indexOf(A.type);
+    const ib = CAT_ORDER.indexOf(B.type);
     if (ia !== ib) return ia - ib;
-    return A.sub < B.sub ? -1 : A.sub > B.sub ? 1 : 0;
+    return A.category < B.category ? -1 : A.category > B.category ? 1 : 0;
   });
   const gRank = new Map(groupList.map((g, i) => [g.key, i]));
 
-  // ② 单位数与单位角
-  const units = list.length * 2;
-  const availDeg = Math.max(60, 360 - groupList.length * GAP_DEG);
-  const unitDeg = units > 0 ? availDeg / units : 0;
-  const unit = (unitDeg * Math.PI) / 180;
+  const groupKeyOf = (id) => {
+    const acc = accOf(id);
+    if (!acc) return '其它|未分类';
+    const type = CAT_ORDER.includes(acc.type) ? acc.type : '其它';
+    return type + '|' + (acc.category || '未分类');
+  };
 
-  // ③ 槽位：每笔两个（f = 转出端，t = 转入端）
+  // ② 单位角 / 单位弧长
+  const units = list.length * 2;
+  const uDeg = unitDegree(groupList.length, list.length);
+  const unit = (uDeg * Math.PI) / 180;
+  const unitArcLen = unit * R;     // 1 个单位的弧长
+
+  // ③ 槽位
   const slots = [];
   list.forEach((x, i) => {
-    slots.push(makeSlot(x, i, 'f', x.from, x.catFrom, subOf, gRank));
-    slots.push(makeSlot(x, i, 't', x.to, x.catTo, subOf, gRank));
+    slots.push(makeSlot(x, i, 'f', x.from_id, groupKeyOf, gRank));
+    slots.push(makeSlot(x, i, 't', x.to_id, groupKeyOf, gRank));
   });
 
-  // ④ 排序：分类组 → 账户名 → 时间/索引
+  // ④ 排序：分组 → 账户 → 时间
   slots.sort((A, B) => {
     const ka = A.empty ? 9999 : (gRank.get(A.groupKey) ?? 9998);
     const kb = B.empty ? 9999 : (gRank.get(B.groupKey) ?? 9998);
@@ -72,7 +107,7 @@ export function computeSlots(txs, subOf) {
   let ang = START_ANG;
   let prevKey = null;
   for (const sl of slots) {
-    if (prevKey !== null && sl.groupKey !== prevKey) ang += gapRad;
+    if (prevKey !== null && sl.groupKey !== prevKey) ang += GAP_RAD;
     sl.a1 = ang;
     sl.a2 = ang + unit;
     sl.mid = ang + unit / 2;
@@ -85,26 +120,64 @@ export function computeSlots(txs, subOf) {
   for (const sl of slots) {
     if (!sl.acc) continue;
     const last = blocks[blocks.length - 1];
-    if (last && last.acc === sl.acc) { last.a2 = sl.a2; last.n += 1; }
-    else blocks.push({ acc: sl.acc, cat: sl.cat, sub: sl.sub, a1: sl.a1, a2: sl.a2, n: 1 });
+    if (last && last.acc === sl.acc) {
+      last.a2 = sl.a2;
+      last.n += 1;
+    } else {
+      blocks.push({
+        acc: sl.acc,
+        groupKey: sl.groupKey,
+        type: sl.type,
+        category: sl.category,
+        a1: sl.a1,
+        a2: sl.a2,
+        n: 1,
+      });
+    }
   }
 
-  return { slots, blocks, unit, gapRad, units, unitDeg, groupList };
+  // ⑦ 分组扇区（给「类型分界线」用）
+  const sectors = groupList.map((g, i) => {
+    const groupSlots = slots.filter((s) => s.groupKey === g.key);
+    return {
+      ...g,
+      order: i,
+      a1: groupSlots.length ? groupSlots[0].a1 : 0,
+      a2: groupSlots.length ? groupSlots[groupSlots.length - 1].a2 : 0,
+      count: groupSlots.length,
+    };
+  }).filter((s) => s.count > 0);
+
+  return {
+    slots,
+    blocks,
+    sectors,
+    groupList,
+    colorIndex: new Map(groupList.map((g, i) => [g.key, i])),
+    groupKeyOf,
+    unit,          // 弧度
+    unitDeg: uDeg, // 度
+    unitArcLen,    // 像素：线宽基准
+    units,
+    gapRad: GAP_RAD,
+    outerRadius: R,
+  };
 }
 
-function makeSlot(x, txIdx, side, name, cat, subOf, gRank) {
-  const c = CAT_ORDER.includes(cat) ? cat : '其它';
-  const sub = name && subOf ? subOf(name) : '';
+function makeSlot(x, txIdx, side, accountId, groupKeyOf, gRank) {
+  const accId = accountId || null;
+  const key = accId ? groupKeyOf(accId) : '\u0000EMPTY';
+  const [type, category] = key.split('|');
   return {
-    acc: name || null,
-    cat: c,
-    sub,
-    groupKey: name ? c + '|' + sub : '\u0000EMPTY',
+    acc: accId,
+    groupKey: key,
+    type: type || '其它',
+    category: category || '',
     txIdx,
     side,
-    empty: !name,
+    empty: !accId,
     amount: x.amount,
     date: x.date,
-    gRank: name ? (gRank.get(c + '|' + sub) ?? 9998) : 9999,
+    gRank: accId ? (gRank.get(key) ?? 9998) : 9999,
   };
 }

@@ -14,7 +14,7 @@
  * 验收：折叠后总额守恒（Σ 原边 = Σ 折叠后边，误差 < 0.005）。
  */
 
-import { OPENING_ACCOUNT } from '../core/opening-migrator.js';
+import { OPENING_ACCOUNT_ID } from '../core/schema.js';
 
 export const OTHER_NODE = '其它';
 export const MIN_EDGE_RATIO = 0.015;   // 小于总额 1.5% 的弦不画
@@ -43,7 +43,8 @@ export function fetchGraphData(input) {
     const from = String((t && t.from) || '').trim();
     const to = String((t && t.to) || '').trim();
     if (!from && !to) continue;
-    if (from === OPENING_ACCOUNT || to === OPENING_ACCOUNT) continue;   // 期初不参与图
+    // 期初流水不参与环网图（它是背景板，不是资金流动）
+    if (from === OPENING_ACCOUNT_ID || to === OPENING_ACCOUNT_ID) continue;
     if (!showInternal && catOf.get(from) === '资产类' && catOf.get(to) === '资产类') continue;
     picked.push({
       id: t.id,
