@@ -547,3 +547,12 @@
 .nt-add-ledger-new {
   padding-left: 20px;
 }
+/* 添加流水：按钮加高、文本框加高 */
+.nt-add-bar .nt-btn {
+  height: 32px;
+  padding: 0 12px;
+}
+
+.nt-add-text {
+  height: 340px;
+}
