@@ -48,6 +48,9 @@
 /* ---------- 按钮 ---------- */
 
 .nt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 32px;
   padding: 0 14px;
   border: 1px solid var(--nt-bg-line);
@@ -56,6 +59,7 @@
   color: var(--nt-text);
   font-weight: 600;
   white-space: nowrap;
+  text-decoration: none;
 }
 
 .nt-btn:hover {
