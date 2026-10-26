@@ -35,16 +35,7 @@ export function mountFlow(section, ctx) {
 
   function render() {
     renderRows(body, buildFlowRows(ctx.getState()));
-    updateTitle();
     ctx.setFooter(footerText());
-  }
-
-  function updateTitle() {
-    const title = section.querySelector('.nt-vbar-title');
-    if (!title) return;
-    const st = ctx.getState();
-    const name = (st.ledgerNames || {})[st.activeLedger] || '';
-    title.textContent = '流水记录' + (name ? ' · ' + name : '');
   }
 
   function footerText() {

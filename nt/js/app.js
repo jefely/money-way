@@ -42,6 +42,13 @@ let saveTimer = 0;
 function setState(next) {
   state = next;
   index = buildAccountIndex(state.accounts);
+  updateDocTitle();
+}
+
+/** 窗口/标签标题显示当前账本：NT 账本 - 主账本 */
+function updateDocTitle() {
+  const name = (state.ledgerNames || {})[state.activeLedger] || '';
+  document.title = 'NT 账本' + (name ? ' - ' + name : '');
 }
 
 function getState() { return state; }
@@ -157,6 +164,7 @@ function onColResize(col, width) {
 function enterApp() {
   hideGate();
   document.getElementById('nt-app').hidden = false;
+  updateDocTitle();
 
   // 应用界面参数：即使 settings 为空也要跑一次，用 SCHEMA 默认值补齐
   // （否则新账本没有 --nt-col-*，列宽会被表格拉伸，拖动也看不出效果）
