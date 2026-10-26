@@ -25,9 +25,10 @@
 
 /* 拖动条：用软件表头色；左侧「调试面板」（小字灰色），右侧关闭 × */
 .nt-debug-drag {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 0 8px;
   height: 20px;
   background: var(--nt-head-bg);
@@ -76,7 +77,10 @@
 }
 
 .nt-debug-close {
-  flex: 0 0 18px;
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 18px;
   height: 18px;
   border: 0;
