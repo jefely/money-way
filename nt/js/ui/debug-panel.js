@@ -1,10 +1,4 @@
-/**
- * 界面参数调试面板（UI 层）
- *
- * 第一行是界面标签栏（当前只有「主界面」，以后可加「设置界面」等），
- * 下面按区域分组：标签栏 / 按钮区 / 列标行 / 数据区 / 信息栏。
- * 改任意一项实时生效；可导出/恢复默认；面板可拖动。
- */
+/** 界面参数调试面板（UI 层）：按标签页分组，改值实时生效，可保存/撤销/恢复默认。 */
 
 import { GROUPS, SCREENS, GROUP_SCREEN, SCHEMA, DEFAULTS, normalize } from '../core/settings.js';
 import { applySettings } from './apply-settings.js';
@@ -108,6 +102,10 @@ export function mountDebugPanel(opts) {
   resetBtn.type = 'button';
   resetBtn.className = 'nt-debug-btn';
   resetBtn.textContent = '恢复默认';
+  const readColBtn = document.createElement('button');
+  readColBtn.type = 'button';
+  readColBtn.className = 'nt-debug-btn';
+  readColBtn.textContent = '读取列宽';
   const undoBtn = document.createElement('button');
   undoBtn.type = 'button';
   undoBtn.className = 'nt-debug-btn';
@@ -117,6 +115,7 @@ export function mountDebugPanel(opts) {
   saveBtn.className = 'nt-debug-btn';
   saveBtn.textContent = '保存';
   foot.appendChild(resetBtn);
+  foot.appendChild(readColBtn);
   foot.appendChild(undoBtn);
   foot.appendChild(saveBtn);
 
@@ -141,6 +140,18 @@ export function mountDebugPanel(opts) {
     current = normalize({}, theme);
     renderBody();
     applySettings(current, theme);
+  });
+  readColBtn.addEventListener('click', () => {
+    if (!o.getState) return;
+    const st = o.getState();
+    const settings = st.settings && typeof st.settings === 'object' ? st.settings : {};
+    const cur = settings[theme] && typeof settings[theme] === 'object' ? settings[theme] : {};
+    const userW = cur['用户列宽'];
+    if (!userW) return;
+    pushHistory();
+    current['默认列宽'] = userW;
+    renderBody();
+    applySettings(normalize(current, theme), theme);
   });
   undoBtn.addEventListener('click', () => {
     if (!history.length) return;

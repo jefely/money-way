@@ -137,20 +137,19 @@ function adoptState(raw) {
   return migrate(raw).state;
 }
 
-/** 拖动手柄改列宽后，同步到当前主题的「默认列宽」并保存 */
+/** 拖动手柄改列宽后，写入当前主题的「用户列宽」（不覆盖默认列宽） */
 function onColResize(col, width) {
   const theme = document.documentElement.getAttribute('data-theme') || 'dark';
   const st = getState();
   const all = { ...(st.settings && typeof st.settings === 'object' ? st.settings : {}) };
   const cur = all[theme] && typeof all[theme] === 'object' ? all[theme] : {};
-  const widths = String(cur['默认列宽'] || '').split(',').map((x) => Number(x.trim()));
+  const widths = String(cur['用户列宽'] || cur['默认列宽'] || '').split(',').map((x) => Number(x.trim()));
   const idx = COL_KEYS.indexOf(col);
   if (idx < 0) return;
   while (widths.length < COL_KEYS.length) widths.push(64);
   widths[idx] = width;
-  all[theme] = { ...cur, '默认列宽': widths.join(',') };
+  all[theme] = { ...cur, '用户列宽': widths.join(',') };
   setState({ ...st, settings: all });
-  applySettings(all[theme], theme);
   flushSave();
 }
 
@@ -162,7 +161,10 @@ function enterApp() {
   if (state.settings && Object.keys(state.settings).length) {
     const theme = document.documentElement.getAttribute('data-theme') || 'dark';
     const s = state.settings;
-    applySettings(s[theme] && typeof s[theme] === 'object' ? s[theme] : s, theme);
+    const themeSettings = s[theme] && typeof s[theme] === 'object' ? s[theme] : s;
+    const merged = { ...themeSettings };
+    if (themeSettings['用户列宽']) merged['默认列宽'] = themeSettings['用户列宽'];
+    applySettings(merged, theme);
   }
 
   // 列宽拖动手柄：拖动后同步到当前主题的「默认列宽」并保存
