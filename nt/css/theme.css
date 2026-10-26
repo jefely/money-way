@@ -12,6 +12,7 @@
 /* ---------- 浅色（默认） ---------- */
 :root,
 [data-theme="light"] {
+  color-scheme: light;
   /* 品牌色 */
   --nt-primary: #6b5bc4;
   --nt-primary-dark: #4c3d80;
@@ -94,6 +95,7 @@
 
 /* ---------- 深色（暗黑 + 紫霓虹） ---------- */
 [data-theme="dark"] {
+  color-scheme: dark;
   --nt-primary: #9b8cff;
   --nt-primary-dark: #6b5bc4;
   --nt-primary-light: #b6a9ff;
@@ -147,6 +149,7 @@
 
 /* ---------- 备选1：暖色（浅） ---------- */
 [data-theme="alt1"] {
+  color-scheme: light;
   --nt-primary: #b8860b;
   --nt-primary-dark: #8a6408;
   --nt-primary-light: #d4a017;
@@ -193,6 +196,7 @@
 
 /* ---------- 备选2：暗绿（深） ---------- */
 [data-theme="alt2"] {
+  color-scheme: dark;
   --nt-primary: #4ade80;
   --nt-primary-dark: #22c55e;
   --nt-primary-light: #86efac;
