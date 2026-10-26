@@ -12,7 +12,7 @@
  * 加参数只改 SCHEMA 一处：面板、应用、导出都从它派生。
  */
 
-export const GROUPS = ['公共', '按钮区', '列标行', '数据区', '列宽', '标签栏', '信息栏'];
+export const GROUPS = ['标签栏', '表格', '信息栏', '按钮区', '列标行', '数据区', '列宽'];
 
 /** 调试面板的界面标签 */
 export const SCREENS = [
@@ -22,8 +22,8 @@ export const SCREENS = [
 
 /** 分组归属的界面标签：main=公共参数，flow=流水页参数 */
 export const GROUP_SCREEN = {
-  公共: 'main',
   标签栏: 'main',
+  表格: 'main',
   信息栏: 'main',
   按钮区: 'flow',
   列标行: 'flow',
@@ -33,8 +33,8 @@ export const GROUP_SCREEN = {
 
 /** 参数作用域：global=写全局(:root)；其余=写到对应标签页容器 [data-view] */
 export const GROUP_SCOPE = {
-  公共: 'global',
   标签栏: 'global',
+  表格: 'global',
   信息栏: 'global',
   按钮区: 'flow',
   列标行: 'flow',
@@ -50,11 +50,11 @@ export const DEFAULT_COL_WIDTHS = '44,84,72,76,64,100,96,40,64,64,64';
 
 export const SCHEMA = [
   /* ---------- 公共（按钮区 / 数据区 / 列标行 共用） ---------- */
-  { key: '默认文字颜色', group: '公共', def: '#f2eeff', cssVar: '--nt-unit-text' },
-  { key: '默认背景颜色', group: '公共', def: '#000000', cssVar: '--nt-unit-bg' },
-  { key: '整行背景色', group: '公共', def: '#0e0b16', cssVar: '--nt-unit-row-bg' },
-  { key: '横向边框样式', group: '公共', type: 'enum', options: ['有', '无'], values: ['1px', '0'], def: '有', attr: 'data-border-h' },
-  { key: '纵向边框样式', group: '公共', type: 'enum', options: ['有', '无'], values: ['0', '1px'], def: '无', attr: 'data-border-v' },
+  { key: '默认文字颜色', group: '表格', def: '#f2eeff', cssVar: '--nt-unit-text' },
+  { key: '默认背景颜色', group: '表格', def: '#000000', cssVar: '--nt-unit-bg' },
+  { key: '整行背景色', group: '表格', def: '#0e0b16', cssVar: '--nt-unit-row-bg' },
+  { key: '横向边框样式', group: '表格', type: 'enum', options: ['有', '无'], values: ['1px', '0'], def: '有', attr: 'data-border-h' },
+  { key: '纵向边框样式', group: '表格', type: 'enum', options: ['有', '无'], values: ['0', '1px'], def: '无', attr: 'data-border-v' },
 
   /* ---------- 按钮区（独立） ---------- */
   { key: '按钮区行高', group: '按钮区', def: 30, unit: 'px', cssVar: '--nt-vbar-h' },
