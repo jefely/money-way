@@ -21,8 +21,8 @@
 }
 
 .nt-debug-drag {
-  height: 12px;
-  background: rgba(155, 140, 255, 0.06);
+  height: 24px;
+  background: #2a2a2a;
   cursor: move;
   user-select: none;
   touch-action: none;
