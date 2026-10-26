@@ -1,0 +1,97 @@
+/* ============================================================
+   NT账本 · 基础层（变量 + 重置 + 排版）
+   只放"与页面结构无关"的东西：颜色、字号、间距、通用重置。
+   ============================================================ */
+
+:root {
+  /* 主题色（与旧版一致，保持视觉连续） */
+  --nt-primary: #6b5bc4;
+  --nt-primary-dark: #4c3d80;
+  --nt-primary-light: #8b6cff;
+
+  /* 背景与文字 */
+  --nt-bg: #ffffff;
+  --nt-bg-soft: #f8fafc;
+  --nt-bg-line: #e2e8f0;
+  --nt-text: #0f172a;
+  --nt-text-muted: #64748b;
+  --nt-text-light: #94a3b8;
+
+  /* 语义色 */
+  --nt-ok: #15803d;
+  --nt-bad: #dc2626;
+
+  /* 尺寸 */
+  --nt-radius: 6px;
+  --nt-row-h: 32px;
+  --nt-head-h: 26px;
+  --nt-gap: 10px;
+}
+
+[data-theme="dark"] {
+  --nt-bg: #000000;
+  --nt-bg-soft: #0d0d0d;
+  --nt-bg-line: #343434;
+  --nt-text: #ffffff;
+  --nt-text-muted: #e0e0e0;
+  --nt-text-light: #b4b4b4;
+  --nt-ok: #86efac;
+  --nt-bad: #ff8a8a;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--nt-bg);
+  color: var(--nt-text);
+  font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+h1,
+h2,
+p,
+dl,
+dd,
+dt {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* 无障碍：只给读屏看的文字 */
+.nt-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 选中文字：与旧版一致（紫底白字，深色下也清楚） */
+::selection {
+  background: rgba(139, 108, 255, 0.55);
+  color: #ffffff;
+}
