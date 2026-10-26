@@ -14,6 +14,7 @@ import { renderRows } from '../ui/render-transactions.js';
 import { parseAccountInput, suggestAccounts as suggestByIndex } from '../core/account-resolver.js';
 import { bindRowEditing } from '../ui/row-editor.js';
 import * as NtModal from '../ui/modal.js';
+import { openAddDialog } from '../ui/add-dialog.js';
 
 const WIP = '该功能在后续版本接入（当前版本先做单页壳）。';
 
@@ -92,6 +93,9 @@ export function mountFlow(section, ctx) {
 /* ---------- 工具条 ---------- */
 
 function bindToolbar(section, ctx) {
+  const add = section.querySelector('[data-act="add"]');
+  if (add) add.addEventListener('click', () => openAddDialog(ctx));
+
   const sync = section.querySelector('[data-act="sync"]');
   if (sync) sync.addEventListener('click', () => NtModal.info('同步', (b) => { b.textContent = WIP; }));
 
