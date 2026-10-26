@@ -54,10 +54,25 @@ for (const file of files) {
     }
   }
 
-  // ④ 单文件行数
+  // ④ 单文件行数（只算有效代码行：注释与空行不计，注释不该被惩罚）
   if (ext === '.js' || ext === '.mjs') {
-    if (lines.length > MAX_JS_LINES) {
-      problems.push(`${rel(file)} ${lines.length} 行，超过 ${MAX_JS_LINES} 行上限（公约 3.1）`);
+    let inBlock = false;
+    const codeLines = lines.filter((line) => {
+      const t = line.trim();
+      if (!t) return false;
+      if (inBlock) {
+        if (t.includes('*/')) inBlock = false;
+        return false;
+      }
+      if (t.startsWith('/*')) {
+        if (!t.includes('*/')) inBlock = true;
+        return false;
+      }
+      if (t.startsWith('//')) return false;
+      return true;
+    });
+    if (codeLines.length > MAX_JS_LINES) {
+      problems.push(`${rel(file)} ${codeLines.length} 行有效代码（去注释/空行），超过 ${MAX_JS_LINES} 行上限（公约 3.1）`);
     }
     // ⑤ 相对 import 必须能解析到真实文件（这类错误在浏览器里只表现为"整页不动"）
     const importRe = /(?:import|export)[^'"]*from\s+['"]([^'"]+)['"]|import\s+['"]([^'"]+)['"]/g;
