@@ -1,20 +1,22 @@
 /**
- * 入口：装配（门禁 → state → 视图 → 事件）。
+ * 入口：装配（门禁 → state → 索引 → 视图 → 事件）。
  *
- * 数据流（ID 模型 + 零知识）：
- *   启动 → 有没有保险库？ → 没有：设置密码（派生密钥 + 加密初始数据）
- *                          → 有：输密码 → 解开 → 明文进内存
- *   行内编辑 → 改 state（存 ID） → 防抖 300ms → 加密写盘
+ * 数据流（ID 模型 + 简码 + 零知识）：
+ *   启动 → 有没有保险库？ → 没有：设置密码 → 有：输密码 → 解开
+ *   行内编辑 → 输入简码/名字 → 解析成 ID → 改 state → 防抖加密写盘
  *
- * 本文件不持有密钥，也不做业务计算。
+ * 索引策略：state.accounts 一变就重建一次（100 个账户约 0.05ms），
+ * 之后每次按键查 byCode / byName 都是 O(1)。
  */
 
 import {
   createState, addAccount, addTransaction, updateTransaction,
-  removeTransaction, nameOf, idOf, nextSeq,
+  removeTransaction, nextSeq,
 } from './core/state-store.js';
-import { ACCOUNT_TYPE } from './core/schema.js';
-import { balancesOf, balanceOf } from './core/balance-calculator.js';
+import { ACCOUNT_TYPE, normalizeCode } from './core/schema.js';
+import { balancesOf } from './core/balance-calculator.js';
+import { buildAccountIndex } from './core/account-index.js';
+import { parseAccountInput, suggestAccounts as suggestByIndex } from './core/account-resolver.js';
 import { buildFlowRows, buildFooterInfo } from './ui/flow-model.js';
 import { loadTemplates, renderRows } from './ui/render-transactions.js';
 import { bindRowEditing } from './ui/row-editor.js';
@@ -23,14 +25,20 @@ import { hasVault, createVault, unlockVault, saveState } from './browser/db.js';
 import { migrate } from './core/migrate.js';
 
 let state = createState();
+let index = buildAccountIndex(state.accounts);
 let _saveTimer = 0;
 
-/** 首次使用时的默认账户（只是种子，不是业务规则） */
+/** state 一变就重建索引（唯一入口） */
+function setState(next) {
+  state = next;
+  index = buildAccountIndex(state.accounts);
+}
+
 function seedState() {
   let s = createState();
-  s = addAccount(s, { id: 'acc_cash', name: '现金', type: ACCOUNT_TYPE.ASSET, category: '现金' });
-  s = addAccount(s, { id: 'acc_bank', name: '招行储', type: ACCOUNT_TYPE.ASSET, category: '储蓄' });
-  s = addAccount(s, { id: 'acc_food', name: '餐饮', type: ACCOUNT_TYPE.EXPENSE, category: '餐饮' });
+  s = addAccount(s, { id: 'acc_cash', code: 'XJ', name: '现金', type: ACCOUNT_TYPE.ASSET, category: '现金' });
+  s = addAccount(s, { id: 'acc_bank', code: 'ZHC', name: '招行储', type: ACCOUNT_TYPE.ASSET, category: '储蓄' });
+  s = addAccount(s, { id: 'acc_food', code: 'CY', name: '餐饮', type: ACCOUNT_TYPE.EXPENSE, category: '餐饮' });
   return s;
 }
 
@@ -47,7 +55,6 @@ async function flushSave() {
   }
 }
 
-/** 防抖：加密 649KB 账本约 2ms，这里只为减少 IndexedDB 事务次数 */
 function scheduleSave() {
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(flushSave, 300);
@@ -68,24 +75,23 @@ function renderFooterEl(info) {
 
 function renderChecks() {
   const rows = balancesOf(state.accounts, state.transactions);
-  const sum = rows.reduce((map, r) => {
-    map[r.acc.type] = (map[r.acc.type] || 0) + r.balance;
-    return map;
-  }, {});
+  const sum = {};
+  for (const r of rows) sum[r.acc.type] = (sum[r.acc.type] || 0) + r.balance;
 
-  const asset = sum[ACCOUNT_TYPE.ASSET] || 0;
-  const expense = sum[ACCOUNT_TYPE.EXPENSE] || 0;
-  const liability = sum[ACCOUNT_TYPE.LIABILITY] || 0;
-  const equity = sum[ACCOUNT_TYPE.EQUITY] || 0;
-  const income = sum[ACCOUNT_TYPE.INCOME] || 0;
+  const diff = Math.round((
+    (sum[ACCOUNT_TYPE.ASSET] || 0) + (sum[ACCOUNT_TYPE.EXPENSE] || 0)
+    - (sum[ACCOUNT_TYPE.LIABILITY] || 0) - (sum[ACCOUNT_TYPE.EQUITY] || 0)
+    - (sum[ACCOUNT_TYPE.INCOME] || 0)
+  ) * 100) / 100;
 
-  // 资产 + 费用 − 负债 − 权益 − 收入
-  const diff = Math.round((asset + expense - liability - equity - income) * 100) / 100;
-  const broken = (state.transactions || []).filter((t) => !t.from_id || !t.to_id).length;
+  const brokenTx = (state.transactions || []).filter((t) => !t.from_id || !t.to_id).length;
+  const codesOk = index.duplicateCodes.length === 0 && index.missingCode.length === 0;
 
-  setText('nt-check-balanced', broken === 0 ? '0 ✓' : `${broken} 笔断链 ✗`);
+  setText('nt-check-balanced', brokenTx === 0 ? '0 ✓' : `${brokenTx} 笔断链 ✗`);
   setText('nt-check-identity', Math.abs(diff) < 0.005 ? '0 ✓' : `${diff}  ✗`);
-  setText('nt-check-detail', `${state.transactions.length} 笔 · ${rows.length} 账户`);
+  setText('nt-check-detail',
+    `${state.transactions.length} 笔 · ${rows.length} 账户`
+    + (codesOk ? '' : ` · 简码有问题：重复 ${index.duplicateCodes.length} / 缺失 ${index.missingCode.length}`));
 }
 
 function setText(id, text) {
@@ -98,49 +104,58 @@ function showStatus(msg) {
   if (el) el.textContent = msg;
 }
 
-/* ---------- 行内编辑（名字 → ID） ---------- */
+/* ---------- 行内编辑 ---------- */
 
 /**
- * 输入的是「名字」，存的是「ID」。
- * 解析不到就存 null，由校验层报断链 —— 绝不把名字写进流水。
+ * 账户格的特殊处理：调用方给了 resolvedId 就直接用，
+ * 否则按输入文本解析（简码 / 名字）。
  */
-function onRowEdit(id, field, value) {
+function onRowEdit(id, field, value, resolvedId) {
   const patch = {};
+
   if (field === 'date') patch.date = normalizeDateInput(value);
   else if (field === 'amount') patch.amount = normalizeAmountInput(value);
-  else if (field === 'from') patch.from_id = idOf(state, value);
-  else if (field === 'to') patch.to_id = idOf(state, value);
-  else patch[field] = value;
+  else if (field === 'from' || field === 'to') {
+    const accId = resolvedId || (parseAccountInput(index, value).acc || {}).id || null;
+    patch[field === 'from' ? 'from_id' : 'to_id'] = accId;
+  } else patch[field] = value;
 
-  state = updateTransaction(state, id, patch);
+  setState(updateTransaction(state, id, patch));
 
-  // 只刷新页脚与校验，不重建行（否则光标会跳）
+  if (field === 'from' || field === 'to') {
+    const key = field === 'from' ? 'from_id' : 'to_id';
+    if (!patch[key]) showStatus(`没找到「${String(value).trim()}」这个账户（可打简码）`);
+    else showStatus('');
+  }
+
   renderFooterEl(buildFooterInfo(state));
   renderChecks();
   scheduleSave();
 }
 
 function onRowCreate(fields) {
-  const fromId = idOf(state, fields.from || '');
-  const toId = idOf(state, fields.to || '');
-  if (!fromId && !toId) {
-    showStatus('转出 / 转入 至少要填一个已有的账户');
+  const from = parseAccountInput(index, fields.from || '');
+  const to = parseAccountInput(index, fields.to || '');
+
+  if (!from.acc && !to.acc) {
+    showStatus('转出 / 转入 至少要填一个已存在的账户（可打简码）');
     return;
   }
-  state = addTransaction(state, {
+
+  setState(addTransaction(state, {
     date: normalizeDateInput(fields.date || todayIso()),
-    from_id: fromId,
-    to_id: toId,
+    from_id: from.acc ? from.acc.id : null,
+    to_id: to.acc ? to.acc.id : null,
     amount: normalizeAmountInput(fields.amount || ''),
     note: fields.note || '',
     seq: nextSeq(state),
-  });
+  }));
   render();
   scheduleSave();
 }
 
 function onRowDelete(id) {
-  state = removeTransaction(state, id);
+  setState(removeTransaction(state, id));
   render();
   scheduleSave();
 }
@@ -154,7 +169,6 @@ function todayIso() {
   return `${d.getFullYear()}-${m}-${dd}`;
 }
 
-/** "260830" / "26-08-30" / "2026-08-30" → ISO */
 function normalizeDateInput(v) {
   const s = String(v || '').trim();
   const d = s.replace(/[^0-9]/g, '');
@@ -167,7 +181,6 @@ function normalizeDateInput(v) {
   return s || todayIso();
 }
 
-/** 剥掉 ¥ 与千分位 */
 function normalizeAmountInput(v) {
   return String(v || '').replace(/[¥,\s]/g, '');
 }
@@ -180,11 +193,9 @@ function enterApp() {
   document.getElementById('nt-app').hidden = false;
 }
 
-/** 把盘上读出的数据过一遍迁移（老存档也能进） */
 function adoptState(raw) {
   if (!raw || !Array.isArray(raw.transactions)) return seedState();
-  const r = migrate(raw);
-  return r.state;
+  return migrate(raw).state;
 }
 
 async function boot() {
@@ -195,6 +206,8 @@ async function boot() {
     onCreate: onRowCreate,
     onDelete: onRowDelete,
     onCommit: () => { flushSave(); },
+    parseAccount: (v) => parseAccountInput(index, v),
+    suggestAccounts: (v) => suggestByIndex(index, v),
   });
 
   window.addEventListener('beforeunload', () => {
@@ -207,13 +220,13 @@ async function boot() {
     onUnlock: async (pw) => {
       const res = await unlockVault(pw);
       if (res.ok) {
-        state = adoptState(res.state);
+        setState(adoptState(res.state));
         enterApp();
       }
       return res;
     },
     onSetup: async (pw) => {
-      state = seedState();
+      setState(seedState());
       try {
         await createVault(state, pw);
         enterApp();
@@ -225,7 +238,12 @@ async function boot() {
   });
 }
 
-// 供调试/后续模块引用（不挂 window，走模块导出）
-export { state, balanceOf, nameOf };
+export { state, index, addAccount, updateAccountProxy, normalizeCode };
+
+/** 账户改动入口（未来设置页用）：改完自动重建索引 */
+function updateAccountProxy(patch) {
+  setState(addAccount(state, patch));
+  return state.accounts[state.accounts.length - 1];
+}
 
 boot();

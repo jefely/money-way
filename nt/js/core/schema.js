@@ -38,11 +38,28 @@ export function isDebitType(type) {
 export const OPENING_ACCOUNT_ID = '__OPENING__';
 export const OPENING_ACCOUNT = {
   id: OPENING_ACCOUNT_ID,
+  code: '__OP__',
   name: '期初余额',
   type: ACCOUNT_TYPE.EQUITY,
   category: '',
   isHidden: true,
 };
+
+/** 简码长度约束（2~5，不区分大小写，统一存大写） */
+export const CODE_MIN_LEN = 2;
+export const CODE_MAX_LEN = 5;
+
+/** 简码归一化：去空白 → 转大写。空串返回空串，不做别的猜测。 */
+export function normalizeCode(raw) {
+  return String(raw == null ? '' : raw).replace(/\s+/g, '').toUpperCase();
+}
+
+/** 简码是否合法（长度 2~5，只允许字母数字与 _ -） */
+export function isValidCode(raw) {
+  const c = normalizeCode(raw);
+  if (c.length < CODE_MIN_LEN || c.length > CODE_MAX_LEN) return false;
+  return /^[A-Z0-9_-]+$/.test(c);
+}
 
 /** 数据结构版本（迁移用） */
 export const SCHEMA_VERSION = 2;
@@ -61,11 +78,13 @@ export function makeId(prefix) {
 
 /**
  * 造一个账户。
- * @param {{id?:string,name?:string,type?:string,category?:string,isHidden?:boolean}} patch
+ * @param {{id?:string,code?:string,name?:string,type?:string,category?:string,isHidden?:boolean}} patch
  */
 export function createAccount(patch = {}) {
   return {
     id: patch.id || makeId('acc'),
+    // 简码只是「输入用的马甲」，但必须唯一且非空（由 V7 校验把关）
+    code: normalizeCode(patch.code),
     name: String(patch.name || '').trim(),
     type: ALL_ACCOUNT_TYPES.includes(patch.type) ? patch.type : ACCOUNT_TYPE.ASSET,
     category: String(patch.category || '').trim(),
