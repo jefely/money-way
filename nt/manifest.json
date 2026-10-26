@@ -1,7 +1,7 @@
 {
   "id": "/money-way/nt/",
-  "name": "NT账本 · 多文件版",
-  "short_name": "NT 多文件",
+  "name": "NT 账本",
+  "short_name": "NT 账本",
   "description": "五层架构重构版：算钱 / 切时间 / 算图 / 适配设备 / 画界面各自独立",
   "start_url": "./index.html",
   "scope": "./",
