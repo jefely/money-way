@@ -2,7 +2,7 @@
  * 锁屏 / 设置密码（UI 层）
  *
  * 只做三件事：拿模板、读输入、把结果交给调用方。
- * **不派生密钥、不碰存储** —— 那是 core/auth-manager 与 browser/storage-adapter 的事。
+ * **不派生密钥、不碰存储** —— 那是 core/auth-manager 与 browser/db 的事。
  */
 
 import { tpl } from './render-transactions.js';

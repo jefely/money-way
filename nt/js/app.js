@@ -1,47 +1,41 @@
 /**
- * 入口：装配（state → 门禁 → 视图 → 事件）。
+ * 入口：装配（门禁 → state → 视图 → 事件）。
  *
- * 数据流（零知识）：
+ * 数据流（ID 模型 + 零知识）：
  *   启动 → 有没有保险库？ → 没有：设置密码（派生密钥 + 加密初始数据）
  *                          → 有：输密码 → 解开 → 明文进内存
- *   每次改动 → state 更新 → saveState() 重新加密写盘
+ *   行内编辑 → 改 state（存 ID） → 防抖 300ms → 加密写盘
  *
- * 密钥只在 core/auth-manager 的闭包里，本文件不持有、也不外传。
+ * 本文件不持有密钥，也不做业务计算。
  */
 
-import { createState, addTransaction, updateTransaction, removeTransaction } from './core/state.js';
+import {
+  createState, addAccount, addTransaction, updateTransaction,
+  removeTransaction, nameOf, idOf, nextSeq,
+} from './core/state-store.js';
+import { ACCOUNT_TYPE } from './core/schema.js';
+import { balancesOf, balanceOf } from './core/balance-calculator.js';
 import { buildFlowRows, buildFooterInfo } from './ui/flow-model.js';
 import { loadTemplates, renderRows } from './ui/render-transactions.js';
 import { bindRowEditing } from './ui/row-editor.js';
 import { showGate, hideGate } from './ui/gate.js';
-import { checkBalanced, checkAccountingIdentity } from './core/validate.js';
-import { statsForAccounts } from './core/stats.js';
-import { hasVault, createVault, unlockVault, saveState } from './browser/storage-adapter.js';
+import { hasVault, createVault, unlockVault, saveState } from './browser/db.js';
+import { migrate } from './core/migrate.js';
 
 let state = createState();
-/** 存盘防抖句柄 */
 let _saveTimer = 0;
 
+/** 首次使用时的默认账户（只是种子，不是业务规则） */
 function seedState() {
-  const s = createState();
-  return {
-    ...s,
-    accounts: [
-      { id: 'acc-cash', cat: '资产类', sub: '现金', code: 'XJ', name: '现金', opening: '0', billDay: '', repayDay: '' },
-      { id: 'acc-bank', cat: '资产类', sub: '储蓄', code: 'HC', name: '招行储', opening: '0', billDay: '', repayDay: '' },
-      { id: 'acc-food', cat: '费用类', sub: '餐饮', code: 'CY', name: '餐饮', opening: '0', billDay: '', repayDay: '' },
-    ],
-  };
+  let s = createState();
+  s = addAccount(s, { id: 'acc_cash', name: '现金', type: ACCOUNT_TYPE.ASSET, category: '现金' });
+  s = addAccount(s, { id: 'acc_bank', name: '招行储', type: ACCOUNT_TYPE.ASSET, category: '储蓄' });
+  s = addAccount(s, { id: 'acc_food', name: '餐饮', type: ACCOUNT_TYPE.EXPENSE, category: '餐饮' });
+  return s;
 }
 
-/** 持久化 + 重渲染。加密失败不能静默吞掉。 */
-async function commit(nextState) {
-  state = nextState;
-  render();
-  await flushSave();
-}
+/* ---------- 存盘 ---------- */
 
-/** 立即加密写盘。 */
 async function flushSave() {
   clearTimeout(_saveTimer);
   _saveTimer = 0;
@@ -53,14 +47,13 @@ async function flushSave() {
   }
 }
 
-/**
- * 行内编辑：只改 state 不重渲染（否则光标会丢），300ms 后统一加密写盘。
- * 加密 649KB 账本约 2ms，所以这个防抖纯粹是为了减少 IndexedDB 事务次数。
- */
+/** 防抖：加密 649KB 账本约 2ms，这里只为减少 IndexedDB 事务次数 */
 function scheduleSave() {
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(flushSave, 300);
 }
+
+/* ---------- 渲染 ---------- */
 
 function render() {
   renderRows(document.getElementById('nt-flow-body'), buildFlowRows(state));
@@ -73,15 +66,26 @@ function renderFooterEl(info) {
   if (el) el.textContent = `共 ${info.count} 笔 · 合计 ${info.totalText}`;
 }
 
-/** 两条校验 + 统计（全部来自 core） */
 function renderChecks() {
-  const bal = checkBalanced(state.transactions);
-  const rows = statsForAccounts(state.transactions, state.accounts, { start: '', end: '' });
-  const acc = checkAccountingIdentity(rows.map((r) => ({ cat: r.acc.cat, balance: r.stats.balance })));
+  const rows = balancesOf(state.accounts, state.transactions);
+  const sum = rows.reduce((map, r) => {
+    map[r.acc.type] = (map[r.acc.type] || 0) + r.balance;
+    return map;
+  }, {});
 
-  setText('nt-check-balanced', bal.ok ? '0 ✓' : `${bal.diff}  ✗`);
-  setText('nt-check-identity', acc.ok ? '0 ✓' : `${acc.diff}  ✗`);
-  setText('nt-check-detail', `${state.transactions.length} 笔 · ${state.accounts.length} 账户`);
+  const asset = sum[ACCOUNT_TYPE.ASSET] || 0;
+  const expense = sum[ACCOUNT_TYPE.EXPENSE] || 0;
+  const liability = sum[ACCOUNT_TYPE.LIABILITY] || 0;
+  const equity = sum[ACCOUNT_TYPE.EQUITY] || 0;
+  const income = sum[ACCOUNT_TYPE.INCOME] || 0;
+
+  // 资产 + 费用 − 负债 − 权益 − 收入
+  const diff = Math.round((asset + expense - liability - equity - income) * 100) / 100;
+  const broken = (state.transactions || []).filter((t) => !t.from_id || !t.to_id).length;
+
+  setText('nt-check-balanced', broken === 0 ? '0 ✓' : `${broken} 笔断链 ✗`);
+  setText('nt-check-identity', Math.abs(diff) < 0.005 ? '0 ✓' : `${diff}  ✗`);
+  setText('nt-check-detail', `${state.transactions.length} 笔 · ${rows.length} 账户`);
 }
 
 function setText(id, text) {
@@ -94,79 +98,98 @@ function showStatus(msg) {
   if (el) el.textContent = msg;
 }
 
-/** 列表删除：事件委托（公约 1.1） */
-function onListClick(ev) {
-  const btn = ev.target.closest('.nt-cell-action button');
-  if (!btn) return;
-  const tr = btn.closest('tr');
-  if (!tr || !tr.dataset.id) return;
-  commit(removeTransaction(state, tr.dataset.id));
-}
+/* ---------- 行内编辑（名字 → ID） ---------- */
 
 /**
- * 行内编辑的三个回调（由 ui/row-editor.js 触发）。
- * 注意：编辑时不重渲染 —— 重渲染会让输入框失焦、光标跳到开头。
+ * 输入的是「名字」，存的是「ID」。
+ * 解析不到就存 null，由校验层报断链 —— 绝不把名字写进流水。
  */
 function onRowEdit(id, field, value) {
   const patch = {};
   if (field === 'date') patch.date = normalizeDateInput(value);
   else if (field === 'amount') patch.amount = normalizeAmountInput(value);
+  else if (field === 'from') patch.from_id = idOf(state, value);
+  else if (field === 'to') patch.to_id = idOf(state, value);
   else patch[field] = value;
+
   state = updateTransaction(state, id, patch);
-  // 改了金额/日期会影响页脚与校验，这两处要实时刷新（不重建行）
+
+  // 只刷新页脚与校验，不重建行（否则光标会跳）
   renderFooterEl(buildFooterInfo(state));
   renderChecks();
   scheduleSave();
 }
 
 function onRowCreate(fields) {
+  const fromId = idOf(state, fields.from || '');
+  const toId = idOf(state, fields.to || '');
+  if (!fromId && !toId) {
+    showStatus('转出 / 转入 至少要填一个已有的账户');
+    return;
+  }
   state = addTransaction(state, {
-    date: normalizeDateInput(fields.date || ''),
-    from: fields.from || '',
-    to: fields.to || '',
+    date: normalizeDateInput(fields.date || todayIso()),
+    from_id: fromId,
+    to_id: toId,
     amount: normalizeAmountInput(fields.amount || ''),
     note: fields.note || '',
+    seq: nextSeq(state),
   });
   render();
   scheduleSave();
 }
 
 function onRowDelete(id) {
-  commit(removeTransaction(state, id));
+  state = removeTransaction(state, id);
+  render();
+  scheduleSave();
 }
 
-/** 把 "26-08-30" / "2026-08-30" 统一成 ISO；认不出就原样留着。 */
+/* ---------- 输入归一化 ---------- */
+
+function todayIso() {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${dd}`;
+}
+
+/** "260830" / "26-08-30" / "2026-08-30" → ISO */
 function normalizeDateInput(v) {
   const s = String(v || '').trim();
-  const digits = s.replace(/[^0-9]/g, '');
-  if (digits.length === 8) return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
-  if (digits.length === 6) {
-    const y = new Date().getFullYear();
-    const yy = Number(digits.slice(0, 2));
-    const full = yy > y % 100 ? 1900 + yy : 2000 + yy;
-    return `${full}-${digits.slice(2, 4)}-${digits.slice(4, 6)}`;
+  const d = s.replace(/[^0-9]/g, '');
+  if (d.length === 8) return `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`;
+  if (d.length === 6) {
+    const yy = Number(d.slice(0, 2));
+    const full = yy > new Date().getFullYear() % 100 ? 1900 + yy : 2000 + yy;
+    return `${full}-${d.slice(2, 4)}-${d.slice(4, 6)}`;
   }
-  return s;
+  return s || todayIso();
 }
 
-/** 剥掉 ¥ 与千分位，只留数字。 */
+/** 剥掉 ¥ 与千分位 */
 function normalizeAmountInput(v) {
   return String(v || '').replace(/[¥,\s]/g, '');
 }
 
-/** 解锁成功 → 显示主界面 */
+/* ---------- 启动 ---------- */
+
 function enterApp() {
   hideGate();
   render();
   document.getElementById('nt-app').hidden = false;
 }
 
+/** 把盘上读出的数据过一遍迁移（老存档也能进） */
+function adoptState(raw) {
+  if (!raw || !Array.isArray(raw.transactions)) return seedState();
+  const r = migrate(raw);
+  return r.state;
+}
+
 async function boot() {
   await loadTemplates();
 
-  // 行内编辑版没有顶部表单；这里保留一处兼容：若页面里还有 #nt-form 就走老路径。
-
-  // 行内编辑：改已有行不重渲染（保住光标），新增行填完才建单
   bindRowEditing(document.getElementById('nt-flow-body'), {
     onEdit: onRowEdit,
     onCreate: onRowCreate,
@@ -174,7 +197,6 @@ async function boot() {
     onCommit: () => { flushSave(); },
   });
 
-  // 关页面前把没落盘的改动写掉
   window.addEventListener('beforeunload', () => {
     if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = 0; }
   });
@@ -185,7 +207,7 @@ async function boot() {
     onUnlock: async (pw) => {
       const res = await unlockVault(pw);
       if (res.ok) {
-        state = res.state && res.state.transactions ? res.state : seedState();
+        state = adoptState(res.state);
         enterApp();
       }
       return res;
@@ -202,5 +224,8 @@ async function boot() {
     },
   });
 }
+
+// 供调试/后续模块引用（不挂 window，走模块导出）
+export { state, balanceOf, nameOf };
 
 boot();

@@ -1,34 +1,43 @@
 /**
- * 视图模型：把 state 变成「列表要的行」和「页脚要的数字」。
+ * 视图模型：state（ID 模型）→ 渲染行（名字）
  *
- * 纯函数（公约 3.2）：只吃 state，不碰 DOM，不写回。
+ * 三个原则里的「视图看名字」就落在这里：
+ * 流水只有 from_id / to_id，本文件负责把它们翻成账户名。
+ *
+ * 纯函数：只吃 state，不碰 DOM。
  */
 
 import { money, moneyAlways, moneyOrBlank, shortDate } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
+import { indexAccounts } from '../core/schema.js';
 
-/** 流水 → 渲染行。排序：seq 升序（与旧版一致）。 */
+/** 流水 → 渲染行。排序：seq 升序。 */
 export function buildFlowRows(state) {
+  const accMap = indexAccounts(state.accounts);
+  const nameOf = (id) => (accMap.get(id) ? accMap.get(id).name : '');
+
   const rows = (state.transactions || []).slice()
     .sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0));
 
   return rows.map((t) => ({
     id: t.id,
     seq: Number(t.seq) || 0,
-    // 编辑框里用「可编辑的原始值」，展示用「算好的文本」，两者分开：
+    // 编辑框里用「可编辑的名字」，提交时再解析回 ID
     date: t.date,
-    from: t.from,
-    to: t.to,
+    from: nameOf(t.from_id),
+    to: nameOf(t.to_id),
     amount: t.amount,
     note: t.note,
     dateEdit: shortDate(t.date),
     amountEdit: moneyOrBlank(t.amount),
     dateText: shortDate(t.date),
     amountText: money(t.amount),
+    // 断链提示：有 ID 但映射不到名字（账户被删过）
+    broken: (!!t.from_id && !accMap.has(t.from_id)) || (!!t.to_id && !accMap.has(t.to_id)),
   }));
 }
 
-/** 页脚信息：条数 + 合计。 */
+/** 页脚信息：条数 + 合计 */
 export function buildFooterInfo(state) {
   const list = state.transactions || [];
   let total = 0;
@@ -36,10 +45,25 @@ export function buildFooterInfo(state) {
   return { count: list.length, totalText: moneyAlways(total) };
 }
 
-/** 下拉用的账户选项（转出/转入两个 select 共用一份）。 */
+/** 账户下拉选项（名字 + 分类，供补全用） */
 export function buildAccountOptions(state) {
-  return (state.accounts || []).map((a) => ({
-    value: a.name,
-    label: a.code ? `${a.code} · ${a.name}` : a.name,
+  return (state.accounts || [])
+    .filter((a) => !a.isHidden)
+    .map((a) => ({
+      value: a.name,
+      label: a.category ? `${a.name} · ${a.category}` : a.name,
+    }));
+}
+
+/** 账户余额行（账户管理/统计用） */
+export function buildAccountRows(state, balances) {
+  return balances.map(({ acc, balance, inflow, outflow }) => ({
+    id: acc.id,
+    name: acc.name,
+    type: acc.type,
+    category: acc.category,
+    balanceText: moneyAlways(balance),
+    inflowText: moneyAlways(inflow),
+    outflowText: moneyAlways(outflow),
   }));
 }

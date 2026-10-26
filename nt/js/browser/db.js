@@ -1,46 +1,40 @@
 /**
- * ☐16 保险库适配器（唯一碰 IndexedDB 的地方）
+ * 物理存储（IndexedDB + 加密）
  * 层：browser/（浏览器边界）
  *
- * 职责：把内存里的 state 加密后写盘，或把盘里的密文解密后交给 state。
+ * 只有两个对外的动作：saveState(state) / loadState()。
+ * 盘上永远只有 { version, salt, iv, ciphertext, updatedAt } —— 没有明文、没有密码、没有密钥。
  *
- * 为什么不放 core/：它要用 IndexedDB —— core/ 必须能在 Node 下跑（公约 3.3），
- * 门禁会直接拦下。所以「纯加解密」在 core/crypto-engine.js，
- * 「密钥生命周期」在 core/auth-manager.js，只有「存储 + 接线」在这层。
- *
- * 盘上只有一块记录：
- *   { salt: b64, iv: b64, ciphertext: b64, version: 1, updatedAt: iso }
- * 里面**不含**密码、不含密码哈希、不含密钥。
+ * 密钥来自 core/auth-manager（闭包持有），本文件不生成也不保存密钥。
  */
 
 import { encryptData, decryptData, randomSalt, bytesToBase64, base64ToBytes } from '../core/crypto-engine.js';
 import { getKey, createWith, unlock, isUnlocked } from '../core/auth-manager.js';
 import { idbGet, idbPut, idbDel } from './idb.js';
+import { SCHEMA_VERSION } from '../core/schema.js';
 
 export const VAULT_KEY = 'state';
-export const VAULT_VERSION = 1;
 
-/** 盘上有没有保险库？ */
+/** 盘上有没有保险库 */
 export async function hasVault() {
   const rec = await idbGet(VAULT_KEY);
   return !!(rec && rec.ciphertext);
 }
 
-/** 读原始记录（不含解密）。给解锁流程用：需要 salt/iv/ciphertext 来试解。 */
+/** 原始记录（给解锁流程试解用） */
 export async function readVaultRecord() {
   return idbGet(VAULT_KEY);
 }
 
 /**
- * 首次设置密码：生成盐 → 派生密钥 → 加密初始 state → 落盘。
- * @returns {Promise<object>} 写入的记录（不含明文）
+ * 首次建立保险库：生成盐 → 派生密钥 → 加密初始 state → 落盘。
  */
 export async function createVault(stateObj, password) {
   const salt = randomSalt();
   const key = await createWith(password, salt);
   const { iv, ciphertext } = await encryptData(key, JSON.stringify(stateObj || {}));
   const rec = {
-    version: VAULT_VERSION,
+    version: SCHEMA_VERSION,
     salt: bytesToBase64(salt),
     iv: bytesToBase64(iv),
     ciphertext: bytesToBase64(ciphertext),
@@ -51,7 +45,7 @@ export async function createVault(stateObj, password) {
 }
 
 /**
- * 解锁：拿盘上的记录试解，成功则密钥留在 auth-manager 里。
+ * 解锁：拿盘上的记录试解。成功则密钥留在 auth-manager 里。
  * @returns {Promise<{ok:boolean, state?:object, error?:string}>}
  */
 export async function unlockVault(password) {
@@ -66,8 +60,8 @@ export async function unlockVault(password) {
 }
 
 /**
- * 存盘：每次 state 变化都重新加密（新 IV）。
- * 未解锁会抛错 —— 这是刻意的，防止「忘了解锁就静默写明文件」。
+ * 存盘：每次 state 变化都重新加密（新 IV，盐不变）。
+ * 未解锁直接抛错 —— 防止「忘了解锁就静默写明文」。
  */
 export async function saveState(stateObj) {
   if (!isUnlocked()) throw new Error('尚未解锁，拒绝写入');
@@ -75,9 +69,9 @@ export async function saveState(stateObj) {
   const { iv, ciphertext } = await encryptData(key, JSON.stringify(stateObj || {}));
   const old = (await readVaultRecord()) || {};
   const rec = {
-    version: VAULT_VERSION,
-    salt: old.salt,               // 盐不变：同一个密码永远派生出同一把密钥
-    iv: bytesToBase64(iv),        // IV 每次都要换（AES-GCM 的硬要求）
+    version: SCHEMA_VERSION,
+    salt: old.salt,
+    iv: bytesToBase64(iv),
     ciphertext: bytesToBase64(ciphertext),
     updatedAt: new Date().toISOString(),
   };
@@ -95,7 +89,7 @@ export async function loadState() {
   return JSON.parse(plain);
 }
 
-/** 销毁保险库（重置账本用；不可恢复）。 */
+/** 销毁保险库（重置账本用，不可恢复）。 */
 export async function destroyVault() {
   await idbDel(VAULT_KEY);
 }
