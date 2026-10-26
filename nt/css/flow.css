@@ -144,7 +144,7 @@
   border-spacing: var(--nt-cell-gap, 0);
   table-layout: fixed;
   font-variant-numeric: tabular-nums;
-  color: var(--nt-cell-color);
+  color: var(--nt-unit-text, var(--nt-text));
 }
 
 .nt-th {
@@ -153,8 +153,8 @@
   text-align: left;
   font-size: var(--nt-th-font);
   font-weight: 700;
-  color: var(--nt-th-color);
-  background: var(--nt-th-row-bg, var(--nt-th-bg, var(--nt-bg-soft)));
+  color: var(--nt-unit-text, var(--nt-text));
+  background: var(--nt-unit-bg, var(--nt-bg-soft));
   border-bottom: 1px solid var(--nt-th-border, var(--nt-bg-line));
 }
 
@@ -173,10 +173,22 @@
   height: var(--nt-row-h);
   padding: 0 8px;
   font-size: var(--nt-cell-font);
+  color: var(--nt-unit-text, var(--nt-text));
   border-bottom: 1px solid var(--nt-bg-line);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 公共边框开关：横向 / 纵向 */
+[data-border-h="0"] .nt-th,
+[data-border-h="0"] .nt-cell {
+  border-bottom: 0;
+}
+
+[data-border-v="1px"] .nt-th,
+[data-border-v="1px"] .nt-cell {
+  border-right: 1px solid var(--nt-bg-line);
 }
 
 /* 数据区边框方案 */
