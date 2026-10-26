@@ -7,6 +7,26 @@
 
 import { hexToRgb, rgbToHex, rgbToHsl, hslToRgb, normalizeHex } from '../core/color.js';
 
+const RECENT_KEY = 'nt_color_recent';
+
+/** 最近用过的颜色（去重，最多 12 个） */
+function readRecent() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function pushRecent(hex) {
+  try {
+    const arr = readRecent().filter((c) => c !== hex);
+    arr.unshift(hex);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(arr.slice(0, 12)));
+  } catch (e) { /* ignore */ }
+}
+
 /**
  * @param {{initial?:string, library?:string[]}} [opts]
  * @returns {{close:()=>void}}
@@ -63,7 +83,7 @@ export function openColorPicker(opts) {
   libTitle.textContent = '已用颜色：';
   lib.appendChild(libTitle);
 
-  const libColors = Array.isArray(o.library) ? o.library : [];
+  const libColors = Array.isArray(o.library) ? o.library : readRecent();
   for (const c of libColors) {
     const sw = document.createElement('button');
     sw.type = 'button';
@@ -155,6 +175,7 @@ export function openColorPicker(opts) {
     hexInput.select();
     try { document.execCommand('copy'); } catch (e) { /* ignore */ }
     if (navigator.clipboard) navigator.clipboard.writeText(hex).catch(() => {});
+    pushRecent(hex);
     copyBtn.textContent = '已复制';
     setTimeout(() => { copyBtn.textContent = '复制色值'; }, 1200);
   });

@@ -8,7 +8,6 @@
 
 import { GROUPS, SCREENS, SCHEMA, DEFAULTS, normalize, toText } from '../core/settings.js';
 import { applySettings } from './apply-settings.js';
-import { openColorPicker } from './color-picker.js';
 
 const POS_KEY = 'nt_debug_pos';
 
@@ -139,30 +138,7 @@ export function mountDebugPanel(opts) {
     row.appendChild(key);
     row.appendChild(input);
 
-    // 颜色项：加「取色」按钮，打开标准拾色器（选完复制，手动贴回输入框）
-    if (item.unit !== 'px') {
-      const pick = document.createElement('button');
-      pick.type = 'button';
-      pick.className = 'nt-debug-pick';
-      pick.textContent = '取色';
-      pick.addEventListener('click', () => {
-        openColorPicker({ initial: current[item.key], library: currentColors() });
-      });
-      row.appendChild(pick);
-    }
-
     return row;
-  }
-
-  /** 当前所有颜色项的值（去重），作为拾色器的「已用颜色库」 */
-  function currentColors() {
-    const set = new Set();
-    for (const s of SCHEMA) {
-      if (s.unit === 'px') continue;
-      const v = current[s.key];
-      if (v) set.add(v);
-    }
-    return Array.from(set);
   }
 
   renderBody();
