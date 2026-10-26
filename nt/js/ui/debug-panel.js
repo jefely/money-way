@@ -65,7 +65,7 @@ export function mountDebugPanel(opts) {
   colorBtn.type = 'button';
   colorBtn.className = 'nt-debug-color';
   colorBtn.textContent = '取色';
-  colorBtn.addEventListener('click', () => openColorPicker({ initial: '#ffffff' }));
+  colorBtn.addEventListener('click', () => openColorPicker({ initial: '#ffffff', library: currentColors() }));
   tabs.appendChild(colorBtn);
 
   /* ---------- 参数区 ---------- */
@@ -155,6 +155,17 @@ export function mountDebugPanel(opts) {
     row.appendChild(input);
 
     return row;
+  }
+
+  /** 软件界面在用的颜色（当前所有颜色项的值，去重） */
+  function currentColors() {
+    const set = new Set();
+    for (const s of SCHEMA) {
+      if (s.unit === 'px') continue;
+      const v = current[s.key];
+      if (v) set.add(v);
+    }
+    return Array.from(set);
   }
 
   renderBody();
