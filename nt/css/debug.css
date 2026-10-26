@@ -22,12 +22,13 @@
   overflow: hidden;
 }
 
-/* 拖动条：用软件表头色，和列标行同色系；左侧显示「调试面板」 */
+/* 拖动条：用软件表头色；左侧「调试面板」（小字灰色），右侧关闭 × */
 .nt-debug-drag {
   display: flex;
   align-items: center;
-  padding: 0 10px;
-  height: 24px;
+  justify-content: space-between;
+  padding: 0 8px;
+  height: 20px;
   background: var(--nt-head-bg);
   border-bottom: 1px solid var(--nt-head-line);
   cursor: move;
@@ -36,10 +37,9 @@
 }
 
 .nt-debug-drag-title {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--nt-head-text);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--nt-text-light);
 }
 
 /* ---------- 标签栏 ---------- */
@@ -75,13 +75,15 @@
 }
 
 .nt-debug-close {
-  flex: 0 0 24px;
-  width: 24px;
-  height: 24px;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
   border: 0;
   border-radius: var(--nt-radius);
   background: transparent;
   color: var(--nt-text-light);
+  font-size: 14px;
+  line-height: 1;
   cursor: pointer;
 }
 

@@ -29,6 +29,14 @@ export function mountDebugPanel(opts) {
   dragTitle.textContent = '调试面板';
   dragBar.appendChild(dragTitle);
 
+  // 关闭按钮：放拖动条右侧（与「调试面板」同一行）
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'nt-debug-close';
+  closeBtn.textContent = '×';
+  closeBtn.setAttribute('aria-label', '关闭调试面板');
+  dragBar.appendChild(closeBtn);
+
   /* ---------- 第二行：界面标签栏 ---------- */
 
   const tabs = document.createElement('div');
@@ -59,13 +67,6 @@ export function mountDebugPanel(opts) {
   colorBtn.textContent = '取色';
   colorBtn.addEventListener('click', () => openColorPicker({ initial: '#ffffff' }));
   tabs.appendChild(colorBtn);
-
-  const closeBtn = document.createElement('button');
-  closeBtn.type = 'button';
-  closeBtn.className = 'nt-debug-close';
-  closeBtn.textContent = '×';
-  closeBtn.setAttribute('aria-label', '关闭调试面板');
-  tabs.appendChild(closeBtn);
 
   /* ---------- 参数区 ---------- */
 
