@@ -6,7 +6,7 @@
  * 改任意一项实时生效；可导出/恢复默认；面板可拖动。
  */
 
-import { GROUPS, SCREENS, SCHEMA, DEFAULTS, normalize } from '../core/settings.js';
+import { GROUPS, SCREENS, GROUP_SCREEN, SCHEMA, DEFAULTS, normalize } from '../core/settings.js';
 import { applySettings } from './apply-settings.js';
 import { openColorPicker } from './color-picker.js';
 
@@ -138,10 +138,10 @@ export function mountDebugPanel(opts) {
 
   function renderBody() {
     body.textContent = '';
-    const items = SCHEMA.filter((s) => (s.screen || 'main') === screen);
+    const groups = GROUPS.filter((g) => (GROUP_SCREEN[g] || 'main') === screen);
 
-    for (const group of GROUPS) {
-      const groupItems = items.filter((s) => s.group === group);
+    for (const group of groups) {
+      const groupItems = SCHEMA.filter((s) => s.group === group);
       if (!groupItems.length) continue;
 
       const sec = document.createElement('section');

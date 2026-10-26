@@ -14,7 +14,18 @@ export const GROUPS = ['标签栏', '按钮区', '列标行', '数据区', '列�
 /** 调试面板的界面标签（第一个固定为「主界面」，以后可加「设置界面」等） */
 export const SCREENS = [
   { id: 'main', label: '主界面' },
+  { id: 'flow', label: '流水' },
 ];
+
+/** 分组归属的界面标签：main=公共参数，flow=流水页参数 */
+export const GROUP_SCREEN = {
+  标签栏: 'main',
+  信息栏: 'main',
+  按钮区: 'flow',
+  列标行: 'flow',
+  数据区: 'flow',
+  列宽: 'flow',
+};
 
 export const SCHEMA = [
   /* ---------- 标签栏 ---------- */
@@ -54,6 +65,7 @@ export const SCHEMA = [
   { key: '数据区背景颜色', group: '数据区', def: '#000000', cssVar: '--nt-cell-bg' },
   { key: '数据区边框', group: '数据区', type: 'enum', options: ['按钮框', '竖线', '直角框', '无边框'], values: ['solid', 'line', 'sharp', 'plain'], def: '按钮框', attr: 'data-cell-border' },
   { key: '数据区边框颜色', group: '数据区', def: '#2a2438', cssVar: '--nt-cell-border' },
+  { key: '冻结列', group: '数据区', type: 'enum', options: ['不冻结', '序', '序+日期'], values: ['none', 'seq', 'seq-date'], def: '不冻结', attr: 'data-freeze' },
 
   /* ---------- 列宽（colgroup，列标行与数据行共用） ---------- */
   { key: '列宽序', group: '列宽', def: 44, unit: 'px', cssVar: '--nt-col-seq' },
