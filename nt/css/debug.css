@@ -29,8 +29,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 8px;
-  height: 20px;
+  padding: 0 10px;
+  height: 40px;
   background: var(--nt-head-bg);
   border-bottom: 1px solid var(--nt-head-line);
   cursor: move;
