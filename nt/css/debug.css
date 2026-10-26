@@ -20,10 +20,11 @@
   overflow: hidden;
 }
 
-.nt-debug-head {
+.nt-debug-tabs {
   display: flex;
   align-items: center;
-  padding: 6px 10px;
+  gap: 2px;
+  padding: 4px 6px;
   background: rgba(155, 140, 255, 0.16);
   border-bottom: 1px solid rgba(155, 140, 255, 0.28);
   cursor: move;
@@ -31,14 +32,27 @@
   touch-action: none;
 }
 
-.nt-debug-title {
+.nt-debug-tab {
   flex: 1;
+  height: 24px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #b9b2d0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.nt-debug-tab[aria-selected="true"] {
+  background: rgba(155, 140, 255, 0.3);
+  color: #f2eeff;
   font-weight: 700;
 }
 
 .nt-debug-close {
-  width: 22px;
-  height: 22px;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
   border: 0;
   border-radius: 4px;
   background: transparent;

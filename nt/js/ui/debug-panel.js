@@ -1,79 +1,60 @@
 /**
  * 界面参数调试面板（UI 层）
  *
- * 按 5 个区域（标签栏/按钮区/列标行/数据区/信息栏）分组，
- * 每项一个输入框，输入即写 CSS 变量、实时预览；可导出/恢复默认。
- *
- * 后期把入口从「?debug=1」换成「设置 → 布局」，本文件即产品配置模块。
+ * 第一行是界面标签栏（当前只有「主界面」，以后可加「设置界面」等），
+ * 下面按区域分组：标签栏 / 按钮区 / 列标行 / 数据区 / 信息栏。
+ * 改任意一项实时生效；可导出/恢复默认；面板可拖动。
  */
 
-import { GROUPS, SCHEMA, DEFAULTS, normalize, toText } from '../core/settings.js';
+import { GROUPS, SCREENS, SCHEMA, DEFAULTS, normalize, toText } from '../core/settings.js';
 import { applySettings } from './apply-settings.js';
 
 const POS_KEY = 'nt_debug_pos';
 
-/**
- * @param {{initial?:object}} [opts]
- * @returns {{el:HTMLElement, get:()=>object, close:()=>void}}
- */
 export function mountDebugPanel(opts) {
   const o = opts || {};
   let current = normalize(o.initial);
+  let screen = SCREENS[0].id;
 
   const host = document.createElement('aside');
   host.className = 'nt-debug';
 
-  const head = document.createElement('div');
-  head.className = 'nt-debug-head';
-  const title = document.createElement('span');
-  title.className = 'nt-debug-title';
-  title.textContent = '界面参数 · 调试';
+  /* ---------- 第一行：界面标签栏（同时是拖动把手） ---------- */
+
+  const tabs = document.createElement('div');
+  tabs.className = 'nt-debug-tabs';
+
+  const tabBtns = {};
+  for (const s of SCREENS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'nt-debug-tab';
+    b.textContent = s.label;
+    b.setAttribute('aria-selected', s.id === screen ? 'true' : 'false');
+    b.addEventListener('click', () => {
+      screen = s.id;
+      for (const k of Object.keys(tabBtns)) {
+        tabBtns[k].setAttribute('aria-selected', k === screen ? 'true' : 'false');
+      }
+      renderBody();
+    });
+    tabBtns[s.id] = b;
+    tabs.appendChild(b);
+  }
+
   const closeBtn = document.createElement('button');
   closeBtn.type = 'button';
   closeBtn.className = 'nt-debug-close';
   closeBtn.textContent = '×';
   closeBtn.setAttribute('aria-label', '关闭调试面板');
-  head.appendChild(title);
-  head.appendChild(closeBtn);
+  tabs.appendChild(closeBtn);
+
+  /* ---------- 参数区 ---------- */
 
   const body = document.createElement('div');
   body.className = 'nt-debug-body';
-  const inputs = {};
 
-  for (const group of GROUPS) {
-    const sec = document.createElement('section');
-    sec.className = 'nt-debug-group';
-
-    const h = document.createElement('h3');
-    h.className = 'nt-debug-group-title';
-    h.textContent = group;
-    sec.appendChild(h);
-
-    for (const item of SCHEMA) {
-      if (item.group !== group) continue;
-      const row = document.createElement('label');
-      row.className = 'nt-debug-row';
-
-      const key = document.createElement('span');
-      key.className = 'nt-debug-key';
-      key.textContent = item.key;
-
-      const input = document.createElement('input');
-      input.className = 'nt-debug-input';
-      input.type = 'text';
-      input.value = String(current[item.key]);
-      input.addEventListener('input', () => {
-        current[item.key] = input.value;
-        applySettings(normalize(current));
-      });
-
-      inputs[item.key] = input;
-      row.appendChild(key);
-      row.appendChild(input);
-      sec.appendChild(row);
-    }
-    body.appendChild(sec);
-  }
+  /* ---------- 底部操作 ---------- */
 
   const foot = document.createElement('div');
   foot.className = 'nt-debug-foot';
@@ -88,24 +69,71 @@ export function mountDebugPanel(opts) {
   foot.appendChild(exportBtn);
   foot.appendChild(resetBtn);
 
-  host.appendChild(head);
+  host.appendChild(tabs);
   host.appendChild(body);
   host.appendChild(foot);
   document.body.appendChild(host);
 
   applySettings(current);
   restorePos(host);
-  enableDrag(host, head);
+  enableDrag(host, tabs);
 
   closeBtn.addEventListener('click', () => host.remove());
-
   exportBtn.addEventListener('click', () => showExport(toText(current)));
-
   resetBtn.addEventListener('click', () => {
     current = normalize(DEFAULTS);
-    for (const k of Object.keys(inputs)) inputs[k].value = String(current[k]);
+    renderBody();
     applySettings(current);
   });
+
+  /* ---------- 渲染当前界面的参数 ---------- */
+
+  function renderBody() {
+    body.textContent = '';
+    const items = SCHEMA.filter((s) => (s.screen || 'main') === screen);
+
+    for (const group of GROUPS) {
+      const groupItems = items.filter((s) => s.group === group);
+      if (!groupItems.length) continue;
+
+      const sec = document.createElement('section');
+      sec.className = 'nt-debug-group';
+
+      const h = document.createElement('h3');
+      h.className = 'nt-debug-group-title';
+      h.textContent = group;
+      sec.appendChild(h);
+
+      for (const item of groupItems) {
+        sec.appendChild(buildRow(item));
+      }
+      body.appendChild(sec);
+    }
+  }
+
+  function buildRow(item) {
+    const row = document.createElement('label');
+    row.className = 'nt-debug-row';
+
+    const key = document.createElement('span');
+    key.className = 'nt-debug-key';
+    key.textContent = item.key;
+
+    const input = document.createElement('input');
+    input.className = 'nt-debug-input';
+    input.type = 'text';
+    input.value = String(current[item.key]);
+    input.addEventListener('input', () => {
+      current[item.key] = input.value;
+      applySettings(normalize(current));
+    });
+
+    row.appendChild(key);
+    row.appendChild(input);
+    return row;
+  }
+
+  renderBody();
 
   return {
     el: host,
@@ -114,7 +142,8 @@ export function mountDebugPanel(opts) {
   };
 }
 
-/** 记住上次拖动位置 */
+/* ---------- 位置记忆 + 拖动 ---------- */
+
 function restorePos(host) {
   try {
     const saved = JSON.parse(localStorage.getItem(POS_KEY) || 'null');
@@ -127,19 +156,17 @@ function restorePos(host) {
   } catch (e) { /* ignore */ }
 }
 
-/** 按住标题栏拖动面板 */
-function enableDrag(host, head) {
+function enableDrag(host, handle) {
   let drag = null;
 
-  head.addEventListener('pointerdown', (e) => {
+  handle.addEventListener('pointerdown', (e) => {
     if (e.target.closest('.nt-debug-close')) return;
     const r = host.getBoundingClientRect();
     drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
-    try { head.setPointerCapture(e.pointerId); } catch (err) { /* 合成事件可能无 pointerId */ }
-    head.classList.add('is-dragging');
+    try { handle.setPointerCapture(e.pointerId); } catch (err) { /* 合成事件可能无 pointerId */ }
   });
 
-  head.addEventListener('pointermove', (e) => {
+  handle.addEventListener('pointermove', (e) => {
     if (!drag) return;
     host.style.left = (e.clientX - drag.dx) + 'px';
     host.style.top = (e.clientY - drag.dy) + 'px';
@@ -147,10 +174,9 @@ function enableDrag(host, head) {
     host.style.bottom = 'auto';
   });
 
-  head.addEventListener('pointerup', () => {
+  handle.addEventListener('pointerup', () => {
     if (!drag) return;
     drag = null;
-    head.classList.remove('is-dragging');
     try {
       localStorage.setItem(POS_KEY, JSON.stringify({
         left: parseInt(host.style.left, 10) || 0,
@@ -159,6 +185,9 @@ function enableDrag(host, head) {
     } catch (e) { /* ignore */ }
   });
 }
+
+/* ---------- 导出层 ---------- */
+
 function showExport(text) {
   const mask = document.createElement('div');
   mask.className = 'nt-debug-mask';

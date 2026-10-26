@@ -11,6 +11,11 @@
 
 export const GROUPS = ['标签栏', '按钮区', '列标行', '数据区', '信息栏'];
 
+/** 调试面板的界面标签（第一个固定为「主界面」，以后可加「设置界面」等） */
+export const SCREENS = [
+  { id: 'main', label: '主界面' },
+];
+
 export const SCHEMA = [
   /* ---------- 标签栏 ---------- */
   { key: '标签栏行高', group: '标签栏', def: 40, unit: 'px', cssVar: '--nt-tabs-h' },
