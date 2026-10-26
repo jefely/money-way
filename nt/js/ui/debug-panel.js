@@ -23,6 +23,10 @@ export function mountDebugPanel(opts) {
 
   const dragBar = document.createElement('div');
   dragBar.className = 'nt-debug-drag';
+  const dragTitle = document.createElement('span');
+  dragTitle.className = 'nt-debug-drag-title';
+  dragTitle.textContent = '调试面板';
+  dragBar.appendChild(dragTitle);
 
   /* ---------- 第二行：界面标签栏 ---------- */
 

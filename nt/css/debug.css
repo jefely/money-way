@@ -22,14 +22,24 @@
   overflow: hidden;
 }
 
-/* 拖动条：用软件表头色，和列标行同色系 */
+/* 拖动条：用软件表头色，和列标行同色系；左侧显示「调试面板」 */
 .nt-debug-drag {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
   height: 24px;
   background: var(--nt-head-bg);
   border-bottom: 1px solid var(--nt-head-line);
   cursor: move;
   user-select: none;
   touch-action: none;
+}
+
+.nt-debug-drag-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--nt-head-text);
 }
 
 /* ---------- 标签栏 ---------- */
