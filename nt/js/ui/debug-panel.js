@@ -4,6 +4,7 @@ import { GROUPS, SCREENS, GROUP_SCREEN, SCHEMA, DEFAULTS, normalize } from '../c
 import { applySettings } from './apply-settings.js';
 import { openColorPicker } from './color-picker.js';
 import { createThemeButtons, currentTheme, applyTheme, saveThemeSettings, loadThemeSettings } from './debug-themes.js';
+import { createPiPButton } from './debug-pip.js';
 
 const POS_KEY = 'nt_debug_pos';
 
@@ -44,6 +45,8 @@ export function mountDebugPanel(opts) {
     renderBody();
     applySettings(current, theme);
   }));
+
+  dragBar.appendChild(createPiPButton(host));
 
   const dragTitle = document.createElement('span');
   dragTitle.className = 'nt-debug-drag-title';
