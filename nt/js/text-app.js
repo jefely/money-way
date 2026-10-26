@@ -9,9 +9,9 @@
  */
 
 import {
-  transactionsToText, replaceTransactionsFromText, appendTransactionsFromText,
+  ledgerToText, replaceLedgerFromText, appendLedgerFromText,
 } from './core/flow-text.js';
-import { parseImportText } from './core/import-parser.js';
+import { parseLedgerText } from './core/import-parser.js';
 import { initTheme } from './ui/theme-manager.js';
 import { showGate, hideGate } from './ui/gate.js';
 import { loadTemplates } from './ui/render-transactions.js';
@@ -30,7 +30,7 @@ let tipTimer = 0;
 /* ---------- 载入 ---------- */
 
 function loadFromState() {
-  const text = transactionsToText(state);
+  const text = ledgerToText(state);
   el('te-editor').value = text;
   dirty = false;
   reparse();
@@ -41,7 +41,7 @@ function loadFromState() {
 
 function reparse() {
   const text = el('te-editor').value;
-  const parsed = parseImportText(text);
+  const parsed = parseLedgerText(text);
   const status = el('te-status');
   const issues = el('te-issues');
 
@@ -53,12 +53,12 @@ function reparse() {
     return parsed;
   }
 
-  if (parsed.stats.bad === 0) {
-    status.textContent = `${parsed.stats.ok} 笔 · 格式正常`;
+  if (parsed.stats.txBad === 0) {
+    status.textContent = `${parsed.stats.txOk} 笔 · 格式正常`;
     status.classList.add('ok');
     issues.hidden = true;
   } else {
-    status.textContent = `${parsed.stats.ok} 笔可存 · ${parsed.stats.bad} 行有错`;
+    status.textContent = `${parsed.stats.txOk} 笔可存 · ${parsed.stats.txBad} 行有错`;
     status.classList.add('bad');
     issues.hidden = false;
     issues.textContent = '';
@@ -86,19 +86,19 @@ function updateCount() {
 
 async function save(mode) {
   const text = el('te-editor').value;
-  const parsed = parseImportText(text);
+  const parsed = parseLedgerText(text);
 
-  if (parsed.stats.bad > 0) {
-    tip(`${parsed.stats.bad} 行有错，先改掉再存`);
+  if (parsed.stats.txBad > 0) {
+    tip(`${parsed.stats.txBad} 行有错，先改掉再存`);
     el('te-issues').hidden = false;
     return;
   }
-  if (!parsed.rows.length) {
+  if (!parsed.transactions.length) {
     tip('没有可保存的行');
     return;
   }
 
-  const fn = mode === 'append' ? appendTransactionsFromText : replaceTransactionsFromText;
+  const fn = mode === 'append' ? appendLedgerFromText : replaceLedgerFromText;
   const r = fn(state, text);
   state = r.state;
 
@@ -111,8 +111,8 @@ async function save(mode) {
 
   dirty = false;
   tip(mode === 'append'
-    ? `追加 ${r.added} 笔`
-    : `已保存 ${r.added} 笔${r.created.length ? `，新建 ${r.created.length} 个账户` : ''}`);
+    ? `追加 ${r.txAdded} 笔${r.created.length ? `，新建 ${r.created.length} 个账户` : ''}`
+    : `已保存 ${r.txAdded} 笔${r.created.length ? `，新建 ${r.created.length} 个账户` : ''}`);
 
   // 保存后重新按 state 生成文本（把简码/格式统一）
   loadFromState();

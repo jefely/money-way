@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 导入落库（纯函数）
  * 层：第一层 · 数据基座
  *
@@ -7,7 +7,6 @@
  */
 
 import { normalizeCode } from './schema.js';
-import { defaultAccountPatch } from './import-parser.js';
 import { addAccount, addTransaction, idOf, nextSeq } from './state-store.js';
 
 /**
@@ -70,4 +69,11 @@ export function applyImportToState(state, parsed) {
   }
 
   return { state: s, created: createdNames.length, added, skipped, createdNames };
+}
+
+/** 新账户的默认补丁（缺简码时自动生成） */
+export function defaultAccountPatch(display) {
+  const name = String(display || '').trim();
+  const code = (normalizeCode(name.replace(/[^\w]/g, '')) || 'ACC').slice(0, 5) || 'ACC';
+  return { name, code, type: '资产类', category: '未分类' };
 }

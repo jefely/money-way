@@ -28,10 +28,12 @@ export function buildFlowRows(state) {
     to: nameOf(t.to_id),
     amount: t.amount,
     note: t.note,
-    dateEdit: shortDate(t.date),
+    // 期初行没有真实业务日期，显示成「期初」而不是 00-01-01
+    dateEdit: t.opening ? '' : shortDate(t.date),
     amountEdit: moneyOrBlank(t.amount),
-    dateText: shortDate(t.date),
+    dateText: t.opening ? '期初' : shortDate(t.date),
     amountText: money(t.amount),
+    isOpening: !!t.opening,
     // 断链提示：有 ID 但映射不到名字（账户被删过）
     broken: (!!t.from_id && !accMap.has(t.from_id)) || (!!t.to_id && !accMap.has(t.to_id)),
   }));
