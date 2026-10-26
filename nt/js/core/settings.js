@@ -28,7 +28,7 @@ export const SCHEMA = [
   { key: '按钮区字号', group: '按钮区', def: 12, unit: 'px', cssVar: '--nt-vbar-font' },
   { key: '按钮区文字颜色', group: '按钮区', def: '#f2eeff', cssVar: '--nt-vbar-color' },
   { key: '按钮区背景颜色', group: '按钮区', def: '#0e0b16', cssVar: '--nt-vbar-bg' },
-  { key: '按钮边框', group: '按钮区', type: 'enum', options: ['按钮框', '竖线', '直角框'], values: ['solid', 'line', 'sharp'], def: '按钮框', attr: 'data-btn-style' },
+  { key: '按钮边框', group: '按钮区', type: 'enum', options: ['按钮框', '竖线', '直角框', '无边框'], values: ['solid', 'line', 'sharp', 'plain'], def: '按钮框', attr: 'data-btn-style' },
   { key: '按钮边框颜色', group: '按钮区', def: '#2a2438', cssVar: '--nt-btn-border-color' },
   { key: '按钮底色', group: '按钮区', def: '#000000', cssVar: '--nt-btn-bg-color' },
   { key: '按钮高度', group: '按钮区', def: 26, unit: 'px', cssVar: '--nt-btn-h' },

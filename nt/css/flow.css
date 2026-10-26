@@ -86,9 +86,9 @@
   border-radius: 0;
 }
 
-/* 兼容旧值：plain = 不显示 */
+/* 方案四：无边框 —— 无边框、无底色，只留文字 */
 :root[data-btn-style="plain"] .nt-btn {
-  border-color: transparent;
+  border: 0;
   background: transparent;
 }
 
