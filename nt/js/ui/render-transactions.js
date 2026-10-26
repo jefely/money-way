@@ -118,8 +118,18 @@ function renderWindow() {
       const r = rows[i];
       const tr = rowTpl.cloneNode(true);
       tr.dataset.id = r.id;
-      setText(tr, CLASS.seq, r.isOpening ? '' : String(r.seq));
-      setInput(tr, 'date', r.dateEdit != null ? r.dateEdit : r.date);
+      if (r.isOpening) {
+        // 期初行：日期显示长横线、不可编辑、不能删除
+        setText(tr, CLASS.seq, '');
+        setInput(tr, 'date', '—');
+        const d = tr.querySelector('[data-field="date"]');
+        if (d) d.readOnly = true;
+        const act = tr.querySelector('.' + CLASS.action);
+        if (act) act.textContent = '';
+      } else {
+        setText(tr, CLASS.seq, String(r.seq));
+        setInput(tr, 'date', r.dateEdit != null ? r.dateEdit : r.date);
+      }
       setInput(tr, 'from', r.from);
       setInput(tr, 'to', r.to);
       setInput(tr, 'amount', r.amountEdit != null ? r.amountEdit : r.amount);
