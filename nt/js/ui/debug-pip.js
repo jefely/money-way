@@ -31,7 +31,9 @@ export async function openDebugPiP(host) {
   if (!isPiPSupported() || !host) return null;
   if (host.dataset.pip === '1') return null;
 
+  console.log('[nt-debug] requestWindow 开始');
   const pip = await window.documentPictureInPicture.requestWindow({ width: 480, height: 720 });
+  console.log('[nt-debug] requestWindow 成功', !!pip);
 
   copyStyles(pip.document);
   const theme = document.documentElement.getAttribute('data-theme');
@@ -40,6 +42,7 @@ export async function openDebugPiP(host) {
   pip.document.body.appendChild(host);
   host.dataset.pip = '1';
   host.classList.add('nt-debug-in-pip');
+  console.log('[nt-debug] 面板已搬入浮窗');
 
   pip.addEventListener('pagehide', () => {
     host.dataset.pip = '';
@@ -59,11 +62,13 @@ export function createPiPButton(host) {
   btn.setAttribute('aria-label', '独立窗口（画中画）');
   btn.title = '独立窗口';
   btn.addEventListener('click', () => {
+    console.log('[nt-debug] ⧉ 点击，supported =', isPiPSupported());
     if (!isPiPSupported()) {
       alert('当前浏览器不支持画中画独立窗口（需要 Chrome/Edge 116+，无痕/受限模式不可用）');
       return;
     }
     openDebugPiP(host).catch((err) => {
+      console.error('[nt-debug] PiP 失败', err);
       alert('打开独立窗口失败：' + (err && err.message ? err.message : String(err)));
     });
   });
