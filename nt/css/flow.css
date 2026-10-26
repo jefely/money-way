@@ -335,8 +335,8 @@
 
 .nt-add-text {
   width: 100%;
-  height: 200px;
-  padding: 10px;
+  height: 320px;
+  padding: 6px;
   border: 1px solid var(--nt-bg-line);
   border-radius: var(--nt-radius);
   background: var(--nt-bg);
