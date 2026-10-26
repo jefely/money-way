@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>NT账本 · 路径追踪</title>
+  <meta name="theme-color" content="#6b5bc4">
+  <link rel="stylesheet" href="./css/theme.css">
+  <link rel="stylesheet" href="./css/base.css">
+  <link rel="stylesheet" href="./css/path.css">
+  <link rel="stylesheet" href="./css/modal.css">
+  <link rel="stylesheet" href="./css/gate.css">
+  <script type="module" src="./js/path-app.js"></script>
+</head>
+<body>
+  <div class="nt-gate-host" id="nt-gate" hidden></div>
+
+  <div class="pw-app" id="pw-app" hidden>
+    <header class="pw-header">
+      <a class="pw-back" href="./index.html" aria-label="返回账本">←</a>
+      <h1 class="pw-title">路径追踪</h1>
+      <span class="pw-sub" id="pw-sub"></span>
+      <button class="pw-icon-btn" type="button" id="pw-theme" aria-label="切换主题">◐</button>
+    </header>
+
+    <main class="pw-main">
+      <!-- 左：追踪列表 -->
+      <aside class="pw-side" id="pw-side">
+        <div class="pw-side-head">
+          <span class="pw-side-title" id="pw-side-title">全部流水</span>
+          <button class="pw-mini-btn" type="button" id="pw-clear">清空</button>
+        </div>
+        <dl class="pw-stats" id="pw-stats"></dl>
+        <ul class="pw-list" id="pw-list"></ul>
+      </aside>
+
+      <!-- 右：环网图 -->
+      <section class="pw-chart" aria-label="资金环网图">
+        <div class="pw-chart-inner" id="pw-chart"></div>
+        <p class="pw-hint" id="pw-hint">点弧块看它的来路与去向</p>
+      </section>
+    </main>
+
+    <footer class="pw-footer" id="pw-footer"></footer>
+  </div>
+
+  <template id="tpl-pw-row">
+    <li class="pw-row">
+      <span class="pw-cell pw-cell-date"></span>
+      <span class="pw-cell pw-cell-from"></span>
+      <span class="pw-cell pw-cell-to"></span>
+      <span class="pw-cell pw-cell-amount"></span>
+    </li>
+  </template>
+</body>
+</html>

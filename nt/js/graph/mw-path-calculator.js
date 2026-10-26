@@ -24,6 +24,19 @@ export const WEIGHT_MAP = {
 /** 1 倍线粗 相对「单位弧长」的比例 */
 export const UNIT_WIDTH_RATIO = 0.8;
 
+/**
+ * 线宽上限（像素，SVG 坐标）。
+ *
+ * 为什么必须有：公式 `unitArcLen × 0.8 × weight` 在**单位很少**时会失控 ——
+ * 只有 3 笔时每个单位占 59.6° 弧长 ≈ 620px，费用类 4 倍就得到 1984px 的线，
+ * 比整张画布还粗，直接把图糊死。
+ * 真实数据（几百笔）时单位弧长只有几 px，永远碰不到这个上限。
+ */
+export const MAX_STROKE_WIDTH = 14;
+
+/** 线宽下限：再细也要看得见 */
+export const MIN_STROKE_WIDTH = 0.4;
+
 export const COLOR_SAT = 62;
 export const COLOR_LIGHT = 52;
 
@@ -52,17 +65,21 @@ export function calcLinkStyle(link, ctx, unitArcLen) {
   const targetType = (acc && acc.type) || ACCOUNT_TYPE.ASSET;
   const weight = WEIGHT_MAP[targetType] || 1.0;
 
-  const baseWidth = Math.max(0.4, (Number(unitArcLen) || 0) * UNIT_WIDTH_RATIO);
+  const unit = Number(unitArcLen) || 0;
+  const raw = unit * UNIT_WIDTH_RATIO * weight;
+  const strokeWidth = clamp(raw, MIN_STROKE_WIDTH, MAX_STROKE_WIDTH);
+
   // 颜色只认统计分类
   const colorKey = ctx && ctx.colorKeyOf ? ctx.colorKeyOf(link && link.to_id) : '';
   const strokeColor = categoryColor(ctx && ctx.colorIndex, colorKey);
 
   return {
-    strokeWidth: round2(baseWidth * weight),
+    strokeWidth: round2(strokeWidth),
     strokeColor,
     colorKey,
     weight,
     targetType,
+    clamped: raw > MAX_STROKE_WIDTH,
   };
 }
 
@@ -130,4 +147,11 @@ export function unitDegree(groupCount, txCount) {
 
 function round2(n) {
   return Math.round((Number(n) || 0) * 100) / 100;
+}
+
+function clamp(v, lo, hi) {
+  const n = Number(v) || 0;
+  if (n < lo) return lo;
+  if (n > hi) return hi;
+  return n;
 }

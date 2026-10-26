@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Money Way 环网图测试：单位角公式 / 线宽权重 / 颜色绑定 / 反向溯源 / 环路安全。
  *
  * 用户给的验收例子：
@@ -13,7 +13,7 @@ import {
   computeSlots, unitDegree, CAT_ORDER, GAP_DEG,
 } from '../js/graph/mw-slot-calculator.js';
 import {
-  calcLinkStyle, categoryColor, WEIGHT_MAP, UNIT_WIDTH_RATIO,
+  calcLinkStyle, categoryColor, WEIGHT_MAP, UNIT_WIDTH_RATIO, MAX_STROKE_WIDTH, MIN_STROKE_WIDTH,
   unitDegree as unitDegreeFromPath, chordGeometry, OPACITY, linkOpacity,
 } from '../js/graph/mw-path-calculator.js';
 import {
@@ -122,17 +122,36 @@ test('★ 线宽 = 单位弧长 × 0.8 × 权重', () => {
 
   const toFood = calcLinkStyle({ from_id: 'a_bank', to_id: 'a_food' }, ctx, unitArc);
   assert.equal(toFood.weight, 4, '转入是费用类 → 4 倍');
-  assert.equal(toFood.strokeWidth, 32, '10 × 0.8 × 4 = 32');
+  assert.equal(toFood.strokeWidth, 14, '10 × 0.8 × 4 = 32，被上限 14 钳住（见 MAX_STROKE_WIDTH）');
 
   const toBank = calcLinkStyle({ from_id: 'a_salary', to_id: 'a_bank' }, ctx, unitArc);
   assert.equal(toBank.weight, 3, '转入是资产类 → 3 倍');
-  assert.equal(toBank.strokeWidth, 24);
+  assert.equal(toBank.strokeWidth, 14, '24 也被上限 14 钳住');
 
   const toCard = calcLinkStyle({ from_id: 'a_bank', to_id: 'a_card' }, ctx, unitArc);
   assert.equal(toCard.weight, 2, '转入是负债类 → 2 倍');
-  assert.equal(toCard.strokeWidth, 16);
+  assert.equal(toCard.strokeWidth, 14, '16 也被上限钳住');
 
   assert.equal(UNIT_WIDTH_RATIO, 0.8);
+});
+
+test('★ 线宽上限：单位很少时不会糊成一片', () => {
+  const ctx = { byId, colorKeyOf: () => '餐饮', colorIndex: new Map([['餐饮', 0]]) };
+  // 3 笔时单位弧长约 620px → 原始算出来 4×1984px，比画布还粗
+  const big = calcLinkStyle({ from_id: 'a_bank', to_id: 'a_food' }, ctx, 620);
+  assert.equal(big.strokeWidth, MAX_STROKE_WIDTH, '必须被钳到上限');
+  assert.equal(big.clamped, true);
+
+  // 真实数据（几百笔）单位弧长只有几 px，不会触发上限
+  const small = calcLinkStyle({ from_id: 'a_bank', to_id: 'a_food' }, ctx, 2);
+  assert.equal(small.strokeWidth, 6.4, '2 × 0.8 × 4 = 6.4，不受影响');
+  assert.equal(small.clamped, false);
+});
+
+test('线宽下限：极小单位也能看见', () => {
+  const ctx = { byId, colorKeyOf: () => '餐饮', colorIndex: new Map() };
+  const tiny = calcLinkStyle({ from_id: 'a_bank', to_id: 'a_food' }, ctx, 0);
+  assert.equal(tiny.strokeWidth, MIN_STROKE_WIDTH);
 });
 
 test('线宽：由「转入方」决定，不是转出方', () => {

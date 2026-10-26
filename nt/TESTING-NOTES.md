@@ -4,6 +4,30 @@
 
 ---
 
+## ★ 头号坑：单线程 HTTP 服务器会伪装成「模块语法错误」
+
+**症状**：页面白屏，控制台只有一句
+`Failed to fetch dynamically imported module: .../xxx.js`，
+但文件 HTTP 200、大小正确、`node --check` 通过、单独 import 也成功。
+
+**真因**：测试脚本用了 `socketserver.TCPServer`（**单线程**）。
+浏览器一次并发请求十几个 ES 模块，服务器串行处理，排到后面的请求超时 → 随机某个模块加载失败。
+**换哪个模块失败是随机的**，所以看起来像"这个文件有语法问题"。
+
+**修法**：
+
+```python
+httpd = socketserver.ThreadingTCPServer(("127.0.0.1", PORT), handler)  # 不是 TCPServer
+```
+
+**这个坑我踩了三次**（`migrate.js`、`theme-manager.js`、`path-app.js`），
+前两次都误判成"Chrome 预解析拒绝某语法"并重写了代码。**代码本来就是对的。**
+
+判据：如果同一份代码在 `_probe.html` 里逐个 `await import()` 全成功，
+而在页面里用 `<script type="module" src>` 就失败 —— 先换服务器，别改代码。
+
+---
+
 ## 三个会骗人的探针
 
 ### 1. `transition` 让你读到旧值
@@ -64,20 +88,21 @@ for (const m of ['ui/modal','core/schema', ...]) {
 | 现象 | 含义 |
 |---|---|
 | Node import 失败 | 真的是语法/导出错 |
-| Node import 成功但浏览器失败 | 可能是浏览器预解析限制，或探针问题 |
+| Node import 成功但浏览器失败 | **先怀疑服务器与探针**（见头号坑） |
 
-**已知浏览器预解析拒绝的写法**（`node --check` 会放过，Chrome 报 `Failed to fetch`）：
-
-- `?.` 可选链、复杂的嵌套展开表达式（`migrate.js` 踩过，重写成保守语法后正常）
+（早期记录的「Chrome 预解析拒绝 `?.` / 嵌套展开」并不成立——
+那次 `migrate.js` 失败真实原因是单线程服务器，重写只是碰巧改变了请求时序。）
 
 ---
 
 ## 判断顺序（照这个来，别跳）
 
 1. `node --check` / Node import → 排除语法
-2. HTTP 取文件（状态码 + Content-Type + 字节数）→ 排除服务端
-3. Blob import → 排除探针 base URL
-4. 页面状态探针（gate / app hidden / 元素存在）→ 排除时序
-5. **改完属性等 250ms 再读** → 排除 transition
+2. HTTP 取文件（状态码 + Content-Type + 字节数）→ 排除服务端缺文件
+3. **服务器是不是单线程** → 排除并发拥塞
+4. Blob import → 排除探针 base URL
+5. 页面状态探针（gate / app hidden / 元素存在）→ 排除时序
+6. **改完属性等 250ms 再读** → 排除 transition
 
-跳步的代价：我在「主题切换没生效」上耗了三轮，实际是第 5 步。
+跳步的代价：我在「模块加载失败」上耗了整整三轮，实际是第 3 步。
+
