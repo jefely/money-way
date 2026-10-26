@@ -155,7 +155,11 @@
   font-weight: 700;
   color: var(--nt-th-color);
   background: var(--nt-th-bg);
-  border-bottom: 1px solid var(--nt-bg-line);
+  border-bottom: 1px solid var(--nt-th-border, var(--nt-bg-line));
+}
+
+:root[data-th-border="none"] .nt-th {
+  border-bottom: 0;
 }
 
 .nt-cell {

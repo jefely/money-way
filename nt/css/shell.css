@@ -50,9 +50,13 @@ body {
 .nt-tabs {
   display: flex;
   background: var(--nt-tabs-bg);
-  border-bottom: 1px solid var(--nt-bg-line);
+  border-bottom: 1px solid var(--nt-tabs-border, var(--nt-bg-line));
   overflow-x: auto;
   scrollbar-width: none;
+}
+
+:root[data-tabs-border="none"] .nt-tabs {
+  border-bottom: 0;
 }
 
 .nt-tabs::-webkit-scrollbar {

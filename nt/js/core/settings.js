@@ -22,6 +22,8 @@ export const SCHEMA = [
   { key: '标签栏字号', group: '标签栏', def: 13, unit: 'px', cssVar: '--nt-tab-font' },
   { key: '标签栏文字颜色', group: '标签栏', def: '#b9b2d0', cssVar: '--nt-tabs-color' },
   { key: '标签栏背景颜色', group: '标签栏', def: '#0e0b16', cssVar: '--nt-tabs-bg' },
+  { key: '标签栏边框', group: '标签栏', type: 'enum', options: ['显示', '无'], values: ['line', 'none'], def: '显示', attr: 'data-tabs-border' },
+  { key: '标签栏边框颜色', group: '标签栏', def: '#2a2438', cssVar: '--nt-tabs-border' },
 
   /* ---------- 按钮区 ---------- */
   { key: '按钮区行高', group: '按钮区', def: 30, unit: 'px', cssVar: '--nt-vbar-h' },
@@ -40,6 +42,8 @@ export const SCHEMA = [
   { key: '列标行字号', group: '列标行', def: 12, unit: 'px', cssVar: '--nt-th-font' },
   { key: '列标行文字颜色', group: '列标行', def: '#b9b2d0', cssVar: '--nt-th-color' },
   { key: '列标行背景颜色', group: '列标行', def: '#0e0b16', cssVar: '--nt-th-bg' },
+  { key: '列标行边框', group: '列标行', type: 'enum', options: ['显示', '无'], values: ['line', 'none'], def: '显示', attr: 'data-th-border' },
+  { key: '列标行边框颜色', group: '列标行', def: '#2a2438', cssVar: '--nt-th-border' },
 
   /* ---------- 数据区 ---------- */
   { key: '数据区行高', group: '数据区', def: 32, unit: 'px', cssVar: '--nt-row-h' },
