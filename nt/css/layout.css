@@ -1,50 +1,7 @@
 /* ============================================================
-   NT账本 · 布局层（页头 / 主区 / 面板 / 页脚）
-   只放"区块怎么摆"，不放具体控件长相（那是 flow.css 的事）。
+   NT账本 · 布局层（主区 / 面板 / 页脚）
+   页头已移除：应用名与版本由窗口标题栏显示，主题/关于在设置与校验页。
    ============================================================ */
-
-.nt-header {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 3px 10px;
-  min-height: 28px;
-  border-bottom: 1px solid var(--nt-head-line);
-  background: var(--nt-header-bg);
-  color: var(--nt-header-text);
-}
-
-.nt-title {
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-}
-
-.nt-version {
-  font-size: 10px;
-  opacity: 0.6;
-}
-
-.nt-header-tools {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-/* 用 .nt-header 提高特异性：flow.css 在后面加载，.nt-btn-icon 的 28px 会盖掉 22px */
-.nt-header .nt-btn-head {
-  width: 22px;
-  height: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: var(--nt-header-text);
-  background: rgba(255, 255, 255, 0.06);
-  font-size: 12px;
-}
-
-.nt-header .nt-btn-head:hover {
-  background: rgba(255, 255, 255, 0.14);
-}
 
 .nt-main {
   flex: 1;

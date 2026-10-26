@@ -25,17 +25,8 @@
   <!-- 门禁：锁屏 / 设置密码（由 ui/gate.js 注入模板） -->
   <div class="nt-gate-host" id="nt-gate" hidden></div>
 
-  <!-- 单页壳：顶栏 + 7-tab + 各自视图 + 页脚 -->
+  <!-- 单页壳：7-tab + 各自视图 + 页脚（应用名/版本由窗口标题栏显示） -->
   <div class="nt-app" id="nt-app" hidden>
-    <header class="nt-header">
-      <h1 class="nt-title">NT 账本</h1>
-      <span class="nt-version" id="nt-version">nt-v0.03</span>
-      <span class="nt-header-tools">
-        <button class="nt-btn nt-btn-icon nt-btn-head" type="button" id="nt-theme-toggle" aria-label="切换主题">◐</button>
-        <button class="nt-btn nt-btn-icon nt-btn-head" type="button" id="nt-about" aria-label="关于">?</button>
-      </span>
-    </header>
-
     <nav class="nt-tabs" aria-label="主导航">
       <button class="nt-tab" type="button" data-tab="flow">流水</button>
       <button class="nt-tab" type="button" data-tab="stats">统计</button>

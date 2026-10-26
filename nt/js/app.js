@@ -8,7 +8,6 @@
  */
 
 import { initTheme } from './ui/theme-manager.js';
-import { bindHeaderTools } from './ui/header-tools.js';
 import { loadTemplates } from './ui/render-transactions.js';
 import { bindTabs } from './ui/tabs.js';
 import { showGate, hideGate } from './ui/gate.js';
@@ -147,16 +146,6 @@ function enterApp() {
 async function boot() {
   initTheme();
   await loadTemplates();
-
-  bindHeaderTools({
-    getSummary: () => [
-      ['版本', 'nt-v0.03'],
-      ['账户', String(index.size)],
-      ['流水', String(state.transactions.length) + ' 笔'],
-      ['加密', 'PBKDF2 150k → AES-GCM 256'],
-      ['存储', 'IndexedDB（仅密文）'],
-    ],
-  });
 
   window.addEventListener('beforeunload', () => {
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = 0; }

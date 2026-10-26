@@ -84,7 +84,7 @@ nt/
 │       ├── modal.js · gate.js     统一弹窗 / 锁屏
 │       ├── row-editor.js · suggest-popover.js
 │       ├── flow-model.js · render-transactions.js
-│       └── theme-manager.js · header-tools.js · account-actions.js · …
+│       └── theme-manager.js · account-actions.js · …
 ├── tools/check-rules.mjs          公约门禁
 └── tests/                         134 条纯函数测试
 ```
