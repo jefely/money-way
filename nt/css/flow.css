@@ -248,6 +248,12 @@
   border-right: 0;
 }
 
+/* 拖动窗口卡顿优化：屏外行跳过渲染与布局 */
+.nt-table tbody tr {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 var(--nt-row-h, 32px);
+}
+
 /* 列标行对齐（--nt-th-align-*，每列） */
 .nt-table .nt-th:nth-child(1) { text-align: var(--nt-th-align-seq, left); }
 

@@ -204,6 +204,7 @@ body {
   min-height: 0;
   overflow: auto;
   background: var(--nt-bg);
+  contain: layout;
 }
 
 .nt-th {
