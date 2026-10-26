@@ -1,6 +1,8 @@
 /* ============================================================
-   调试面板（界面参数）—— 固定右下角，不影响正常布局
+   调试面板 / 拾色器 —— 全部沿用软件主题变量（与主界面同风格）
    ============================================================ */
+
+/* ---------- 面板 ---------- */
 
 .nt-debug {
   position: fixed;
@@ -10,47 +12,55 @@
   max-height: 78vh;
   display: flex;
   flex-direction: column;
-  background: rgba(22, 18, 34, 0.96);
-  border: 1px solid rgba(155, 140, 255, 0.38);
-  border-radius: 10px;
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.72);
-  color: #f2eeff;
+  background: var(--nt-bg-soft);
+  border: 1px solid var(--nt-line-strong);
+  border-radius: var(--nt-radius-lg);
+  box-shadow: var(--nt-shadow);
+  color: var(--nt-text);
   font-size: 12px;
   z-index: 9999;
   overflow: hidden;
 }
 
+/* 拖动条：用软件表头色，和列标行同色系 */
 .nt-debug-drag {
   height: 24px;
-  background: #2a2a2a;
+  background: var(--nt-head-bg);
+  border-bottom: 1px solid var(--nt-head-line);
   cursor: move;
   user-select: none;
   touch-action: none;
 }
+
+/* ---------- 标签栏 ---------- */
 
 .nt-debug-tabs {
   display: flex;
   align-items: center;
   gap: 2px;
   padding: 4px 6px;
-  background: rgba(155, 140, 255, 0.16);
-  border-bottom: 1px solid rgba(155, 140, 255, 0.28);
+  background: var(--nt-bg-soft);
+  border-bottom: 1px solid var(--nt-bg-line);
 }
 
 .nt-debug-tab {
   flex: 1;
   height: 24px;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--nt-radius);
   background: transparent;
-  color: #b9b2d0;
+  color: var(--nt-text-muted);
   font: inherit;
   cursor: pointer;
 }
 
+.nt-debug-tab:hover {
+  color: var(--nt-text);
+}
+
 .nt-debug-tab[aria-selected="true"] {
-  background: rgba(155, 140, 255, 0.3);
-  color: #f2eeff;
+  background: var(--nt-primary);
+  color: #fff;
   font-weight: 700;
 }
 
@@ -59,11 +69,17 @@
   width: 24px;
   height: 24px;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--nt-radius);
   background: transparent;
-  color: #f2eeff;
+  color: var(--nt-text-light);
   cursor: pointer;
 }
+
+.nt-debug-close:hover {
+  color: var(--nt-text);
+}
+
+/* ---------- 参数区 ---------- */
 
 .nt-debug-body {
   flex: 1;
@@ -78,9 +94,9 @@
 .nt-debug-group-title {
   margin: 0 0 4px;
   padding-left: 6px;
-  border-left: 2px solid #9b8cff;
+  border-left: 2px solid var(--nt-primary);
   font-size: 11px;
-  color: #9b8cff;
+  color: var(--nt-primary);
 }
 
 .nt-debug-row {
@@ -91,11 +107,11 @@
 }
 
 .nt-debug-key {
-  flex: 0 0 118px;
+  flex: 0 0 112px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #b9b2d0;
+  color: var(--nt-text-muted);
 }
 
 .nt-debug-input {
@@ -103,29 +119,58 @@
   min-width: 0;
   height: 22px;
   padding: 0 6px;
-  border: 1px solid rgba(155, 140, 255, 0.28);
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.4);
-  color: #f2eeff;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  background: var(--nt-bg);
+  color: var(--nt-text);
   font: inherit;
 }
+
+.nt-debug-input:focus {
+  outline: none;
+  border-color: var(--nt-primary);
+}
+
+/* 取色按钮 */
+.nt-debug-pick {
+  flex: 0 0 40px;
+  height: 22px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  background: var(--nt-bg);
+  color: var(--nt-text);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.nt-debug-pick:hover {
+  background: var(--nt-bg-soft);
+}
+
+/* ---------- 底部 ---------- */
 
 .nt-debug-foot {
   display: flex;
   gap: 6px;
   padding: 6px 10px;
-  border-top: 1px solid rgba(155, 140, 255, 0.28);
+  border-top: 1px solid var(--nt-bg-line);
 }
 
 .nt-debug-btn {
   flex: 1;
   height: 26px;
-  border: 1px solid rgba(155, 140, 255, 0.38);
-  border-radius: 5px;
-  background: rgba(155, 140, 255, 0.16);
-  color: #f2eeff;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  background: var(--nt-bg);
+  color: var(--nt-text);
   cursor: pointer;
 }
+
+.nt-debug-btn:hover {
+  background: var(--nt-bg-soft);
+}
+
+/* ---------- 导出层 ---------- */
 
 .nt-debug-mask {
   position: fixed;
@@ -133,16 +178,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.62);
+  background: var(--nt-backdrop);
   z-index: 10000;
 }
 
 .nt-debug-export {
   width: min(94vw, 520px);
   overflow: hidden;
-  border: 1px solid rgba(155, 140, 255, 0.38);
-  border-radius: 10px;
-  background: #161222;
+  border: 1px solid var(--nt-line-strong);
+  border-radius: var(--nt-radius-lg);
+  background: var(--nt-bg-soft);
 }
 
 .nt-debug-ta {
@@ -151,22 +196,9 @@
   padding: 10px;
   border: 0;
   background: transparent;
-  color: #f2eeff;
+  color: var(--nt-text);
   font: inherit;
   resize: none;
-}
-
-/* ---------- 取色按钮（颜色项右侧） ---------- */
-
-.nt-debug-pick {
-  flex: 0 0 40px;
-  height: 22px;
-  border: 1px solid rgba(155, 140, 255, 0.38);
-  border-radius: 4px;
-  background: rgba(155, 140, 255, 0.16);
-  color: #f2eeff;
-  font-size: 11px;
-  cursor: pointer;
 }
 
 /* ---------- 拾色器 ---------- */
@@ -177,24 +209,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.62);
+  background: var(--nt-backdrop);
   z-index: 10001;
 }
 
 .nt-cpick {
   width: min(94vw, 360px);
-  background: #161222;
-  border: 1px solid rgba(155, 140, 255, 0.38);
-  border-radius: 10px;
+  background: var(--nt-bg-soft);
+  border: 1px solid var(--nt-line-strong);
+  border-radius: var(--nt-radius-lg);
   overflow: hidden;
-  color: #f2eeff;
+  color: var(--nt-text);
   font-size: 12px;
 }
 
 .nt-cpick-title {
   padding: 8px 10px;
-  background: rgba(155, 140, 255, 0.16);
-  border-bottom: 1px solid rgba(155, 140, 255, 0.28);
+  background: var(--nt-head-bg);
+  color: var(--nt-head-text);
+  border-bottom: 1px solid var(--nt-head-line);
   font-weight: 700;
 }
 
@@ -207,14 +240,14 @@
 .nt-cpick-sat {
   width: 220px;
   height: 160px;
-  border-radius: 4px;
+  border-radius: var(--nt-radius);
   cursor: crosshair;
 }
 
 .nt-cpick-hue {
   width: 20px;
   height: 160px;
-  border-radius: 4px;
+  border-radius: var(--nt-radius);
   cursor: ns-resize;
 }
 
@@ -228,8 +261,8 @@
 .nt-cpick-preview {
   flex: 0 0 28px;
   height: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
   background: #000;
 }
 
@@ -238,10 +271,10 @@
   min-width: 0;
   height: 22px;
   padding: 0 6px;
-  border: 1px solid rgba(155, 140, 255, 0.28);
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.4);
-  color: #f2eeff;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  background: var(--nt-bg);
+  color: var(--nt-text);
   font: inherit;
 }
 
@@ -254,14 +287,14 @@
 }
 
 .nt-cpick-lib-title {
-  color: #b9b2d0;
+  color: var(--nt-text-muted);
 }
 
 .nt-cpick-sw {
   width: 20px;
   height: 20px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 4px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
   cursor: pointer;
 }
