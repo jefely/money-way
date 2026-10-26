@@ -250,6 +250,60 @@
 
 /* ---------- 添加账本 / 流水 弹窗 ---------- */
 
+.nt-add-ledgers {
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+}
+
+.nt-add-ledgers-title {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--nt-text-muted);
+}
+
+.nt-add-ledger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.nt-add-ledger-name {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  background: var(--nt-bg);
+  color: var(--nt-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.nt-add-ledger-active .nt-add-ledger-name {
+  border-color: var(--nt-primary);
+  color: var(--nt-primary);
+}
+
+.nt-add-ledger-new {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.nt-add-ledger-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  background: var(--nt-bg);
+  color: var(--nt-text);
+}
+
 .nt-add-text {
   width: 100%;
   height: 260px;

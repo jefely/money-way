@@ -8,6 +8,7 @@
 import * as NtModal from './modal.js';
 import { parseLedgerText } from '../core/import-parser.js';
 import { appendLedgerFromText } from '../core/flow-text.js';
+import { listLedgers, createLedger, switchLedger, renameLedger } from '../core/ledgers.js';
 
 const PLACEHOLDER = [
   '账户：',
@@ -48,9 +49,85 @@ export function openAddDialog(ctx) {
     }
   }
 
+  function applyState(next) {
+    ctx.setState(next);
+    if (ctx.save) ctx.save();
+  }
+
+  function reopen() {
+    NtModal.closeAll();
+    openAddDialog(ctx);
+  }
+
+  function buildLedgers() {
+    const box = document.createElement('div');
+    box.className = 'nt-add-ledgers';
+
+    const title = document.createElement('div');
+    title.className = 'nt-add-ledgers-title';
+    title.textContent = '添加账本';
+    box.appendChild(title);
+
+    const st = ctx.getState();
+    for (const l of listLedgers(st)) {
+      const row = document.createElement('div');
+      row.className = 'nt-add-ledger' + (l.active ? ' nt-add-ledger-active' : '');
+
+      const sw = document.createElement('button');
+      sw.type = 'button';
+      sw.className = 'nt-add-ledger-name';
+      sw.textContent = l.name;
+      sw.addEventListener('click', () => {
+        if (l.active) return;
+        applyState(switchLedger(ctx.getState(), l.id));
+        reopen();
+      });
+
+      const rn = document.createElement('button');
+      rn.type = 'button';
+      rn.className = 'nt-btn nt-btn-sm nt-add-ledger-rn';
+      rn.textContent = '改名';
+      rn.addEventListener('click', () => {
+        const name = window.prompt('账本名称', l.name);
+        if (!name || !name.trim()) return;
+        applyState(renameLedger(ctx.getState(), l.id, name));
+        reopen();
+      });
+
+      row.appendChild(sw);
+      row.appendChild(rn);
+      box.appendChild(row);
+    }
+
+    const input = document.createElement('input');
+    input.className = 'nt-add-ledger-input';
+    input.placeholder = '输入新账本名称…';
+
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'nt-btn nt-btn-sm';
+    addBtn.textContent = '添加';
+    addBtn.addEventListener('click', () => {
+      const n = input.value.trim();
+      if (!n) return;
+      applyState(createLedger(ctx.getState(), n));
+      reopen();
+    });
+
+    const row = document.createElement('div');
+    row.className = 'nt-add-ledger-new';
+    row.appendChild(input);
+    row.appendChild(addBtn);
+    box.appendChild(row);
+
+    return box;
+  }
+
   return NtModal.open({
     title: '添加账本 · 流水记录',
     build: (body) => {
+      body.appendChild(buildLedgers());
+
       ta = document.createElement('textarea');
       ta.className = 'nt-add-text';
       ta.placeholder = PLACEHOLDER;
