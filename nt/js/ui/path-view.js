@@ -5,7 +5,7 @@
  * 只做「把算好的数据摆到 DOM 上」，不含任何几何/金额计算。
  */
 
-import { renderChart } from './mw-svg-renderer.js';
+import { renderChart, RATIO } from './mw-svg-renderer.js';
 import {
   categoryColor, pointAt, OPACITY, DEPTH_WIDTHS, W_MID, PICK_BOOST, PICK_SHRINK,
 } from '../graph/mw-path-calculator.js';
@@ -22,13 +22,14 @@ export function paintChart(host, data, hits, onPick) {
   //   追踪中 → 命中线用「离费用端几跳」的档位 × PICK_BOOST，其它线收细
   const chords = data.chords.map((c) => {
     const hit = hits ? hits.has(c.txIdx) : false;
-    let strokeWidth = W_MID;
+    // 线宽按 RATIO 等比放大：画布从 1800 提到 3000，线还是 2.4px 就显得更细
+    let strokeWidth = W_MID * RATIO;
     if (hits) {
       if (hit) {
         const dep = Number.isFinite(c.depth) ? c.depth : DEPTH_WIDTHS.length - 1;
-        strokeWidth = DEPTH_WIDTHS[Math.min(dep, DEPTH_WIDTHS.length - 1)] * PICK_BOOST;
+        strokeWidth = DEPTH_WIDTHS[Math.min(dep, DEPTH_WIDTHS.length - 1)] * PICK_BOOST * RATIO;
       } else {
-        strokeWidth = W_MID * PICK_SHRINK;
+        strokeWidth = W_MID * PICK_SHRINK * RATIO;
       }
     }
     return {
