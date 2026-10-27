@@ -6,7 +6,9 @@
  */
 
 import { renderChart } from './mw-svg-renderer.js';
-import { categoryColor, pointAt, OPACITY } from '../graph/mw-path-calculator.js';
+import {
+  categoryColor, pointAt, OPACITY, DEPTH_WIDTHS, W_MID, PICK_BOOST, PICK_SHRINK,
+} from '../graph/mw-path-calculator.js';
 import { money, shortDate } from '../core/format.js';
 
 const el = (id) => document.getElementById(id);
@@ -14,12 +16,31 @@ const el = (id) => document.getElementById(id);
 /** 画图 + 绑事件 */
 export function paintChart(host, data, hits, onPick) {
   const colorOf = (key) => categoryColor(data.colorIndex, key);
+
+  // 线宽照单文件版：
+  //   没追踪 → 全部统一 W_MID(2.4)
+  //   追踪中 → 命中线用「离费用端几跳」的档位 × PICK_BOOST，其它线收细
+  const chords = data.chords.map((c) => {
+    const hit = hits ? hits.has(c.txIdx) : false;
+    let strokeWidth = W_MID;
+    if (hits) {
+      if (hit) {
+        const dep = Number.isFinite(c.depth) ? c.depth : DEPTH_WIDTHS.length - 1;
+        strokeWidth = DEPTH_WIDTHS[Math.min(dep, DEPTH_WIDTHS.length - 1)] * PICK_BOOST;
+      } else {
+        strokeWidth = W_MID * PICK_SHRINK;
+      }
+    }
+    return {
+      ...c,
+      strokeWidth,
+      opacity: !hits ? OPACITY.GLOBAL : (hit ? OPACITY.HIT : OPACITY.DIM),
+    };
+  });
+
   host.innerHTML = renderChart({
     blocks: data.blocks,
-    chords: data.chords.map((c) => ({
-      ...c,
-      opacity: !hits ? OPACITY.GLOBAL : (hits.has(c.txIdx) ? OPACITY.HIT : OPACITY.DIM),
-    })),
+    chords,
     sectors: data.sectors,
     pointAt,
     colorOf,

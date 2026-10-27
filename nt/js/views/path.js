@@ -72,7 +72,12 @@ export function mountPath(section, ctx) {
 
     const cx = SVG.size / 2;
     const cy = SVG.size / 2;
-    const gctx = { byId: index.byId, colorKeyOf, colorIndex };
+    // 线宽要按「离费用端几跳」分层（单文件版的做法）
+    const depthOf = computeDepths(txs, accOf);
+    const gctx = { byId: index.byId, colorKeyOf, colorIndex, depthOf };
+
+    // 弧块文字要显示账户名
+    for (const b of blocks) b.label = nameOf(b.acc);
 
     const chords = [];
     for (const [txIdx, pair] of byTx) {
@@ -241,4 +246,47 @@ function rangeOfAll(state) {
   return dates.length
     ? { start: dates[0], end: dates[dates.length - 1] }
     : { start: '', end: '' };
+}
+
+/**
+ * 链路层级：费用类账户 = 0 级，反向沿「谁给它转过钱」逐级上溯。
+ * 照单文件版的 computeDepth —— 线宽按这个层级取档（越靠近支出越粗）。
+ * 一条路都通不到费用端的（孤立账户 / 纯收入）给最深层级 + 1。
+ */
+function computeDepths(txs, accOf) {
+  const byTo = new Map();
+  for (const x of txs) {
+    if (!x.from_id || !x.to_id) continue;
+    if (!byTo.has(x.to_id)) byTo.set(x.to_id, []);
+    byTo.get(x.to_id).push(x.from_id);
+  }
+
+  const depth = new Map();
+  const queue = [];
+
+  for (const x of txs) {
+    for (const id of [x.from_id, x.to_id]) {
+      if (!id || depth.has(id)) continue;
+      const a = accOf(id);
+      if (a && a.type === '费用类') { depth.set(id, 0); queue.push(id); }
+    }
+  }
+
+  let guard = 0;
+  while (queue.length && guard < 5000) {
+    guard += 1;
+    const cur = queue.shift();
+    for (const up of byTo.get(cur) || []) {
+      if (up && !depth.has(up)) { depth.set(up, depth.get(cur) + 1); queue.push(up); }
+    }
+  }
+
+  let maxD = 0;
+  for (const v of depth.values()) if (v > maxD) maxD = v;
+  for (const x of txs) {
+    for (const id of [x.from_id, x.to_id]) {
+      if (id && !depth.has(id)) depth.set(id, maxD + 1);
+    }
+  }
+  return depth;
 }

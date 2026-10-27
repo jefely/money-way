@@ -90,6 +90,40 @@ export function renderChart(data) {
       + ` data-node="${esc(b.acc)}"/>`);
   }
 
+  // ④ 弧块文字：沿半径向外排（照单文件版）
+  //    放得下就贴外沿；放不下就往外挪一段并缩字号
+  for (const b of blocks) {
+    const label = String(b.label || '');
+    if (!label) continue;
+
+    const span = b.a2 - b.a1;
+    const midA = (b.a1 + b.a2) / 2;
+    const arcLen = span * rOut;
+
+    let fs = Math.max(11, Math.min(26,
+      (arcLen / Math.max(1, label.length)) * 1.05,
+      (rOut - rIn) * 0.58));
+
+    // 文字大概多宽（中文 1em、西文 0.55em）
+    let textW = 0;
+    for (const ch of label) textW += (ch.charCodeAt(0) > 255 ? 1 : 0.55) * fs;
+
+    const crowded = arcLen < textW * 1.5;
+    if (crowded) fs = Math.max(10, fs * 0.8);
+    const rText = crowded ? rOut + 46 : rOut + 8;
+
+    const p = pointAt(cx, cy, rText, midA);
+    let theta = (midA * 180) / Math.PI - 90;
+    const upside = theta > 90 || theta < -90;
+    if (upside) theta += 180;
+
+    parts.push(`<text x="${p[0].toFixed(1)}" y="${p[1].toFixed(1)}"`
+      + ` text-anchor="${upside ? 'end' : 'start'}" dominant-baseline="middle"`
+      + ` font-size="${fs.toFixed(1)}" font-weight="600" fill="currentColor" fill-opacity="0.9"`
+      + ` transform="rotate(${theta.toFixed(1)} ${p[0].toFixed(1)} ${p[1].toFixed(1)})"`
+      + ` style="pointer-events:none">${esc(label)}</text>`);
+  }
+
   parts.push('</svg>');
   return parts.join('');
 }

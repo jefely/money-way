@@ -38,6 +38,19 @@ export const MAX_STROKE_WIDTH = 14;
 /** 线宽下限：再细也要看得见 */
 export const MIN_STROKE_WIDTH = 0.4;
 
+/**
+ * 线宽档位（照单文件版 DEPTH_W）：**只在激活追踪时**才按「离费用端几跳」取档。
+ * 0 级（费用类本身）最粗，往上逐级变细。
+ */
+export const DEPTH_WIDTHS = [6, 4.8, 3.6, 2.4, 1.2];
+
+/** 默认线宽：单文件版所有线统一 2.4（W_MID），不是按弧长算出来的 */
+export const W_MID = 2.4;
+/** 追踪命中时在 depth 宽度上再加权 */
+export const PICK_BOOST = 1.35;
+/** 追踪时其它线的收缩系数 */
+export const PICK_SHRINK = 0.45;
+
 export const COLOR_SAT = 62;
 export const COLOR_LIGHT = 52;
 
@@ -111,12 +124,26 @@ export function buildChord(input) {
   const geo = chordGeometry(cx, cy, rIn, aFrom, aTo);
   const style = calcLinkStyle({ from_id, to_id }, ctx, unitArcLen);
 
+  // 线宽：**默认统一 W_MID**（单文件版就是这么画的）。
+  // 只有激活追踪（有 hits）时，渲染层才按 DEPTH_WIDTHS 按层级调 —— 见 ui/path-view.js。
+  let strokeWidth = style.strokeWidth;
+  let depth = null;
+  const depthOf = ctx && ctx.depthOf;
+  if (depthOf && typeof depthOf.get === 'function') {
+    const dv = depthOf.get(String(to_id));
+    if (Number.isFinite(dv)) {
+      depth = dv;
+      strokeWidth = DEPTH_WIDTHS[Math.min(dv, DEPTH_WIDTHS.length - 1)];
+    }
+  }
+
   return {
     txIdx,
     from_id,
     to_id,
+    depth,
     path: { from: geo.from, c1: geo.c1, c2: geo.c2, to: geo.to },
-    strokeWidth: style.strokeWidth,
+    strokeWidth,
     strokeColor: style.strokeColor,
     colorKey: style.colorKey,
     weight: style.weight,
@@ -125,10 +152,10 @@ export function buildChord(input) {
 }
 
 export const OPACITY = {
-  GLOBAL: 0.2,
+  GLOBAL: 0.52,
   HIT: 0.95,
   RELATED: 0.55,
-  DIM: 0.02,
+  DIM: 0.25,
 };
 
 export function linkOpacity(state) {
