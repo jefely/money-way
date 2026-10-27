@@ -100,8 +100,8 @@
 
 .pw-side {
   position: relative;
-  /* 低于图区：拖动图时图会浮在侧栏之上 */
-  z-index: 1;
+  /* 高于图：侧栏盖在图上面，靠毛玻璃透出后面的图 */
+  z-index: 2;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -110,7 +110,10 @@
      这里只负责「内容比侧栏宽就裁掉」，别把整个界面顶出去 */
   overflow: hidden;
   border-right: 1px solid var(--nt-bg-line);
-  background: var(--nt-bg-soft);
+  /* 毛玻璃：半透明背景 + 背景模糊，后面的环图会像隔着磨砂玻璃透出来 */
+  background: color-mix(in srgb, var(--nt-bg-soft) 66%, transparent);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
 }
 
 /* 右缘的拖条：拖动改 --nt-pw-side-w */
@@ -445,7 +448,7 @@
   width: min(94vw, 86vh);
   height: min(94vw, 86vh);
   transform: translate(-50%, -50%);
-  z-index: 3;
+  z-index: 1;
   display: flex;
   min-width: 0;
   min-height: 0;
