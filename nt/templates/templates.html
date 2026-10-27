@@ -210,19 +210,61 @@
 </template>
 
 <!-- 计划 · 分期行：序 | 账户 | 每月应还 | 期数 | 首月 | 已还 | 剩余本金 | 剩余利息 | 操作 -->
+
+
+<!-- 计划 · 分期行：序 | 账户 | 本金 | 利息 | 期数 | 首月 | 还款日 | 每月应还 | 操作 -->
 <template id="tpl-inst-row">
   <tr class="nt-row">
     <td class="nt-cell nt-cell-seq" data-field="seq"></td>
-    <td class="nt-cell" data-field="name"></td>
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户" placeholder="简码/名称">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="principal" aria-label="本金">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="interest" aria-label="利息">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="numeric" data-field="periods" aria-label="期数">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" inputmode="numeric" maxlength="6" data-field="firstMonth" aria-label="首月" placeholder="2610">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="numeric" maxlength="2" data-field="day" aria-label="还款日">
+    </td>
     <td class="nt-cell nt-cell-num" data-field="per"></td>
-    <td class="nt-cell nt-cell-num" data-field="periods"></td>
-    <td class="nt-cell nt-cell-date" data-field="first"></td>
-    <td class="nt-cell nt-cell-num" data-field="paid"></td>
-    <td class="nt-cell nt-cell-num" data-field="remainP"></td>
-    <td class="nt-cell nt-cell-num" data-field="remainI"></td>
     <td class="nt-cell nt-cell-action">
       <button class="nt-btn nt-btn-icon" type="button" data-act="del" aria-label="删除分期">×</button>
     </td>
+  </tr>
+</template>
+
+<!-- 计划 · 分期新增行：填了即成 -->
+<template id="tpl-inst-new">
+  <tr class="nt-row nt-row-new" data-new="1">
+    <td class="nt-cell nt-cell-seq">+</td>
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户" placeholder="简码/名称">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="principal" aria-label="本金" placeholder="本金">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="interest" aria-label="利息" placeholder="利息">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="numeric" data-field="periods" aria-label="期数" placeholder="期数">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" inputmode="numeric" maxlength="6" data-field="firstMonth" aria-label="首月" placeholder="2610">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="numeric" maxlength="2" data-field="day" aria-label="还款日" placeholder="5">
+    </td>
+    <td class="nt-cell nt-cell-num"></td>
+    <td class="nt-cell nt-cell-action"></td>
   </tr>
 </template>
 

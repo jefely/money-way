@@ -58,3 +58,62 @@
 .nt-table-inst .nt-c-date {
   min-width: 62px;
 }
+
+/* 让分期表横向滚动，否则 9 列会被压成竖排字 */
+.nt-plan-inst .nt-tablewrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.nt-plan-inst .nt-tablewrap::-webkit-scrollbar {
+  height: 6px;
+}
+
+/* ===== 分期表列宽 =====
+   9 列在 390px 屏上必然挤，这里固定总宽 560px，
+   表头 th 给明确宽度（fixed 布局只认表头第一行），父容器横向滚动。
+*/
+.nt-table-inst {
+  table-layout: fixed;
+  width: 560px;
+  min-width: 560px;
+}
+
+.nt-table-inst th,
+.nt-table-inst td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 序 */
+.nt-table-inst th:nth-child(1) { width: 34px; }
+/* 账户 */
+.nt-table-inst th:nth-child(2) { width: 96px; }
+/* 本金 / 利息 */
+.nt-table-inst th:nth-child(3) { width: 80px; }
+.nt-table-inst th:nth-child(4) { width: 80px; }
+/* 期数 */
+.nt-table-inst th:nth-child(5) { width: 54px; }
+/* 首月 */
+.nt-table-inst th:nth-child(6) { width: 62px; }
+/* 还款日 */
+.nt-table-inst th:nth-child(7) { width: 54px; }
+/* 每月应还 */
+.nt-table-inst th:nth-child(8) { width: 90px; }
+/* 操作 */
+.nt-table-inst th:nth-child(9) { width: 34px; }
+
+/* 输入框撑满格子，字号小一点也不至于截断数字 */
+.nt-table-inst input.nt-cell-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 12px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.nt-table-inst td.nt-cell-num,
+.nt-table-inst td:nth-child(8) {
+  text-align: right;
+  padding-right: 8px;
+}
