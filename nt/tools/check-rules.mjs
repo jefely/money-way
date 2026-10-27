@@ -6,8 +6,11 @@
  * 全部是机械判定，不靠自觉。检查项对应 CODE-RULES.md 的硬性条款。
  */
 
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, existsSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join, extname, relative, dirname } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { randomUUID } from 'node:crypto';
 import { buildJsMap } from './js-map.mjs';
 
 const ROOT = new URL('../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
@@ -72,6 +75,25 @@ for (const file of files) {
       if (t.startsWith('//')) return false;
       return true;
     });
+    // ④b 语法检查：必须真的能被 ESM 解析
+    // 为什么非有不可：2026-10 有一次 update-check.js 里多出一个 `} catch`，
+    // 门禁的其它项全过，代码推上线 → 整个应用白屏，用户看到的是「更新不下来」。
+    // 语法错误不会在行数/import/风格检查里暴露，只能真的让解析器读一遍。
+    // node --check 对 .js 按 CommonJS 解析，所以复制成临时 .mjs 再查。
+    {
+      const tmp = join(tmpdir(), 'nt-syntax-' + randomUUID() + '.mjs');
+      try {
+        writeFileSync(tmp, text, 'utf8');
+        execFileSync(process.execPath, ['--check', tmp], { stdio: 'pipe' });
+      } catch (e) {
+        const raw = String((e && (e.stderr || e.stdout || e.message)) || '');
+        const msg = raw.split('\n').filter((l) => l.trim()).slice(0, 2).join(' ');
+        problems.push(`${rel(file)} 语法错误（ESM 解析失败）：${msg.slice(0, 180)}`);
+      } finally {
+        try { unlinkSync(tmp); } catch (err) { /* 忽略 */ }
+      }
+    }
+
     if (codeLines.length > MAX_JS_LINES) {
       problems.push(`${rel(file)} ${codeLines.length} 行有效代码（去注释/空行），超过 ${MAX_JS_LINES} 行上限（公约 3.1）`);
     }

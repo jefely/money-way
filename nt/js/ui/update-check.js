@@ -210,7 +210,6 @@ export async function hardReload(opts) {
         await Promise.all(names.map((n) => caches.delete(n)));
       } catch (e) { /* 忽略 */ }
     }
-  } catch (e) { /* 忽略 */ }
   } catch (e) {
     /* 任何一步失败都不该让用户卡住，直接刷新即可 */
   }
