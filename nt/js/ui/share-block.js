@@ -146,7 +146,7 @@ function versionLine() {
         remote.textContent = '远端：' + r.remote + '（正在更新）';
         await applyUpdate(r.remote);
       } else {
-        remote.textContent = '远端：' + r.remote + '（已最新）';
+        remote.textContent = '远端：' + r.remote;
       }
     } catch (e) {
       remote.textContent = '远端：检查失败（' + ((e && e.message) || e) + '）';
