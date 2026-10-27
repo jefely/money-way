@@ -137,6 +137,16 @@ export function mountChartGestures(box, target) {
 
   /* ---------- 拖动：左键平移 / 右键（或 Shift）旋转 ---------- */
 
+  /** 图容器的中心（屏幕坐标） */
+  const boxCenter = () => {
+    const r = box.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  };
+
+  /** 某点相对中心的角度（度）。屏幕 y 向下，所以角度增大 = 顺时针 */
+  const angleAt = (x, y, c) => Math.atan2(y - c.y, x - c.x) * 180 / Math.PI;
+
+
   let drag = null;
 
   const onDown = (ev) => {
@@ -153,6 +163,7 @@ export function mountChartGestures(box, target) {
     const gl = current();
     if (gl) gl.style.willChange = 'transform';
 
+    const center = rotateMode ? boxCenter() : null;
     drag = {
       x: ev.clientX,
       y: ev.clientY,
@@ -160,6 +171,8 @@ export function mountChartGestures(box, target) {
       ty: view.ty,
       rot: view.rot,
       rotateMode,
+      center,
+      ang0: center ? angleAt(ev.clientX, ev.clientY, center) : 0,
     };
     try { box.setPointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
   };
@@ -168,10 +181,14 @@ export function mountChartGestures(box, target) {
     if (!drag) return;
 
     if (drag.rotateMode) {
-      // 用「相对起点的横移」算绝对角度，避免每帧累加的漂移。
-      // 方向取负（右拖 = 逆时针）：用户明确要求与「跟着鼠标同向」相反。
-      // 增益 0.08 是 nt-v0.75 定稿值，双指旋转的方向不受这里影响。
-      view.rot = drag.rot - (ev.clientX - drag.x) * 0.08;
+      // 按「绕圆心转过的角度」旋转，而不是只认横向位移 ——
+      // 之前用 clientX 差值，等于把圆分成上下两半：从右往左是顺时针，
+      // 从上往下却是逆时针。改成角度差之后，上下、左右都跟你手的方向走。
+      const now = angleAt(ev.clientX, ev.clientY, drag.center);
+      let delta = now - drag.ang0;
+      while (delta > 180) delta -= 360;
+      while (delta < -180) delta += 360;
+      view.rot = drag.rot + delta;
     } else {
       view.tx = drag.tx + (ev.clientX - drag.x) * PAN_GAIN;
       view.ty = drag.ty + (ev.clientY - drag.y) * PAN_GAIN;
