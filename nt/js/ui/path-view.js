@@ -28,8 +28,8 @@ export function paintChart(host, data, hits, onPick, mode) {
    * 追踪模式的线宽倍率：看这条线的**转入方**是什么类型的账户。
    * 费用类 4 倍、资产类 3 倍、负债类 2 倍、收入/权益 1 倍（基准 = W_MID）。
    */
-  // 费用类 = 1 个单位；储蓄(资产) 0.5；负债 0.25；收入 / 权益（债权）0.12
-  const TRACE_MULT = [[/费用/, 1], [/资产/, 0.5], [/负债/, 0.25], [/收入/, 0.12], [/权益/, 0.12]];
+  // 线宽 = 「弧度单位」× 倍数：费用 0.8 / 储蓄(资产) 0.5 / 负债 0.3 / 收入·权益 0.15
+  const TRACE_MULT = [[/费用/, 0.8], [/资产/, 0.5], [/负债/, 0.3], [/收入/, 0.15], [/权益/, 0.15]];
   const traceMult = (type) => {
     const s = String(type || '');
     for (const [re, m] of TRACE_MULT) if (re.test(s)) return m;
@@ -44,10 +44,10 @@ export function paintChart(host, data, hits, onPick, mode) {
       // 模式 4：追踪 —— 单位 1 = 0.9 个单位角对应的弧长，
       // 再按「转入方类型」乘倍率（费用 1 / 储蓄 0.5 / 负债 0.25 / 收入·权益 0.12）。
       // 这样线宽和「一笔流水在环上占多宽」是同一个量纲，笔数越多线越细。
-      const unit1 = 0.9 * (Number(data.unitArcLen) || 0);
+      const unit1 = Number(data.unitArcLen) || 0;
       strokeWidth = hit
         ? unit1 * traceMult(c.toType)
-        : Math.max(0.6, unit1 * 0.12);
+        : Math.max(0.6, unit1 * 0.15);
     } else if (hits) {
       if (hit) {
         const dep = Number.isFinite(c.depth) ? c.depth : DEPTH_WIDTHS.length - 1;
