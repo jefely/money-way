@@ -535,8 +535,10 @@
      所以这里用同样的算式算它的左上内缩 6px —— 无论侧栏收展都在图边上，
      也不会再压住左栏的「路径追踪 / 清空」那一行。 */
   position: fixed;
-  left: calc(50vw - min(94vw, 86vh) / 2 + 6px);
-  top: calc(50vh - min(94vw, 86vh) / 2 + 21px);
+  /* 与左栏标题行（「路径追踪」）同一水平线，横向让开它：
+     tab 栏 41px + 8px 内边距 = top 49px；「路径追踪」约占到 70px，从 78px 起 */
+  left: 78px;
+  top: 49px;
   z-index: 7;
   width: 22px;
   height: 22px;
@@ -559,8 +561,8 @@
 /* 「Money Way」跟着三角走，同一水平线 */
 .pw-brand {
   position: fixed;
-  left: calc(50vw - min(94vw, 86vh) / 2 + 34px);
-  top: calc(50vh - min(94vw, 86vh) / 2 + 21px);
+  left: 106px;
+  top: 49px;
   z-index: 7;
   height: 22px;
   line-height: 22px;
