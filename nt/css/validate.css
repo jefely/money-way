@@ -72,12 +72,16 @@
   color: var(--nt-bad);
 }
 
+/* 每一段一个圆角框。
+   原来用 --nt-bg-line 做边框，深色主题下几乎和背景同色，框看不出来；
+   换成更亮一档的 --nt-line-strong，并把圆角调大一点。 */
 .nt-text-block {
-  margin-bottom: 12px;
-  padding: 14px;
-  border: 1px solid var(--nt-bg-line);
-  border-radius: var(--nt-radius-lg);
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--nt-line-strong, var(--nt-bg-line));
+  border-radius: 14px;
   background: var(--nt-bg-soft);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
   line-height: 1.85;
 }
 
