@@ -15,6 +15,9 @@ import { APP_VER, decideUpdate, versionFromSwText, versionFromHtmlText, pickBigg
 
 export const UPDATED_FLAG = 'nt_updated';
 
+/** 防更新循环：30 秒内只允许触发一次 */
+const LOOP_GUARD = 'nt_update_guard';
+
 /**
  * 检查远端版本。
  * @param {{base?:string, timeoutMs?:number}} [opts]
@@ -45,15 +48,31 @@ export async function checkUpdate(opts) {
  * @param {string} remoteVer
  * @param {{reload?:Function}} [opts] 测试时可注入
  */
+/**
+ * 执行更新：清缓存 + 让 SW 换班 + 刷新。
+ *
+ * 注意两点（上一版就是这里出的问题）：
+ *   ① 清缓存必须 await —— 不 await 就刷新，缓存可能还没删完，
+ *      刷新后拿到的仍是旧文件，于是「检测到更新 → 刷新 → 还是旧的 → 又检测到更新」无限循环
+ *   ② 打一个时间戳标记，30 秒内不再触发更新，避免任何形式的循环
+ */
 export async function applyUpdate(remoteVer, opts) {
   const o = opts || {};
 
-  // ① 清掉所有缓存（不 await，让它后台跑）
+  // 防循环
+  try {
+    const last = Number(sessionStorage.getItem(LOOP_GUARD) || 0);
+    if (last && Date.now() - last < 30000) {
+      return { skipped: true, reason: 'loop-guard' };
+    }
+    sessionStorage.setItem(LOOP_GUARD, String(Date.now()));
+  } catch (e) { /* 忽略 */ }
+
+  // ① 清缓存（必须等到清完）
   try {
     if (typeof caches !== 'undefined' && caches.keys) {
-      caches.keys()
-        .then((names) => Promise.all(names.map((n) => caches.delete(n))))
-        .catch(() => {});
+      const names = await caches.keys();
+      await Promise.all(names.map((n) => caches.delete(n)));
     }
   } catch (e) { /* 忽略 */ }
 
@@ -68,14 +87,13 @@ export async function applyUpdate(remoteVer, opts) {
     }
   } catch (e) { /* 忽略 */ }
 
-  // ③ 记标记，刷新后由启动逻辑提示「已更新到 X」
-  try {
-    sessionStorage.setItem(UPDATED_FLAG, String(remoteVer || ''));
-  } catch (e) { /* 忽略 */ }
+  // ③ 记「刚更新过」，刷新后由启动逻辑提示
+  try { sessionStorage.setItem(UPDATED_FLAG, String(remoteVer || '')); } catch (e) { /* 忽略 */ }
 
-  // ④ 刷新
+  // ④ 刷新（留 250ms 让上面的操作落地）
   const reload = o.reload || (() => { location.reload(); });
-  setTimeout(() => { try { reload(); } catch (e) {} }, 60);
+  setTimeout(() => { try { reload(); } catch (e) {} }, 250);
+  return { updated: true, remote: remoteVer };
 }
 
 /** 启动时读一次「刚更新过」标记，读完就删 */

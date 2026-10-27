@@ -124,10 +124,9 @@ function versionLine() {
 
   let busy = false;
 
-  async function refresh() {
+  async function refresh(force) {
     if (busy) return;
     busy = true;
-    const old = btn.textContent;
     btn.disabled = true;
     btn.textContent = '检查中';
     remote.textContent = '远端：检查中…';
@@ -143,25 +142,35 @@ function versionLine() {
 
       remote.textContent = '远端：' + r.remote;
 
+      // 自动检查**只显示**，只有用户主动点按钮（force）才真更新。
+      // 自动更新会触发刷新（→ 回密码页）；缓存没清干净时还会反复触发，形成循环。
       if (r.update) {
-        remote.textContent = '远端：' + r.remote + '（正在更新）';
-        await applyUpdate(r.remote);
+        if (force) {
+          remote.textContent = '远端：' + r.remote + '（正在更新）';
+          busy = false;
+          btn.disabled = false;
+          await applyUpdate(r.remote);
+          return;
+        }
+        remote.textContent = '远端：' + r.remote + '（点按钮更新）';
+        btn.classList.add('has-update');
       } else {
-        remote.textContent = '远端：' + r.remote;
+        btn.classList.remove('has-update');
       }
     } catch (e) {
       remote.textContent = '远端：检查失败（' + ((e && e.message) || e) + '）';
     } finally {
       busy = false;
       btn.disabled = false;
-      btn.textContent = old;
+      // 不要无条件恢复成 old：有新版时按钮要一直显示「更新到 x」
+      if (!btn.classList.contains('has-update')) btn.textContent = '更新';
     }
   }
 
-  btn.addEventListener('click', refresh);
+  btn.addEventListener('click', () => refresh(true));
 
   // 进页面就查：说明页一打开就能看到远端版本
-  setTimeout(refresh, 0);
+  setTimeout(() => refresh(false), 0);
 
   return wrap;
 }
