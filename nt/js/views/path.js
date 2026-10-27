@@ -1,4 +1,4 @@
-// 界面：路径 tab
+﻿// 界面：路径 tab
 /**
  * 路径视图（Money Way 环网图）
  * 层：第五层 · UI
@@ -15,10 +15,11 @@ import { buildChord } from '../graph/mw-path-calculator.js';
 import { traceUpstream, traceByAccount } from '../graph/path-tracer.js';
 import { SVG } from '../ui/mw-svg-renderer.js';
 import { paintChart, paintList, paintStats, paintEmpty } from '../ui/path-view.js';
+import { bindFlowFilters, paintFlowRows, bindSideToggle } from '../ui/path-flow-table.js';
 
 export function mountPath(section, ctx) {
   const chartBox = section.querySelector('#pw-chart');
-  const listBox = section.querySelector('#pw-list');
+  const flowBody = section.querySelector('#pw-flow-body');
   const statsBox = section.querySelector('#pw-stats');
   const titleBox = section.querySelector('#pw-side-title');
   const hintBox = section.querySelector('#pw-hint');
@@ -91,18 +92,56 @@ export function mountPath(section, ctx) {
     };
   }
 
+  /* 左栏筛选条件：五个框各自过滤，命中才算进列表 */
+  let filter = { date: '', from: '', to: '', amount: '', note: '' };
+
+  /** 按当前筛选条件过滤 tx 下标 */
+  function visibleIdx(txs) {
+    const f = filter;
+    const any = f.date || f.from || f.to || f.amount || f.note;
+    if (!any) return txs.map((_, i) => i);
+
+    const out = [];
+    for (let i = 0; i < txs.length; i += 1) {
+      const t = txs[i];
+      if (f.date && !String(t.date || '').includes(f.date.replace(/[^0-9]/g, ''))) continue;
+      if (f.from && !nameOf(t.from_id).includes(f.from)) continue;
+      if (f.to && !nameOf(t.to_id).includes(f.to)) continue;
+      if (f.amount && !String(t.amount || '').includes(f.amount)) continue;
+      if (f.note && !String(t.note || '').includes(f.note)) continue;
+      out.push(i);
+    }
+    return out;
+  }
+
   function hitsFor(f) {
     if (!f || !data || data.empty) return null;
     if (f.kind === 'acc') return new Set(traceByAccount(data.txs, f.id));
     if (f.kind === 'tx') {
-      const tx = data.txs[f.id];
-      if (!tx) return null;
-      return new Set(traceUpstream(data.txs, tx.to_id).linkIndices);
+      // f.id 现在指向「全部流水」的下标，不是 data.txs（图上子集）的下标，
+      // 所以不能再用 data.txs[f.id] 取值 —— 用点选时记下的 to_id。
+      const toId = f.to_id || (data.txs[f.id] && data.txs[f.id].to_id);
+      if (!toId) return null;
+      return new Set(traceUpstream(data.txs, toId).linkIndices);
     }
     return null;
   }
 
   /* ---------- 渲染 ---------- */
+
+  bindFlowFilters({
+    setFilter: (key, value) => { filter[key] = value; render(); },
+    onClear: () => {
+      filter = { date: '', from: '', to: '', amount: '', note: '' };
+      for (const k of ['date', 'from', 'to', 'amount', 'note']) {
+        const el = document.getElementById('pw-qf-' + k);
+        if (el) el.value = '';
+      }
+      focus = null;
+      render();
+    },
+  });
+  bindSideToggle();
 
   function render() {
     data = build();
@@ -124,9 +163,25 @@ export function mountPath(section, ctx) {
       render();
     });
 
-    paintList(listBox, data, hits, nameOf, (i) => {
-      focus = { kind: 'tx', id: i };
-      render();
+    // 左栏：流水查询表 —— 列**全部**流水，不只是图上画出来的那几笔。
+    // 图为了可读性会折叠小额（MIN_EDGE_RATIO），但查询表不该跟着折叠。
+    const allTx = (ctx.getState().transactions || []).slice();
+    const idxList = visibleIdx(allTx);
+    const shownTxs = idxList.map((i) => allTx[i]);
+
+    paintFlowRows(flowBody, {
+      txs: shownTxs,
+      hits,
+      focusIndex: focus && focus.kind === 'tx' ? idxList.indexOf(focus.id) : null,
+      nameOf,
+      onPick: (shownIdx) => {
+        const realIdx = idxList[shownIdx];
+        const tx = allTx[realIdx];
+        // 图上按「转出账户」的上游追踪；这里把 to_id 交给 hitsFor 一致处理
+        const same = focus && focus.kind === 'tx' && focus.id === realIdx;
+        focus = same ? null : { kind: 'tx', id: realIdx, to_id: tx && tx.to_id };
+        render();
+      },
     });
 
     paintStats(statsBox, data, hits);
