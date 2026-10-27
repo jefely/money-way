@@ -84,7 +84,12 @@ body {
   color: var(--nt-tabs-color);
   font-weight: 600;
   font-size: var(--nt-tab-font);
-  line-height: var(--nt-tabs-h);
+  /* 不要用 line-height = 高度来居中：那样字号一变大，行盒就比内容区高，
+     文字会往外溢、看着靠下。用 flex 居中，字号随便调都不会偏。 */
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   white-space: nowrap;            /* 不许换行：换行会把两个字拆成两行，看着就像变小 */
   -webkit-text-size-adjust: 100%;
@@ -251,6 +256,10 @@ body {
 .nt-c-code { width: var(--nt-col-code, 64px); }
 .nt-c-num { width: var(--nt-col-num, 100px); }
 .nt-c-amount { width: var(--nt-col-amount, 96px); }
+/* 流水表专用的三列（原来借用 type/cat/code，导致列宽全错位） */
+.nt-c-from { width: var(--nt-col-from, 88px); }
+.nt-c-to { width: var(--nt-col-to, 88px); }
+.nt-c-note { width: var(--nt-col-note, 90px); }
 .nt-c-action { width: var(--nt-col-action, 40px); }
 .nt-c-state { width: var(--nt-col-state, 64px); }
 .nt-c-freq { width: var(--nt-col-freq, 64px); }
