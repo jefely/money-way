@@ -99,10 +99,10 @@ export function renderChart(data) {
       + ` stroke-linecap="round" data-tx="${c.txIdx}"/>`);
   }
 
-  // ③ 环内遮罩：把圆环内部的连线压暗 26%，让环和标签跳出来
+  // ③ 环内遮罩：把圆环内部的连线压暗 48%，让环和标签跳出来
   //    （用 class 而不是 fill="var(...)"，presentation attribute 里 CSS 变量解析不可靠）
   parts.push(`<circle class="mw-mask" cx="${cx}" cy="${cy}" r="${rIn}"`
-    + ` fill-opacity="0.26" pointer-events="none"/>`);
+    + ` fill-opacity="0.48" pointer-events="none"/>`);
 
   // ④ 弧块
   // 描边照单文件版用中性灰（#6b7280）+ 55% 不透明 ——
