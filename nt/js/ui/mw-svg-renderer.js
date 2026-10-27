@@ -26,7 +26,7 @@ export const RATIO = 6000 / BASE_SIZE;
 
 export const SVG = {
   size: 6000,
-  rOut: Math.round(640 * RATIO),
+  rOut: Math.round(560 * RATIO),
   thick: Math.round(44 * RATIO),
   get rIn() { return this.rOut - this.thick; },
 };
