@@ -584,3 +584,13 @@
     top: 44px;
   }
 }
+
+
+/* 圆心的拖动把手：提示可以按住拖 */
+.mw-grab {
+  cursor: grab;
+}
+
+.mw-grab:active {
+  cursor: grabbing;
+}

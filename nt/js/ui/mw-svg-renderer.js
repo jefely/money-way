@@ -213,6 +213,15 @@ export function renderChart(data) {
       + `>${esc(label)}</text>`);
   }
 
+  // ⑤ 圆心的拖动把手：直径 = 环直径的 25%，画在所有元素**之上**。
+  //    它的作用是给「平移图」一个明确的落点 —— 中间区域不再被线/命中带占满，
+  //    按住这里拖动就是平移（手势的排除列表里没有它，所以能进拖动）。
+  parts.push(`<circle class="mw-grab" cx="${cx}" cy="${cy}"`
+    + ` r="${Math.round(rOut * 0.25)}"`
+    + ` fill="currentColor" fill-opacity="0.06"`
+    + ` stroke="currentColor" stroke-opacity="0.16" stroke-width="${f(1.5 * RATIO)}"`
+    + ` pointer-events="all"/>`);
+
   parts.push('</g></svg>');
   return parts.join('');
 }
