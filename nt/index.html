@@ -149,8 +149,8 @@
                     <th class="nt-th nt-c-seq" scope="col">序</th>
                     <th class="nt-th nt-c-freq" scope="col">频率</th>
                     <th class="nt-th nt-c-day" scope="col">日期</th>
-                    <th class="nt-th" scope="col">转出</th>
-                    <th class="nt-th" scope="col">转入</th>
+                    <th class="nt-th" scope="col">转出账户</th>
+                    <th class="nt-th" scope="col">转入账户</th>
                     <th class="nt-th nt-c-amount" scope="col">金额</th>
                     <th class="nt-th" scope="col">备注</th>
                     <th class="nt-th nt-c-action" scope="col"><span class="nt-visually-hidden">操作</span></th>
@@ -163,17 +163,15 @@
         <div class="nt-plan-inst" id="nt-plan-inst" hidden>
           <div class="nt-tablewrap">
             <table class="nt-table nt-table-inst">
+                  <colgroup id="nt-inst-cols"></colgroup>
               <thead>
-                <tr>
-                  <th class="nt-th nt-c-seq" scope="col">序</th>
-                  <th class="nt-th" scope="col">账户</th>
-                  <th class="nt-th nt-c-num" scope="col">本金</th>
-                  <th class="nt-th nt-c-num" scope="col">利息</th>
-                  <th class="nt-th nt-c-num" scope="col">期数</th>
-                  <th class="nt-th nt-c-date" scope="col">首月</th>
-                  <th class="nt-th nt-c-num" scope="col">还款日</th>
-                  <th class="nt-th nt-c-num" scope="col">每月</th>
-                  <th class="nt-th nt-c-action" scope="col"><span class="nt-visually-hidden">操作</span></th>
+                <tr id="nt-inst-head">
+                  <!-- 月份列由 JS 按 calcInstallmentMatrix 动态生成，这里只放固定列 -->
+                  <th class="nt-th nt-c-inst-name" scope="col">账户名称</th>
+                  <th class="nt-th nt-c-num" scope="col">分期金额</th>
+                  <th class="nt-th nt-c-seq" scope="col">期数</th>
+                  <th class="nt-th nt-c-day" scope="col">账单日</th>
+                  <th class="nt-th nt-c-day" scope="col">还款日</th>
                 </tr>
               </thead>
               <tbody id="nt-inst-body"></tbody>
@@ -198,15 +196,23 @@
         <div class="nt-tablewrap">
           <table class="nt-table nt-table-accounts">
             <thead>
-              <tr>
-                <th class="nt-th nt-c-seq" scope="col">序</th>
-                <th class="nt-th nt-c-type" scope="col">类型</th>
-                <th class="nt-th nt-c-cat" scope="col">分类</th>
-                <th class="nt-th nt-c-code" scope="col">简码</th>
-                <th class="nt-th" scope="col">账户名称</th>
-                <th class="nt-th nt-c-num" scope="col">期初</th>
-                <th class="nt-th nt-c-action" scope="col"><span class="nt-visually-hidden">操作</span></th>
-              </tr>
+                <tr>
+                  <!-- 列顺序按最新规划：简码在最前（冻结），其余按「身份 -> 金额 -> 属性」排 -->
+                  <th class="nt-th nt-c-code" scope="col">简码</th>
+                  <th class="nt-th nt-c-seq" scope="col">序</th>
+                  <th class="nt-th nt-c-name" scope="col">账户名称</th>
+                  <th class="nt-th nt-c-num" scope="col">当前结余</th>
+                  <th class="nt-th nt-c-num" scope="col">转出</th>
+                  <th class="nt-th nt-c-num" scope="col">转入</th>
+                  <th class="nt-th nt-c-num" scope="col">转出历史</th>
+                  <th class="nt-th nt-c-num" scope="col">转入历史</th>
+                  <th class="nt-th nt-c-num" scope="col">期初</th>
+                  <th class="nt-th nt-c-type" scope="col">类型</th>
+                  <th class="nt-th nt-c-cat" scope="col">分类</th>
+                  <th class="nt-th nt-c-day" scope="col">账单日</th>
+                  <th class="nt-th nt-c-day" scope="col">还款日</th>
+                  <th class="nt-th nt-c-action" scope="col"><span class="nt-visually-hidden">操作</span></th>
+                </tr>
             </thead>
             <tbody id="nt-accounts-body"></tbody>
           </table>

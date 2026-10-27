@@ -214,7 +214,21 @@
 <!-- 设置 · 账户行（表格内直接编辑）：序 | 类型 | 分类 | 简码 | 名称 | 期初 | 操作 -->
 <template id="tpl-account-row">
   <tr class="nt-row">
+    <td class="nt-cell nt-cell-code">
+      <input class="nt-cell-input nt-cell-input-code" type="text" maxlength="5" data-field="code" aria-label="简码">
+    </td>
     <td class="nt-cell nt-cell-seq" data-field="seq"></td>
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户名称">
+    </td>
+    <td class="nt-cell nt-cell-num" data-field="balance"></td>
+    <td class="nt-cell nt-cell-num" data-field="out"></td>
+    <td class="nt-cell nt-cell-num" data-field="iin"></td>
+    <td class="nt-cell nt-cell-num" data-field="histOut"></td>
+    <td class="nt-cell nt-cell-num" data-field="histIn"></td>
+    <td class="nt-cell nt-cell-num">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="opening" aria-label="期初">
+    </td>
     <td class="nt-cell">
       <select class="nt-cell-input" data-field="type" aria-label="账户类型">
         <option value="资产类">资产类</option>
@@ -227,14 +241,11 @@
     <td class="nt-cell">
       <input class="nt-cell-input" type="text" data-field="category" aria-label="统计分类">
     </td>
-    <td class="nt-cell nt-cell-code">
-      <input class="nt-cell-input nt-cell-input-code" type="text" maxlength="5" data-field="code" aria-label="简码">
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" inputmode="numeric" data-field="billDay" aria-label="账单日">
     </td>
     <td class="nt-cell">
-      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户名称">
-    </td>
-    <td class="nt-cell nt-cell-num">
-      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="opening" aria-label="期初">
+      <input class="nt-cell-input" type="text" inputmode="numeric" data-field="repayDay" aria-label="还款日">
     </td>
     <td class="nt-cell nt-cell-action">
       <button class="nt-btn nt-btn-icon" type="button" data-act="del" aria-label="删除账户">×</button>
@@ -245,7 +256,21 @@
 <!-- 设置 · 账户新增行：名称填了就成 -->
 <template id="tpl-account-new">
   <tr class="nt-row nt-row-new" data-new="1">
+    <td class="nt-cell nt-cell-code">
+      <input class="nt-cell-input nt-cell-input-code" type="text" maxlength="5" data-field="code" aria-label="简码" placeholder="简码">
+    </td>
     <td class="nt-cell nt-cell-seq">+</td>
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户名称" placeholder="名称">
+    </td>
+    <td class="nt-cell nt-cell-num"></td>
+    <td class="nt-cell nt-cell-num"></td>
+    <td class="nt-cell nt-cell-num"></td>
+    <td class="nt-cell nt-cell-num"></td>
+    <td class="nt-cell nt-cell-num"></td>
+    <td class="nt-cell nt-cell-num">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="opening" aria-label="期初" placeholder="期初">
+    </td>
     <td class="nt-cell">
       <select class="nt-cell-input" data-field="type" aria-label="账户类型">
         <option value="资产类">资产类</option>
@@ -258,14 +283,11 @@
     <td class="nt-cell">
       <input class="nt-cell-input" type="text" data-field="category" aria-label="统计分类" placeholder="分类">
     </td>
-    <td class="nt-cell nt-cell-code">
-      <input class="nt-cell-input nt-cell-input-code" type="text" maxlength="5" data-field="code" aria-label="简码" placeholder="简码">
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" inputmode="numeric" data-field="billDay" aria-label="账单日" placeholder="账单日">
     </td>
     <td class="nt-cell">
-      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户名称" placeholder="名称">
-    </td>
-    <td class="nt-cell nt-cell-num">
-      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="opening" aria-label="期初" placeholder="期初">
+      <input class="nt-cell-input" type="text" inputmode="numeric" data-field="repayDay" aria-label="还款日" placeholder="还款日">
     </td>
     <td class="nt-cell nt-cell-action"></td>
   </tr>
@@ -369,27 +391,19 @@
 <!-- 计划 · 分期新增行：填了即成 -->
 <template id="tpl-inst-new">
   <tr class="nt-row nt-row-new" data-new="1">
-    <td class="nt-cell nt-cell-seq">+</td>
-    <td class="nt-cell">
-      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户" placeholder="简码/名称">
+    <td class="nt-cell nt-c-inst-name">
+      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户名称" placeholder="账户">
     </td>
-    <td class="nt-cell">
-      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="principal" aria-label="本金" placeholder="本金">
-    </td>
-    <td class="nt-cell">
-      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="interest" aria-label="利息" placeholder="利息">
+    <td class="nt-cell nt-cell-num">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="principal" aria-label="分期金额" placeholder="金额">
     </td>
     <td class="nt-cell">
       <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="numeric" data-field="periods" aria-label="期数" placeholder="期数">
     </td>
     <td class="nt-cell">
-      <input class="nt-cell-input" type="text" inputmode="numeric" maxlength="6" data-field="firstMonth" aria-label="首月" placeholder="2610">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="numeric" data-field="day" aria-label="账单日" placeholder="账单日">
     </td>
-    <td class="nt-cell">
-      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="numeric" maxlength="2" data-field="day" aria-label="还款日" placeholder="5">
-    </td>
-    <td class="nt-cell nt-cell-num"></td>
-    <td class="nt-cell nt-cell-action"></td>
+    <td class="nt-cell"></td>
   </tr>
 </template>
 

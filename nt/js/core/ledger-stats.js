@@ -164,3 +164,15 @@ export function openingOf(state, id) {
   }
   return sum;
 }
+
+/**
+ * 本月的起止日期（账户表的「当期」口径）。
+ * @param {Date} [now] 便于测试注入
+ */
+export function currentMonthRange(now) {
+  const d = now || new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const last = new Date(y, d.getMonth() + 1, 0).getDate();
+  return { start: `${y}-${m}-01`, end: `${y}-${m}-${String(last).padStart(2, '0')}` };
+}

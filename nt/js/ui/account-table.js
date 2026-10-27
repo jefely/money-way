@@ -13,6 +13,8 @@
 import { tpl } from './render-transactions.js';
 import { setCell, moneyOrBlank } from './table.js';
 import { openingOf } from '../core/ledger-stats.js';
+import { buildStatMap, fillStatCells } from './account-stats-view.js';
+import { ZONES } from '../core/settings.js';
 import { money } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
 import { addAccount, updateAccount, removeAccount, addTransaction } from '../core/state-store.js';
@@ -21,26 +23,6 @@ import { balanceOf } from '../core/balance-calculator.js';
 
 const FIELDS = ['type', 'category', 'code', 'name', 'opening'];
 const TYPES = ['资产类', '负债类', '收入类', '权益类', '费用类'];
-
-/**
- * 设置页的两大区域。
- * A 角色 = 正向账户（转入增加）；B 角色 = 反向账户（转出增加）。
- * 分区是为了让用户在**界面层面**就不可能填错极性。
- */
-export const ZONES = [
-  {
-    key: 'A',
-    label: 'A 我的资产/日常支出',
-    hint: '转入增加，转出减少',
-    types: ['资产类', '费用类'],
-  },
-  {
-    key: 'B',
-    label: 'B 收入与本金/欠款与贷款',
-    hint: '转出增加，转入减少',
-    types: ['负债类', '权益类', '收入类'],
-  },
-];
 
 /**
  * @param {object} ctx
@@ -55,6 +37,8 @@ export function mountAccountTable(ctx, tbody, opts) {
     const visible = (state.accounts || []).filter((a) => a && !a.isHidden);
 
     tbody.textContent = '';
+
+    const statMap = buildStatMap(visible, state);
 
     const rowTpl = tpl('tpl-account-row');
     const frag = document.createDocumentFragment();
@@ -111,12 +95,17 @@ export function mountAccountTable(ctx, tbody, opts) {
 
         seq += 1;
         setCell(tr, 'seq', seq);
-        const sel = tr.querySelector('[data-field="type"]');
-        if (sel) sel.value = TYPES.includes(acc.type) ? acc.type : '资产类';
-        setCell(tr, 'category', acc.category || '');
         setCell(tr, 'code', acc.code || '');
         setCell(tr, 'name', acc.name || '');
         setCell(tr, 'opening', moneyOrBlank(openingOf(state, acc.id)));
+
+        fillStatCells(tr, statMap.get(acc.id));
+
+        const sel = tr.querySelector('[data-field="type"]');
+        if (sel) sel.value = TYPES.includes(acc.type) ? acc.type : '资产类';
+        setCell(tr, 'category', acc.category || '');
+        setCell(tr, 'billDay', acc.billDay || '');
+        setCell(tr, 'repayDay', acc.repayDay || '');
 
         bindRow(tr, acc.id);
         frag.appendChild(tr);
@@ -135,7 +124,6 @@ export function mountAccountTable(ctx, tbody, opts) {
 
     summarize(visible, state);
   }
-
 
   function bindRow(tr, id) {
     const del = tr.querySelector('[data-act="del"]');
@@ -295,3 +283,4 @@ export function mountAccountTable(ctx, tbody, opts) {
 
 /** 期初：实现在 core，这里转出以保持既有调用点不变 */
 export { openingOf } from '../core/ledger-stats.js';
+

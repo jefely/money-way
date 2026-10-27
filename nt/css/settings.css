@@ -19,8 +19,7 @@
 */
 .nt-table-accounts {
   table-layout: fixed;
-  width: 492px;
-  min-width: 492px;
+  width: 1320px;          /* 14 列，窄屏靠 .nt-tablewrap 横向滚动；首列简码冻结 */
 }
 
 .nt-table-accounts th,

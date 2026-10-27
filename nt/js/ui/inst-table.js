@@ -12,11 +12,11 @@
 import { tpl } from './render-transactions.js';
 import { setCell, moneyOrBlank } from './table.js';
 import { money, moneyAlways } from '../core/format.js';
-import { computeInstallment } from '../core/installment-engine.js';
+import { computeInstallment, addMonths, monthsBetween, isDueInMonth as isDueMonth } from '../core/installment-engine.js';
 import { createScheduled, normalizeMonth, clampDay } from '../core/schema.js';
 import { parseAccountInput } from '../core/account-resolver.js';
 
-const FIELDS = ['name', 'principal', 'interest', 'periods', 'firstMonth', 'day'];
+const FIELDS = ['name', 'principal', 'periods', 'day', 'interest', 'firstMonth'];
 
 /**
  * @param {{getState:Function, setState:Function, getIndex:Function,
@@ -27,6 +27,9 @@ const FIELDS = ['name', 'principal', 'interest', 'periods', 'firstMonth', 'day']
 export function mountInstTable(ctx, tbody, opts) {
   const o = opts || {};
 
+  /** 固定列数（账户名称 / 分期金额 / 期数 / 账单日 / 还款日） */
+  const FIXED_COLS = 5;
+
   function render() {
     const state = ctx.getState();
     const list = (state.scheduled || []).filter((s) => s && s.isScheduled && s.inst);
@@ -34,28 +37,46 @@ export function mountInstTable(ctx, tbody, opts) {
 
     tbody.textContent = '';
 
-    const rowTpl = tpl('tpl-inst-row');
-    if (rowTpl && list.length) {
-      const frag = document.createDocumentFragment();
-      list.forEach((row, i) => {
-        const tr = rowTpl.cloneNode(true);
-        tr.dataset.id = row.id;
-        const st = computeInstallment(row, nowMonth);
-        const acc = ctx.getIndex().byId.get(row.to_id) || ctx.getIndex().byId.get(row.from_id);
+    // 月份跨度：从最早的首月到最晚的还清月
+    const span = monthSpan(list, nowMonth);
+    paintHead(span);
 
-        setCell(tr, 'seq', i + 1);
-        setCell(tr, 'name', acc ? acc.name : '');
-        setCell(tr, 'principal', moneyOrBlank(row.inst.principal));
-        setCell(tr, 'interest', moneyOrBlank(row.inst.interest));
-        setCell(tr, 'periods', row.inst.periods || '');
-        setCell(tr, 'firstMonth', shortMonth(row.inst.firstMonth));
-        setCell(tr, 'day', row.day || '');
-        setCell(tr, 'per', money(st.perPeriod));
+    for (const row of list) {
+      const st = computeInstallment(row, nowMonth);
+      const acc = ctx.getIndex().byId.get(row.to_id) || ctx.getIndex().byId.get(row.from_id);
 
-        bindRow(tr, row.id);
-        frag.appendChild(tr);
-      });
-      tbody.appendChild(frag);
+      // 上行：本金
+      const trP = document.createElement('tr');
+      trP.className = 'nt-row nt-inst-main';
+      trP.dataset.id = row.id;
+      tbody.appendChild(trP);
+
+      trP.appendChild(cellInput(row.id, 'name', acc ? acc.name : '', '', 'nt-c-inst-name'));
+      trP.appendChild(cellInput(row.id, 'principal', moneyOrBlank(row.inst.principal), 'nt-cell-input-num'));
+      trP.appendChild(cellInput(row.id, 'periods', row.inst.periods || '', 'nt-cell-input-num'));
+      trP.appendChild(cellInput(row.id, 'day', row.day || '', 'nt-cell-input-num'));
+      trP.appendChild(cellText(row.day ? String(row.day) : '', ''));
+
+      // 下行：利息（左 4 格留空，与上行对齐）
+      const trI = document.createElement('tr');
+      trI.className = 'nt-row nt-inst-sub';
+      trI.dataset.id = row.id;
+      tbody.appendChild(trI);
+
+      for (let k = 0; k < FIXED_COLS - 1; k += 1) {
+        const td = document.createElement('td');
+        td.className = 'nt-cell nt-cell-empty';
+        trI.appendChild(td);
+      }
+
+      // 每月两格：本金写上行、利息写下行
+      for (const m of span) {
+        const cell = st && isDueMonth(row, m) ? computeInstallment(row, m) : null;
+        trP.appendChild(cellText(cell ? moneyAlways(cell.principalPer) : '', 'nt-cell-num nt-inst-p'));
+        trI.appendChild(cellText(cell ? moneyAlways(cell.interestPer) : '', 'nt-cell-num nt-inst-i'));
+      }
+
+      bindRow(trP, row.id);
     }
 
     const newTpl = tpl('tpl-inst-new');
@@ -66,6 +87,74 @@ export function mountInstTable(ctx, tbody, opts) {
     }
 
     summarize(list, nowMonth);
+  }
+
+  /** 表头 + 列宽：固定 5 列 + 每月一列，两者必须同步生成 */
+  function paintHead(span) {
+    const tr = document.getElementById('nt-inst-head');
+    if (!tr) return;
+
+    // 先清掉旧的月份列
+    while (tr.children.length > FIXED_COLS) tr.removeChild(tr.lastChild);
+    for (const m of span) {
+      const th = document.createElement('th');
+      th.className = 'nt-th nt-c-month';
+      th.scope = 'col';
+      th.textContent = '还款月' + m;
+      tr.appendChild(th);
+    }
+
+    // colgroup 与表头一一对应：table-layout: fixed 认的是 col，不是 th
+    const cols = document.getElementById('nt-inst-cols');
+    if (!cols) return;
+    cols.textContent = '';
+    for (const cls of ['nt-c-inst-name', '', '', '', '']) {
+      const col = document.createElement('col');
+      if (cls) col.className = cls;
+      cols.appendChild(col);
+    }
+    for (let i = 0; i < span.length; i += 1) {
+      const col = document.createElement('col');
+      col.className = 'nt-c-month';
+      cols.appendChild(col);
+    }
+  }
+
+  function cellText(text, cls) {
+    const td = document.createElement('td');
+    td.className = 'nt-cell' + (cls ? ' ' + cls : '');
+    td.textContent = text == null ? '' : String(text);
+    return td;
+  }
+
+  function cellInput(id, field, value, cls, tdCls) {
+    const td = document.createElement('td');
+    td.className = 'nt-cell' + (tdCls ? ' ' + tdCls : '');
+    const input = document.createElement('input');
+    input.className = 'nt-cell-input' + (cls ? ' ' + cls : '');
+    input.type = 'text';
+    input.setAttribute('data-field', field);
+    input.value = value == null ? '' : String(value);
+    td.appendChild(input);
+    return td;
+  }
+
+  /** 月份跨度：最早首月 → 最晚还清月（至少含当月） */
+  function monthSpan(list, nowMonth) {
+    let first = nowMonth;
+    let last = nowMonth;
+    for (const row of list) {
+      const fm = row.inst && row.inst.firstMonth;
+      if (fm && fm < first) first = fm;
+      const st = computeInstallment(row, nowMonth);
+      if (st.lastMonth && st.lastMonth > last) last = st.lastMonth;
+    }
+    const out = [];
+    const n = monthsBetween(first, last);
+    for (let i = 0; i <= (Number.isFinite(n) ? n : 0) && i < 36; i += 1) {
+      out.push(addMonths(first, i));
+    }
+    return out;
   }
 
   function bindRow(tr, id) {
@@ -137,7 +226,9 @@ export function mountInstTable(ctx, tbody, opts) {
       const principal = Number(get('principal')) || 0;
       const interest = Number(get('interest')) || 0;
       const periods = Math.floor(Number(get('periods')) || 0);
-      const firstMonth = normalizeMonth(get('firstMonth'));
+
+      // 新表没有「首月」列：不填就从当月开始（月份列由它推出来）
+      const firstMonth = normalizeMonth(get('firstMonth')) || todayMonth();
 
       if (!name || !(principal > 0) || !(periods > 0) || !firstMonth) return;
 
