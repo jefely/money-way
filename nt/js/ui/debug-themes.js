@@ -1,4 +1,4 @@
-// 界面：?debug=1 → 界面参数 1/2/3/4 主题按钮
+﻿// 界面：?debug=1 → 界面参数 1/2/3/4 主题按钮
 /**
  * 调试面板的主题切换（1=浅色 2=深色 3=备选1 4=备选2）
  * 层：第五层 · UI
@@ -40,19 +40,56 @@ export function createThemeButtons(active, onPick) {
   return wrap;
 }
 
-/** 按主题保存：state.settings[theme] = settings */
-export function saveThemeSettings(opts, theme, settings) {
+/**
+ * 按主题保存。`slot` 决定写哪一层：
+ *   'defaults' —— 默认设置（基准值，一般调好就不动了）
+ *   'user'     —— 用户设置（拖动列宽之类的实际值）
+ *
+ * 两层分开存的意义：改了默认不会冲掉用户微调；重置用户设置又能回到默认。
+ */
+export function saveThemeSettings(opts, theme, settings, slot) {
   if (!opts || !opts.setState || !opts.getState) return;
   const st = opts.getState();
   const all = { ...(st.settings && typeof st.settings === 'object' ? st.settings : {}) };
-  all[theme] = settings;
+  const cur = normalizeThemeSettings(all[theme]);
+  all[theme] = { ...cur, [slot === 'user' ? 'user' : 'defaults']: settings };
   opts.setState({ ...st, settings: all });
 }
 
-/** 按主题读取：state.settings[theme]（兼容旧的平铺结构） */
+/** 把旧版平铺结构迁成 { defaults, user } */
+function normalizeThemeSettings(t) {
+  const src = t && typeof t === 'object' ? t : {};
+  if (src.defaults || src.user) {
+    return { defaults: src.defaults || {}, user: src.user || {} };
+  }
+  // 旧结构：所有键平铺，还混着「用户列宽」
+  const defaults = { ...src };
+  const user = {};
+  if (defaults['用户列宽']) {
+    user['默认列宽'] = defaults['用户列宽'];
+    delete defaults['用户列宽'];
+  }
+  if (defaults['用户列宽']) delete defaults['用户列宽'];
+  return { defaults, user };
+}
+
+/** 读「默认设置」（面板编辑的就是这一层） */
 export function loadThemeSettings(opts, theme) {
   if (!opts || !opts.getState) return {};
   const st = opts.getState();
   const all = st.settings && typeof st.settings === 'object' ? st.settings : {};
-  return all[theme] || {};
+  return normalizeThemeSettings(all[theme]).defaults;
+}
+
+/** 读「用户设置」 */
+export function loadUserSettings(opts, theme) {
+  if (!opts || !opts.getState) return {};
+  const st = opts.getState();
+  const all = st.settings && typeof st.settings === 'object' ? st.settings : {};
+  return normalizeThemeSettings(all[theme]).user;
+}
+
+/** defaults + user 合并后的最终参数（user 优先） */
+export function loadMergedSettings(opts, theme) {
+  return { ...loadThemeSettings(opts, theme), ...loadUserSettings(opts, theme) };
 }

@@ -382,3 +382,54 @@ body {
    于是拖 <col> 时有几列不听话（拖动一列，另外几列跟着变）。
    现在这些宽度全部交给 <col>（见 ui/col-resize.js 的 freezeWidths）。
    ============================================================ */
+
+/* 面板「整行背景色」：行的底色（与单元格底色交替成斑马线） */
+.nt-row {
+  background: var(--nt-unit-row-bg, transparent);
+}
+
+/* 面板「按钮尺寸字号」：按钮区文字大小 */
+.nt-vbar {
+  font-size: var(--nt-vbar-font, 12px);
+}
+
+.nt-vbar .nt-btn {
+  font-size: var(--nt-vbar-font, 12px);
+}
+
+/* ============================================================
+   列标行 / 数据区 的每列对齐
+   ------------------------------------------------------------
+   applySettings 会写 --nt-th-align-<key> 与 --nt-align-<key>，
+   这里按 <th data-col> 把变量接上（没有 data-col 的列走默认）。
+   ============================================================ */
+
+.nt-table .nt-th[data-col="seq"] { text-align: var(--nt-th-align-seq, left); }
+.nt-table .nt-th[data-col="date"] { text-align: var(--nt-th-align-date, left); }
+.nt-table .nt-th[data-col="type"] { text-align: var(--nt-th-align-type, left); }
+.nt-table .nt-th[data-col="cat"] { text-align: var(--nt-th-align-cat, left); }
+.nt-table .nt-th[data-col="code"] { text-align: var(--nt-th-align-code, left); }
+.nt-table .nt-th[data-col="num"] { text-align: var(--nt-th-align-num, left); }
+.nt-table .nt-th[data-col="amount"] { text-align: var(--nt-th-align-amount, left); }
+.nt-table .nt-th[data-col="action"] { text-align: var(--nt-th-align-action, left); }
+.nt-table .nt-th[data-col="state"] { text-align: var(--nt-th-align-state, left); }
+.nt-table .nt-th[data-col="freq"] { text-align: var(--nt-th-align-freq, left); }
+.nt-table .nt-th[data-col="day"] { text-align: var(--nt-th-align-day, left); }
+.nt-table .nt-th[data-col="from"] { text-align: var(--nt-th-align-from, left); }
+.nt-table .nt-th[data-col="to"] { text-align: var(--nt-th-align-to, left); }
+.nt-table .nt-th[data-col="note"] { text-align: var(--nt-th-align-note, left); }
+.nt-table .nt-th[data-col="name"] { text-align: var(--nt-th-align-name, left); }
+.nt-table .nt-th[data-col="balance"] { text-align: var(--nt-th-align-balance, left); }
+.nt-table .nt-th[data-col="opening"] { text-align: var(--nt-th-align-opening, left); }
+.nt-table .nt-th[data-col="histOut"] { text-align: var(--nt-th-align-histOut, left); }
+.nt-table .nt-th[data-col="histIn"] { text-align: var(--nt-th-align-histIn, left); }
+.nt-table .nt-th[data-col="periods"] { text-align: var(--nt-th-align-periods, left); }
+.nt-table .nt-th[data-col="principal"] { text-align: var(--nt-th-align-principal, left); }
+.nt-table .nt-th[data-col="interest"] { text-align: var(--nt-th-align-interest, left); }
+.nt-table .nt-th[data-col="per"] { text-align: var(--nt-th-align-per, left); }
+.nt-table .nt-th[data-col="firstMonth"] { text-align: var(--nt-th-align-firstMonth, left); }
+.nt-table .nt-th[data-col="billDay"] { text-align: var(--nt-th-align-billDay, left); }
+.nt-table .nt-th[data-col="repayDay"] { text-align: var(--nt-th-align-repayDay, left); }
+
+/* 数字列始终右对齐，覆盖上面的默认左对齐 */
+.nt-table .nt-cell-num { text-align: right; }

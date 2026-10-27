@@ -29,6 +29,7 @@ import { mountPath } from './views/path.js';
 import { mountDebugPanel } from './ui/debug-panel.js';
 import { applySettings } from './ui/apply-settings.js';
 import { bindAllColResize } from './ui/col-resize.js';
+import { loadMergedSettings, loadUserSettings, saveThemeSettings } from './ui/debug-themes.js';
 import { COL_KEYS } from './core/settings.js';
 import { APP_VER } from './core/version.js';
 import { initVersion } from './ui/update-check.js';
@@ -190,16 +191,17 @@ function adoptState(raw) {
 /** 拖动手柄改列宽后，写入当前主题的「用户列宽」（不覆盖默认列宽） */
 function onColResize(col, width) {
   const theme = document.documentElement.getAttribute('data-theme') || 'dark';
-  const st = getState();
-  const all = { ...(st.settings && typeof st.settings === 'object' ? st.settings : {}) };
-  const cur = all[theme] && typeof all[theme] === 'object' ? all[theme] : {};
-  const widths = String(cur['用户列宽'] || cur['默认列宽'] || '').split(',').map((x) => Number(x.trim()));
   const idx = COL_KEYS.indexOf(col);
   if (idx < 0) return;
+
+  // 拖动写「用户设置」，不动「默认设置」—— 后者是基准，改了会丢掉参照
+  const cur = loadMergedSettings({ getState }, theme);
+  const widths = String(cur['默认列宽'] || '').split(',').map((x) => Number(x.trim()));
   while (widths.length < COL_KEYS.length) widths.push(64);
   widths[idx] = width;
-  all[theme] = { ...cur, '用户列宽': widths.join(',') };
-  setState({ ...st, settings: all });
+
+  const user = { ...loadUserSettings({ getState }, theme), '默认列宽': widths.join(',') };
+  saveThemeSettings({ getState, setState }, theme, user, 'user');
   flushSave();
 }
 
@@ -211,10 +213,8 @@ function enterApp() {
   // 应用界面参数：即使 settings 为空也要跑一次，用 SCHEMA 默认值补齐
   // （否则新账本没有 --nt-col-*，列宽会被表格拉伸，拖动也看不出效果）
   const theme = document.documentElement.getAttribute('data-theme') || 'dark';
-  const s = state.settings || {};
-  const themeSettings = (s[theme] && typeof s[theme] === 'object') ? s[theme] : s;
-  const merged = { ...themeSettings };
-  if (themeSettings['用户列宽']) merged['默认列宽'] = themeSettings['用户列宽'];
+  // 两层分开存：defaults 是基准，user 是实际值（user 覆盖 defaults）
+  const merged = loadMergedSettings({ getState }, theme);
   applySettings(merged, theme);
 
   // 列宽拖动手柄：**所有**数据区都挂，拖动后同步到当前主题的「默认列宽」并保存

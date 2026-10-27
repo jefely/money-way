@@ -114,14 +114,24 @@ export function mountDebugPanel(opts) {
   undoBtn.type = 'button';
   undoBtn.className = 'nt-debug-btn';
   undoBtn.textContent = '撤销';
-  const saveBtn = document.createElement('button');
-  saveBtn.type = 'button';
-  saveBtn.className = 'nt-debug-btn';
-  saveBtn.textContent = '保存';
+  // 两套保存：默认设置是基准值，用户设置是拖动/微调出来的实际值
+  const saveDefBtn = document.createElement('button');
+  saveDefBtn.type = 'button';
+  saveDefBtn.className = 'nt-debug-btn';
+  saveDefBtn.textContent = '存默认';
+  saveDefBtn.title = '存为默认设置（基准值）';
+
+  const saveUsrBtn = document.createElement('button');
+  saveUsrBtn.type = 'button';
+  saveUsrBtn.className = 'nt-debug-btn';
+  saveUsrBtn.textContent = '存用户';
+  saveUsrBtn.title = '存为用户设置（覆盖默认，优先级更高）';
+
   foot.appendChild(resetBtn);
   foot.appendChild(readColBtn);
   foot.appendChild(undoBtn);
-  foot.appendChild(saveBtn);
+  foot.appendChild(saveDefBtn);
+  foot.appendChild(saveUsrBtn);
 
   // 布局文本导出/导入（单独一行，避免把底部按钮挤成一坨）
   const textBar = layoutTextBar({
@@ -147,12 +157,15 @@ export function mountDebugPanel(opts) {
   enableDrag(host, dragBar);
 
   closeBtn.addEventListener('click', () => host.remove());
-  saveBtn.addEventListener('click', () => {
-    saveThemeSettings(o, theme, normalize(current, theme));
+  function persist(btn, slot, label) {
+    saveThemeSettings(o, theme, normalize(current, theme), slot);
     if (o.save) o.save();
-    saveBtn.textContent = '已保存';
-    setTimeout(() => { saveBtn.textContent = '保存'; }, 1200);
-  });
+    btn.textContent = '已保存';
+    setTimeout(() => { btn.textContent = label; }, 1200);
+  }
+
+  saveDefBtn.addEventListener('click', () => persist(saveDefBtn, 'defaults', '存默认'));
+  saveUsrBtn.addEventListener('click', () => persist(saveUsrBtn, 'user', '存用户'));
   resetBtn.addEventListener('click', () => {
     pushHistory();
     current = normalize(o.getState ? loadThemeSettings(o, theme) : {}, theme);

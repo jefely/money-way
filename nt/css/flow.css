@@ -165,9 +165,11 @@
 .nt-col-handle {
   position: absolute;
   top: 0;
-  right: 0;
+  right: calc(-1 * var(--nt-handle-offset, 0px));   /* 面板「手柄位置」 */
   bottom: 0;
   width: 7px;
+  height: var(--nt-handle-h, auto);                /* 面板「手柄高度」 */
+  margin-top: calc((100% - var(--nt-handle-h, 100%)) / 2);
   cursor: col-resize;
   background: transparent;
   z-index: 5;

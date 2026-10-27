@@ -56,8 +56,11 @@ export function mountSettings(section, ctx) {
   function showLayout() {
     // 已经有面板开着就不再叠一个
     if (document.querySelector('.nt-debug')) return;
+    // setState 是必须的：saveThemeSettings 靠它把参数写回 state.settings[theme]，
+    // 少传这一个回调，「保存」就会静默失败（面板上看不出任何错误）。
     mountDebugPanel({
       getState: ctx.getState,
+      setState: ctx.setState,
       save: () => { if (ctx.saveNow) ctx.saveNow(); },
     });
   }
