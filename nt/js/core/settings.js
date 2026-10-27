@@ -103,7 +103,7 @@ export const SCHEMA = [
   { key: '列标行行高', group: '列标行', def: 26, unit: 'px', cssVar: '--nt-th-h' },
   { key: '列标行字号', group: '列标行', def: 12, unit: 'px', cssVar: '--nt-th-font' },
   { key: '列标行对齐', group: '列标行', type: 'align', prefix: '--nt-th-align-', def: DEFAULT_COL_ALIGN },
-  { key: '手柄高度', group: '列标行', def: 26, unit: 'px', cssVar: '--nt-handle-h' },
+  { key: '手柄宽度', group: '列标行', def: 7, unit: 'px', cssVar: '--nt-handle-w' },
 
   /* ---------- 数据区（独立） ----------
      列宽不在这里：表格 width:100% + min-width 由 CSS 决定，

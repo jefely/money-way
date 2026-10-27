@@ -20,7 +20,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v0.12';
+const CACHE_NAME = 'nt-v0.13';
 
 const ASSETS = [
   './index.html',

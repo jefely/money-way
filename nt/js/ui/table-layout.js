@@ -153,6 +153,7 @@ export function mountResize(tableEl, opts) {
     const startX = ev.clientX;
     const startW = Math.round(th.getBoundingClientRect().width);
     const idx = [...tableEl.querySelectorAll('thead .nt-th')].indexOf(th);
+    th.classList.add('nt-col-dragging');
     document.body.classList.add('nt-col-resizing');
     // 再兜一层保险：拖动期间禁掉容器的横向滚动，
     // 免得浏览器在触摸序列中途接管手势导致内容一起滚
@@ -184,6 +185,7 @@ export function mountResize(tableEl, opts) {
       document.removeEventListener('pointercancel', finish);
       window.removeEventListener('blur', finish);
 
+      th.classList.remove('nt-col-dragging');
       document.body.classList.remove('nt-col-resizing');
       if (wrap) wrap.style.overflowX = prevOverflow;
 
