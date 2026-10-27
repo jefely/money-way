@@ -471,6 +471,9 @@
    现在 width/height 都撑满 + preserveAspectRatio 等比（xMidYMid meet），
    容器再宽也只是左右留白，图的大小不变。 */
 .pw-chart-inner {
+  /* 留出环外文字的空间（标签排在 rOut 之外，贴边会被裁） */
+  padding: 3%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;

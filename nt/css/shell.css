@@ -49,6 +49,9 @@ body {
 
 .nt-tabs {
   display: flex;
+  /* 环图是 position:fixed 的，不给 tab 栏层级它就会被图盖住 */
+  position: relative;
+  z-index: 20;
   background: var(--nt-tabs-bg);
   border-bottom: 1px solid var(--nt-tabs-border, var(--nt-bg-line));
   overflow-x: auto;
