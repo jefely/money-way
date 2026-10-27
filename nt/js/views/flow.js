@@ -16,6 +16,7 @@ import { parseAccountInput, suggestAccounts as suggestByIndex } from '../core/ac
 import { bindRowEditing } from '../ui/row-editor.js';
 import * as NtModal from '../ui/modal.js';
 import { openAddDialog } from '../ui/add-dialog.js';
+import { openSyncDialog } from '../ui/sync-dialog.js';
 
 const WIP = '该功能在后续版本接入（当前版本先做单页壳）。';
 
@@ -99,7 +100,7 @@ function bindToolbar(section, ctx) {
   });
 
   const sync = section.querySelector('[data-act="sync"]');
-  if (sync) sync.addEventListener('click', () => NtModal.info('同步', (b) => { b.textContent = WIP; }));
+  if (sync) sync.addEventListener('click', () => openSyncDialog(ctx));
 
   const exp = section.querySelector('[data-act="export"]');
   if (exp) exp.addEventListener('click', () => NtModal.info('导出', (b) => { b.textContent = WIP; }));
