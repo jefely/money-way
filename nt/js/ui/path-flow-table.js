@@ -175,14 +175,85 @@ function cell(tag, text, cls) {
   return el;
 }
 
+/** 左栏宽度的本地记忆（界面偏好，不进加密账本） */
+const SIDE_KEY = 'nt_pw_side_w';
+const SIDE_MIN = 180;
+const SIDE_MAX = 760;
+const SIDE_DEF = 320;
+
+function savedSideWidth() {
+  try {
+    const n = Number(localStorage.getItem(SIDE_KEY));
+    return Number.isFinite(n) && n >= SIDE_MIN ? n : SIDE_DEF;
+  } catch (e) {
+    return SIDE_DEF;
+  }
+}
+
+/** 把左栏宽度写到 :root 的 --nt-pw-side-w（.pw-main 的 grid 第一列读它） */
+export function applySideWidth(w) {
+  const n = Math.max(SIDE_MIN, Math.min(SIDE_MAX, Math.round(Number(w) || SIDE_DEF)));
+  try {
+    document.documentElement.style.setProperty('--nt-pw-side-w', n + 'px');
+    localStorage.setItem(SIDE_KEY, String(n));
+  } catch (e) { /* 忽略 */ }
+  return n;
+}
+
+/**
+ * 左栏右缘的拖条。
+ * 之前左栏宽度是写死的 320px —— 表格稍宽一点就顶出屏幕，而且没法调。
+ */
+export function mountSideResizer() {
+  const side = document.getElementById('pw-side');
+  if (!side) return;
+  if (side.querySelector('.pw-side-resizer')) return;
+
+  applySideWidth(savedSideWidth());
+
+  const bar = document.createElement('button');
+  bar.type = 'button';
+  bar.className = 'pw-side-resizer';
+  bar.setAttribute('aria-label', '拖动调整左栏宽度');
+  side.appendChild(bar);
+
+  bar.addEventListener('pointerdown', (ev) => {
+    if (ev.button !== 0 && ev.pointerType === 'mouse') return;
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const startX = ev.clientX;
+    const startW = side.getBoundingClientRect().width;
+
+    const move = (e) => applySideWidth(startW + (e.clientX - startX));
+    const finish = () => {
+      bar.removeEventListener('pointermove', move);
+      bar.removeEventListener('pointerup', finish);
+      bar.removeEventListener('pointercancel', finish);
+      try { bar.releasePointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
+    };
+
+    try { bar.setPointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
+    bar.addEventListener('pointermove', move);
+    bar.addEventListener('pointerup', finish);
+    bar.addEventListener('pointercancel', finish);
+  });
+}
+
 /**
  * 把左栏在「收起 / 展开」之间切换。
- * @param {boolean} collapsed
+ * 收起时把 grid 第一列也压到 22px —— 只给 .pw-side 设 width 是没用的，
+ * 宽度由 grid 轨道决定，否则会留一条 320px 的空白。
  */
 export function setSideCollapsed(collapsed) {
   const side = document.getElementById('pw-side');
   if (!side) return;
   side.classList.toggle('collapsed', !!collapsed);
+  try {
+    document.documentElement.style.setProperty(
+      '--nt-pw-side-w', collapsed ? '22px' : savedSideWidth() + 'px',
+    );
+  } catch (e) { /* 忽略 */ }
 }
 
 /** 绑定收起 / 展开（「收起」按钮已删，只留把手与三角） */

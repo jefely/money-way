@@ -215,6 +215,16 @@ function enterApp() {
   document.getElementById('nt-app').hidden = false;
   updateDocTitle();
 
+  // 启动成功 → 把白屏兜底收起来。
+  // index.html 的兜底是「3.5 秒没出锁屏/主界面就显示」，但首次加载 + SW 预缓存
+  // 可能要超过 3.5 秒 —— 慢不是失败。之前没有任何代码调用 __ntBootOk，
+  // 于是慢加载时兜底一旦显示就永远挂着，看起来像「页面没能启动」。
+  try {
+    if (typeof window !== 'undefined' && typeof window.__ntBootOk === 'function') {
+      window.__ntBootOk();
+    }
+  } catch (e) { /* 忽略 */ }
+
   // 应用界面参数：即使 settings 为空也要跑一次，用 SCHEMA 默认值补齐
   // （否则新账本没有 --nt-col-*，列宽会被表格拉伸，拖动也看不出效果）
   const theme = document.documentElement.getAttribute('data-theme') || 'dark';

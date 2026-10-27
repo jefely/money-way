@@ -15,7 +15,9 @@ import { buildChord } from '../graph/mw-path-calculator.js';
 import { traceUpstream, traceByAccount } from '../graph/path-tracer.js';
 import { SVG } from '../ui/mw-svg-renderer.js';
 import { paintChart, paintList, paintEmpty } from '../ui/path-view.js';
-import { bindFlowFilters, paintFlowRows, bindSideToggle, mountPathColResize } from '../ui/path-flow-table.js';
+import {
+  bindFlowFilters, paintFlowRows, bindSideToggle, mountPathColResize, mountSideResizer,
+} from '../ui/path-flow-table.js';
 import { mountChartGestures } from '../ui/chart-gestures.js';
 import { saveTableColWidth } from '../ui/col-save.js';
 
@@ -143,6 +145,7 @@ export function mountPath(section, ctx) {
     },
   });
   bindSideToggle();
+  mountSideResizer();
 
   // 路径表是 div + grid，列宽拖动单独挂一套（拖动改 --nt-col-path-<列>，松手存进参数）
   mountPathColResize(document.getElementById('pw-flow-head'), {
@@ -163,6 +166,13 @@ export function mountPath(section, ctx) {
 
     const hits = hitsFor(focus);
 
+    // 图吃「下标集」，左栏吃「流水 id 集」——这是两套不同的索引：
+    // hits 是 data.txs（图的那批）的下标，左栏列的是全量流水。
+    // 之前把下标直接喂给左栏，高亮永远是错行，看起来就是「数据表和图形链接不上」。
+    const hitIds = hits
+      ? new Set([...hits].map((i) => (data.txs[i] || {}).id).filter(Boolean))
+      : null;
+
     paintChart(chartBox, data, hits, (acc) => {
       const same = focus && focus.kind === 'acc' && focus.id === acc;
       focus = same ? null : { kind: 'acc', id: acc };
@@ -180,14 +190,15 @@ export function mountPath(section, ctx) {
     }
 
     // 左栏：流水查询表 —— 列**全部**流水，不只是图上画出来的那几笔。
-    // 图为了可读性会折叠小额（MIN_EDGE_RATIO），但查询表不该跟着折叠。
-    const allTx = (ctx.getState().transactions || []).slice();
+    // 期初流水不列：图上不画它（它是背景板，不是资金流动），
+    // 列出来就成了一串「000101 期初余额 → 某账户」永远高亮不到的行。
+    const allTx = (ctx.getState().transactions || []).filter((t) => t && !t.opening);
     const idxList = visibleIdx(allTx);
     const shownTxs = idxList.map((i) => allTx[i]);
 
     paintFlowRows(flowBody, {
       txs: shownTxs,
-      hits,
+      hits: hitIds,
       focusIndex: focus && focus.kind === 'tx' ? idxList.indexOf(focus.id) : null,
       nameOf,
       onPick: (shownIdx) => {
