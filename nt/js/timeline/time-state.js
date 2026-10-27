@@ -3,14 +3,18 @@
  * ☐5 时间状态机
  * 层：第二层 · 时间轴引擎
  *
- * 按 targetDate 把流水切成 past / current / future 三段，
- * 并把「未来分期的虚拟还款事件」**在这里推算生成**——
- * 关键：虚拟事件只出现在返回值里，**绝不写回 state.transactions**。
+ * 按 targetDate 把真实流水切成 past / current / future 三段，
+ * 并把「未来还没还的分期」推成**虚拟还款事件**。
  *
- * 验收：调用前后 state.transactions 长度不变（纯函数）。
+ * 两条硬规矩：
+ *   ① 虚拟事件只出现在返回值里，**绝不写回 state.transactions**；
+ *   ② 已还的期数不能再算成未来 —— 这要求把「月份」而不是「日期」
+ *      传给 computeInstallment（它只认 YYYY-MM）。
+ *
+ * 验收：调用前后 transactions 长度不变；虚拟事件数 = 剩余期数之和。
  */
 
-import { computeInstallment } from '../core/installment-engine.js';
+import { computeInstallment, addMonths, dayInMonth } from '../core/installment-engine.js';
 
 export const SEGMENT = { PAST: 'past', CURRENT: 'current', FUTURE: 'future' };
 
@@ -19,11 +23,13 @@ export const SEGMENT = { PAST: 'past', CURRENT: 'current', FUTURE: 'future' };
  * @param {Array} accounts
  * @param {Array} installments 分期规则（可为空）
  * @param {{targetDate:string, monthStart?:string, monthEnd?:string}} opts
- * @returns {{past:Array, current:Array, future:Array, virtual:Array, targetDate:string}}
+ * @returns {{past:Array, current:Array, future:Array, virtual:Array,
+ *            targetDate:string, targetMonth:string, counts:object}}
  */
 export function splitByTime(transactions, accounts, installments, opts) {
   const target = String((opts && opts.targetDate) || '');
-  const monthStart = String((opts && opts.monthStart) || (target ? target.slice(0, 7) + '-01' : ''));
+  const targetMonth = target ? target.slice(0, 7) : '';
+  const monthStart = String((opts && opts.monthStart) || (targetMonth ? targetMonth + '-01' : ''));
   const monthEnd = String((opts && opts.monthEnd) || monthStartEnd(monthStart));
 
   const past = [];
@@ -32,31 +38,85 @@ export function splitByTime(transactions, accounts, installments, opts) {
 
   for (const t of transactions || []) {
     const d = String((t && t.date) || '');
-    if (!d) { current.push(t); continue; }
-    if (d < monthStart) past.push(t);
-    else if (d > monthEnd) future.push(t);
+    if (!d) { current.push(t); continue; }        // 没日期的当「现在」，不丢
+    if (monthStart && d < monthStart) past.push(t);
+    else if (monthEnd && d > monthEnd) future.push(t);
     else current.push(t);
   }
 
-  // 虚拟还款：只为「未来尚未到期」的期数生成，不写回真实数据
-  const virtual = [];
+  const virtual = buildVirtualRepayments(installments, targetMonth);
+
+  return {
+    past,
+    current,
+    future,
+    virtual,
+    targetDate: target,
+    targetMonth,
+    counts: {
+      past: past.length,
+      current: current.length,
+      future: future.length,
+      virtual: virtual.length,
+    },
+  };
+}
+
+/**
+ * 未来尚未到期的分期还款 → 虚拟事件。
+ *
+ * 期数从 firstMonth 起算，第 k 期（1 基）落在 addMonths(firstMonth, k-1)，
+ * 日期取该月的还款日，遇到 2 月自动钳到月内最后一天。
+ *
+ * @param {Array} installments
+ * @param {string} targetMonth 'YYYY-MM'
+ * @returns {Array}
+ */
+export function buildVirtualRepayments(installments, targetMonth) {
+  const out = [];
+
   for (const inst of installments || []) {
     if (!inst || !inst.name) continue;
-    const st = computeInstallment(inst, target);
-    for (let k = st.paidPeriods; k < st.totalPeriods; k++) {
-      virtual.push({
+
+    // computeInstallment 只认 'YYYY-MM'，传日期会得到 NaN → 已还期数算成 0
+    const st = computeInstallment(inst, targetMonth);
+    if (!st.firstMonth || st.periods <= 0) continue;
+
+    const payDay = Number(inst.day) || Number((inst.inst || {}).day) || 1;
+
+    for (let k = st.paidPeriods; k < st.periods; k++) {
+      const month = addMonths(st.firstMonth, k);
+      if (!month) continue;
+      const day = dayInMonth(month, payDay);
+      out.push({
         isVirtual: true,
         kind: 'installment',
         source: inst.name,
         periodIndex: k + 1,
+        periods: st.periods,
+        month,
+        date: `${month}-${String(day).padStart(2, '0')}`,
         amount: st.perPeriod,
-        // TODO(☐5): 按 firstMonth 推进到第 k 期的真实日期
-        date: '',
+        principal: st.principalPer,
+        interest: st.interestPer,
+        fromName: '分期还款',
+        toName: inst.name,
       });
     }
   }
 
-  return { past, current, future, virtual, targetDate: target };
+  out.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  return out;
+}
+
+/**
+ * 只求和，用于页面上的「未来 N 笔 / 合计 ¥X」。
+ * @param {Array} virtual
+ */
+export function summarizeVirtual(virtual) {
+  let total = 0;
+  for (const v of virtual || []) total += Number(v.amount) || 0;
+  return { count: (virtual || []).length, total: Math.round(total * 100) / 100 };
 }
 
 /** 给定月份起点，算出该月最后一天。 */

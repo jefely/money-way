@@ -1,4 +1,4 @@
-// 界面：流水 tab → 表格 tbody（虚拟滚动）
+﻿// 界面：流水 tab → 表格 tbody（虚拟滚动）
 /**
  * ☐12 流水渲染器（虚拟滚动）
  * 层：第五层 · UI 渲染
@@ -135,6 +135,15 @@ function renderWindow() {
       setInput(tr, 'to', r.to);
       setInput(tr, 'amount', r.amountEdit != null ? r.amountEdit : r.amount);
       setInput(tr, 'note', r.note);
+
+      if (r.isVirtual) {
+        // 虚拟行（未来分期）：只读，样式标出「这是计划，不是已发生」
+        tr.classList.add('nt-row-virtual');
+        tr.dataset.virtual = '1';
+        for (const inp of tr.querySelectorAll('input')) inp.readOnly = true;
+        const act2 = tr.querySelector('.' + CLASS.action);
+        if (act2) act2.textContent = '';
+      }
       frag.appendChild(tr);
     }
 

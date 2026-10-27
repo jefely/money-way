@@ -1,4 +1,4 @@
-// 界面：（无界面）流水视图模型
+﻿// 界面：（无界面）流水视图模型
 /**
  * 视图模型：state（ID 模型）→ 渲染行（名字）
  *
@@ -12,8 +12,42 @@ import { money, moneyAlways, moneyOrBlank, shortDate } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
 import { indexAccounts } from '../core/schema.js';
 
-/** 流水 → 渲染行。排序：seq 升序。 */
-export function buildFlowRows(state) {
+/**
+ * 流水 → 渲染行。排序：seq 升序。
+ *
+ * @param {object} state
+ * @param {Array} [virtual] 时间状态机给出的「未来分期」虚拟事件，
+ *                          追加在真实流水之后，只读（见 isVirtual）
+ */
+export function buildFlowRows(state, virtual) {
+  const real = buildRealRows(state);
+  if (!virtual || !virtual.length) return real;
+
+  let n = real.length;
+  const virt = virtual.map((v) => {
+    n += 1;
+    return {
+      id: 'v_' + v.source + '_' + v.periodIndex,
+      seq: n,
+      date: v.date,
+      from: v.fromName || '分期还款',
+      to: v.toName || v.source || '',
+      amount: v.amount,
+      note: `第 ${v.periodIndex}/${v.periods} 期`,
+      dateEdit: shortDate(v.date),
+      amountEdit: moneyOrBlank(v.amount),
+      dateText: shortDate(v.date),
+      amountText: money(v.amount),
+      isVirtual: true,
+      isOpening: false,
+      broken: false,
+    };
+  });
+  return real.concat(virt);
+}
+
+/** 只取真实流水（原 buildFlowRows 的实现搬进来） */
+function buildRealRows(state) {
   const accMap = indexAccounts(state.accounts);
   const nameOf = (id) => (accMap.get(id) ? accMap.get(id).name : '');
 

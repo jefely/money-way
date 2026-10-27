@@ -438,3 +438,23 @@
   color: var(--nt-text-muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* 虚拟行（未来分期）：虚线 + 半透明，一眼分得清「计划」和「已发生」 */
+.nt-row-virtual .nt-cell-input {
+  color: var(--nt-text-muted);
+  font-style: italic;
+}
+.nt-row-virtual {
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 4px,
+    var(--nt-bg-line) 4px 6px
+  );
+  background-repeat: repeat-x;
+  background-position: top;
+  background-size: 100% 1px;
+}
+.nt-row-virtual td:only-child,
+.nt-row-virtual .nt-cell-amount {
+  color: var(--nt-text-muted);
+}

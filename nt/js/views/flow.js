@@ -1,4 +1,4 @@
-// 界面：流水 tab
+﻿// 界面：流水 tab
 /**
  * 流水视图（页面装配）
  * 层：第五层 · UI
@@ -17,6 +17,7 @@ import { bindRowEditing } from '../ui/row-editor.js';
 import * as NtModal from '../ui/modal.js';
 import { openAddDialog } from '../ui/add-dialog.js';
 import { openSyncDialog } from '../ui/sync-dialog.js';
+import { splitByTime } from '../timeline/time-state.js';
 
 const WIP = '该功能在后续版本接入（当前版本先做单页壳）。';
 
@@ -35,7 +36,15 @@ export function mountFlow(section, ctx) {
   bindToolbar(section, ctx);
 
   function render() {
-    renderRows(body, buildFlowRows(ctx.getState()));
+    const st = ctx.getState();
+    // 未来分期推成虚拟行（只读），让「计划」和「已发生」在同一张表里分得清
+    let virtual = [];
+    try {
+      virtual = splitByTime(st.transactions, st.accounts, st.scheduled || [], {
+        targetDate: todayIso(),
+      }).virtual;
+    } catch (e) { /* 分期数据坏了也不该挡住流水页 */ }
+    renderRows(body, buildFlowRows(st, virtual));
     ctx.setFooter(footerText());
   }
 
