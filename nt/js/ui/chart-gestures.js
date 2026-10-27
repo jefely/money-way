@@ -36,9 +36,9 @@ const clampZoom = (z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 
 /**
  * 平移增益。手势已按显示宽度换算过单位（屏幕 px → viewBox 单位），
- * 这个倍数从 4 → 2 → 1，再按用户要求减半到 0.5（慢一倍）。
+ * 4 → 2 → 1 → 0.5 → 0.35（用户逐步要求放慢）。
  */
-const PAN_GAIN = 0.5;
+const PAN_GAIN = 0.35;
 
 /**
  * 给图表容器挂手势。
@@ -110,6 +110,21 @@ export function mountChartGestures(box, target) {
 
   apply();
 
+  /**
+   * 每帧最多 apply 一次。
+   * 250 条线 + 43 个弧块的图，pointermove 一次就重排一次样式表，
+   * 手机上拖动会明显卡顿；合并到 rAF 后一帧只画一次。
+   */
+  let rafId = 0;
+  const schedule = () => {
+    if (typeof requestAnimationFrame !== 'function') { apply(); return; }
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => {
+      rafId = 0;
+      apply();
+    });
+  };
+
   /* ---------- 滚轮缩放 ---------- */
 
   const onWheel = (ev) => {
@@ -152,7 +167,7 @@ export function mountChartGestures(box, target) {
       view.tx = drag.tx + (ev.clientX - drag.x) * PAN_GAIN;
       view.ty = drag.ty + (ev.clientY - drag.y) * PAN_GAIN;
     }
-    apply();
+    schedule();
   };
 
   const onUp = () => { drag = null; };
@@ -210,7 +225,7 @@ export function mountChartGestures(box, target) {
       while (delta < -180) delta += 360;
       view.rot = pinch.r + delta;
 
-      apply();
+      schedule();
     }
   };
 
