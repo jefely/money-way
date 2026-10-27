@@ -31,7 +31,9 @@ export function paintChart(host, data, hits, onPick) {
     if (hits) {
       if (hit) {
         const dep = Number.isFinite(c.depth) ? c.depth : DEPTH_WIDTHS.length - 1;
-        strokeWidth = DEPTH_WIDTHS[Math.min(dep, DEPTH_WIDTHS.length - 1)] * PICK_BOOST * RATIO;
+        // 再 ×0.5：用户反馈选中线太粗，减半
+        strokeWidth = DEPTH_WIDTHS[Math.min(dep, DEPTH_WIDTHS.length - 1)]
+          * PICK_BOOST * RATIO * 0.5;
       } else {
         strokeWidth = W_MID * PICK_SHRINK * RATIO;
       }
