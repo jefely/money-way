@@ -409,77 +409,77 @@ body {
 /* ---------- 流水记录（7 列） ---------- */
 
 .nt-table-flow { min-width: 560px; }
-.nt-table-flow .nt-th:nth-child(1) { width: 54px;  min-width: 54px;  max-width: 54px; }
-.nt-table-flow .nt-th:nth-child(2) { width: 84px; }
-.nt-table-flow .nt-th:nth-child(3) { width: 112px; }
-.nt-table-flow .nt-th:nth-child(4) { width: 112px; }
-.nt-table-flow .nt-th:nth-child(5) { width: 92px; }
-.nt-table-flow .nt-th:nth-child(6) { width: 116px; }
+.nt-table-flow .nt-th:nth-child(1) { width: var(--nt-col-seq, 54px);  min-width: 54px;  max-width: 54px; }
+.nt-table-flow .nt-th:nth-child(2) { width: var(--nt-col-date, 84px); }
+.nt-table-flow .nt-th:nth-child(3) { width: var(--nt-col-from, 112px); }
+.nt-table-flow .nt-th:nth-child(4) { width: var(--nt-col-to, 112px); }
+.nt-table-flow .nt-th:nth-child(5) { width: var(--nt-col-amount, 92px); }
+.nt-table-flow .nt-th:nth-child(6) { width: var(--nt-col-note, 116px); }
 .nt-table-flow .nt-th:nth-child(7) { width: 40px;  min-width: 40px;  max-width: 40px; }
 
 /* ---------- 统计（分类 7 列 / 汇总 12 列） ---------- */
 
 .nt-table-stats { min-width: 820px; }
-.nt-table-stats .nt-th:nth-child(1) { width: 54px;  min-width: 54px;  max-width: 54px; }
-.nt-table-stats .nt-th:nth-child(2) { width: 120px; }
-.nt-table-stats .nt-th:nth-child(3) { width: 96px; }
-.nt-table-stats .nt-th:nth-child(4) { width: 76px; }
-.nt-table-stats .nt-th:nth-child(5) { width: 76px; }
-.nt-table-stats .nt-th:nth-child(6) { width: 82px; }
-.nt-table-stats .nt-th:nth-child(7) { width: 82px; }
-.nt-table-stats .nt-th:nth-child(8) { width: 76px; }
-.nt-table-stats .nt-th:nth-child(9) { width: 66px; }
-.nt-table-stats .nt-th:nth-child(10) { width: 70px; }
-.nt-table-stats .nt-th:nth-child(11) { width: 56px; }
-.nt-table-stats .nt-th:nth-child(12) { width: 56px; }
+.nt-table-stats .nt-th:nth-child(1) { width: var(--nt-col-seq, 54px);  min-width: 54px;  max-width: 54px; }
+.nt-table-stats .nt-th:nth-child(2) { width: var(--nt-col-name, 120px); }
+.nt-table-stats .nt-th:nth-child(3) { width: var(--nt-col-balance, 96px); }
+.nt-table-stats .nt-th:nth-child(4) { width: var(--nt-col-out, 76px); }
+.nt-table-stats .nt-th:nth-child(5) { width: var(--nt-col-iin, 76px); }
+.nt-table-stats .nt-th:nth-child(6) { width: var(--nt-col-histOut, 82px); }
+.nt-table-stats .nt-th:nth-child(7) { width: var(--nt-col-histIn, 82px); }
+.nt-table-stats .nt-th:nth-child(8) { width: var(--nt-col-opening, 76px); }
+.nt-table-stats .nt-th:nth-child(9) { width: var(--nt-col-type, 66px); }
+.nt-table-stats .nt-th:nth-child(10) { width: var(--nt-col-cat, 70px); }
+.nt-table-stats .nt-th:nth-child(11) { width: var(--nt-col-billDay, 56px); }
+.nt-table-stats .nt-th:nth-child(12) { width: var(--nt-col-repayDay, 56px); }
 
 /* ---------- 固定收支（8 列） ---------- */
 
 .nt-table-plan { min-width: 620px; }
-.nt-table-plan .nt-th:nth-child(1) { width: 54px;  min-width: 54px;  max-width: 54px; }
-.nt-table-plan .nt-th:nth-child(2) { width: 64px; }
-.nt-table-plan .nt-th:nth-child(3) { width: 84px; }
-.nt-table-plan .nt-th:nth-child(4) { width: 110px; }
-.nt-table-plan .nt-th:nth-child(5) { width: 110px; }
-.nt-table-plan .nt-th:nth-child(6) { width: 92px; }
-.nt-table-plan .nt-th:nth-child(7) { width: 110px; }
+.nt-table-plan .nt-th:nth-child(1) { width: var(--nt-col-seq, 54px);  min-width: 54px;  max-width: 54px; }
+.nt-table-plan .nt-th:nth-child(2) { width: var(--nt-col-freq, 64px); }
+.nt-table-plan .nt-th:nth-child(3) { width: var(--nt-col-date, 84px); }
+.nt-table-plan .nt-th:nth-child(4) { width: var(--nt-col-from, 110px); }
+.nt-table-plan .nt-th:nth-child(5) { width: var(--nt-col-to, 110px); }
+.nt-table-plan .nt-th:nth-child(6) { width: var(--nt-col-amount, 92px); }
+.nt-table-plan .nt-th:nth-child(7) { width: var(--nt-col-note, 110px); }
 .nt-table-plan .nt-th:nth-child(8) { width: 40px;  min-width: 40px;  max-width: 40px; }
 
 /* ---------- 分期（5 固定 + N 个月份列） ---------- */
 
 .nt-table-inst { min-width: 540px; }
-.nt-table-inst .nt-th:nth-child(1) { width: 110px; min-width: 110px; max-width: 110px; }
-.nt-table-inst .nt-th:nth-child(2) { width: 96px; }
-.nt-table-inst .nt-th:nth-child(3) { width: 56px; }
-.nt-table-inst .nt-th:nth-child(4) { width: 68px; }
-.nt-table-inst .nt-th:nth-child(5) { width: 68px; }
+.nt-table-inst .nt-th:nth-child(1) { width: var(--nt-col-name, 110px); min-width: 110px; max-width: 110px; }
+.nt-table-inst .nt-th:nth-child(2) { width: var(--nt-col-principal, 96px); }
+.nt-table-inst .nt-th:nth-child(3) { width: var(--nt-col-periods, 56px); }
+.nt-table-inst .nt-th:nth-child(4) { width: var(--nt-col-billDay, 68px); }
+.nt-table-inst .nt-th:nth-child(5) { width: var(--nt-col-repayDay, 68px); }
 .nt-table-inst .nt-th.nt-c-month { width: 86px; }
 
 /* ---------- 账户设置（14 列） ---------- */
 
 .nt-table-accounts { min-width: 920px; }
-.nt-table-accounts .nt-th:nth-child(1) { width: 64px;  min-width: 64px;  max-width: 64px; }
-.nt-table-accounts .nt-th:nth-child(2) { width: 44px;  min-width: 44px;  max-width: 44px; }
-.nt-table-accounts .nt-th:nth-child(3) { width: 110px; }
-.nt-table-accounts .nt-th:nth-child(4) { width: 90px; }
-.nt-table-accounts .nt-th:nth-child(5) { width: 70px; }
-.nt-table-accounts .nt-th:nth-child(6) { width: 70px; }
-.nt-table-accounts .nt-th:nth-child(7) { width: 78px; }
-.nt-table-accounts .nt-th:nth-child(8) { width: 78px; }
-.nt-table-accounts .nt-th:nth-child(9) { width: 76px; }
-.nt-table-accounts .nt-th:nth-child(10) { width: 66px; }
-.nt-table-accounts .nt-th:nth-child(11) { width: 70px; }
-.nt-table-accounts .nt-th:nth-child(12) { width: 56px; }
-.nt-table-accounts .nt-th:nth-child(13) { width: 56px; }
+.nt-table-accounts .nt-th:nth-child(1) { width: var(--nt-col-code, 64px);  min-width: 64px;  max-width: 64px; }
+.nt-table-accounts .nt-th:nth-child(2) { width: var(--nt-col-seq, 44px);  min-width: 44px;  max-width: 44px; }
+.nt-table-accounts .nt-th:nth-child(3) { width: var(--nt-col-name, 110px); }
+.nt-table-accounts .nt-th:nth-child(4) { width: var(--nt-col-balance, 90px); }
+.nt-table-accounts .nt-th:nth-child(5) { width: var(--nt-col-out, 70px); }
+.nt-table-accounts .nt-th:nth-child(6) { width: var(--nt-col-iin, 70px); }
+.nt-table-accounts .nt-th:nth-child(7) { width: var(--nt-col-histOut, 78px); }
+.nt-table-accounts .nt-th:nth-child(8) { width: var(--nt-col-histIn, 78px); }
+.nt-table-accounts .nt-th:nth-child(9) { width: var(--nt-col-opening, 76px); }
+.nt-table-accounts .nt-th:nth-child(10) { width: var(--nt-col-type, 66px); }
+.nt-table-accounts .nt-th:nth-child(11) { width: var(--nt-col-cat, 70px); }
+.nt-table-accounts .nt-th:nth-child(12) { width: var(--nt-col-billDay, 56px); }
+.nt-table-accounts .nt-th:nth-child(13) { width: var(--nt-col-repayDay, 56px); }
 .nt-table-accounts .nt-th:nth-child(14) { width: 40px;  min-width: 40px;  max-width: 40px; }
 
 /* ---------- 流水查询（7 列，三栏各一份） ---------- */
 
 .nt-table-query { min-width: 480px; }
-.nt-table-query .nt-th:nth-child(1) { width: 40px;  min-width: 40px;  max-width: 40px; }
-.nt-table-query .nt-th:nth-child(2) { width: 48px; }
-.nt-table-query .nt-th:nth-child(3) { width: 70px; }
-.nt-table-query .nt-th:nth-child(4) { width: 88px; }
-.nt-table-query .nt-th:nth-child(5) { width: 88px; }
-.nt-table-query .nt-th:nth-child(6) { width: 74px; }
-.nt-table-query .nt-th:nth-child(7) { width: 72px; }
+.nt-table-query .nt-th:nth-child(1) { width: var(--nt-col-seq, 40px);  min-width: 40px;  max-width: 40px; }
+.nt-table-query .nt-th:nth-child(2) { width: var(--nt-col-freq, 48px); }
+.nt-table-query .nt-th:nth-child(3) { width: var(--nt-col-date, 70px); }
+.nt-table-query .nt-th:nth-child(4) { width: var(--nt-col-from, 88px); }
+.nt-table-query .nt-th:nth-child(5) { width: var(--nt-col-to, 88px); }
+.nt-table-query .nt-th:nth-child(6) { width: var(--nt-col-amount, 74px); }
+.nt-table-query .nt-th:nth-child(7) { width: var(--nt-col-note, 72px); }

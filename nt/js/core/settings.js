@@ -25,9 +25,11 @@ export const GROUP_SCREEN = {
   按钮区: 'main',
   表格: 'main',
   信息栏: 'main',
-  按钮尺寸: 'flow',
-  列标行: 'flow',
-  数据区: 'flow',
+  // 这三组原来归 'flow' 屏幕，打开面板要先切到「流水」才看得到，
+  // 用户以为「布局功能没了」。它们在主界面也要调，改归 main。
+  按钮尺寸: 'main',
+  列标行: 'main',
+  数据区: 'main',
 };
 
 /** 参数作用域：global=写全局(:root)；其余=写到对应标签页容器 [data-view] */
@@ -109,6 +111,8 @@ export const SCHEMA = [
      想恢复默认列宽用面板底部的「恢复默认」。 */
   { key: '数据区行高', group: '数据区', def: 32, unit: 'px', cssVar: '--nt-row-h' },
   { key: '数据区字号', group: '数据区', def: 14, unit: 'px', cssVar: '--nt-cell-font' },
+  // 列宽：数组按 COL_KEYS 顺序展开成 --nt-col-<key> 变量，CSS 里用 var() 读
+  { key: '默认列宽', group: '数据区', type: 'array', def: DEFAULT_COL_WIDTHS },
 ];
 
 /** 尺寸/枚举类共用的默认值（四主题一致） */

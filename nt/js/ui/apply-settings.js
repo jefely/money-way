@@ -1,4 +1,4 @@
-// 界面：全局：把界面参数写成 CSS 变量（主题/列宽）
+﻿// 界面：全局：把界面参数写成 CSS 变量（主题/列宽）
 /**
  * 把界面参数写到对应作用域的 CSS 变量上（UI 层）
  *
@@ -12,6 +12,7 @@
  */
 
 import { toCssList, GROUP_SCOPE } from '../core/settings.js';
+import { syncAllFrozen } from './table-layout.js';
 
 /**
  * @param {object} settings 完整设置（normalize 过的）
@@ -28,4 +29,7 @@ export function applySettings(settings, theme) {
     if (item.attr) target.setAttribute(item.attr, item.value);
     else if (item.cssVar) target.style.setProperty(item.cssVar, item.value);
   }
+
+  // 列宽变量变了，冻结列的 left 要跟着重算
+  syncAllFrozen();
 }
