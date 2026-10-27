@@ -131,7 +131,17 @@ export function mountFlow(section, ctx) {
       + (skipped ? `，跳过 ${skipped} 笔（金额为空或两端同账户）` : ''));
   }
 
-  bindToolbar(section, ctx, { onImport: importItems });
+  bindToolbar(section, ctx, {
+    onImport: importItems,
+    // 整本备份：直接用备份里的账户 / 流水 / 计划替换当前 state
+    onImportTemplate: (next, stats) => {
+      ctx.setState(next);
+      ctx.saveNow();
+      render();
+      ctx.setFooter(`已从备份恢复：账户 ${stats.accounts} 个 · 流水 ${stats.transactions} 笔`
+        + ` · 固定 ${stats.fixed} 条 · 分期 ${stats.inst} 条`);
+    },
+  });
 
   // 单元格区域框选：长按起手，可复制 / 粘贴 / 批量删除行
   const flowTable = section.querySelector('.nt-table-flow');
@@ -253,6 +263,11 @@ function bindToolbar(section, ctx, h) {
         const a = ctx.getIndex().byId.get(id);
         return a ? (a.code || a.name || '') : '';
       },
+      // 导出 .xlsx 模板时账户列写全名（和单文件版的备份一致）
+      nameOf: (id) => {
+        const a = ctx.getIndex().byId.get(id);
+        return a ? (a.name || '') : '';
+      },
     }));
   }
 
@@ -262,6 +277,9 @@ function bindToolbar(section, ctx, h) {
       openImportDialog({
         onImport: (res) => {
           if (o.onImport) o.onImport(res);
+        },
+        onImportTemplate: (state, stats) => {
+          if (o.onImportTemplate) o.onImportTemplate(state, stats);
         },
       });
     });

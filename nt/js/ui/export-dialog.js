@@ -1,4 +1,4 @@
-﻿// 界面：导出对话框（.lz / .xlsx / .txt / .csv）
+// 界面：导出对话框（.lz / .xlsx / .txt / .csv）
 /**
  * 导出对话框
  * 层：第五层 · UI
@@ -15,6 +15,7 @@ import { downloadBlob, downloadText } from './file-io.js';
 import { encodeSyncCode } from '../core/sync-code.js';
 import { toTxtText, toCsvText, exportBaseName } from '../core/export-text.js';
 import { buildXlsx } from './xlsx-write.js';
+import { buildTemplateSheets } from '../core/xlsx-template.js';
 
 /**
  * @param {{getState:Function, codeOf:Function}} h
@@ -104,13 +105,13 @@ export function openExportDialog(h) {
 
       function doXlsx() {
         try {
-          const bytes = buildXlsx([
-            { name: '流水', rows: flowRows(state, h.codeOf) },
-            { name: '账户', rows: accountRows(state) },
-          ]);
+          const sheets = buildTemplateSheets(state, {
+            nameOf: (id) => (typeof h.nameOf === 'function' ? h.nameOf(id) : ''),
+          });
+          const bytes = buildXlsx(sheets);
           downloadBlob(`${base}.xlsx`, bytes,
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-          note.textContent = `已导出 ${base}.xlsx（${bytes.length} 字节）`;
+          note.textContent = `已导出 ${base}.xlsx（4 张表：流水 / 设置 / 分期 / 固定，${bytes.length} 字节）`;
         } catch (e) {
           note.textContent = '导出 .xlsx 失败：' + ((e && e.message) || e);
         }
@@ -146,57 +147,4 @@ function buildPayload(state) {
     transactions: state.transactions || [],
     exportedAt: new Date().toISOString(),
   };
-}
-
-/** 流水 sheet：第 2 行表头、第 3 行起数据（和单文件版一致，方便互导） */
-function flowRows(state, codeOf) {
-  const rows = [
-    ['流水记录'],
-    ['格式：日期写 YYMMDD（如 261022）；账户可写简码或全名；金额填数字。'],
-    ['序', '日期', '转出账户', '转入账户', '金额', '备注'],
-  ];
-
-  (state.transactions || []).forEach((t, i) => {
-    rows.push([
-      i + 1,
-      toYmd(t.date),
-      codeOf(t.from_id),
-      codeOf(t.to_id),
-      Number(t.amount) || 0,
-      t.note || '',
-    ]);
-  });
-
-  return rows;
-}
-
-/** 账户 sheet */
-function accountRows(state) {
-  const rows = [
-    ['账户汇总'],
-    ['类型：资产类 / 负债类 / 收入类 / 权益类 / 费用类；分类：储蓄 / 现金 / 日常…'],
-    ['序', '类型', '分类', '简码', '账户名称', '期初', '账单日', '还款日'],
-  ];
-
-  (state.accounts || []).forEach((a, i) => {
-    rows.push([
-      i + 1,
-      a.type || '',
-      a.category || '',
-      a.code || '',
-      a.name || '',
-      Number(a.opening) || 0,
-      a.billDay || '',
-      a.repayDay || '',
-    ]);
-  });
-
-  return rows;
-}
-
-function toYmd(iso) {
-  const s = String(iso || '').replace(/[^0-9]/g, '');
-  if (s.length >= 8) return s.slice(2, 8);
-  if (s.length >= 6) return s.slice(-6);
-  return '';
 }

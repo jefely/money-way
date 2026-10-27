@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v0.32';
+const CACHE_NAME = 'nt-v0.33';
 
 const ASSETS = [
   './index.html',
@@ -122,6 +122,8 @@ const ASSETS = [
   './js/ui/export-dialog.js',
   './js/ui/xlsx-write.js',
   './js/core/xlsx-write.js',
+  './js/core/xlsx-template.js',
+  './js/core/xlsx-template-read.js',
   './js/core/export-text.js',
   './js/ui/chart-gestures.js',
   './js/ui/import-dialog.js',

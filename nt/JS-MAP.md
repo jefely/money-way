@@ -46,6 +46,8 @@
 | `core/validate.js` | （无界面）账本校验 V1–V7 |
 | `core/validator.js` | （无界面）校验工具 |
 | `core/version.js` | （未标注界面）版本与更新判定（纯函数） |
+| `core/xlsx-template-read.js` | 把「单文件版备份模板」的 4 张表读回 state（纯函数，Node 可跑） |
+| `core/xlsx-template.js` | 按「单文件版备份模板」组装 / 解析 4 张表（纯函数，Node 可跑） |
 | `core/xlsx-write.js` | xlsx 的 XML 生成（纯函数，Node 可跑） |
 | `core/xlsx-xml.js` | xlsx 的 XML 解析（纯函数，Node 可跑） |
 | `graph/mw-data-fetcher.js` | （无界面）路径图数据抓取 |

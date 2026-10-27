@@ -13,6 +13,10 @@ import * as NtModal from './modal.js';
 import { readAnyTable } from './xlsx-read.js';
 import { analyzeTable } from '../core/import-table.js';
 import { openColumnMapper } from './import-map.js';
+import { pickTemplateSheets } from '../core/xlsx-template.js';
+import {
+  parseSettingsRows, parseFlowRows, parseFixedRows, parseInstRows, stateFromTemplate,
+} from '../core/xlsx-template-read.js';
 
 /**
  * 打开导入对话框。
@@ -36,11 +40,20 @@ export function openImportDialog(opts) {
     let result = null;
     let error = '';
     let rows = [];
+    let book = null;
 
     try {
-      const book = await readAnyTable(file);
+      book = await readAnyTable(file);
       const sheet = book.sheets[0];
       if (!sheet) throw new Error('这个文件里没有可读的表');
+
+      // 4 张表的整本备份（流水 / 设置 / 分期 / 固定）：走覆盖重建，不当普通流水导
+      const picked = pickTemplateSheets(book.sheets);
+      if (picked.isTemplate) {
+        showTemplateImport(picked, file.name, o);
+        return;
+      }
+
       rows = sheet.rows;
       result = analyzeTable(sheet.rows);
       result.sheetName = sheet.name;
@@ -67,6 +80,69 @@ export function openImportDialog(opts) {
   });
 
   input.click();
+}
+
+/**
+ * 整本备份（流水 / 设置 / 分期 / 固定）→ 覆盖重建。
+ *
+ * 这是**整本**不是追加：账户与计划都会换成备份里的，
+ * 所以必须先说清楚「当前账本会被替换」，并给一次取消的机会。
+ */
+function showTemplateImport(picked, fileName, o) {
+  const accounts = parseSettingsRows(picked.settings);
+  const flow = parseFlowRows(picked.flow);
+  const fixed = parseFixedRows(picked.fixed);
+  const inst = parseInstRows(picked.inst);
+  const built = stateFromTemplate({ accounts, flow, fixed, inst });
+  const s = built.stats;
+
+  NtModal.open({
+    title: '整本备份',
+    build: (body) => {
+      const tip = document.createElement('p');
+      tip.className = 'nt-sync-hint';
+      tip.textContent = `这个文件是整本备份（4 张表：流水 / 设置 / 分期 / 固定）。`;
+      body.appendChild(tip);
+
+      const warn = document.createElement('p');
+      warn.className = 'nt-sync-hint nt-import-map-err';
+      warn.textContent = '导入会**覆盖**当前账本：现在的账户、流水、固定与分期都会被替换。';
+      body.appendChild(warn);
+
+      const info = document.createElement('p');
+      info.className = 'nt-sync-hint';
+      info.textContent = `文件：${fileName}`
+        + `　账户 ${s.accounts} 个 · 流水 ${s.transactions} 笔`
+        + `　固定 ${s.fixed} 条 · 分期 ${s.inst} 条`;
+      body.appendChild(info);
+
+      const detail = [];
+      if (s.flowSkipped) detail.push(`${s.flowSkipped} 行流水缺日期或金额已跳过`);
+      if (s.loose) detail.push(`${s.loose} 笔流水两端账户都对不上（会留空，导入后补）`);
+      if (s.instSkipped) detail.push(`${s.instSkipped} 条分期账户名对不上已跳过`);
+
+      if (detail.length) {
+        const ul = document.createElement('ul');
+        ul.className = 'nt-import-errors';
+        for (const t of detail) {
+          const li = document.createElement('li');
+          li.textContent = t;
+          ul.appendChild(li);
+        }
+        body.appendChild(ul);
+      }
+    },
+    actions: [
+      { label: '取消', kind: 'ghost', close: true },
+      {
+        label: '覆盖并导入',
+        kind: 'danger',
+        onClick: () => {
+          if (o.onImportTemplate) o.onImportTemplate(built.state, s);
+        },
+      },
+    ],
+  });
 }
 
 /** 预览 + 确认 */

@@ -82,7 +82,7 @@ export function makeId(prefix) {
  * @param {{id?:string,code?:string,name?:string,type?:string,category?:string,isHidden?:boolean}} patch
  */
 export function createAccount(patch = {}) {
-  return {
+  const acc = {
     id: patch.id || makeId('acc'),
     // 简码只是「输入用的马甲」，但必须唯一且非空（由 V7 校验把关）
     code: normalizeCode(patch.code),
@@ -91,6 +91,13 @@ export function createAccount(patch = {}) {
     category: String(patch.category || '').trim(),
     isHidden: !!patch.isHidden,
   };
+
+  // 账单日 / 还款日是可选属性：没填就不写这个字段。
+  // 用 clampDay 兜底会把「没填」变成 1 号 —— 那是在替用户编数据。
+  if (isDayGiven(patch.billDay)) acc.billDay = clampDay(patch.billDay);
+  if (isDayGiven(patch.repayDay)) acc.repayDay = clampDay(patch.repayDay);
+
+  return acc;
 }
 
 /**
