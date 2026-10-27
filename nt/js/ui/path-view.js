@@ -32,14 +32,13 @@ export function paintChart(host, data, hits, onPick, mode) {
    * 追踪模式的四档线宽 —— **固定参数**（基准单位，×RATIO 后生效）。
    *
    * 定标依据：250 笔真实数据时 unitArcLen ≈ 27.74 画布，
-   *   费用 0.8× = 22.19 画布 → 6.7；资产 0.5× = 13.87 → 4.2；
-   *   负债 0.3× = 8.32 → 2.5；收入·权益 0.15× = 4.16 → 1.25。
+   *   费用 6 / 资产 3.6 / 负债 2.4 / 收入·权益 1.2（用户定稿值）。
    *
    * 改成固定值的原因：按 unitArcLen 标定的话，笔数少的时候
    * 单位角变大会把线撑到比环还厚（2 笔时算出来是 183 显示像素），
    * 笔数多又细成发丝。固定之后任何数据量都是这四档。
    */
-  const TRACE_WIDTH = { 费用: 6.7, 资产: 4.2, 负债: 2.5, 收入: 1.25, 权益: 1.25 };
+  const TRACE_WIDTH = { 费用: 6, 资产: 3.6, 负债: 2.4, 收入: 1.2, 权益: 1.2 };
   const traceWidth = (type) => {
     const s = String(type || '');
     for (const k of Object.keys(TRACE_WIDTH)) if (s.includes(k)) return TRACE_WIDTH[k];
