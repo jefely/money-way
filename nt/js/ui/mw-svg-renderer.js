@@ -156,7 +156,9 @@ export function renderChart(data) {
         + ` stroke="none" pointer-events="none"/>`);
     }
 
-    const p = pointAt(cx, cy, rText, midA);
+    // 锥形底部在 rText；文字再往外让 10px，避免贴着锥底「压着」
+    const rLabel = crowded ? rText + 10 * RATIO : rText;
+    const p = pointAt(cx, cy, rLabel, midA);
     let theta = (midA * 180) / Math.PI - 90;
     const upside = theta > 90 || theta < -90;
     if (upside) theta += 180;
