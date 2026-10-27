@@ -28,8 +28,23 @@ export function paintChart(host, data, hits, onPick, mode) {
    * 追踪模式的线宽倍率：看这条线的**转入方**是什么类型的账户。
    * 费用类 4 倍、资产类 3 倍、负债类 2 倍、收入/权益 1 倍（基准 = W_MID）。
    */
-  // 线宽 = 「弧度单位」× 倍数：费用 0.8 / 储蓄(资产) 0.5 / 负债 0.3 / 收入·权益 0.15
-  const TRACE_MULT = [[/费用/, 0.8], [/资产/, 0.5], [/负债/, 0.3], [/收入/, 0.15], [/权益/, 0.15]];
+  /**
+   * 追踪模式的四档线宽 —— **固定参数**（基准单位，×RATIO 后生效）。
+   *
+   * 定标依据：250 笔真实数据时 unitArcLen ≈ 27.74 画布，
+   *   费用 0.8× = 22.19 画布 → 6.7；资产 0.5× = 13.87 → 4.2；
+   *   负债 0.3× = 8.32 → 2.5；收入·权益 0.15× = 4.16 → 1.25。
+   *
+   * 改成固定值的原因：按 unitArcLen 标定的话，笔数少的时候
+   * 单位角变大会把线撑到比环还厚（2 笔时算出来是 183 显示像素），
+   * 笔数多又细成发丝。固定之后任何数据量都是这四档。
+   */
+  const TRACE_WIDTH = { 费用: 6.7, 资产: 4.2, 负债: 2.5, 收入: 1.25, 权益: 1.25 };
+  const traceWidth = (type) => {
+    const s = String(type || '');
+    for (const k of Object.keys(TRACE_WIDTH)) if (s.includes(k)) return TRACE_WIDTH[k];
+    return TRACE_WIDTH.收入;
+  };
   const traceMult = (type) => {
     const s = String(type || '');
     for (const [re, m] of TRACE_MULT) if (re.test(s)) return m;
@@ -44,10 +59,7 @@ export function paintChart(host, data, hits, onPick, mode) {
       // 模式 4：追踪 —— 单位 1 = 0.9 个单位角对应的弧长，
       // 再按「转入方类型」乘倍率（费用 1 / 储蓄 0.5 / 负债 0.25 / 收入·权益 0.12）。
       // 这样线宽和「一笔流水在环上占多宽」是同一个量纲，笔数越多线越细。
-      const unit1 = Number(data.unitArcLen) || 0;
-      strokeWidth = hit
-        ? unit1 * traceMult(c.toType)
-        : Math.max(0.6, unit1 * 0.15);
+      strokeWidth = (hit ? traceWidth(c.toType) : TRACE_WIDTH.收入) * RATIO;
     } else if (hits) {
       if (hit) {
         const dep = Number.isFinite(c.depth) ? c.depth : DEPTH_WIDTHS.length - 1;
