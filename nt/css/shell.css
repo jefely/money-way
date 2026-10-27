@@ -460,9 +460,13 @@ body {
        · 拖动期间 body.nt-col-resizing 临时禁掉容器滚动 */
 }
 
-.nt-tablewrap {
-  overflow-y: hidden;
-}
+/* 这块**不能写 overflow-y: hidden**
+   ------------------------------------------------------------
+   写它的后果不是「表格不滚」，而是**整页看起来滑不动**：
+   body 已经是 100vh + overflow:hidden（见 shell.css 顶部），
+   各 view 靠内部的滚动容器吃饭。把表格容器的纵向滚动也关掉，
+   等于这一页彻底没有能滚的东西 —— 流水超过一屏就再也看不到后面的。
+   */
 
 /* 拖动列宽期间才禁用容器滚动，松手立刻恢复 */
 body.nt-col-resizing .nt-tablewrap {

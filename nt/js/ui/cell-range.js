@@ -222,6 +222,15 @@ export function clearSelection() {
     }
   }
   sel = null;
+
+  // 这个类必须在这里一并清掉：它带 touch-action: none，
+  // 只要残留在 body 上，整页上下左右都划不动，而且不会报任何错。
+  // 早先只在 finish（正常松手）里清 —— 框选中途切页 / 被系统打断时会漏，
+  // 表现就是「这个页面突然滑不动了」。
+  if (typeof document !== 'undefined') {
+    document.body.classList.remove('nt-range-mode');
+  }
+
   hideBar();
 }
 

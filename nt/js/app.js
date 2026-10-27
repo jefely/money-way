@@ -232,6 +232,8 @@ function enterApp() {
       // 切页时把框选状态收掉：body 上的 nt-range-mode 会让整页 touch-action:none，
       // 留在别的页就会出现「上下滑不动」而且没有任何报错。
       clearSelection();
+      // 拖列宽被打断时同理（这个类会禁掉表格容器的横滑）
+      document.body.classList.remove('nt-col-resizing');
       active = name;
       renderActive();
     },
