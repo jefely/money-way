@@ -142,14 +142,16 @@
 
           <!-- 右：环网图 -->
           <section class="pw-chart" aria-label="资金环网图">
-            <!-- 收起 / 展开左栏的三角，右边跟着「Money Way」标识 -->
-            <button class="pw-toggle" type="button" id="pw-toggle"
-                    aria-label="收起或展开左侧信息栏">◀</button>
-            <span class="pw-brand" id="pw-brand">Money Way</span>
-
             <div class="pw-chart-inner" id="pw-chart"></div>
           </section>
         </div>
+
+        <!-- 收起 / 展开左栏的三角 + 「Money Way」标识。
+             必须放在 .pw-chart **外面**：那个容器带 transform，
+             会给 fixed 定位重新造一个包含块，按钮就会跟着图跑到图中间去。 -->
+        <button class="pw-toggle" type="button" id="pw-toggle"
+                aria-label="收起或展开左侧信息栏">◀</button>
+        <span class="pw-brand" id="pw-brand">Money Way</span>
       </section>
 
       <!-- ============ 固定：固定收支 + 分期 ============ -->
