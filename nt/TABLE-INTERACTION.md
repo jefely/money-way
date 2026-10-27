@@ -6,6 +6,92 @@
 
 ---
 
+## 零之前、唯一执行者原则（2026-10 推倒重做）
+
+### 当时乱成什么样
+
+同一件事有**三处代码在做**，互相覆盖：
+
+| 文件 | 干了什么 |
+|---|---|
+| `apply-settings.js` | 写 `--nt-col-*` 变量 **+ 直接设 `<col>` 宽度 + 设 `table.style.width`** |
+| `ui/col-resize.js` | 拖动时又设一遍 `<col>` 宽度 + 又算一遍表宽 + 又算冻结 `left` |
+| `shell.css` | 24 条 `.nt-c-{seq,type,cat,…} { width: … }` 也参与布局 |
+
+三者结论不一致时，谁最后跑谁赢。症状：
+
+- 拖一列，另外几列跟着变
+- 拖动时列宽乱跳
+- 冻结列边界错位
+- 面板里改「列宽」不生效
+
+### 现在的分工
+
+```
+applySettings  →  只写 --nt-* 变量（一行都不碰 <col> 和 table.style.width）
+syncTable      →  按变量设 <col> 宽度 → 表宽 = 之和 → 冻结 left 按实际累加
+shell.css      →  只声明「谁 sticky」和层级/背景，一个宽度都不写
+```
+
+**文件**：`js/ui/table-layout.js`（唯一执行者）
+
+导出的东西：
+
+| 函数 | 职责 |
+|---|---|
+| `ensureCols(table)` | colgroup 列数与表头一致 |
+| `syncTable(table)` | 幂等同步：col 宽度 → 表宽 → 冻结 left |
+| `syncAllTables()` | 页面上所有表同步一遍 |
+| `syncFrozen(table)` | 冻结列的 left 按实际宽度累加 |
+| `setColWidth(table, key, w)` | 拖动时用；顺带重算表宽和冻结 |
+| `mountResize(table, opts)` | 绑手柄 + 拖动（事件委托，只绑一次） |
+| `bindAllResize(opts)` | 所有表挂手柄 + 同步 |
+
+挂载点只有两处：
+
+```js
+// enterApp：挂手柄
+bindAllResize({ onResize: onColResize });
+
+// renderActive：只同步，不重复绑
+syncAllTables();
+```
+
+动态表头（`buildHead` 每次重建）通过事件通知：
+
+```js
+// table.js
+table.dispatchEvent(new CustomEvent('nt-layout-refresh'));
+
+// table-layout.js 里监听
+document.addEventListener('nt-layout-refresh', (ev) => {
+  const table = ev.target.closest('table');
+  if (table) { paintHandles(table); syncTable(table); }
+});
+```
+
+### 判断某个改动该放哪
+
+> 它是在**产生一个值**，还是在**消费一个值**？
+>
+> 产生 → `applySettings`（写变量）
+> 消费 → `syncTable`（读变量、落到 DOM）
+>
+> 两边都做 = 迟早打架。
+
+### 宽度取值优先级（`syncTable` 内部）
+
+```
+① <col> 上已有的 style.width         （拖动过的、上次同步留下的）
+② --nt-col-<key> 变量                 （面板「默认列宽」）
+③ 表头当前实际渲染宽度                 （首次渲染）
+④ DEFAULT_COL_W = 88px                （表还没布局，比如隐藏视图）
+```
+
+四层兜底保证**每列都有宽度** —— 少一列有宽，表宽就少算，整张表被压回容器宽，又回到「设定 44px、实际 28px」的缩水状态。
+
+---
+
 ## 零、一句话结论
 
 ```
