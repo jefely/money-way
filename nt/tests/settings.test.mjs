@@ -41,7 +41,7 @@ test('旧版单份「默认列宽」→ 按列名迁成每表一份', () => {
   assert.equal(flow[0], 44, 'seq 用旧值');
   assert.equal(flow[1], 84, 'date 用旧值');
   assert.equal(flow[4], 96, 'amount 用旧值（COL_KEYS 第 7 位）');
-  // from/to/note 不在旧数组的前 11 位 → 用追加列的默认，不能掉成 64
+  // from/to/note 不在旧数组的前 11 位 → 用该表默认，不能掉成 64
   assert.equal(flow[2], 112);
   assert.equal(flow[3], 112);
   assert.equal(flow[5], 116);
@@ -77,7 +77,7 @@ test('CSS 变量名是 --nt-col-<表>-<列>，0 变自适应', () => {
   assert.equal(list.length, want);
 
   const byVar = new Map(list.map((x) => [x.cssVar, x.value]));
-  assert.equal(byVar.get('--nt-col-flow-amount'), '92px');
+  assert.equal(byVar.get('--nt-col-flow-amount'), '96px');
   assert.equal(byVar.get('--nt-col-query-note'), 'auto');
   assert.equal(byVar.get('--nt-col-path-from'), '1fr');
   assert.equal(byVar.get('--nt-col-sum-histBalance'), '96px');
