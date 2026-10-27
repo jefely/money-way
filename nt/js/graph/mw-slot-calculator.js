@@ -23,13 +23,17 @@
 
 import { ACCOUNT_TYPE } from '../core/schema.js';
 
-/** 类型顺序：9 点钟起顺时针（上面收入、下面权益） */
+/**
+ * 类型顺序：9 点钟起顺时针（照单文件版 mwDrawSvg 的 CAT_ORDER）
+ *   权益 → 负债 → 费用 → 资产 → 收入 → 其它
+ * 之前这里是反的（收入在最前），整张图的弧块位置全错 —— 这是「计算不对」最直接的一条。
+ */
 export const CAT_ORDER = [
-  ACCOUNT_TYPE.INCOME,     // 收入类
-  ACCOUNT_TYPE.ASSET,      // 资产类
-  ACCOUNT_TYPE.EXPENSE,    // 费用类
-  ACCOUNT_TYPE.LIABILITY,  // 负债类
   ACCOUNT_TYPE.EQUITY,     // 权益类
+  ACCOUNT_TYPE.LIABILITY,  // 负债类
+  ACCOUNT_TYPE.EXPENSE,    // 费用类
+  ACCOUNT_TYPE.ASSET,      // 资产类
+  ACCOUNT_TYPE.INCOME,     // 收入类
   '其它',
 ];
 

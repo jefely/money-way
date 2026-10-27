@@ -17,8 +17,16 @@
 
 import { OPENING_ACCOUNT_ID, ACCOUNT_TYPE } from '../core/schema.js';
 
-export const OTHER_NODE = '其它';
-export const MIN_EDGE_RATIO = 0.015;   // 小于总额 1.5% 的弦不画
+/* ============================================================
+   切片规则（2026-10 按单文件版对齐）
+   ------------------------------------------------------------
+   单文件版的 mwDrawSvg 是「有多少笔画多少笔」：
+   · 不做 Top N 折叠（我们的「折叠 145」是自创的，它没有）
+   · 不做「小于总额 1.5% 的弦不画」的阈值
+   · 保留单边流水（只填了一侧也画，那一端留空接口）
+   之前那套折叠 + 阈值会把大量小额流水吞掉，图上的弧块数量与角度
+   跟单文件版对不上 —— 这就是「计算不对」的来源。
+   ============================================================ */
 
 /**
  * @param {{transactions:Array, accounts:Array, range:{start:string,end:string},
@@ -72,33 +80,9 @@ export function fetchGraphData(input) {
     });
   }
 
-  /* ---------- ② 总额（1.5% 阈值基准） ---------- */
+  /* ---------- ② 总额（统计用） ---------- */
   let total = 0;
   for (const x of picked) total += x.amount;
 
-  /* ---------- ③ Top N 折叠：按「该账户参与的金额之和」排序 ---------- */
-  const weight = new Map();
-  for (const x of picked) {
-    if (x.from_id) weight.set(x.from_id, (weight.get(x.from_id) || 0) + x.amount);
-    if (x.to_id) weight.set(x.to_id, (weight.get(x.to_id) || 0) + x.amount);
-  }
-  const ranked = [...weight.entries()].sort((a, b) => b[1] - a[1]).map((e) => e[0]);
-  const keep = new Set(ranked.slice(0, topN));
-
-  const out = [];
-  let folded = 0;
-  for (const x of picked) {
-    const from = keep.has(x.from_id) ? x.from_id : OTHER_NODE;
-    const to = keep.has(x.to_id) ? x.to_id : OTHER_NODE;
-    if (from === to) { folded += 1; continue; }      // 两端都被折叠 → 自环，丢
-    if (from !== x.from_id || to !== x.to_id) folded += 1;
-    out.push({ ...x, from_id: from, to_id: to });
-  }
-
-  /* ---------- ④ 过小的弦丢掉（避免糊成一团） ---------- */
-  const minEdge = total * MIN_EDGE_RATIO;
-  const kept = out.filter((x) => x.amount >= minEdge);
-  const dropped = out.length - kept.length;
-
-  return { txs: kept, total, folded, dropped };
+  return { txs: picked, total, folded: 0, dropped: 0 };
 }
