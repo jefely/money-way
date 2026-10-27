@@ -215,11 +215,11 @@
   grid-column: span 2;
 }
 
-/* 用户要求的微调：整排筛选框往左 3px。
+/* 用户要求的微调：整排筛选框往左 5px（先 -3，再「移 2 像素」）。
    用 transform 而不是负 margin —— 不改 grid 列的分配，
-   只是视觉上左移，右边自然多出 3px 间隙。 */
+   只是视觉上左移，右边自然多出间隙。 */
 .pw-flow-filter .pw-qf {
-  transform: translateX(-3px);
+  transform: translateX(-5px);
 }
 
 .pw-qf {
