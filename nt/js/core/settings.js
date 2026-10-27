@@ -66,8 +66,10 @@ export const COL_KEYS = [
 // 顺序与 COL_KEYS 一一对应
 export const DEFAULT_COL_WIDTHS = '44,84,72,76,64,100,96,40,64,64,64,110,100,96,90,90,64,96,'
   + '112,112,116,84,84,48,96,40';
-// 列标题一律居中（2026-10 核对过的表格设计：所有表的表头都居中）
-export const DEFAULT_COL_ALIGN = Array(COL_KEYS.length).fill('中').join(',');
+// 列标题对齐：来自用户 2026-10 核对后导出的实际值
+// （balance 与 histOut 两列是「右」，其余「中」；末尾 8 个是后追加的列，保持「中」）
+export const DEFAULT_COL_ALIGN = '中,中,中,中,中,中,中,中,中,中,中,中,右,中,右,中,中,中,'
+  + '中,中,中,中,中,中,中,中';
 
 /** 主题 id 列表（与 theme-manager 的 VALID 一致） */
 export const THEME_IDS = ['light', 'dark', 'alt1', 'alt2'];
@@ -99,7 +101,7 @@ export const SCHEMA = [
   { key: '横向边框', group: '表格', type: 'enum', options: ['无', '虚线', '实线'], values: ['none', 'dashed', 'solid'], def: '实线', attr: 'data-border-h' },
   { key: '横向边框线粗', group: '表格', def: 1, unit: 'px', cssVar: '--nt-border-h-width' },
   { key: '横向边框颜色', group: '表格', def: '#2a2438', cssVar: '--nt-border-h-color' },
-  { key: '纵向边框', group: '表格', type: 'enum', options: ['无', '虚线', '实线'], values: ['none', 'dashed', 'solid'], def: '无', attr: 'data-border-v' },
+  { key: '纵向边框', group: '表格', type: 'enum', options: ['无', '虚线', '实线'], values: ['none', 'dashed', 'solid'], def: '实线', attr: 'data-border-v' },
   { key: '纵向边框线粗', group: '表格', def: 1, unit: 'px', cssVar: '--nt-border-v-width' },
   { key: '纵向边框颜色', group: '表格', def: '#2a2438', cssVar: '--nt-border-v-color' },
   { key: '手柄位置', group: '表格', def: -3, unit: 'px', cssVar: '--nt-handle-offset' },
@@ -189,11 +191,34 @@ export function normalize(raw, theme) {
     if (s.unit === 'px') {
       const n = Number(String(v).replace(/[^0-9.-]/g, ''));
       if (Number.isFinite(n)) out[s.key] = n;
+    } else if (s.type === 'array' || s.type === 'align') {
+      // 列宽/对齐是「按 COL_KEYS 的下标」存的逗号数组。
+      // 旧存档里只有 18 项（COL_KEYS 后来追加了 8 个新列），
+      // 直接交给 parseColWidths 会把缺的那几列补成 64、parseAligns 补成「左」——
+      // 表现就是「升级后流水表的转出/转入/备注变窄、新列表头不居中」。
+      // 所以缺位要补**该主题的默认值**，不是常量兜底。
+      out[s.key] = padColList(String(v).trim(), s.type);
     } else {
       out[s.key] = String(v).trim();
     }
   }
   return out;
+}
+
+/** 把列宽/对齐数组补到 COL_KEYS.length：缺的位用默认值，多的截掉 */
+function padColList(text, kind) {
+  const arr = String(text || '').split(',').map((x) => x.trim());
+  const defWidths = parseColWidths(DEFAULT_COL_WIDTHS);
+  const defAligns = parseAligns(DEFAULT_COL_ALIGN);
+
+  return COL_KEYS.map((_, i) => {
+    if (kind === 'align') {
+      const v = arr[i];
+      return (v === '中' || v === '右' || v === '左') ? v : defAligns[i];
+    }
+    const n = Number(arr[i]);
+    return (Number.isFinite(n) && n > 0) ? String(n) : String(defWidths[i]);
+  }).join(',');
 }
 
 /** 列宽数组 → 数值数组（长度固定为 COL_KEYS.length，缺省补 64） */
