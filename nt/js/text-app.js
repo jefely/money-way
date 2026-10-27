@@ -1,4 +1,4 @@
-// 界面：文本整页编辑器（text.html）
+﻿// 界面：文本整页编辑器（text.html）
 ﻿/**
  * 流水文本编辑器（整页）
  *
@@ -20,6 +20,8 @@ import { hasVault, unlockVault, createVault, saveState } from './browser/db.js';
 import { migrate } from './core/migrate.js';
 import { createState, addAccount } from './core/state-store.js';
 import { ACCOUNT_TYPE } from './core/schema.js';
+import { ledgerToFile, ledgerFileName } from './core/ledger-file.js';
+import { downloadText, pickTextFile } from './ui/file-io.js';
 
 const el = (id) => document.getElementById(id);
 
@@ -174,6 +176,26 @@ async function boot() {
     if ((ev.ctrlKey || ev.metaKey) && ev.key === 's') {
       ev.preventDefault();
       save('replace');
+    }
+  });
+
+  // 导出：把当前账本写成文件（内容 = 编辑器里的同一套格式）
+  el('te-export').addEventListener('click', () => {
+    downloadText(ledgerFileName(), ledgerToFile(state));
+    tip('已导出 ' + ledgerFileName());
+  });
+
+  // 导入：读文件填进编辑器，再由用户点保存（不直接覆盖账本）
+  el('te-import').addEventListener('click', async () => {
+    try {
+      const f = await pickTextFile('.txt,text/plain,.csv');
+      ed.value = f.text;
+      dirty = true;
+      updateCount();
+      reparse();
+      tip('已读入 ' + f.name + '，检查后点保存');
+    } catch (e) {
+      tip('读文件失败：' + e.message);
     }
   });
 
