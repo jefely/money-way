@@ -57,6 +57,9 @@ export const SCHEMA = [
   /* ---------- 标签栏（公共） ---------- */
   { key: '标签栏行高', group: '标签栏', def: 40, unit: 'px', cssVar: '--nt-tabs-h' },
   { key: '标签栏字号', group: '标签栏', def: 13, unit: 'px', cssVar: '--nt-tab-font' },
+  // 文字整体**向下**偏移（px，0~20）。默认 2px 是「看上去正好居中」的位置。
+  // 不支持负数：实现用的是 padding-top，负 padding 不合法。
+  { key: '标签栏文字偏移', group: '标签栏', def: 2, unit: 'px', cssVar: '--nt-tab-shift' },
   { key: '标签栏文字颜色', group: '标签栏', def: '#b9b2d0', cssVar: '--nt-tabs-color' },
   { key: '标签栏背景颜色', group: '标签栏', def: '#0e0b16', cssVar: '--nt-tabs-bg' },
   { key: '标签栏行背景色', group: '标签栏', def: '#0e0b16', cssVar: '--nt-tab-bg' },

@@ -77,8 +77,11 @@ body {
   flex: 1 1 0;
   min-width: 0;
   height: var(--nt-tabs-h);
-  /* 顶部 4px 换来的视觉效果 = 文字下移 2px（内容盒被 border-bottom 占掉 2px） */
-  padding: 4px 4px 0;
+  /* 文字上下偏移：面板「标签栏文字偏移」（--nt-tab-shift，默认 2px）。
+     用 padding 而不是 transform：transform 会连 border-bottom（选中线）一起移走。
+     视觉位移 = padding-top / 2（flex 居中会吃掉一半），所以这里乘 2。
+     max(...,0px) 是必要的：负 padding 不合法，会让整条 padding 失效。 */
+  padding: calc(max(var(--nt-tab-shift, 2px), 0px) * 2) 4px 0;
   border: 0;
   border-bottom: 2px solid transparent;
   background: var(--nt-tab-bg, transparent);
@@ -279,7 +282,9 @@ body {
   /* 只收内边距，**不要写死 font-size**：
      写死会盖掉布局参数 --nt-tab-font，用户在「布局」里把标签栏字号调大也没用。 */
   .nt-tab {
-    padding: 8px 0;                 /* 横向不留内边距，给字腾空间 */
+    /* 横向不留内边距给字腾空间；纵向必须跟着 --nt-tab-shift 走，
+       否则这里会盖掉主规则的 calc，手机上就调不动文字位置了。 */
+    padding: calc(max(var(--nt-tab-shift, 2px), 0px) * 2) 0 0;
     font-size: var(--nt-tab-font);
   }
   .nt-vbar {
