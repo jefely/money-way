@@ -278,7 +278,14 @@
               var regs = await navigator.serviceWorker.getRegistrations();
               await Promise.all(regs.map(function (r) { return r.unregister(); }));
             } catch (e) { /* 忽略 */ }
-            location.reload();
+            // 带一个时间戳重新进：只清 Cache Storage 还不够 ——
+            // index.html 自己也可能是浏览器 HTTP 缓存里的旧副本，
+            // 直接 reload 会把它再读一遍，看起来像「清了个寂寞」。
+            try {
+              location.replace(location.pathname + '?fresh=' + Date.now());
+            } catch (e) {
+              location.reload();
+            }
           });
 
           box.appendChild(t);
