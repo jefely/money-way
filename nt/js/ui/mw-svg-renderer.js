@@ -26,7 +26,7 @@ export const RATIO = 6000 / BASE_SIZE;
 
 export const SVG = {
   size: 6000,
-  rOut: Math.round(640 * RATIO),
+  rOut: Math.round(500 * RATIO),
   thick: Math.round(44 * RATIO),
   get rIn() { return this.rOut - this.thick; },
 };
@@ -106,12 +106,13 @@ export function renderChart(data) {
   }
 
   // ④ 弧块
-  // 分隔线：中性灰 #6b7280，3.5×RATIO（约 0.7 显示像素）、70% 不透明。
+  // 分隔线：颜色走 CSS 变量 --nt-ring-sep（浅色主题纯白 / 深色主题纯黑），
+  // 线宽 3×RATIO、70% 不透明 —— 同色弧块之间只有这条线能分界。
   // 早先用 0.9×RATIO，同分类的两个**同色**弧块挨在一起时几乎看不见分界。
   for (const b of blocks) {
     parts.push(`<path class="mw-ring" d="${arcPath(rOut, rIn, b.a1, b.a2, pointAt, cx, cy)}"`
       + ` fill="${colorOf(b.colorKey)}" fill-opacity="1"`
-      + ` stroke="#6b7280" stroke-width="${f(3.5 * RATIO)}" stroke-opacity="0.7"`
+      + ` stroke-width="${f(3 * RATIO)}" stroke-opacity="0.7"`
       + ` data-node="${esc(b.acc)}"/>`);
   }
 

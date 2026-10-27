@@ -95,6 +95,7 @@
 
 /* ---------- 深色（暗黑 + 紫霓虹） ---------- */
 [data-theme="dark"] {
+  --nt-ring-sep: #000000;
   color-scheme: dark;
   --nt-primary: #9b8cff;
   --nt-primary-dark: #6b5bc4;
@@ -149,6 +150,7 @@
 
 /* ---------- 备选1：暖色（浅） ---------- */
 [data-theme="alt1"] {
+  --nt-ring-sep: #000000;
   color-scheme: light;
   --nt-primary: #b8860b;
   --nt-primary-dark: #8a6408;
@@ -196,6 +198,7 @@
 
 /* ---------- 备选2：暗绿（深） ---------- */
 [data-theme="alt2"] {
+  --nt-ring-sep: #000000;
   color-scheme: dark;
   --nt-primary: #4ade80;
   --nt-primary-dark: #22c55e;
