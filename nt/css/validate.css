@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    校验页：三张校验卡片 + 说明/赞助的文本块
    ============================================================ */
 
@@ -103,4 +103,71 @@
   background: var(--nt-bg);
   border-radius: 4px;
   font-size: 13px;
+}
+
+/* ===== 说明页顶部：标语 + 二维码分享 ===== */
+
+/* 标语：比正文大一号，但不用标题的重量级字号 */
+.nt-tagline {
+  margin: 12px 0 4px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--nt-primary);
+  border-radius: 4px;
+  background: var(--nt-bg-soft);
+  color: var(--nt-text);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+}
+
+/* 二维码分享：左二维码 + 右说明（窄屏时也保持左右，二维码很小） */
+.nt-share-block {
+  margin: 10px 0 14px;
+  padding: 12px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  background: var(--nt-bg-soft);
+}
+
+.nt-share-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nt-share-qr {
+  flex: 0 0 auto;
+  width: 104px;
+  height: 104px;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.nt-share-txt {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--nt-text);
+}
+
+.nt-share-url {
+  margin-top: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--nt-primary);
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+.nt-share-hint {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--nt-text-light);
+}
+
+.nt-share-hint.bad {
+  color: var(--nt-bad);
 }

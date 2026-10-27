@@ -12,6 +12,7 @@ import { validate } from '../core/validator.js';
 import { money } from '../core/format.js';
 import { APP_VER } from '../core/version.js';
 import { checkUpdate, applyUpdate } from '../ui/update-check.js';
+import { shareBlock } from '../ui/share-block.js';
 
 const TYPES = ['资产类', '负债类', '收入类', '权益类', '费用类'];
 
@@ -173,7 +174,19 @@ export function mountValidate(section, ctx) {
   }
 
   function renderAbout() {
+    // ① 标语放最前面：这是这个账本存在的理由
+    const tagline = document.createElement('div');
+    tagline.className = 'nt-tagline';
+    tagline.textContent = '记账的目的是不用记账。';
+    host.appendChild(tagline);
+
+    // ② 二维码分享（照单文件版：二维码在左、说明在右）
+    host.appendChild(shareBlock());
+
+    // ③ 版本
     host.appendChild(versionCard());
+
+    // ④ 简介正文
     host.appendChild(textBlock('NT账本 · 简介', [
       '紫老头专属账本，用「NT = 直觉 + 思考」的习惯记账。',
       '每一笔钱，都从一个账户转出、进入另一个账户。不用记「借 / 贷」，只回答「这笔钱从哪来、到哪去」。',
