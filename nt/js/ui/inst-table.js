@@ -253,10 +253,31 @@ export function mountInstTable(ctx, tbody, opts) {
       // 新表没有「首月」列：不填就从当月开始（月份列由它推出来）
       const firstMonth = normalizeMonth(get('firstMonth')) || todayMonth();
 
-      if (!name || !(principal > 0) || !(periods > 0) || !firstMonth) return;
+      // 建不成时说清楚缺什么。原来这四个条件合成一个 return，
+      // 用户填了账户和期数却没建上，页脚一个字都不变 —— 完全不知道卡在哪。
+      if (!name) {
+        if (principal > 0 || periods > 0) ctx.setFooter('分期还没建成：先填账户');
+        return;
+      }
 
       const r = parseAccountInput(ctx.getIndex(), name);
-      if (!r || !r.acc) return;
+      if (!r || !r.acc) {
+        ctx.setFooter(`分期还没建成：账户「${name}」不在账本里`);
+        return;
+      }
+
+      if (!(principal > 0)) {
+        ctx.setFooter('分期还没建成：分期金额要大于 0');
+        return;
+      }
+      if (!(periods > 0)) {
+        ctx.setFooter('分期还没建成：期数要大于 0');
+        return;
+      }
+      if (!firstMonth) {
+        ctx.setFooter('分期还没建成：首月认不出（写成 2026-10）');
+        return;
+      }
 
       const row = createScheduled({
         to_id: r.acc.id,

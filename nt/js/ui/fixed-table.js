@@ -151,13 +151,28 @@ export function mountFixedTable(ctx, tbody, opts) {
       };
 
       const amount = Number(get('amount')) || 0;
-      if (!(amount > 0)) return;
+      if (!(amount > 0)) {
+        // 金额还没填：用户可能刚点进第一格，不吵
+        return;
+      }
 
-      const fromR = parseAccountInput(ctx.getIndex(), get('from'));
-      const toR = parseAccountInput(ctx.getIndex(), get('to'));
+      const fromRaw = get('from');
+      const toRaw = get('to');
+      const fromR = parseAccountInput(ctx.getIndex(), fromRaw);
+      const toR = parseAccountInput(ctx.getIndex(), toRaw);
       const fromId = fromR && fromR.acc ? fromR.acc.id : null;
       const toId = toR && toR.acc ? toR.acc.id : null;
-      if (!fromId && !toId) return;       // 两端都空没意义
+
+      if (!fromId && !toId) {
+        // 有金额但一个账户都没认出来 —— 说清楚为什么还没存上，
+        // 否则用户填了一行、页脚什么都没变，只会以为程序没反应
+        if (fromRaw || toRaw) {
+          ctx.setFooter(`固定收支还没建成：账户「${fromRaw || toRaw}」不在账本里`);
+        } else {
+          ctx.setFooter('固定收支还没建成：转出 / 转入 至少填一个账户');
+        }
+        return;
+      }
 
       const row = createScheduled({
         freq: get('freq') === 'daily' ? 'daily' : 'monthly',
