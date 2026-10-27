@@ -484,3 +484,13 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   width: 2px;
   margin-left: -1px;
 }
+
+/* 禁止表格里的输入框被原生拖放。
+   Chrome 默认允许 <input> 参与 HTML5 drag —— 选中数字往外拖，
+   落到别的格子就变成「把值拖过去了」。这个功能没人需要，直接关掉。 */
+.nt-table input,
+.nt-table textarea,
+.nt-table .nt-cell {
+  -webkit-user-drag: none;
+  user-drag: none;
+}

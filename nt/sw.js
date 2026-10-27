@@ -20,7 +20,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v0.16';
+const CACHE_NAME = 'nt-v0.17';
 
 const ASSETS = [
   './index.html',
@@ -30,6 +30,7 @@ const ASSETS = [
   './css/base.css',
   './css/debug.css',
   './css/flow.css',
+  './css/range.css',
   './css/gate.css',
   './css/import.css',
   './css/layout.css',
@@ -116,6 +117,8 @@ const ASSETS = [
   './js/ui/suggest-popover.js',
   './js/ui/sync-dialog.js',
   './js/ui/table-layout.js',
+  './js/ui/range-bar.js',
+  './js/ui/cell-range.js',
   './js/ui/table.js',
   './js/ui/tabs.js',
   './js/ui/theme-manager.js',

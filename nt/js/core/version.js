@@ -13,7 +13,7 @@
  */
 
 /** 当前版本 —— **改版本号只改这一处**，然后同步 sw.js 的 CACHE_NAME */
-export const APP_VER = 'nt-v0.16';
+export const APP_VER = 'nt-v0.17';
 
 /** 版本号 → 可比较的数字；认不出返回 -1 */
 export function parseVer(v) {

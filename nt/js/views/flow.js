@@ -18,6 +18,7 @@ import * as NtModal from '../ui/modal.js';
 import { openAddDialog } from '../ui/add-dialog.js';
 import { openSyncDialog } from '../ui/sync-dialog.js';
 import { splitByTime } from '../timeline/time-state.js';
+import { mountCellRange } from '../ui/cell-range.js';
 
 const WIP = '该功能在后续版本接入（当前版本先做单页壳）。';
 
@@ -34,6 +35,18 @@ export function mountFlow(section, ctx) {
   });
 
   bindToolbar(section, ctx);
+
+  // 单元格区域框选：长按起手，可复制 / 粘贴 / 批量删除行
+  const flowTable = section.querySelector('.nt-table-flow');
+  mountCellRange(flowTable, {
+    onDeleteRows: (ids) => {
+      let st = ctx.getState();
+      for (const id of ids) st = removeTransaction(st, id);
+      ctx.setState(st);
+      ctx.save();
+      render();
+    },
+  });
 
   function render() {
     const st = ctx.getState();

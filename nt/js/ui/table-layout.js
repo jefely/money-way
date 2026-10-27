@@ -258,3 +258,19 @@ export function resetColWidths(tableEl) {
   }
   syncFrozen(tableEl);
 }
+
+/**
+ * 禁掉表格内的原生拖放。
+ *
+ * Chrome 允许 <input> 参与 HTML5 drag，选中数字拖到别的格子会把值带过去。
+ * 表格里没有任何地方需要这个行为，全局拦掉最省事。
+ */
+if (typeof document !== 'undefined') {
+  document.addEventListener('dragstart', (ev) => {
+    const t = ev.target;
+    if (!t || !t.closest) return;
+    if (t.closest('.nt-table') || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') {
+      ev.preventDefault();
+    }
+  }, true);
+}

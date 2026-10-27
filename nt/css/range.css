@@ -1,0 +1,93 @@
+/* ============================================================
+   NT账本 · 单元格区域框选
+   ------------------------------------------------------------
+   长按起手 → 拖动框选 → 工具条（复制 / 粘贴 / 删除行 / 取消）
+   ============================================================ */
+
+/* 框选模式期间：禁止滚动，否则手指一动页面就跑 */
+body.nt-range-mode {
+  touch-action: none;
+  user-select: none;
+}
+
+body.nt-range-mode .nt-tablewrap {
+  touch-action: none;
+  overflow-x: hidden;
+}
+
+/* ---------- 选中的格子 ---------- */
+
+.nt-range-sel {
+  background: rgba(139, 108, 255, 0.22) !important;
+  box-shadow: inset 0 0 0 1px rgba(139, 108, 255, 0.45);
+}
+
+/* 矩形四条边加重，一眼看出范围 */
+.nt-range-sel.nt-range-edge-top {
+  box-shadow: inset 0 2px 0 0 var(--nt-primary), inset 0 0 0 1px rgba(139, 108, 255, 0.45);
+}
+
+.nt-range-sel.nt-range-edge-bottom {
+  box-shadow: inset 0 -2px 0 0 var(--nt-primary), inset 0 0 0 1px rgba(139, 108, 255, 0.45);
+}
+
+.nt-range-sel.nt-range-edge-left {
+  box-shadow: inset 2px 0 0 0 var(--nt-primary), inset 0 0 0 1px rgba(139, 108, 255, 0.45);
+}
+
+.nt-range-sel.nt-range-edge-right {
+  box-shadow: inset -2px 0 0 0 var(--nt-primary), inset 0 0 0 1px rgba(139, 108, 255, 0.45);
+}
+
+/* 四角同时命中时，四条边都要画 */
+.nt-range-sel.nt-range-edge-top.nt-range-edge-bottom {
+  box-shadow: inset 0 2px 0 0 var(--nt-primary), inset 0 -2px 0 0 var(--nt-primary);
+}
+
+.nt-range-sel.nt-range-edge-left.nt-range-edge-right {
+  box-shadow: inset 2px 0 0 0 var(--nt-primary), inset -2px 0 0 0 var(--nt-primary);
+}
+
+/* ---------- 工具条 ---------- */
+
+.nt-range-bar {
+  position: fixed;
+  top: var(--nt-range-top, 60px);
+  left: var(--nt-range-left, 12px);
+  z-index: 60;
+  display: flex;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--nt-line-strong, var(--nt-bg-line));
+  border-radius: 8px;
+  background: var(--nt-bg-soft, var(--nt-bg));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.nt-range-bar[hidden] {
+  display: none;
+}
+
+.nt-range-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 5px;
+  background: var(--nt-bg);
+  color: var(--nt-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.nt-range-btn:hover:not(:disabled) {
+  border-color: var(--nt-primary);
+  color: var(--nt-primary);
+}
+
+.nt-range-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.nt-range-btn[data-act="del"] {
+  color: var(--nt-danger, #e05555);
+}
