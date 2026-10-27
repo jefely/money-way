@@ -140,9 +140,6 @@ export function renderChart(data) {
     let textW = 0;
     for (const ch of label) textW += (ch.charCodeAt(0) > 255 ? 1 : 0.55) * fs;
 
-    // 放不下就别画了：挤在一起比没有更糟
-    if (arcLen < textW * 0.9 && fs < 15 * RATIO) continue;
-
     const crowded = arcLen < textW * 1.5;
     if (crowded) fs = Math.max(12 * RATIO, fs * 0.85);
 
@@ -150,8 +147,8 @@ export function renderChart(data) {
     let rText = rOut + 8 * RATIO;
     if (crowded) {
       const veryNarrow = arcLen < 12 * RATIO;
-      // 锥形默认 124（= 基准 46 的 2.7 倍），连续极窄时第二个 324
-      const coneLen = (veryNarrow && prevVeryNarrow) ? 324 * RATIO : 124 * RATIO;
+      // 锥形默认 115（= 基准 46 的 2.5 倍），连续极窄时第二个 300
+      const coneLen = (veryNarrow && prevVeryNarrow) ? 300 * RATIO : 115 * RATIO;
       prevVeryNarrow = veryNarrow;
       rText = rOut + coneLen;
     }
