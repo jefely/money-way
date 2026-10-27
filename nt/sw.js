@@ -1,30 +1,141 @@
 ﻿/* NT账本 · 多文件版 Service Worker
- * 公约 4.4：CACHE_NAME 必须随静态资源更新自增（nt-v0.05 → nt-v0.06 …）
+ * 公约 4.4：CACHE_NAME 必须随静态资源更新自增
  *
- * 缓存策略：**network-first**。
- * 之前是 cache-first，问题很硬：只预缓存少数文件、其余按需缓存，
- * 一旦缓存过就永远命中旧版 —— 改了 js/views/*.js、js/ui/*.js 用户完全收不到更新，
- * 表现是「版本号显示是新的，界面还是旧的」。
+ * ============================================================
+ * 策略：stale-while-revalidate（离线优先）
+ * ============================================================
+ *   · 命中缓存   → 立刻返回（断网也秒开），同时后台拿新的写回缓存
+ *   · 没命中缓存 → 走网络，成功后写入缓存
+ *   · 离线且没缓存 → 报错
  *
- * 现在：在线时总是取最新并顺手写缓存；只有离线（fetch 失败）才回退缓存。
- * 代价是每次多一次网络往返，换来「改了就生效」。
+ * 之前是 network-first，问题在离线场景：每个请求都要等网络超时才回落缓存，
+ * 130 多个模块叠起来就是一片白屏。而且 ASSETS 只预缓存了 7 个文件，
+ * 其余模块断网时压根没有缓存可用。
+ *
+ * 更新路径（两条，都不依赖自动检测）：
+ *   ① CACHE_NAME 变化 → 新 SW 在 install 阶段重新预缓存全部资源
+ *   ② 页面「重载」按钮 → 清所有缓存 + 注销 SW，强制从网络拿最新
+ *
+ * ASSETS 必须**完整**：漏掉的文件在离线时会直接加载失败。
+ * 新增文件记得加进来（tools 里有生成脚本）。
+ * ============================================================
  */
 const CACHE_NAME = 'nt-v0.12';
 
 const ASSETS = [
   './index.html',
-  './text.html',
   './path.html',
+  './text.html',
   './manifest.json',
-  './css/theme.css',
   './css/base.css',
+  './css/debug.css',
+  './css/flow.css',
+  './css/gate.css',
+  './css/import.css',
   './css/layout.css',
+  './css/modal.css',
+  './css/path.css',
+  './css/plan.css',
+  './css/query.css',
+  './css/settings.css',
+  './css/shell.css',
+  './css/suggest.css',
+  './css/text-editor.css',
+  './css/theme.css',
+  './css/validate.css',
+  './js/app.js',
+  './js/browser/db.js',
+  './js/browser/idb.js',
+  './js/core/account-config.js',
+  './js/core/account-index.js',
+  './js/core/account-resolver.js',
+  './js/core/auth-manager.js',
+  './js/core/balance-calculator.js',
+  './js/core/color.js',
+  './js/core/crypto-engine.js',
+  './js/core/flow-text.js',
+  './js/core/format.js',
+  './js/core/import-apply.js',
+  './js/core/import-parser.js',
+  './js/core/installment-engine.js',
+  './js/core/ledger-file.js',
+  './js/core/ledger-stats.js',
+  './js/core/ledgers.js',
+  './js/core/meta.js',
+  './js/core/migrate.js',
+  './js/core/opening-migrator.js',
+  './js/core/qr-encode.js',
+  './js/core/qr-matrix.js',
+  './js/core/qr-rs.js',
+  './js/core/query-engine.js',
+  './js/core/scheduler-engine.js',
+  './js/core/schema.js',
+  './js/core/settings.js',
+  './js/core/state-store.js',
+  './js/core/stats.js',
+  './js/core/sync-code.js',
+  './js/core/sync-merge.js',
+  './js/core/validate.js',
+  './js/core/validator.js',
+  './js/core/version.js',
+  './js/graph/mw-data-fetcher.js',
+  './js/graph/mw-path-calculator.js',
+  './js/graph/mw-slot-calculator.js',
+  './js/graph/path-tracer.js',
+  './js/path-app.js',
+  './js/platform/device-profile.js',
+  './js/text-app.js',
+  './js/timeline/time-state.js',
+  './js/ui/account-actions.js',
+  './js/ui/account-config.js',
+  './js/ui/account-dialog.js',
+  './js/ui/account-stats-view.js',
+  './js/ui/account-table.js',
+  './js/ui/add-dialog.js',
+  './js/ui/apply-settings.js',
+  './js/ui/checks-view.js',
+  './js/ui/color-picker.js',
+  './js/ui/debug-panel.js',
+  './js/ui/debug-pip.js',
+  './js/ui/debug-themes.js',
+  './js/ui/file-io.js',
+  './js/ui/fixed-table.js',
+  './js/ui/flow-model.js',
+  './js/ui/gate.js',
+  './js/ui/inst-table.js',
+  './js/ui/layout-text.js',
+  './js/ui/modal.js',
+  './js/ui/mw-svg-renderer.js',
+  './js/ui/path-flow-table.js',
+  './js/ui/path-view.js',
+  './js/ui/pwa.js',
+  './js/ui/qr-canvas.js',
+  './js/ui/render-transactions.js',
+  './js/ui/row-editor.js',
+  './js/ui/share-block.js',
+  './js/ui/suggest-popover.js',
+  './js/ui/sync-dialog.js',
+  './js/ui/table-layout.js',
+  './js/ui/table.js',
+  './js/ui/tabs.js',
+  './js/ui/theme-manager.js',
+  './js/ui/update-check.js',
+  './js/views/flow.js',
+  './js/views/path.js',
+  './js/views/plan.js',
+  './js/views/query.js',
+  './js/views/settings.js',
+  './js/views/stats.js',
+  './js/views/validate.js',
 ];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME)
-      .then((c) => c.addAll(ASSETS))
+      // 单个文件失败不该让整个安装失败（否则永远装不上）
+      .then((c) => Promise.all(
+        ASSETS.map((u) => c.add(u).catch(() => null)),
+      ))
       .then(() => self.skipWaiting()),
   );
 });
@@ -45,7 +156,6 @@ self.addEventListener('message', (e) => {
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
 
-  // 同源才管；跨源请求直接放行
   let sameOrigin = false;
   try {
     sameOrigin = new URL(e.request.url).origin === self.location.origin;
@@ -54,16 +164,31 @@ self.addEventListener('fetch', (e) => {
   }
   if (!sameOrigin) return;
 
-  e.respondWith(
-    fetch(e.request)
-      .then((res) => {
-        // 拿到新的就顺手更新缓存（写失败不影响返回）
-        if (res && res.ok && res.type === 'basic') {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(e.request, copy)).catch(() => {});
-        }
-        return res;
-      })
-      .catch(() => caches.match(e.request).then((hit) => hit || Response.error())),
-  );
+  e.respondWith((async () => {
+    const cached = await caches.match(e.request);
+
+    if (cached) {
+      // 后台更新缓存，不阻塞返回 —— 下一次打开就是新版
+      fetch(e.request)
+        .then((res) => {
+          if (res && res.ok && res.type === 'basic') {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(e.request, copy)).catch(() => {});
+          }
+        })
+        .catch(() => {});
+      return cached;
+    }
+
+    try {
+      const res = await fetch(e.request);
+      if (res && res.ok && res.type === 'basic') {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then((c) => c.put(e.request, copy)).catch(() => {});
+      }
+      return res;
+    } catch (err) {
+      return Response.error();
+    }
+  })());
 });

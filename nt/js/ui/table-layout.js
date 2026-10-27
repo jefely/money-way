@@ -167,16 +167,34 @@ export function mountResize(tableEl, opts) {
       syncFrozen(tableEl);
     };
 
-    const onUp = () => {
+    let done = false;
+
+    /**
+     * 收尾。必须幂等，并且同时绑到 pointerup 和 pointercancel：
+     * 触摸手势被打断时浏览器只发 pointercancel、不发 pointerup，
+     * 漏了它 body 上的类会永久残留 —— 而那条类会把容器的 overflow-x 锁成 hidden，
+     * 表格从此不能横向滑动，且完全看不出原因。
+     */
+    const finish = () => {
+      if (done) return;
+      done = true;
+
       document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointerup', finish);
+      document.removeEventListener('pointercancel', finish);
+      window.removeEventListener('blur', finish);
+
       document.body.classList.remove('nt-col-resizing');
       if (wrap) wrap.style.overflowX = prevOverflow;
+
       if (o.onResize) o.onResize(idx, Math.round(parseFloat(th.style.width) || 0));
     };
 
     document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointerup', finish);
+    document.addEventListener('pointercancel', finish);
+    // 兜底：窗口失焦时也要收尾
+    window.addEventListener('blur', finish);
   });
 }
 
