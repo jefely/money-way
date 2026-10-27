@@ -95,7 +95,8 @@ body {
   align-items: center;
   justify-content: center;
   text-align: center;
-  white-space: nowrap;            /* 不许换行：换行会把两个字拆成两行，看着就像变小 */
+  white-space: nowrap;
+  touch-action: pan-y;            /* 不许换行：换行会把两个字拆成两行，看着就像变小 */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
@@ -401,9 +402,23 @@ body {
   min-width: 0 !important;
 }
 
+/* 进 B 模式后必须解除每列的 min/max 限制。
+   A 模式给冻结列写了 min-width=max-width=54px 来保证宽度确定，
+   但在 B 模式下 max-width 会钳住拖出来的宽度：
+     th.style.width=104px 却只渲染 58px，表格总宽却按 104 算，
+     多出的部分被平均分给其它列 —— 就是「拖一列，整表乱跳」。 */
+.nt-table.cols-custom .nt-th {
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
 .nt-tablewrap {
   overflow-x: auto;
   overflow-y: visible;
+  /* 关键：允许纵向滑动，**禁止横向手势被浏览器当成滚动**。
+     否则拖列宽手柄时，浏览器会同时横向滚表格 —— 手柄在拖、内容在滚，
+     两个动作叠在一起，表现就是「乱跳，说不清」。 */
+  touch-action: pan-y;
 }
 
 /* ---------- 流水记录（7 列） ---------- */
@@ -483,3 +498,11 @@ body {
 .nt-table-query .nt-th:nth-child(5) { width: var(--nt-col-to, 88px); }
 .nt-table-query .nt-th:nth-child(6) { width: var(--nt-col-amount, 74px); }
 .nt-table-query .nt-th:nth-child(7) { width: var(--nt-col-note, 72px); }
+
+/* 跨列单元格（colspan > 1）永远不参与冻结：
+   它是整行的提示/占位，加 sticky 会让整行跟着横向移动。
+   渲染时会给这类格子加 .nt-cell-span 类。 */
+.nt-cell-span {
+  position: static !important;
+  left: auto !important;
+}

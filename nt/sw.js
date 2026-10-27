@@ -9,7 +9,7 @@
  * 现在：在线时总是取最新并顺手写缓存；只有离线（fetch 失败）才回退缓存。
  * 代价是每次多一次网络往返，换来「改了就生效」。
  */
-const CACHE_NAME = 'nt-v0.10';
+const CACHE_NAME = 'nt-v0.11';
 
 const ASSETS = [
   './index.html',

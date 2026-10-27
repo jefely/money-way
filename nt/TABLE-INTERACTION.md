@@ -525,6 +525,105 @@ export function bindAllColResize(opts) {
 
 ---
 
+### 5.6 `max-width` 会钳住拖出来的宽度（最隐蔽的一个）
+
+A 模式为了「冻结列宽度确定」，给首列写了：
+
+```css
+.nt-table-flow .nt-th:nth-child(1) {
+  width: var(--nt-col-seq, 54px);
+  min-width: 54px;
+  max-width: 54px;      /* ← 这两个 */
+}
+```
+
+**CSS 规则里 `max-width` 优先于 `width`。** 所以进 B 模式拖动后：
+
+```
+th.style.width = 104px        我们设的
+th.getBoundingClientRect() = 58px    被 max-width 钳住
+table.style.width = 664px     按 104+84+112… 求和
+```
+
+多出来的 46px 没有消失，而是被**平均分给其它列** → 整表都变宽 → 现象就是「拖一列，别的列跟着动」，而且**看不出哪里错了**（因为 DOM 上的 style 全是对的）。
+
+诊断方式：**同时打印 `th.style.width` 和 `th.getBoundingClientRect().width`**，两者不等就是这个坑。
+
+```
+thStyle: ["104px", "84px", "112px", ...]   ← 设定值
+thRect:  [58,      91,    121,      ...]   ← 实际值
+                      ↑ 全被放大了
+```
+
+修法（两层都要）：
+
+```css
+/* ① CSS */
+.nt-table.cols-custom .nt-th {
+  min-width: 0 !important;
+  max-width: none !important;
+}
+```
+
+```js
+// ② JS：进 B 模式时内联清一遍（CSS 里的没法删，A 模式还要用）
+th.style.minWidth = '0';
+th.style.maxWidth = 'none';
+```
+
+修好后两者严格相等：
+
+```
+thStyle: ["104px","84px","112px","112px","96px","116px","40px"]
+thRect:  [104,    84,    112,    112,    96,    116,    40]
+sumOfThStyle: 664 = tableRectW: 664
+```
+
+### 5.7 跨列单元格不能参与冻结
+
+空表时「还没有流水，先在上面记一笔」是一个 `colspan=7` 的 `<td>`。
+它同时命中了：
+
+- `syncFrozen` 里 `tr.children[0]` → 写了 `style.left = '0px'`
+- CSS 的 `.nt-cell:nth-child(1)` → `position: sticky`
+
+跨列单元格加 `sticky + left` 后会被当成一个「冻结块」整行横向移动 —— 症状是**说不清道不明的乱跳**。
+
+修法：
+
+```js
+if (td && td.colSpan === 1) td.style.left = left + 'px';   // 只给单列格写
+```
+
+```css
+.nt-cell-span { position: static !important; left: auto !important; }
+```
+
+`renderEmpty` 给 `colspan > 1` 的格子自动加 `.nt-cell-span` 类。
+
+### 5.8 横向滚动容器会抢走触摸手势
+
+`.nt-tablewrap { overflow-x: auto }` 会让浏览器把水平触摸判成「滚动表格」。
+拖手柄时**手柄在拖、内容也在滚**，两个动作叠加。
+
+```css
+.nt-tablewrap {
+  overflow-x: auto;
+  touch-action: pan-y;    /* 允许纵向滑，禁止横向手势被接管 */
+}
+```
+
+再加一层运行时保险：
+
+```js
+// 拖动期间锁住容器的横向滚动
+const wrap = tableEl.closest('.nt-tablewrap');
+const prev = wrap.style.overflowX;
+wrap.style.overflowX = 'hidden';
+// 松手恢复
+wrap.style.overflowX = prev;
+```
+
 ## 六、单元格文本
 
 ```css

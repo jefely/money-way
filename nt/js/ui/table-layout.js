@@ -64,7 +64,9 @@ export function syncFrozen(tableEl) {
     th.style.left = left + 'px';
     for (const tr of rows) {
       const td = tr.children[i];
-      if (td) td.style.left = left + 'px';
+      // 跨列单元格（比如「还没有流水」那行的 colspan=7）不能加 sticky left，
+      // 否则整行会被当成一个冻结块横向移动 —— 看着就是莫名其妙地跳
+      if (td && td.colSpan === 1) td.style.left = left + 'px';
     }
 
     left += w;
@@ -101,6 +103,9 @@ function enterCustomMode(tableEl) {
   for (const th of tableEl.querySelectorAll('thead .nt-th')) {
     const w = widths[i];
     i += 1;
+    // 内联清掉 min/max：CSS 里给冻结列写死的 max-width 会钳住拖出来的宽度
+    th.style.minWidth = '0';
+    th.style.maxWidth = 'none';
     if (w > 0) th.style.width = w + 'px';
   }
 
@@ -149,6 +154,11 @@ export function mountResize(tableEl, opts) {
     const startW = Math.round(th.getBoundingClientRect().width);
     const idx = [...tableEl.querySelectorAll('thead .nt-th')].indexOf(th);
     document.body.classList.add('nt-col-resizing');
+    // 再兜一层保险：拖动期间禁掉容器的横向滚动，
+    // 免得浏览器在触摸序列中途接管手势导致内容一起滚
+    const wrap = tableEl.closest('.nt-tablewrap');
+    const prevOverflow = wrap ? wrap.style.overflowX : '';
+    if (wrap) wrap.style.overflowX = 'hidden';
 
     const onMove = (e) => {
       const w = Math.max(MIN_W, Math.min(MAX_W, startW + (e.clientX - startX)));
@@ -161,6 +171,7 @@ export function mountResize(tableEl, opts) {
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
       document.body.classList.remove('nt-col-resizing');
+      if (wrap) wrap.style.overflowX = prevOverflow;
       if (o.onResize) o.onResize(idx, Math.round(parseFloat(th.style.width) || 0));
     };
 

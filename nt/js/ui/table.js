@@ -107,6 +107,8 @@ export function renderEmpty(tbody, text, colspan) {
   if (td) {
     td.textContent = text || '';
     td.colSpan = colspan || 1;
+    // 跨列格一律不参与冻结（见 shell.css 的 .nt-cell-span）
+    if (td.colSpan > 1) td.classList.add('nt-cell-span');
   }
   tbody.appendChild(tr);
 }
