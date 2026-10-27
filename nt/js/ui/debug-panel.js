@@ -1,9 +1,9 @@
-﻿// 界面：?debug=1 → 界面参数浮层
+// 界面：?debug=1 → 界面参数浮层
 /** 界面参数调试面板（UI 层）：按标签页分组，改值实时生效，可保存/撤销/恢复默认。 */
 import { GROUPS, SCREENS, GROUP_SCREEN, SCHEMA, DEFAULTS, normalize } from '../core/settings.js';
 import { applySettings } from './apply-settings.js';
 import { openColorPicker } from './color-picker.js';
-import { createThemeButtons, currentTheme, applyTheme, saveThemeSettings, loadThemeSettings } from './debug-themes.js';
+import { createThemeButtons, currentTheme, applyTheme, saveThemeSettings, loadThemeSettings, loadUserSettings } from './debug-themes.js';
 import { createPiPButton } from './debug-pip.js';
 import { layoutTextBar, mergePatch } from './layout-text.js';
 import { resetColWidths } from './table-layout.js';
@@ -178,13 +178,12 @@ export function mountDebugPanel(opts) {
   });
   readColBtn.addEventListener('click', () => {
     if (!o.getState) return;
-    const st = o.getState();
-    const settings = st.settings && typeof st.settings === 'object' ? st.settings : {};
-    const cur = settings[theme] && typeof settings[theme] === 'object' ? settings[theme] : {};
-    const userW = cur['用户列宽'];
-    if (!userW) return;
+    // 拖动产生的列宽在「用户设置」里，每张表一个 `<表>/列宽`
+    const user = loadUserSettings(o, theme);
+    const keys = Object.keys(user).filter((k) => k.endsWith('/列宽'));
+    if (!keys.length) return;
     pushHistory();
-    current['默认列宽'] = userW;
+    for (const k of keys) current[k] = user[k];
     renderBody();
     applySettings(normalize(current, theme), theme);
   });

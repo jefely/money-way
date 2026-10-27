@@ -1,4 +1,4 @@
-﻿// 界面：单页壳入口：门禁 → state → 7 视图装配 → tab 路由
+// 界面：单页壳入口：门禁 → state → 7 视图装配 → tab 路由
 /**
  * 入口：装配（门禁 → state → 索引 → 7 个视图 → 事件）。
  *
@@ -30,7 +30,7 @@ import { mountDebugPanel } from './ui/debug-panel.js';
 import { applySettings } from './ui/apply-settings.js';
 import { bindAllTables, syncAllFrozen } from './ui/table-layout.js';
 import { loadMergedSettings, loadUserSettings, saveThemeSettings } from './ui/debug-themes.js';
-import { COL_KEYS } from './core/settings.js';
+import { TABLE_COLS, parseTableWidths, colWidthKey } from './core/settings.js';
 import { APP_VER } from './core/version.js';
 import { initVersion } from './ui/update-check.js';
 import { registerServiceWorker } from './ui/pwa.js';
@@ -188,19 +188,37 @@ function adoptState(raw) {
   return migrate(raw).state;
 }
 
-/** 拖动手柄改列宽后，写入当前主题的「用户列宽」（不覆盖默认列宽） */
-function onColResize(col, width) {
+/** 表元素 → TABLE_COLS 的 key（统计表按当前视图判：分类 / 汇总各一套列宽） */
+function tableKeyOf(tableEl) {
+  const cls = tableEl.classList;
+  if (cls.contains('nt-table-flow')) return 'flow';
+  if (cls.contains('nt-table-stats')) return cls.contains('is-sum') ? 'sum' : 'cat';
+  if (cls.contains('nt-table-query')) return 'query';
+  if (cls.contains('nt-table-plan')) return 'plan';
+  if (cls.contains('nt-table-accounts')) return 'accounts';
+  return '';
+}
+
+/**
+ * 拖动手柄改列宽后，写入当前主题的「用户列宽」（不覆盖默认列宽）。
+ *
+ * 每张表一份：在流水表把金额拖宽，不会连带改掉查询表 / 固定表的金额列。
+ */
+function onColResize(tableEl, col, width) {
   const theme = document.documentElement.getAttribute('data-theme') || 'dark';
-  const idx = COL_KEYS.indexOf(col);
-  if (idx < 0) return;
+  const tkey = tableKeyOf(tableEl);
+  const t = TABLE_COLS[tkey];
+  if (!t || !col) return;
 
-  // 拖动写「用户设置」，不动「默认设置」—— 后者是基准，改了会丢掉参照
+  const i = t.cols.indexOf(col);
+  if (i < 0) return;
+
+  const key = colWidthKey(tkey);
   const cur = loadMergedSettings({ getState }, theme);
-  const widths = String(cur['默认列宽'] || '').split(',').map((x) => Number(x.trim()));
-  while (widths.length < COL_KEYS.length) widths.push(64);
-  widths[idx] = width;
+  const widths = parseTableWidths(cur[key], tkey);
+  widths[i] = Math.max(0, Math.round(width));
 
-  const user = { ...loadUserSettings({ getState }, theme), '默认列宽': widths.join(',') };
+  const user = { ...loadUserSettings({ getState }, theme), [key]: widths.join(',') };
   saveThemeSettings({ getState, setState }, theme, user, 'user');
   flushSave();
 }

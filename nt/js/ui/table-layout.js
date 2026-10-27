@@ -1,4 +1,4 @@
-﻿// 界面：表格冻结列 + 列宽拖动
+// 界面：表格冻结列 + 列宽拖动
 /**
  * 表格布局
  * 层：第五层 · UI
@@ -216,7 +216,10 @@ function startDrag(tableEl, grip, downEv, o) {
     document.body.classList.remove('nt-col-resizing');
     if (wrap) wrap.style.overflowX = prevOverflow;
 
-    if (o.onResize) o.onResize(idx, Math.round(width));
+    // 回调带上「哪张表 + 哪一列」：每张表的列宽是各自一份参数，
+    // 只给下标的话调用方还得自己反查（之前就是这里传的是数字，
+    // 而 onColResize 当成列名去 indexOf，永远 -1 —— 拖了从来不保存）。
+    if (o.onResize) o.onResize(tableEl, (th.dataset && th.dataset.col) || '', Math.round(width));
   };
 
   // ② 绑在手柄自己身上

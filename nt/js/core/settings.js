@@ -71,6 +71,23 @@ export const DEFAULT_COL_WIDTHS = '44,84,72,76,64,100,96,40,64,64,64,110,100,96,
 export const DEFAULT_COL_ALIGN = '中,中,中,中,中,中,中,中,中,中,中,中,右,中,右,中,中,中,'
   + '中,中,中,中,中,中,中,中';
 
+/* ============================================================
+   每张表各自的列与默认列宽
+   ------------------------------------------------------------
+   数据与解析都在 core/table-cols.js（这里只转发，保持既有 import 不变）。
+   ============================================================ */
+
+import {
+  TABLE_COLS, TABLE_DEFAULT_WIDTHS, parseTableWidths, colWidthKey,
+} from './table-cols.js';
+
+export { TABLE_COLS, TABLE_DEFAULT_WIDTHS, parseTableWidths, colWidthKey };
+
+/** 补到该表的列数：缺位用该表默认值（不能掉成 0/64，否则整列消失或变窄） */
+function padTableWidths(text, table) {
+  return parseTableWidths(text, table).join(',');
+}
+
 /** 主题 id 列表（与 theme-manager 的 VALID 一致） */
 export const THEME_IDS = ['light', 'dark', 'alt1', 'alt2'];
 
@@ -129,8 +146,14 @@ export const SCHEMA = [
      想恢复默认列宽用面板底部的「恢复默认」。 */
   { key: '数据区行高', group: '数据区', def: 32, unit: 'px', cssVar: '--nt-row-h' },
   { key: '数据区字号', group: '数据区', def: 14, unit: 'px', cssVar: '--nt-cell-font' },
-  // 列宽：数组按 COL_KEYS 顺序展开成 --nt-col-<key> 变量，CSS 里用 var() 读
-  { key: '默认列宽', group: '数据区', type: 'array', def: DEFAULT_COL_WIDTHS },
+  // 每张表一套列宽（0 = 自适应；顺序见 TABLE_COLS）
+  { key: '流水记录/列宽', group: '数据区', type: 'cols', table: 'flow', def: TABLE_DEFAULT_WIDTHS.flow },
+  { key: '分类统计/列宽', group: '数据区', type: 'cols', table: 'cat', def: TABLE_DEFAULT_WIDTHS.cat },
+  { key: '汇总表/列宽', group: '数据区', type: 'cols', table: 'sum', def: TABLE_DEFAULT_WIDTHS.sum },
+  { key: '流水查询/列宽', group: '数据区', type: 'cols', table: 'query', def: TABLE_DEFAULT_WIDTHS.query },
+  { key: '路径追踪/列宽', group: '数据区', type: 'cols', table: 'path', def: TABLE_DEFAULT_WIDTHS.path },
+  { key: '固定开支/列宽', group: '数据区', type: 'cols', table: 'plan', def: TABLE_DEFAULT_WIDTHS.plan },
+  { key: '账户设置/列宽', group: '数据区', type: 'cols', table: 'accounts', def: TABLE_DEFAULT_WIDTHS.accounts },
 ];
 
 /** 尺寸/枚举类共用的默认值（四主题一致） */
@@ -187,6 +210,16 @@ export function normalize(raw, theme) {
   const out = { ...base };
   for (const s of SCHEMA) {
     const v = raw ? raw[s.key] : undefined;
+
+    // 列宽：每表一份。旧存档没有这些键时，从旧的那一份「默认列宽」里按列名抽初值。
+    if (s.type === 'cols') {
+      out[s.key] = padTableWidths(
+        (v != null && v !== '') ? v : legacyFor(s.table, raw),
+        s.table,
+      );
+      continue;
+    }
+
     if (v == null || v === '') continue;
     if (s.unit === 'px') {
       const n = Number(String(v).replace(/[^0-9.-]/g, ''));
@@ -221,6 +254,29 @@ function padColList(text, kind) {
   }).join(',');
 }
 
+/**
+ * 旧存档只有**一份**「默认列宽」（长度 = COL_KEYS）。
+ * 升级后每张表要各自一份，这里按列名把旧值抽成该表的初值。
+ * @returns {string} 该表的逗号数组（'' = 没有旧值，走该表默认）
+ */
+function legacyFor(table, raw) {
+  const text = raw && raw['默认列宽'];
+  if (text == null || text === '') return '';
+
+  const legacy = padColList(String(text), 'array').split(',').map(Number);
+  const t = TABLE_COLS[table];
+  if (!t) return '';
+
+  const def = String(TABLE_DEFAULT_WIDTHS[table] || '').split(',').map((x) => Number(x.trim()));
+
+  return t.cols.map((c, i) => {
+    // 自适应列（该表默认 0）不参与迁移 —— 把别表的固定宽度搬过来会让它不再自适应
+    if (def[i] === 0) return 0;
+    const j = COL_KEYS.indexOf(c);
+    return (j >= 0 && Number.isFinite(legacy[j])) ? legacy[j] : '';
+  }).join(',');
+}
+
 /** 列宽数组 → 数值数组（长度固定为 COL_KEYS.length，缺省补 64） */
 export function parseColWidths(text) {
   const arr = String(text || '').split(',').map((x) => Number(x.trim()));
@@ -239,6 +295,22 @@ export function toCssList(settings, theme) {
   const out = [];
   for (const item of SCHEMA) {
     const v = s[item.key];
+
+    // 每张表一套列宽：变量名 --nt-col-<表>-<列>
+    if (item.type === 'cols') {
+      const t = TABLE_COLS[item.table];
+      const widths = parseTableWidths(v, item.table);
+      const auto = t.autoValue || 'auto';
+      t.cols.forEach((c, i) => {
+        out.push({
+          group: item.group,
+          cssVar: '--nt-col-' + item.table + '-' + c,
+          value: widths[i] === 0 ? auto : widths[i] + 'px',
+        });
+      });
+      continue;
+    }
+
     if (item.type === 'array') {
       const widths = parseColWidths(v);
       COL_KEYS.forEach((c, i) => {

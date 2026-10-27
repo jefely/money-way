@@ -105,12 +105,13 @@
   min-width: 0;
 }
 
-.nt-c-q-seq { width: 26px; }
-.nt-c-q-date { width: 58px; }
-.nt-c-q-from { width: 62px; }
-.nt-c-q-to { width: 62px; }
-.nt-c-q-amount { width: 56px; }
-.nt-c-q-note { width: auto; min-width: 0; }
+/* 列宽来自参数「流水查询/列宽」；备注列 0 = 自适应（窄屏才塞得下） */
+.nt-c-q-seq { width: var(--nt-col-query-seq, 26px); }
+.nt-c-q-date { width: var(--nt-col-query-date, 58px); }
+.nt-c-q-from { width: var(--nt-col-query-from, 62px); }
+.nt-c-q-to { width: var(--nt-col-query-to, 62px); }
+.nt-c-q-amount { width: var(--nt-col-query-amount, 56px); }
+.nt-c-q-note { width: var(--nt-col-query-note, auto); min-width: 0; }
 
 /* 数据列对齐：序 · 日期 · 转出 · 转入 居中，金额右、备注左 */
 .nt-table-query tbody td { text-align: center; }
