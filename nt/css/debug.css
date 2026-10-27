@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    调试面板 / 拾色器 —— 全部沿用软件主题变量（与主界面同风格）
    ============================================================ */
 
@@ -9,8 +9,11 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 460px;
-  height: 78vh;
+  /* 宽度不能写死 460px：手机上会超出屏幕，键名被截成「签栏」「字号」 */
+  width: min(460px, calc(100vw - 16px));
+  max-width: calc(100vw - 16px);
+  box-sizing: border-box;
+  height: min(78vh, 640px);
   display: flex;
   flex-direction: column;
   background: var(--nt-bg-soft);
@@ -393,4 +396,15 @@
   border: 1px solid var(--nt-bg-line);
   border-radius: var(--nt-radius);
   cursor: pointer;
+}
+
+/* 布局文本导出/导入：单独一行，两个按钮平分 */
+.nt-debug-textbar {
+  display: flex;
+  gap: 6px;
+  padding: 6px 8px;
+  border-top: 1px solid var(--nt-bg-line);
+}
+.nt-debug-textbar .nt-debug-btn {
+  flex: 1 1 0;
 }

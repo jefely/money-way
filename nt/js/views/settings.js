@@ -1,4 +1,4 @@
-// 界面：设置 tab
+﻿// 界面：设置 tab
 /**
  * 设置视图（账户结构 + 六个功能）
  * 层：第五层 · UI
@@ -14,6 +14,7 @@ import { money } from '../core/format.js';
 import { mountAccountTable } from '../ui/account-table.js';
 import * as NtModal from '../ui/modal.js';
 import { applyTheme, saveTheme } from '../ui/theme-manager.js';
+import { mountDebugPanel } from '../ui/debug-panel.js';
 
 const ACT_LABEL = { password: '修改密码', config: '配置', layout: '布局' };
 
@@ -45,7 +46,18 @@ export function mountSettings(section, ctx) {
     if (act === 'balance') { showBalance(); return; }
     if (act === 'theme') { showTheme(); return; }
     if (act === 'reset') { showReset(); return; }
+    if (act === 'layout') { showLayout(); return; }
     NtModal.info(ACT_LABEL[act] || act, (b) => { b.textContent = '该功能在后续版本接入。'; });
+  }
+
+  /** 布局：调试面板直接调界面参数，并带文本导出/导入 */
+  function showLayout() {
+    // 已经有面板开着就不再叠一个
+    if (document.querySelector('.nt-debug')) return;
+    mountDebugPanel({
+      getState: ctx.getState,
+      save: () => { if (ctx.saveNow) ctx.saveNow(); },
+    });
   }
 
   function showBalance() {

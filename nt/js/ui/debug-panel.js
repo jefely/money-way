@@ -1,10 +1,11 @@
-// 界面：?debug=1 → 界面参数浮层
+﻿// 界面：?debug=1 → 界面参数浮层
 /** 界面参数调试面板（UI 层）：按标签页分组，改值实时生效，可保存/撤销/恢复默认。 */
 import { GROUPS, SCREENS, GROUP_SCREEN, SCHEMA, DEFAULTS, normalize } from '../core/settings.js';
 import { applySettings } from './apply-settings.js';
 import { openColorPicker } from './color-picker.js';
 import { createThemeButtons, currentTheme, applyTheme, saveThemeSettings, loadThemeSettings } from './debug-themes.js';
 import { createPiPButton } from './debug-pip.js';
+import { layoutTextBar, mergePatch } from './layout-text.js';
 
 const POS_KEY = 'nt_debug_pos';
 
@@ -122,9 +123,23 @@ export function mountDebugPanel(opts) {
   foot.appendChild(undoBtn);
   foot.appendChild(saveBtn);
 
+  // 布局文本导出/导入（单独一行，避免把底部按钮挤成一坨）
+  const textBar = layoutTextBar({
+    getCurrent: () => current,
+    getTheme: () => theme,
+    apply: (patch) => {
+      pushHistory();
+      current = mergePatch(current, patch, theme);
+      renderBody();
+      applySettings(current, theme);
+      if (o.save) o.save();
+    },
+  });
+
   host.appendChild(dragBar);
   host.appendChild(tabs);
   host.appendChild(body);
+  host.appendChild(textBar);
   host.appendChild(foot);
   document.body.appendChild(host);
 
