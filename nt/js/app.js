@@ -28,7 +28,7 @@ import { mountValidate } from './views/validate.js';
 import { mountPath } from './views/path.js';
 import { mountDebugPanel } from './ui/debug-panel.js';
 import { applySettings } from './ui/apply-settings.js';
-import { bindAllColResize } from './ui/col-resize.js';
+import { bindAllResize, syncAllTables } from './ui/table-layout.js';
 import { loadMergedSettings, loadUserSettings, saveThemeSettings } from './ui/debug-themes.js';
 import { COL_KEYS } from './core/settings.js';
 import { APP_VER } from './core/version.js';
@@ -71,7 +71,7 @@ function setFooter(text) {
 function renderActive() {
   const v = views[active];
   if (v && typeof v.render === 'function') v.render();
-  bindAllColResize();
+  syncAllTables();
 }
 
 /* ---------- 存盘（防抖 + 立即两种） ---------- */
@@ -218,7 +218,7 @@ function enterApp() {
   applySettings(merged, theme);
 
   // 列宽拖动手柄：**所有**数据区都挂，拖动后同步到当前主题的「默认列宽」并保存
-  bindAllColResize({ onResize: onColResize });
+  bindAllResize({ onResize: onColResize });
 
   mountViews();
   bindTabs({

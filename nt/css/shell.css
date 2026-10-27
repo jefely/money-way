@@ -293,18 +293,16 @@ body {
 }
 
 /* ============================================================
-   冻结列：横向滚动时前面的关键列保持可见
+   冻结列
    ------------------------------------------------------------
-   用 position: sticky 做，left 偏移由各表的第 1 列宽度决定。
-   第 2 列（分类统计 / 汇总统计的「分类」「账户名称」）要叠在第 1 列右侧，
-   所以它的 left 必须等于第 1 列宽度 —— 这里直接引用 seq 列宽变量。
+   分工：
+     · CSS 只声明「谁是 sticky」和层级、背景
+     · left 偏移由 ui/table-layout.js 的 syncFrozen 按**实际宽度累加**算出
+       （写死 left 变量的话，前列一变宽就错位）
    ============================================================ */
 
-.nt-tablewrap {
-  overflow-x: auto;
-}
+/* 冻结几列必须和 table-layout.js 的 FROZEN_COUNT 一致 */
 
-/* 第 1 列冻结：流水、查询、固定、分期、账户 */
 .nt-table-flow .nt-th:nth-child(1),
 .nt-table-flow .nt-cell:nth-child(1),
 .nt-table-plan .nt-th:nth-child(1),
@@ -314,46 +312,39 @@ body {
 .nt-table-accounts .nt-th:nth-child(1),
 .nt-table-accounts .nt-cell:nth-child(1) {
   position: sticky;
-  left: 0;
   z-index: 3;
 }
 
-/* 第 2 列冻结：分类统计 / 汇总统计（left 要避开第 1 列） */
-/* 冻结列：只声明 sticky + z-index，**left 由 JS 累加算出**（layoutFrozen）。
-   写死 left 变量的问题：前面那列被拖动后宽度变了，这里的 left 不会跟着变，
-   冻结边界立刻错位 —— 表现就是「拖动时乱跳」。 */
+/* 统计表冻结两列：第二列必须压在普通列之上、第一列之下 */
 .nt-table-stats .nt-th:nth-child(1),
-.nt-table-stats .nt-cell:nth-child(1),
+.nt-table-stats .nt-cell:nth-child(1) {
+  position: sticky;
+  z-index: 4;
+}
+
 .nt-table-stats .nt-th:nth-child(2),
 .nt-table-stats .nt-cell:nth-child(2) {
   position: sticky;
   z-index: 3;
 }
 
-/* 冻结列要有自己的底色，否则会透出后面滚动的文字 */
-.nt-table-flow .nt-th:nth-child(-n+1),
-.nt-table-stats .nt-th:nth-child(-n+2),
-.nt-table-plan .nt-th:nth-child(-n+1),
-.nt-table-inst .nt-th:nth-child(-n+1),
-.nt-table-accounts .nt-th:nth-child(-n+1) {
-  background: var(--nt-th-bg, var(--nt-bg-soft));
+/* 冻结列必须不透明：否则横向滚动时后面的内容会透出来 */
+.nt-table .nt-th:nth-child(-n+2),
+.nt-table .nt-cell:nth-child(-n+2) {
+  background-clip: padding-box;
 }
 
-.nt-table-flow .nt-cell:nth-child(-n+1),
-.nt-table-stats .nt-cell:nth-child(-n+2),
-.nt-table-plan .nt-cell:nth-child(-n+1),
-.nt-table-inst .nt-cell:nth-child(-n+1),
-.nt-table-accounts .nt-cell:nth-child(-n+1) {
+.nt-table-flow .nt-cell:nth-child(1),
+.nt-table-plan .nt-cell:nth-child(1),
+.nt-table-inst .nt-cell:nth-child(1),
+.nt-table-accounts .nt-cell:nth-child(1),
+.nt-table-stats .nt-cell:nth-child(1),
+.nt-table-stats .nt-cell:nth-child(2) {
   background: var(--nt-row-bg, var(--nt-bg));
 }
 
-/* 冻结列的右边界：只画 1px、且不超出列外（原来 right:-1px + 绝对定位
-   会在列右侧多出一条穿透到底色的宽带，看着就是「冻结列右边很宽的黑区域」）。
-   用 box-shadow 内描边，不占布局、不溢出。 */
-.nt-table-flow .nt-th:nth-child(1),
-.nt-table-stats .nt-th:nth-child(2),
-.nt-table-plan .nt-th:nth-child(1),
-.nt-table-inst .nt-th:nth-child(1),
+/* 右边界：内描边，不占布局、不溢出（绝对定位伪元素会多出一条黑带） */
+.nt-table-stats .nt-th:nth-child(1),
 .nt-table-accounts .nt-th:nth-child(1) {
   box-shadow: inset -1px 0 0 0 var(--nt-bg-line);
 }
