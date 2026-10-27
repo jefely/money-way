@@ -260,5 +260,64 @@
 
     <footer class="nt-footer" id="nt-footer"></footer>
   </div>
+
+    <!-- 白屏兜底：模块加载失败（例如旧缓存指向已删文件）时给提示和重载按钮 -->
+    <div id="nt-boot-fallback" hidden></div>
+    <script>
+      (function () {
+        function show(msg) {
+          var box = document.getElementById('nt-boot-fallback');
+          if (!box || box.dataset.shown === '1') return;
+          box.dataset.shown = '1';
+          box.hidden = false;
+          box.textContent = '';
+
+          var t = document.createElement('div');
+          t.className = 'nt-boot-fb-title';
+          t.textContent = '页面没能启动';
+          var d = document.createElement('div');
+          d.className = 'nt-boot-fb-msg';
+          d.textContent = msg;
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'nt-boot-fb-btn';
+          b.textContent = '清缓存并重载';
+          b.addEventListener('click', async function () {
+            try {
+              var names = await caches.keys();
+              await Promise.all(names.map(function (n) { return caches.delete(n); }));
+              var regs = await navigator.serviceWorker.getRegistrations();
+              await Promise.all(regs.map(function (r) { return r.unregister(); }));
+            } catch (e) { /* 忽略 */ }
+            location.reload();
+          });
+
+          box.appendChild(t);
+          box.appendChild(d);
+          box.appendChild(b);
+        }
+
+        // 模块加载失败会触发 error（脚本层面）
+        window.addEventListener('error', function (ev) {
+          var t = ev && ev.target;
+          if (t && t.tagName === 'SCRIPT') show('脚本加载失败：' + (t.src || ''));
+        }, true);
+
+        // 3.5 秒后还没出锁屏 / 主界面 = 没起来
+        setTimeout(function () {
+          var hasGate = document.querySelector('.lock-card, #nt-setup-form, #nt-lock-form');
+          var hasApp = document.getElementById('nt-app');
+          var appShown = hasApp && !hasApp.hidden;
+          if (!hasGate && !appShown) {
+            show('模块没有加载完。多半是旧缓存指向了已删除的文件，点下面的按钮清一次。');
+          }
+        }, 3500);
+
+        window.__ntBootOk = function () {
+          var box = document.getElementById('nt-boot-fallback');
+          if (box) box.hidden = true;
+        };
+      })();
+    </script>
 </body>
 </html>

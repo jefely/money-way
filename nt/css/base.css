@@ -65,3 +65,48 @@ button {
   background: rgba(139, 108, 255, 0.55);
   color: #ffffff;
 }
+
+/* 白屏兜底提示 */
+#nt-boot-fallback {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 24px;
+  background: #0e0b16;
+  color: #f2eeff;
+  font-size: 14px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+#nt-boot-fallback[hidden] {
+  display: none;
+}
+
+.nt-boot-fb-title {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.nt-boot-fb-msg {
+  max-width: 320px;
+  color: #b9b2d0;
+  font-size: 13px;
+}
+
+.nt-boot-fb-btn {
+  margin-top: 8px;
+  padding: 8px 20px;
+  border: 0;
+  border-radius: 6px;
+  background: #8b6cff;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
