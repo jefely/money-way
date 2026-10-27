@@ -498,6 +498,17 @@
   touch-action: none;
 }
 
+/* 拖动期间降渲染质量：250 条线 + 43 块 + 一堆标签，每帧全画会掉帧，
+   表现就是「平移发涩、像是参数太慢」。
+   松手立刻恢复（文字回来、抗锯齿回来）。 */
+.pw-chart.is-dragging svg {
+  shape-rendering: optimizeSpeed;
+}
+
+.pw-chart.is-dragging text {
+  display: none;
+}
+
 /* 图里的文字只是标签：长按不该被选中、更不该出现反色高亮块 */
 .pw-chart,
 .pw-chart text {
@@ -512,9 +523,9 @@
   /* 钉在路径页内容区左上角（.pw-main 是 position:relative）。
      不能用 fixed：页面里只要有一个带 transform 的祖先，
      fixed 就会相对那个祖先定位，按钮会跟着图乱跑。 */
-  position: absolute;
+  position: fixed;
   left: 8px;
-  top: 8px;
+  top: 52px;
   z-index: 7;
   width: 22px;
   height: 22px;
@@ -536,10 +547,9 @@
 
 /* 「Money Way」跟着三角走，同一水平线 */
 .pw-brand {
-  /* 同上：跟着三角走，但改为视口定位 */
   position: fixed;
   left: 36px;
-  top: 56px;
+  top: 52px;
   z-index: 7;
   height: 22px;
   line-height: 22px;
@@ -551,8 +561,9 @@
 }
 
 @media (max-width: 820px) {
+  /* 手机上 tab 栏更矮，跟着抬一点 */
   .pw-toggle,
   .pw-brand {
-    top: 4px;
+    top: 48px;
   }
 }
