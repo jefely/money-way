@@ -152,7 +152,13 @@ export function mountChartGestures(box, target) {
   const onDown = (ev) => {
     // 点在弧块上时不拖：那是「选中账户」的点击
     const t = ev.target;
-    if (t && t.closest && t.closest('.mw-ring, .pw-ring, .pw-edge, .nt-chord')) return;
+    // 按到弧块或**线**上都不要进入拖动：
+    // 一是弧块的点击要选中账户，二是线的点击要选中那条线。
+    // 之前只排除了弧块，线的 pointerdown 被 setPointerCapture 抓住，
+    // 后续 click 被重定向到容器 —— 表现就是「点不到线」。
+    if (t && t.closest && t.closest(
+      '.mw-ring, .pw-ring, .pw-edge, .nt-chord, .mw-chord, .mw-hitarea',
+    )) return;
 
     // 右键 = 旋转（用户要求从 Shift+左键 改成右键长按）
     const rotateMode = ev.button === 2 || (ev.buttons & 2) === 2 || ev.shiftKey;
