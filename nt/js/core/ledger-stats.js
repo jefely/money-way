@@ -1,4 +1,4 @@
-﻿// 界面：（无界面）账本统计
+// 界面：（无界面）账本统计
 /**
  * 账本统计（纯 Σ流水）
  * 层：第一层 · 数据基座
@@ -15,6 +15,7 @@
  *   当前结余  = 到「现在」为止的余额，**不随区间变**
  *   转出/转入 = 落在区间 [start, end] 内的金额
  *   转出历史/转入历史 = 落在区间**之前**（date < start）的金额
+ *   历史结余  = 区间起点那一刻的余额（= 区间前的净额，方向按账户类型）
  * 没有区间时（全部）区间即「全部流水」，历史恒为 0。
  */
 
@@ -23,7 +24,10 @@ import { isDebitType } from './schema.js';
 /** 统计页的类型分组顺序（与界面一致：先资产，最后费用） */
 export const STAT_TYPE_ORDER = ['资产类', '负债类', '收入类', '权益类', '费用类'];
 
-const EMPTY = { opening: 0, balance: 0, periodOut: 0, periodIn: 0, historyOut: 0, historyIn: 0 };
+const EMPTY = {
+  opening: 0, balance: 0, periodOut: 0, periodIn: 0,
+  historyOut: 0, historyIn: 0, historyBalance: 0,
+};
 
 /** 把一份汇总累加进另一份（就地修改 target）。 */
 function addInto(target, s) {
@@ -33,6 +37,7 @@ function addInto(target, s) {
   target.periodIn += s.periodIn;
   target.historyOut += s.historyOut;
   target.historyIn += s.historyIn;
+  target.historyBalance += s.historyBalance;
   return target;
 }
 
@@ -47,7 +52,10 @@ export function accountSummary(account, transactions, range) {
   const id = account && account.id;
   const start = (range && range.start) || '';
   const end = (range && range.end) || '9999-12-31';
-  const out = { opening: 0, balance: 0, periodOut: 0, periodIn: 0, historyOut: 0, historyIn: 0 };
+  const out = {
+    opening: 0, balance: 0, periodOut: 0, periodIn: 0,
+    historyOut: 0, historyIn: 0, historyBalance: 0,
+  };
   if (!id) return out;
 
   let totalOut = 0;
@@ -75,6 +83,13 @@ export function accountSummary(account, transactions, range) {
   }
 
   out.balance = isDebitType(account.type) ? totalIn - totalOut : totalOut - totalIn;
+
+  // 历史结余 = 区间起点那一刻的余额。期初流水（2000-01-01）落在区间之前，
+  // 已经算进 historyIn，所以这里不用再单独加 opening。
+  out.historyBalance = isDebitType(account.type)
+    ? out.historyIn - out.historyOut
+    : out.historyOut - out.historyIn;
+
   return out;
 }
 

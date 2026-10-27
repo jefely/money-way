@@ -1,4 +1,4 @@
-﻿// 界面：流水 tab → 表格 tbody（虚拟滚动）
+// 界面：流水 tab → 表格 tbody（虚拟滚动）
 /**
  * ☐12 流水渲染器（虚拟滚动）
  * 层：第五层 · UI 渲染
@@ -21,6 +21,7 @@ export const CLASS = {
   to: 'nt-cell-to',
   amount: 'nt-cell-amount',
   note: 'nt-cell-note',
+  fixed: 'nt-cell-fixed',
   action: 'nt-cell-action',
 };
 
@@ -72,7 +73,7 @@ function spacerRow(h) {
   tr.className = 'nt-row-spacer';
   tr.style.height = h + 'px';
   const td = document.createElement('td');
-  td.colSpan = 7;
+  td.colSpan = 8;
   tr.appendChild(td);
   return tr;
 }
@@ -135,6 +136,9 @@ function renderWindow() {
       setInput(tr, 'to', r.to);
       setInput(tr, 'amount', r.amountEdit != null ? r.amountEdit : r.amount);
       setInput(tr, 'note', r.note);
+      // 「固定」这一列还没有对应的数据字段（流水上没有 isFixed），先给一个占位符。
+      // 等列语义定下来再接 —— 空着会让人以为表格没渲染完。
+      setText(tr, CLASS.fixed, r.fixedText != null ? r.fixedText : '—');
 
       if (r.isVirtual) {
         // 虚拟行（未来分期）：只读，样式标出「这是计划，不是已发生」

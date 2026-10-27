@@ -1,4 +1,4 @@
-﻿// 界面：（无界面）界面参数 SCHEMA + 主题默认值
+// 界面：（无界面）界面参数 SCHEMA + 主题默认值
 /**
  * 界面参数（调试 + 布局配置共用）
  * 层：第一层 · 数据基座（纯数据，零依赖，不碰 DOM）
@@ -46,12 +46,28 @@ export const GROUP_SCOPE = {
   数据区: 'global',
 };
 
-/** 列宽/对齐数组的列顺序（对应 colgroup 的 .nt-c-*） */
-export const COL_KEYS = ['seq', 'date', 'type', 'cat', 'code', 'num', 'amount', 'action', 'state', 'freq', 'day', 'name', 'balance', 'opening', 'histOut', 'histIn', 'periods', 'principal'];
+/**
+ * 列宽/对齐数组的列顺序（对应 colgroup 的 .nt-c-*）
+ *
+ * ⚠️ 顺序**只能在末尾追加**：用户拖过的列宽是以逗号数组存在存档里的，
+ * 按下标对应这张表。往中间插一项 = 所有人的列宽整体错位。
+ *
+ * 2026-10 追加了 from/to/note/out/iin/fixed/histBalance/up：
+ * 之前这些列不在表里，拖它们的手柄会被 onColResize 的 indexOf 判成 -1 直接返回
+ * —— 表现就是「流水表的转出/转入/备注拖不动」。
+ */
+export const COL_KEYS = [
+  'seq', 'date', 'type', 'cat', 'code', 'num', 'amount', 'action', 'state', 'freq',
+  'day', 'name', 'balance', 'opening', 'histOut', 'histIn', 'periods', 'principal',
+  // ↓ 2026-10 追加（不要往上面插）
+  'from', 'to', 'note', 'out', 'iin', 'fixed', 'histBalance', 'up',
+];
 
-// 顺序与 COL_KEYS 一一对应；后 7 个是账户/统计表用到的列
-export const DEFAULT_COL_WIDTHS = '44,84,72,76,64,100,96,40,64,64,64,110,100,96,90,90,64,96';
-export const DEFAULT_COL_ALIGN = '左,左,左,左,左,右,右,中,中,中,中,左,右,右,右,右,右,右';
+// 顺序与 COL_KEYS 一一对应
+export const DEFAULT_COL_WIDTHS = '44,84,72,76,64,100,96,40,64,64,64,110,100,96,90,90,64,96,'
+  + '112,112,116,84,84,48,96,40';
+// 列标题一律居中（2026-10 核对过的表格设计：所有表的表头都居中）
+export const DEFAULT_COL_ALIGN = Array(COL_KEYS.length).fill('中').join(',');
 
 /** 主题 id 列表（与 theme-manager 的 VALID 一致） */
 export const THEME_IDS = ['light', 'dark', 'alt1', 'alt2'];

@@ -40,6 +40,7 @@
     <td class="nt-cell nt-cell-note">
       <input class="nt-cell-input" type="text" data-field="note" aria-label="备注">
     </td>
+    <td class="nt-cell nt-cell-fixed" data-field="fixed"></td>
     <td class="nt-cell nt-cell-action">
       <button class="nt-btn nt-btn-icon" type="button" aria-label="删除这笔流水">×</button>
     </td>
@@ -65,6 +66,7 @@
     <td class="nt-cell nt-cell-note">
       <input class="nt-cell-input" type="text" data-field="note" aria-label="备注" placeholder="备注">
     </td>
+    <td class="nt-cell nt-cell-fixed"></td>
     <td class="nt-cell nt-cell-action"></td>
   </tr>
 </template>
@@ -72,7 +74,7 @@
 <!-- 空状态 -->
 <template id="tpl-empty">
   <tr class="nt-row">
-    <td class="nt-cell nt-empty" colspan="7">还没有流水，先在上面记一笔</td>
+    <td class="nt-cell nt-empty" colspan="8">还没有流水，先在上面记一笔</td>
   </tr>
 </template>
 
@@ -155,17 +157,18 @@
 </template>
 
 <!-- ============================================================
-     统计 · 分类视图行：序 | 分类 | 当前结余 | 转出 | 转入
+     统计 · 分类视图行：序 | 分类 | 转出金额 | 转入金额 | 当前余额 | 历史转出 | 历史转入 | 历史结余
      ============================================================ -->
 <template id="tpl-stat-cat">
   <tr class="nt-row">
     <td class="nt-cell nt-cell-seq" data-field="seq"></td>
     <td class="nt-cell" data-field="category"></td>
-    <td class="nt-cell nt-cell-num" data-field="balance"></td>
     <td class="nt-cell nt-cell-num" data-field="out"></td>
     <td class="nt-cell nt-cell-num" data-field="iin"></td>
+    <td class="nt-cell nt-cell-num" data-field="balance"></td>
     <td class="nt-cell nt-cell-num" data-field="histOut"></td>
     <td class="nt-cell nt-cell-num" data-field="histIn"></td>
+    <td class="nt-cell nt-cell-num" data-field="histBalance"></td>
   </tr>
 </template>
 
@@ -174,27 +177,28 @@
   <tr class="nt-row nt-row-total">
     <td class="nt-cell nt-cell-seq"></td>
     <td class="nt-cell" data-field="label"></td>
-    <td class="nt-cell nt-cell-num" data-field="balance"></td>
     <td class="nt-cell nt-cell-num" data-field="out"></td>
     <td class="nt-cell nt-cell-num" data-field="iin"></td>
+    <td class="nt-cell nt-cell-num" data-field="balance"></td>
+    <td class="nt-cell nt-cell-num" data-field="histOut"></td>
+    <td class="nt-cell nt-cell-num" data-field="histIn"></td>
+    <td class="nt-cell nt-cell-num" data-field="histBalance"></td>
   </tr>
 </template>
 
-<!-- 统计 · 汇总视图行：序 | 类型 | 分类 | 账户名称 | 当前结余 | 转出 | 转入 | 转出历史 | 转入历史 -->
+<!-- 统计 · 汇总视图行：账户名称 | 序号 | 类型 | 分类 | 转出金额 | 转入金额 | 当前余额 | 历史转出 | 历史转入 | 历史结余 -->
 <template id="tpl-stat-account">
   <tr class="nt-row">
-    <td class="nt-cell nt-cell-seq" data-field="seq"></td>
     <td class="nt-cell" data-field="name"></td>
-    <td class="nt-cell nt-cell-num" data-field="balance"></td>
-    <td class="nt-cell nt-cell-num" data-field="out"></td>
-    <td class="nt-cell nt-cell-num" data-field="iin"></td>
-    <td class="nt-cell nt-cell-num" data-field="histOut"></td>
-    <td class="nt-cell nt-cell-num" data-field="histIn"></td>
-    <td class="nt-cell nt-cell-num" data-field="opening"></td>
+    <td class="nt-cell nt-cell-seq" data-field="seq"></td>
     <td class="nt-cell" data-field="type"></td>
     <td class="nt-cell" data-field="category"></td>
-    <td class="nt-cell" data-field="billDay"></td>
-    <td class="nt-cell" data-field="repayDay"></td>
+    <td class="nt-cell nt-cell-num" data-field="out"></td>
+    <td class="nt-cell nt-cell-num" data-field="iin"></td>
+    <td class="nt-cell nt-cell-num" data-field="balance"></td>
+    <td class="nt-cell nt-cell-num" data-field="histOut"></td>
+    <td class="nt-cell nt-cell-num" data-field="histIn"></td>
+    <td class="nt-cell nt-cell-num" data-field="histBalance"></td>
   </tr>
 </template>
 
@@ -202,7 +206,6 @@
 <template id="tpl-query-row">
   <tr class="nt-row">
     <td class="nt-cell nt-cell-seq" data-field="seq"></td>
-    <td class="nt-cell" data-field="freq"></td>
     <td class="nt-cell" data-field="date"></td>
     <td class="nt-cell" data-field="from"></td>
     <td class="nt-cell" data-field="to"></td>
@@ -211,24 +214,13 @@
   </tr>
 </template>
 
-<!-- 设置 · 账户行（表格内直接编辑）：序 | 类型 | 分类 | 简码 | 名称 | 期初 | 操作 -->
+<!-- 设置 · 账户行（表格内直接编辑）：简码 | 序 | 类型 | 分类 | 名称 | 期初 | 账单日 | 还款日 | 上移 | 删除 -->
 <template id="tpl-account-row">
   <tr class="nt-row">
     <td class="nt-cell nt-cell-code">
       <input class="nt-cell-input nt-cell-input-code" type="text" maxlength="5" data-field="code" aria-label="简码">
     </td>
     <td class="nt-cell nt-cell-seq" data-field="seq"></td>
-    <td class="nt-cell">
-      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户名称">
-    </td>
-    <td class="nt-cell nt-cell-num" data-field="balance"></td>
-    <td class="nt-cell nt-cell-num" data-field="out"></td>
-    <td class="nt-cell nt-cell-num" data-field="iin"></td>
-    <td class="nt-cell nt-cell-num" data-field="histOut"></td>
-    <td class="nt-cell nt-cell-num" data-field="histIn"></td>
-    <td class="nt-cell nt-cell-num">
-      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="opening" aria-label="期初">
-    </td>
     <td class="nt-cell">
       <select class="nt-cell-input" data-field="type" aria-label="账户类型">
         <option value="资产类">资产类</option>
@@ -242,10 +234,19 @@
       <input class="nt-cell-input" type="text" data-field="category" aria-label="统计分类">
     </td>
     <td class="nt-cell">
+      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户名称">
+    </td>
+    <td class="nt-cell nt-cell-num">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="opening" aria-label="期初余额">
+    </td>
+    <td class="nt-cell">
       <input class="nt-cell-input" type="text" inputmode="numeric" data-field="billDay" aria-label="账单日">
     </td>
     <td class="nt-cell">
       <input class="nt-cell-input" type="text" inputmode="numeric" data-field="repayDay" aria-label="还款日">
+    </td>
+    <td class="nt-cell nt-cell-action">
+      <button class="nt-btn nt-btn-icon" type="button" data-act="up" aria-label="上移">↑</button>
     </td>
     <td class="nt-cell nt-cell-action">
       <button class="nt-btn nt-btn-icon" type="button" data-act="del" aria-label="删除账户">×</button>
@@ -261,17 +262,6 @@
     </td>
     <td class="nt-cell nt-cell-seq">+</td>
     <td class="nt-cell">
-      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户名称" placeholder="名称">
-    </td>
-    <td class="nt-cell nt-cell-num"></td>
-    <td class="nt-cell nt-cell-num"></td>
-    <td class="nt-cell nt-cell-num"></td>
-    <td class="nt-cell nt-cell-num"></td>
-    <td class="nt-cell nt-cell-num"></td>
-    <td class="nt-cell nt-cell-num">
-      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="opening" aria-label="期初" placeholder="期初">
-    </td>
-    <td class="nt-cell">
       <select class="nt-cell-input" data-field="type" aria-label="账户类型">
         <option value="资产类">资产类</option>
         <option value="负债类">负债类</option>
@@ -284,11 +274,18 @@
       <input class="nt-cell-input" type="text" data-field="category" aria-label="统计分类" placeholder="分类">
     </td>
     <td class="nt-cell">
+      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户名称" placeholder="名称">
+    </td>
+    <td class="nt-cell nt-cell-num">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="opening" aria-label="期初余额" placeholder="期初">
+    </td>
+    <td class="nt-cell">
       <input class="nt-cell-input" type="text" inputmode="numeric" data-field="billDay" aria-label="账单日" placeholder="账单日">
     </td>
     <td class="nt-cell">
       <input class="nt-cell-input" type="text" inputmode="numeric" data-field="repayDay" aria-label="还款日" placeholder="还款日">
     </td>
+    <td class="nt-cell nt-cell-action"></td>
     <td class="nt-cell nt-cell-action"></td>
   </tr>
 </template>
@@ -444,7 +441,6 @@
       <table class="nt-table nt-table-query">
         <colgroup>
           <col class="nt-c-q-seq">
-          <col class="nt-c-q-freq">
           <col class="nt-c-q-date">
           <col class="nt-c-q-from">
           <col class="nt-c-q-to">
@@ -454,7 +450,6 @@
         <thead>
             <!-- 筛选行：每个框就在自己那一列的格子里，列宽一变它跟着变 -->
             <tr class="nt-query-filter-row">
-              <th class="nt-th"></th>
               <th class="nt-th"></th>
               <th class="nt-th">
                 <input class="nt-qf" type="text" data-cond="dateRange" placeholder="日期 起~止" aria-label="日期范围">
@@ -474,7 +469,6 @@
             </tr>
             <tr>
               <th class="nt-th nt-c-seq" scope="col" data-col="seq">序</th>
-              <th class="nt-th nt-c-freq" scope="col" data-col="freq">频率</th>
               <th class="nt-th nt-c-date" scope="col" data-col="date">日期</th>
               <th class="nt-th" scope="col" data-col="from">转出账户</th>
               <th class="nt-th" scope="col" data-col="to">转入账户</th>

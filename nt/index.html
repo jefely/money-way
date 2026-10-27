@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
   <meta charset="UTF-8">
@@ -62,7 +62,8 @@
                 <th class="nt-th" scope="col" data-col="to">转入账户</th>
                 <th class="nt-th nt-cell-amount" scope="col" data-col="amount">金额</th>
                 <th class="nt-th" scope="col" data-col="note">备注</th>
-                <th class="nt-th nt-cell-action" scope="col"><span class="nt-visually-hidden">操作</span></th>
+                <th class="nt-th" scope="col" data-col="fixed">固定</th>
+                <th class="nt-th nt-cell-action" scope="col" data-col="action">删除</th>
               </tr>
             </thead>
             <tbody id="nt-flow-body"></tbody>
@@ -119,6 +120,7 @@
               <!-- 冻结区：筛选行 + 列标行（滚动时钉住） -->
               <div class="pw-frozen">
                 <div class="pw-flow-grid pw-flow-filter">
+                  <span></span>
                   <input class="pw-qf" id="pw-qf-date" placeholder="日期" aria-label="日期筛选">
                   <input class="pw-qf" id="pw-qf-from" placeholder="转出" aria-label="转出账户">
                   <input class="pw-qf" id="pw-qf-to" placeholder="转入" aria-label="转入账户">
@@ -126,9 +128,10 @@
                   <input class="pw-qf" id="pw-qf-note" placeholder="备注" aria-label="备注">
                 </div>
                 <div class="pw-flow-grid pw-flow-head" id="pw-flow-head">
+                  <span>序</span>
                   <span>日期</span>
-                  <span>转出</span>
-                  <span>转入</span>
+                  <span>转出账户</span>
+                  <span>转入账户</span>
                   <b>金额</b>
                   <span>备注</span>
                 </div>
@@ -167,12 +170,12 @@
                   <tr>
                     <th class="nt-th nt-c-seq" scope="col" data-col="seq">序</th>
                     <th class="nt-th nt-c-freq" scope="col" data-col="freq">频率</th>
-                    <th class="nt-th nt-c-day" scope="col" data-col="date">日期</th>
+                    <th class="nt-th nt-c-day" scope="col" data-col="day">日期</th>
                     <th class="nt-th" scope="col" data-col="from">转出账户</th>
                     <th class="nt-th" scope="col" data-col="to">转入账户</th>
                     <th class="nt-th nt-c-amount" scope="col" data-col="amount">金额</th>
                     <th class="nt-th" scope="col" data-col="note">备注</th>
-                    <th class="nt-th nt-c-action" scope="col"><span class="nt-visually-hidden">操作</span></th>
+                    <th class="nt-th nt-c-action" scope="col" data-col="action">删除</th>
                   </tr>
                 </thead>
               <tbody id="nt-plan-body"></tbody>
@@ -215,21 +218,17 @@
           <table class="nt-table nt-table-accounts">
             <thead>
                 <tr>
-                  <!-- 列顺序按最新规划：简码在最前（冻结），其余按「身份 -> 金额 -> 属性」排 -->
+                  <!-- 列顺序按核对过的设计：简码 · 序 · 类型 · 分类 · 名称 · 期初 · 账单日 · 还款日 · 上移 · 删除 -->
                   <th class="nt-th nt-c-code" scope="col" data-col="code">简码</th>
                   <th class="nt-th nt-c-seq" scope="col" data-col="seq">序</th>
-                  <th class="nt-th nt-c-name" scope="col" data-col="name">账户名称</th>
-                  <th class="nt-th nt-c-num" scope="col" data-col="balance">当前结余</th>
-                  <th class="nt-th nt-c-num" scope="col" data-col="out">转出</th>
-                  <th class="nt-th nt-c-num" scope="col" data-col="iin">转入</th>
-                  <th class="nt-th nt-c-num" scope="col" data-col="histOut">转出历史</th>
-                  <th class="nt-th nt-c-num" scope="col" data-col="histIn">转入历史</th>
-                  <th class="nt-th nt-c-num" scope="col" data-col="opening">期初</th>
                   <th class="nt-th nt-c-type" scope="col" data-col="type">类型</th>
                   <th class="nt-th nt-c-cat" scope="col" data-col="cat">分类</th>
+                  <th class="nt-th nt-c-name" scope="col" data-col="name">账户名称</th>
+                  <th class="nt-th nt-c-num" scope="col" data-col="opening">期初余额</th>
                   <th class="nt-th nt-c-day" scope="col" data-col="billDay">账单日</th>
                   <th class="nt-th nt-c-day" scope="col" data-col="repayDay">还款日</th>
-                  <th class="nt-th nt-c-action" scope="col"><span class="nt-visually-hidden">操作</span></th>
+                  <th class="nt-th nt-c-action" scope="col" data-col="up">上移</th>
+                  <th class="nt-th nt-c-action" scope="col" data-col="action">删除</th>
                 </tr>
             </thead>
             <tbody id="nt-accounts-body"></tbody>

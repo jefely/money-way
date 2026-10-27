@@ -1,4 +1,4 @@
-﻿// 界面：账户表（表格内直接编辑）
+// 界面：账户表（表格内直接编辑）
 /**
  * 账户表
  * 层：第五层 · UI
@@ -13,7 +13,6 @@
 import { tpl } from './render-transactions.js';
 import { setCell, moneyOrBlank } from './table.js';
 import { openingOf } from '../core/ledger-stats.js';
-import { buildStatMap, fillStatCells } from './account-stats-view.js';
 import { ZONES } from '../core/settings.js';
 import { money } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
@@ -38,8 +37,6 @@ export function mountAccountTable(ctx, tbody, opts) {
 
     tbody.textContent = '';
 
-    const statMap = buildStatMap(visible, state);
-
     const rowTpl = tpl('tpl-account-row');
     const frag = document.createDocumentFragment();
     let seq = 0;
@@ -55,7 +52,7 @@ export function mountAccountTable(ctx, tbody, opts) {
 
         const td = document.createElement('td');
         td.className = 'nt-cell nt-zone-cell';
-        td.colSpan = 7;
+        td.colSpan = 10;
 
         // flex 必须放在内层 div 上：直接设在 <td> 上会让它脱离表格布局，
         // colspan 就不生效了（标题会被压成第一列的宽度）。
@@ -81,7 +78,7 @@ export function mountAccountTable(ctx, tbody, opts) {
         tr.className = 'nt-row nt-zone-empty';
         const td = document.createElement('td');
         td.className = 'nt-cell';
-        td.colSpan = 7;
+        td.colSpan = 10;
         td.textContent = '（这一类还没有账户）';
         tr.appendChild(td);
         frag.appendChild(tr);
@@ -94,16 +91,14 @@ export function mountAccountTable(ctx, tbody, opts) {
         tr.dataset.id = acc.id;
 
         seq += 1;
-        setCell(tr, 'seq', seq);
         setCell(tr, 'code', acc.code || '');
-        setCell(tr, 'name', acc.name || '');
-        setCell(tr, 'opening', moneyOrBlank(openingOf(state, acc.id)));
-
-        fillStatCells(tr, statMap.get(acc.id));
+        setCell(tr, 'seq', seq);
 
         const sel = tr.querySelector('[data-field="type"]');
         if (sel) sel.value = TYPES.includes(acc.type) ? acc.type : '资产类';
         setCell(tr, 'category', acc.category || '');
+        setCell(tr, 'name', acc.name || '');
+        setCell(tr, 'opening', moneyOrBlank(openingOf(state, acc.id)));
         setCell(tr, 'billDay', acc.billDay || '');
         setCell(tr, 'repayDay', acc.repayDay || '');
 
@@ -126,6 +121,11 @@ export function mountAccountTable(ctx, tbody, opts) {
   }
 
   function bindRow(tr, id) {
+    const up = tr.querySelector('[data-act="up"]');
+    if (up) {
+      up.addEventListener('click', () => moveUp(id));
+    }
+
     const del = tr.querySelector('[data-act="del"]');
     if (del) {
       del.addEventListener('click', () => {
@@ -143,6 +143,36 @@ export function mountAccountTable(ctx, tbody, opts) {
       if (!inp) continue;
       inp.addEventListener('change', () => applyEdit(id, f, inp.value));
     }
+  }
+
+  /**
+   * 上移：与**同一类型**里的前一个账户换位置。
+   *
+   * 为什么限制在同一类型内：表格按类型分区渲染（ZONES 的 A/B 区），
+   * 跨类型调换在界面上根本看不出来 —— 用户点「上移」却什么都没变，只会以为坏了。
+   */
+  function moveUp(id) {
+    const st = ctx.getState();
+    const list = (st.accounts || []).slice();
+    const i = list.findIndex((a) => a && a.id === id);
+    if (i < 0) return;
+
+    const acc = list[i];
+    let j = -1;
+    for (let k = i - 1; k >= 0; k -= 1) {
+      if (list[k] && list[k].type === acc.type) { j = k; break; }
+    }
+    if (j < 0) {
+      ctx.setFooter('已经是这一类的第一个了');
+      return;
+    }
+
+    list[i] = list[j];
+    list[j] = acc;
+    ctx.setState({ ...st, accounts: list });
+    ctx.saveNow();
+    render();
+    ctx.setFooter('已上移');
   }
 
   function applyEdit(id, field, raw) {

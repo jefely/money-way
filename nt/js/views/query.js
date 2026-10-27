@@ -1,4 +1,4 @@
-﻿// 界面：查询 tab
+// 界面：查询 tab
 /**
  * 查询视图（三段独立查询表 A / B / C）
  * 层：第五层 · UI
@@ -60,7 +60,7 @@ export function mountQuery(section, ctx) {
     const state = ctx.getState();
 
     if (!hasCond(p.cond)) {
-      renderEmpty(p.body, '设置上方任一条件后显示结果', 7);
+      renderEmpty(p.body, '设置上方任一条件后显示结果', 6);
       p.totalEl.textContent = moneyAlways(0);
       return { count: 0, sum: 0 };
     }
@@ -68,7 +68,6 @@ export function mountQuery(section, ctx) {
     const hits = filterTransactions(state.transactions, p.cond, nameOf);
     const rows = hits.map((t, i) => ({
       seq: i + 1,
-      freq: freqOf(t),
       date: shortDate(t.date),
       from: nameOf(t.from_id),
       to: nameOf(t.to_id),
@@ -76,7 +75,7 @@ export function mountQuery(section, ctx) {
       note: t.note || '',
     }));
 
-    if (!rows.length) renderEmpty(p.body, '没有命中的流水', 7);
+    if (!rows.length) renderEmpty(p.body, '没有命中的流水', 6);
     else renderRows(p.body, rows, 'tpl-query-row');
 
     const t = queryTotals(hits);
@@ -93,14 +92,7 @@ export function mountQuery(section, ctx) {
     ctx.setFooter(parts.join(' | '));
   }
 
-  /** 频率：普通流水没有（留空）；固定收支是「月/周/日」，分期是「分期」 */
-  function freqOf(t) {
-    if (t.installmentId) return '分期';
-    if (t.freq) return t.freq;
-    if (t.isFixed) return '固定';
-    return '';
-  }
-
+  /** 频率列已从核对过的表格设计里去掉（流水查询只要 序/日期/转出/转入/金额/备注） */
   function nameOf(id) {
     const a = ctx.getIndex().byId.get(id);
     return a ? a.name : '';

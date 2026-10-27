@@ -1,4 +1,4 @@
-﻿// 界面：路径页左栏的流水查询表
+// 界面：路径页左栏的流水查询表
 /**
  * 路径页 · 左栏流水表
  * 层：第五层 · UI
@@ -10,8 +10,8 @@
  * 点任意一行 = 聚焦这一笔，图上点亮「它 + 它的上游」。
  */
 
-/** 列宽（与 path.css 的 .pw-flow-grid 必须一致） */
-export const COLS = '62px 1fr 1fr 68px 1fr';
+/** 列宽（与 path.css 的 .pw-flow-grid 必须一致）：序 · 日期 · 转出 · 转入 · 金额 · 备注 */
+export const COLS = '28px 62px 1fr 1fr 68px 1fr';
 
 /**
  * 绑定筛选框与行点击。
@@ -63,6 +63,7 @@ export function paintFlowRows(host, o) {
     row.setAttribute('role', 'button');
     row.tabIndex = 0;
 
+    row.appendChild(cell('span', String(seq)));
     row.appendChild(cell('span', shortDay(t.date)));
     row.appendChild(cell('span', nameOf(t.from_id)));
     row.appendChild(cell('span', nameOf(t.to_id)));

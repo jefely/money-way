@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    查询页：三段独立查询表（A / B / C）并排
    ============================================================ */
 
@@ -95,7 +95,7 @@
   }
 }
 
-/* ---------- 查询表 7 列宽度（窄屏要塞进 92% 的一栏里） ---------- */
+/* ---------- 查询表 6 列宽度（窄屏要塞进 92% 的一栏里） ---------- */
 
 .nt-table-query {
   table-layout: fixed;
@@ -106,12 +106,16 @@
 }
 
 .nt-c-q-seq { width: 26px; }
-.nt-c-q-freq { width: 36px; }
-.nt-c-q-date { width: 56px; }
-.nt-c-q-from { width: 58px; }
-.nt-c-q-to { width: 58px; }
-.nt-c-q-amount { width: 54px; }
+.nt-c-q-date { width: 58px; }
+.nt-c-q-from { width: 62px; }
+.nt-c-q-to { width: 62px; }
+.nt-c-q-amount { width: 56px; }
 .nt-c-q-note { width: auto; min-width: 0; }
+
+/* 数据列对齐：序 · 日期 · 转出 · 转入 居中，金额右、备注左 */
+.nt-table-query tbody td { text-align: center; }
+.nt-table-query tbody td:nth-child(5) { text-align: right; }
+.nt-table-query tbody td:nth-child(6) { text-align: left; }
 
 /* 表头与数据都不许换行：换行会把「转出账户」压成竖排单字 */
 .nt-table-query .nt-th,

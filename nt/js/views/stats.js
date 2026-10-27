@@ -7,7 +7,7 @@
  * 本文件只负责「取范围 → 调核心 → 套模板 → 写页脚」，不算钱。
  */
 
-import { categoryGroups, accountRows, openingOf } from '../core/ledger-stats.js';
+import { categoryGroups, accountRows } from '../core/ledger-stats.js';
 import { buildHead, renderMixed, renderEmpty } from '../ui/table.js';
 import { mountCellRange } from '../ui/cell-range.js';
 import { money } from '../core/format.js';
@@ -30,6 +30,8 @@ export function mountStats(section, ctx) {
   const pills = section.querySelector('#nt-stats-pills');
   const thead = section.querySelector('#nt-stats-head');
   const body = section.querySelector('#nt-stats-body');
+  // 分类视图 8 列、汇总视图 10 列，列宽完全不同 —— 用类区分，别让 nth-child 互相踩
+  const table = section.querySelector('#nt-stats-table');
 
   bindCaps();
   bindScope();
@@ -52,14 +54,17 @@ export function mountStats(section, ctx) {
   }
 
   function renderCategory(state, range) {
+    if (table) { table.classList.add('is-cat'); table.classList.remove('is-sum'); }
+
     buildHead(thead, [
-      { label: '序', cls: 'nt-c-seq' },
-      { label: '分类', cls: 'nt-c-cat' },
-      { label: '当前结余', cls: 'nt-c-num' },
-      { label: '转出', cls: 'nt-c-num' },
-      { label: '转入', cls: 'nt-c-num' },
-      { label: '转出历史', cls: 'nt-c-num' },
-      { label: '转入历史', cls: 'nt-c-num' },
+      { label: '序', cls: 'nt-c-seq', col: 'seq' },
+      { label: '分类', cls: 'nt-c-cat', col: 'cat' },
+      { label: '转出金额', cls: 'nt-c-num', col: 'out' },
+      { label: '转入金额', cls: 'nt-c-num', col: 'iin' },
+      { label: '当前余额', cls: 'nt-c-num', col: 'balance' },
+      { label: '历史转出', cls: 'nt-c-num', col: 'histOut' },
+      { label: '历史转入', cls: 'nt-c-num', col: 'histIn' },
+      { label: '历史结余', cls: 'nt-c-num', col: 'histBalance' },
     ]);
 
     const groups = categoryGroups(state.accounts, state.transactions, range);
@@ -76,11 +81,12 @@ export function mountStats(section, ctx) {
           data: {
             seq,
             category: c.category,
-            balance: money(c.balance),
             out: money(c.periodOut),
             iin: money(c.periodIn),
+            balance: money(c.balance),
             histOut: money(c.historyOut || 0),
             histIn: money(c.historyIn || 0),
+            histBalance: money(c.historyBalance || 0),
           },
         });
       }
@@ -88,56 +94,57 @@ export function mountStats(section, ctx) {
         tplId: 'tpl-stat-total',
         data: {
           label: `${g.type}合计`,
-          balance: money(g.total.balance),
           out: money(g.total.periodOut),
           iin: money(g.total.periodIn),
+          balance: money(g.total.balance),
+          histOut: money(g.total.historyOut || 0),
+          histIn: money(g.total.historyIn || 0),
+          histBalance: money(g.total.historyBalance || 0),
         },
       });
     }
 
-    if (!items.length) renderEmpty(body, '这段时间没有数据', 5);
+    if (!items.length) renderEmpty(body, '这段时间没有数据', 8);
     else renderMixed(body, items);
 
     ctx.setFooter(`${catCount} 个分类 · ${visibleCount(state)} 个账户 · ${scopeLabel()}`);
   }
 
   function renderSummary(state, range) {
-    // 列顺序按最新规划：序 / 账户名称 / 结余 / 转出 / 转入 / 两个历史 / 期初 / 类型 / 分类 / 账单日 / 还款日
+    if (table) { table.classList.add('is-sum'); table.classList.remove('is-cat'); }
+
+    // 列顺序按核对过的设计：账户名称 · 序号 · 类型 · 分类 · 转出 · 转入 · 当前余额 · 历史 ×3
     buildHead(thead, [
-      { label: '序', cls: 'nt-c-seq' },
-      { label: '账户名称', cls: 'nt-c-name' },
-      { label: '当前结余', cls: 'nt-c-num' },
-      { label: '转出', cls: 'nt-c-num' },
-      { label: '转入', cls: 'nt-c-num' },
-      { label: '转出历史', cls: 'nt-c-num' },
-      { label: '转入历史', cls: 'nt-c-num' },
-      { label: '期初', cls: 'nt-c-num' },
-      { label: '类型', cls: 'nt-c-type' },
-      { label: '分类', cls: 'nt-c-cat' },
-      { label: '账单日', cls: 'nt-c-day' },
-      { label: '还款日', cls: 'nt-c-day' },
+      { label: '账户名称', cls: 'nt-c-name', col: 'name' },
+      { label: '序号', cls: 'nt-c-seq', col: 'seq' },
+      { label: '类型', cls: 'nt-c-type', col: 'type' },
+      { label: '分类', cls: 'nt-c-cat', col: 'cat' },
+      { label: '转出金额', cls: 'nt-c-num', col: 'out' },
+      { label: '转入金额', cls: 'nt-c-num', col: 'iin' },
+      { label: '当前余额', cls: 'nt-c-num', col: 'balance' },
+      { label: '历史转出', cls: 'nt-c-num', col: 'histOut' },
+      { label: '历史转入', cls: 'nt-c-num', col: 'histIn' },
+      { label: '历史结余', cls: 'nt-c-num', col: 'histBalance' },
     ]);
 
     const rows = accountRows(state.accounts, state.transactions, range);
     const items = rows.map((row, i) => ({
       tplId: 'tpl-stat-account',
       data: {
-        seq: i + 1,
         name: row.acc.name,
-        balance: money(row.s.balance),
-        out: money(row.s.periodOut),
-        iin: money(row.s.periodIn),
-        histOut: money(row.s.historyOut),
-        histIn: money(row.s.historyIn),
-        opening: money(openingOf(state, row.acc.id)),
+        seq: i + 1,
         type: row.acc.type,
         category: row.acc.category || '—',
-        billDay: row.acc.billDay || '',
-        repayDay: row.acc.repayDay || '',
+        out: money(row.s.periodOut),
+        iin: money(row.s.periodIn),
+        balance: money(row.s.balance),
+        histOut: money(row.s.historyOut),
+        histIn: money(row.s.historyIn),
+        histBalance: money(row.s.historyBalance),
       },
     }));
 
-    if (!items.length) renderEmpty(body, '还没有账户', 12);
+    if (!items.length) renderEmpty(body, '还没有账户', 10);
     else renderMixed(body, items);
 
     ctx.setFooter(`${visibleCount(state)} 个账户 · ${scopeLabel()}`);

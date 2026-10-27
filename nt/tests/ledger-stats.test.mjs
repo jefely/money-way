@@ -67,6 +67,41 @@ test('区间口径：当前结余不随区间变，转出/转入与历史互补'
   assert.equal(feb.periodIn + feb.historyIn, all.periodIn);
 });
 
+/* ---------- 历史结余（汇总表 / 分类统计的最后一列） ---------- */
+
+test('历史结余 = 区间起点那一刻的余额（资产类 = 历史入 − 历史出）', () => {
+  const feb = accountSummary(ACC.bank, TX, FEB);
+  // 2 月之前：期初 1000 + 工资 800 = 1800 进，0 出
+  assert.equal(feb.historyBalance, 1800);
+
+  // 负债类方向相反：2 月之前没有流水 → 0
+  assert.equal(accountSummary(ACC.card, TX, FEB).historyBalance, 0);
+});
+
+test('历史结余 + 区间净额 = 当前余额（口径自洽）', () => {
+  const feb = accountSummary(ACC.bank, TX, FEB);
+  const periodNet = feb.periodIn - feb.periodOut;   // 资产类方向
+  assert.equal(feb.historyBalance + periodNet, feb.balance);
+
+  const food = accountSummary(ACC.food, TX, FEB);
+  assert.equal(food.historyBalance + (food.periodIn - food.periodOut), food.balance);
+});
+
+test('全部区间（无 start）时历史结余为 0 —— 「之前」是空的', () => {
+  const all = accountSummary(ACC.bank, TX);
+  assert.equal(all.historyBalance, 0);
+  assert.equal(all.historyOut, 0);
+  assert.equal(all.historyIn, 0);
+});
+
+test('分类聚合也带历史结余，且合计 = 各账户相加', () => {
+  const groups = categoryGroups(Object.values(ACC), TX, FEB);
+  const sumGroups = groups.reduce((n, g) => n + g.total.historyBalance, 0);
+  const sumRows = accountRows(Object.values(ACC), TX, FEB)
+    .reduce((n, r) => n + r.s.historyBalance, 0);
+  assert.equal(sumGroups, sumRows);
+});
+
 test('隐藏账户不参与统计，但期初流水仍算进对手账户', () => {
   const rows = summariesForAccounts(Object.values(ACC), TX);
   const ids = rows.map((r) => r.acc.id);

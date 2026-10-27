@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v0.26';
+const CACHE_NAME = 'nt-v0.27';
 
 const ASSETS = [
   './index.html',
@@ -92,7 +92,6 @@ const ASSETS = [
   './js/ui/account-actions.js',
   './js/ui/account-config.js',
   './js/ui/account-dialog.js',
-  './js/ui/account-stats-view.js',
   './js/ui/account-table.js',
   './js/ui/add-dialog.js',
   './js/ui/apply-settings.js',
