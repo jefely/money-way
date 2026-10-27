@@ -29,8 +29,10 @@ import { mountPath } from './views/path.js';
 import { mountDebugPanel } from './ui/debug-panel.js';
 import { applySettings } from './ui/apply-settings.js';
 import { bindAllTables, syncAllFrozen } from './ui/table-layout.js';
+import { clearSelection } from './ui/cell-range.js';
 import { loadMergedSettings, loadUserSettings, saveThemeSettings } from './ui/debug-themes.js';
-import { TABLE_COLS, parseTableWidths, colWidthKey } from './core/settings.js';
+import { TABLE_COLS } from './core/table-cols.js';
+import { saveTableColWidth } from './ui/col-save.js';
 import { APP_VER } from './core/version.js';
 import { initVersion } from './ui/update-check.js';
 import { registerServiceWorker } from './ui/pwa.js';
@@ -205,22 +207,7 @@ function tableKeyOf(tableEl) {
  * 每张表一份：在流水表把金额拖宽，不会连带改掉查询表 / 固定表的金额列。
  */
 function onColResize(tableEl, col, width) {
-  const theme = document.documentElement.getAttribute('data-theme') || 'dark';
-  const tkey = tableKeyOf(tableEl);
-  const t = TABLE_COLS[tkey];
-  if (!t || !col) return;
-
-  const i = t.cols.indexOf(col);
-  if (i < 0) return;
-
-  const key = colWidthKey(tkey);
-  const cur = loadMergedSettings({ getState }, theme);
-  const widths = parseTableWidths(cur[key], tkey);
-  widths[i] = Math.max(0, Math.round(width));
-
-  const user = { ...loadUserSettings({ getState }, theme), [key]: widths.join(',') };
-  saveThemeSettings({ getState, setState }, theme, user, 'user');
-  flushSave();
+  saveTableColWidth({ getState, setState, saveNow: flushSave }, tableKeyOf(tableEl), col, width);
 }
 
 function enterApp() {
@@ -241,7 +228,13 @@ function enterApp() {
   mountViews();
   bindTabs({
     defaultTab: 'flow',
-    onShow: (name) => { active = name; renderActive(); },
+    onShow: (name) => {
+      // 切页时把框选状态收掉：body 上的 nt-range-mode 会让整页 touch-action:none，
+      // 留在别的页就会出现「上下滑不动」而且没有任何报错。
+      clearSelection();
+      active = name;
+      renderActive();
+    },
   });
 
   // 界面参数调试面板：只在 ?debug=1 时出现，不影响正常用户

@@ -201,10 +201,36 @@
 }
 
 .pw-flow-head > * {
+  position: relative;
   text-align: center;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* 表头右缘的列宽拖动手柄（路径表是 grid，用自己的手柄） */
+.pw-col-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.pw-col-handle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 4px;
+  width: 1px;
+  background: var(--nt-bg-line);
+}
+
+.pw-col-handle:hover::after {
+  background: var(--nt-primary);
 }
 
 /* ---------- 数据行（可滚动） ---------- */

@@ -64,6 +64,7 @@
 | `ui/cell-range.js` | 单元格区域框选（长按起手 → 拖动框选 → 复制 / 粘贴 / 删除行） |
 | `ui/chart-gestures.js` | 环网图的手势（拖动 / 缩放 / 平移 / 旋转） |
 | `ui/checks-view.js` | 校验 tab → 账本校验区 |
+| `ui/col-save.js` | 把某张表某列的宽度存进「用户设置」 |
 | `ui/color-picker.js` | 界面参数浮层 → 取色器 |
 | `ui/debug-panel.js` | ?debug=1 → 界面参数浮层 |
 | `ui/debug-pip.js` | ?debug=1 → 界面参数独立窗口（画中画） |

@@ -1,4 +1,4 @@
-﻿// 界面：路径 tab
+// 界面：路径 tab
 /**
  * 路径视图（Money Way 环网图）
  * 层：第五层 · UI
@@ -14,14 +14,14 @@ import { computeSlots } from '../graph/mw-slot-calculator.js';
 import { buildChord } from '../graph/mw-path-calculator.js';
 import { traceUpstream, traceByAccount } from '../graph/path-tracer.js';
 import { SVG } from '../ui/mw-svg-renderer.js';
-import { paintChart, paintList, paintStats, paintEmpty } from '../ui/path-view.js';
-import { bindFlowFilters, paintFlowRows, bindSideToggle } from '../ui/path-flow-table.js';
+import { paintChart, paintList, paintEmpty } from '../ui/path-view.js';
+import { bindFlowFilters, paintFlowRows, bindSideToggle, mountPathColResize } from '../ui/path-flow-table.js';
 import { mountChartGestures } from '../ui/chart-gestures.js';
+import { saveTableColWidth } from '../ui/col-save.js';
 
 export function mountPath(section, ctx) {
   const chartBox = section.querySelector('#pw-chart');
   const flowBody = section.querySelector('#pw-flow-body');
-  const statsBox = section.querySelector('#pw-stats');
   const titleBox = section.querySelector('#pw-side-title');
   const hintBox = section.querySelector('#pw-hint');
   const clearBtn = section.querySelector('#pw-clear');
@@ -144,6 +144,11 @@ export function mountPath(section, ctx) {
   });
   bindSideToggle();
 
+  // 路径表是 div + grid，列宽拖动单独挂一套（拖动改 --nt-col-path-<列>，松手存进参数）
+  mountPathColResize(document.getElementById('pw-flow-head'), {
+    saveTableColWidth: (table, col, w) => saveTableColWidth(ctx, table, col, w),
+  });
+
   function render() {
     data = build();
 
@@ -195,15 +200,16 @@ export function mountPath(section, ctx) {
       },
     });
 
-    paintStats(statsBox, data, hits);
-
-    titleBox.textContent = focus && focus.kind === 'acc' ? nameOf(focus.id) : '全部流水';
+    titleBox.textContent = focus && focus.kind === 'acc' ? nameOf(focus.id) : '路径追踪';
     hintBox.textContent = hits
       ? `已高亮 ${hits.size} 条 · 点「清空」看全图`
       : '点弧块看它的来路与去向';
 
-    ctx.setFooter(`路径追踪 · ${data.range.start} ~ ${data.range.end}`
-      + ` · ${data.txs.length} 笔 · ${data.blocks.length} 块 · ${data.unitDeg.toFixed(3)}°/单位`);
+    // 图的参数压成一行放页脚（和其它页一样在屏幕底部），左栏不再占一块高度给统计
+    ctx.setFooter(`路径追踪 · ${data.txs.length} 笔 · ${data.blocks.length} 块`
+      + ` · ${data.unitDeg.toFixed(3)}°/单位 · ${data.unitArcLen.toFixed(2)}px/弧长`
+      + ` · 折叠 ${data.sliced.folded}`
+      + (hits ? ` · 已高亮 ${hits.size}` : ''));
   }
 
   return { render };

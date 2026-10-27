@@ -1,4 +1,4 @@
-﻿// 界面：路径 tab
+// 界面：路径 tab
 ﻿/**
  * 路径页视图（UI 层）
  *
@@ -74,26 +74,6 @@ export function paintList(host, data, hits, nameOf, onPickTx) {
   };
 }
 
-/** 左上角统计 */
-export function paintStats(host, data, hits) {
-  host.textContent = '';
-  const rows = [
-    ['流水', String(hits ? hits.size : data.txs.length)],
-    ['弧块', String(data.blocks.length)],
-    ['单位角', data.unitDeg.toFixed(3) + '°'],
-    ['单位弧长', data.unitArcLen.toFixed(2) + 'px'],
-    ['折叠', String(data.sliced.folded)],
-  ];
-  for (const [k, v] of rows) {
-    const dt = document.createElement('dt');
-    dt.textContent = k;
-    const dd = document.createElement('dd');
-    dd.textContent = v;
-    host.appendChild(dt);
-    host.appendChild(dd);
-  }
-}
-
 /** 安全写文本：元素不存在就跳过（渲染不该因为一个可选元素中断） */
 function setText(id, text) {
   const node = el(id);
@@ -112,9 +92,8 @@ export function paintEmpty(info) {
     '<div class="pw-empty">这段时间没有可画的流水<br>先在「流水」页记几笔'
     + '<br><small>' + detail + '</small></div>';
   // 左栏现在是流水查询表（#pw-flow-body），原来的 #pw-list 已删；
-  // 底部状态栏由 ctx.setFooter 负责，没有 #pw-footer 这个元素。
+  // 图的参数已经合并进页脚，没有 #pw-stats 这个元素了。
   setText('pw-flow-body', '');
-  setText('pw-stats', '');
   setText('pw-side-title', '暂无数据');
   setText('pw-hint', '');
 }

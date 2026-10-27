@@ -13,6 +13,75 @@
 /** 列宽（与 path.css 的 .pw-flow-grid 必须一致）：序 · 日期 · 转出 · 转入 · 金额 · 备注 */
 export const COLS = '28px 62px 1fr 1fr 68px 1fr';
 
+/** 路径表列 key（顺序 = 表头从左到右 = TABLE_COLS.path.cols） */
+const PATH_COLS = ['seq', 'date', 'from', 'to', 'amount', 'note'];
+
+/**
+ * 给路径表头挂列宽拖动手柄。
+ *
+ * 这张表不是 <table>（是 div + grid），所以不能复用 table-layout 的那套；
+ * 拖动直接改 :root 上的 --nt-col-path-<列>（grid 的 template 用 var 读），
+ * 松手把新宽度写进「路径追踪/列宽」。
+ */
+export function mountPathColResize(headEl, ctx) {
+  if (!headEl || headEl.dataset.resize === '1') return;
+  headEl.dataset.resize = '1';
+
+  const spans = [...headEl.children];
+  spans.forEach((sp, i) => {
+    const col = PATH_COLS[i];
+    if (!col) return;
+
+    const grip = document.createElement('span');
+    grip.className = 'pw-col-handle';
+    grip.setAttribute('aria-hidden', 'true');
+    sp.appendChild(grip);
+
+    grip.addEventListener('pointerdown', (ev) => startDrag(ev, sp, col, ctx));
+  });
+}
+
+function startDrag(ev, sp, col, ctx) {
+  if (ev.button !== 0 && ev.pointerType === 'mouse') return;
+  ev.preventDefault();
+  ev.stopPropagation();
+
+  const grip = ev.currentTarget;
+  const startX = ev.clientX;
+  const startW = Math.round(sp.getBoundingClientRect().width);
+  const root = document.documentElement;
+  const varName = '--nt-col-path-' + col;
+
+  let width = startW;
+  let raf = 0;
+
+  const flush = () => {
+    raf = 0;
+    root.style.setProperty(varName, width + 'px');
+  };
+
+  const onMove = (e) => {
+    width = Math.max(24, Math.round(startW + (e.clientX - startX)));
+    if (!raf) raf = requestAnimationFrame(flush);
+  };
+
+  const finish = () => {
+    if (raf) { cancelAnimationFrame(raf); flush(); }
+    grip.removeEventListener('pointermove', onMove);
+    grip.removeEventListener('pointerup', finish);
+    grip.removeEventListener('pointercancel', finish);
+    try { grip.releasePointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
+    if (typeof ctx.saveTableColWidth === 'function') {
+      ctx.saveTableColWidth('path', col, width);
+    }
+  };
+
+  try { grip.setPointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
+  grip.addEventListener('pointermove', onMove);
+  grip.addEventListener('pointerup', finish);
+  grip.addEventListener('pointercancel', finish);
+}
+
 /**
  * 绑定筛选框与行点击。
  * @param {{getFilter:()=>object, setFilter:(k:string,v:string)=>void,
@@ -116,7 +185,7 @@ export function setSideCollapsed(collapsed) {
   side.classList.toggle('collapsed', !!collapsed);
 }
 
-/** 绑定收起 / 展开 */
+/** 绑定收起 / 展开（「收起」按钮已删，只留把手与三角） */
 export function bindSideToggle() {
   const side = document.getElementById('pw-side');
   if (!side) return;
@@ -124,11 +193,7 @@ export function bindSideToggle() {
   const rail = document.getElementById('pw-rail');
   if (rail) rail.addEventListener('click', () => setSideCollapsed(false));
 
-  const col = document.getElementById('pw-collapse');
-  if (col) col.addEventListener('click', () => setSideCollapsed(true));
-
-  // 图区左上角的三角：和顶部「收起」按钮做同一件事，
-  // 顺手把「Money Way」标识跟着挪
+  // 图区左上角的三角：展开 / 收起同一个动作
   const tg = document.getElementById('pw-toggle');
   const brand = document.getElementById('pw-brand');
   if (tg) {

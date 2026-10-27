@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v0.30';
+const CACHE_NAME = 'nt-v0.31';
 
 const ASSETS = [
   './index.html',
@@ -133,6 +133,7 @@ const ASSETS = [
   './js/core/xlsx-xml.js',
   './js/ui/range-bar.js',
   './js/ui/cell-range.js',
+  './js/ui/col-save.js',
   './js/ui/undo-bar.js',
   './js/ui/table.js',
   './js/ui/tabs.js',
