@@ -35,6 +35,13 @@ export function currentView() {
 const clampZoom = (z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 
 /**
+ * 平移增益。
+ * 手势作用在 viewBox 坐标系的 <g> 上，已经按显示宽度换算过单位；
+ * 再乘这个倍数是因为用户反馈「速度还是偏慢，翻 4 倍合适」。
+ */
+const PAN_GAIN = 4;
+
+/**
  * 给图表容器挂手势。
  *
  * @param {HTMLElement} box    手势接收区（一般是 .pw-chart）
@@ -135,8 +142,8 @@ export function mountChartGestures(box, target) {
       // 用「相对起点的横移」算绝对角度，避免每帧累加的漂移
       view.rot = drag.rot + (ev.clientX - drag.x) * 0.3;
     } else {
-      view.tx = drag.tx + (ev.clientX - drag.x);
-      view.ty = drag.ty + (ev.clientY - drag.y);
+      view.tx = drag.tx + (ev.clientX - drag.x) * PAN_GAIN;
+      view.ty = drag.ty + (ev.clientY - drag.y) * PAN_GAIN;
     }
     apply();
   };

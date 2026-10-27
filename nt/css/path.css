@@ -434,15 +434,31 @@
 /* ---------- 图区：收起/展开三角 + Money Way 标识 ---------- */
 
 .pw-chart {
-  position: relative;
-  /* 图要能盖在侧栏上方：拖到哪都看得见（用户要求「完全自由移动」） */
-  z-index: 2;
+  /* 图脱离栅格，固定在**视口中央**：
+     收展侧栏只改变左栏宽度，图的容器尺寸与位置都不再变化 ——
+     这样「收展侧栏」和「图」彻底断开联动（用户要求）。
+     同时它天然盖在侧栏上方（z-index 高于 .pw-side）。 */
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: min(94vw, 86vh);
+  height: min(94vw, 86vh);
+  transform: translate(-50%, -50%);
+  z-index: 3;
   display: flex;
   min-width: 0;
   min-height: 0;
-  /* 不再裁剪 —— 之前 overflow:hidden 把平移限制在容器内，
-     看起来就是「只能挪一点点」。现在可以拖出边界。 */
   overflow: visible;
+}
+
+/* 图区自身的手势容器（绝对定位的容器不再参与 grid 布局） */
+.pw-chart-inner {
+  position: relative;
+  left: 0;
+  top: 0;
+  transform: none;
+  width: 100%;
+  height: 100%;
 }
 
 /* 图的尺寸只由**高度**决定，横向富余时居中留白。
