@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 项目地址（常量）
  * 层：第一层 · 数据基座
  *
@@ -16,8 +16,8 @@ export const PAGES_URL = 'https://jefely.github.io/money-way/';
 export const APP_URL = 'https://jefely.github.io/money-way/nt/';
 
 /**
- * 分享用的地址。
- * 指向**仓库**而不是当前页面 —— 扫到的人先看到这个项目是什么、有哪些版本，
- * 再从 README 进账本，比直接落到一个空白账本更合适。
+ * 分享用的地址 = 账本自己的安装页。
+ * 扫码直接打开账本，然后「添加到主屏幕」就能离线用 —— 和单文件版一致。
+ * 不要指向仓库：扫码的人要的是账本，不是源码。
  */
-export const SHARE_URL = REPO_URL;
+export const SHARE_URL = APP_URL;
