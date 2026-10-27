@@ -15,6 +15,7 @@ import { mountAccountTable } from '../ui/account-table.js';
 import * as NtModal from '../ui/modal.js';
 import { applyTheme, saveTheme } from '../ui/theme-manager.js';
 import { mountDebugPanel } from '../ui/debug-panel.js';
+import { openAccountConfig } from '../ui/account-config.js';
 
 const ACT_LABEL = { password: '修改密码', config: '配置', layout: '布局' };
 
@@ -47,6 +48,7 @@ export function mountSettings(section, ctx) {
     if (act === 'theme') { showTheme(); return; }
     if (act === 'reset') { showReset(); return; }
     if (act === 'layout') { showLayout(); return; }
+    if (act === 'config') { openAccountConfig(ctx); return; }
     NtModal.info(ACT_LABEL[act] || act, (b) => { b.textContent = '该功能在后续版本接入。'; });
   }
 
