@@ -168,8 +168,10 @@ export function mountChartGestures(box, target) {
     if (!drag) return;
 
     if (drag.rotateMode) {
-      // 用「相对起点的横移」算绝对角度，避免每帧累加的漂移
-      view.rot = drag.rot + (ev.clientX - drag.x) * 0.08;
+      // 用「相对起点的横移」算绝对角度，避免每帧累加的漂移。
+      // 取负：用户反馈右键往右拖时图跟着往右转，手感是反的 ——
+      // 现在右拖 = 逆时针，与「抓住图往那边拨」的直觉一致。
+      view.rot = drag.rot - (ev.clientX - drag.x) * 0.08;
     } else {
       view.tx = drag.tx + (ev.clientX - drag.x) * PAN_GAIN;
       view.ty = drag.ty + (ev.clientY - drag.y) * PAN_GAIN;
