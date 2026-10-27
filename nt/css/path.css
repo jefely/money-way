@@ -505,12 +505,6 @@
   touch-action: none;
 }
 
-/* 弧块分隔线：颜色来自主题变量（浅色纯白 / 深色纯黑） */
-/* 浅色主题（:root）没有单独定义这个变量，fallback 用纯白 */
-.mw-ring {
-  stroke: var(--nt-ring-sep, #ffffff);
-}
-
 /* 环内遮罩：用背景色压暗环内的连线（fill-opacity 在渲染器里给 0.26） */
 .mw-mask {
   fill: var(--nt-bg);
