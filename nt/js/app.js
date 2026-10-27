@@ -1,4 +1,4 @@
-// 界面：单页壳入口：门禁 → state → 7 视图装配 → tab 路由
+﻿// 界面：单页壳入口：门禁 → state → 7 视图装配 → tab 路由
 /**
  * 入口：装配（门禁 → state → 索引 → 7 个视图 → 事件）。
  *
@@ -30,8 +30,12 @@ import { mountDebugPanel } from './ui/debug-panel.js';
 import { applySettings } from './ui/apply-settings.js';
 import { mountColResize } from './ui/col-resize.js';
 import { COL_KEYS } from './core/settings.js';
+import { mergeFlowText, mergeRows as mergeRowsPure } from './core/sync-merge.js';
+import { unpackFromHash } from './core/sync-code.js';
 
 let state = createState();
+/** 扫二维码带进来的待合并数据（解锁或新建后消费掉） */
+let pendingPayload = null;
 let index = buildAccountIndex(state.accounts);
 let views = {};
 let active = 'flow';
@@ -83,6 +87,37 @@ function scheduleSave() {
 
 /* ---------- 账户弹窗（流水页与设置页共用同一个） ---------- */
 
+/**
+ * 合并「账本文本」（同步码解出来的）。返回新增笔数。
+ */
+function mergeText(text) {
+  const r = mergeFlowText(state, text);
+  setState(r.state);
+  return r.added;
+}
+
+/**
+ * 合并「解包出来的流水行」（二维码 #m= 里的紧凑载荷）。返回新增笔数。
+ */
+function mergeRows(rows) {
+  const r = mergeRowsPure(state, rows);
+  setState(r.state);
+  return r.added;
+}
+
+/**
+ * 把扫二维码带进来的数据并进账本（解锁/新建都走这里）。
+ * 只在启动时有一天用量：pendingPayload 消费掉就置空。
+ */
+async function applyPendingScan() {
+  if (!pendingPayload) return;
+  const r = mergeRowsPure(state, pendingPayload.rows);
+  state = r.state;
+  pendingPayload = null;
+  try { await flushSave(); } catch (e) {}
+  setFooter(r.added ? `扫码合并 ${r.added} 笔` : '扫码数据里没有新记录');
+}
+
 function openAccounts() {
   openAccountsWith({
     getState,
@@ -112,6 +147,8 @@ function mountViews() {
     setFooter,
     rerender: renderActive,
     openAccounts,
+    mergeText,
+    mergeRows,
     resetAll: async () => {
       await destroyVault();
       NtModal.closeAll();
@@ -199,18 +236,31 @@ async function boot() {
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = 0; }
   });
 
+  // 扫二维码打开时 URL 带 #m=…：先解出来，解锁后自动合并
+  const hash = (typeof location !== 'undefined' ? location.hash : '');
+  if (/[#&]m=/.test(hash)) {
+    try {
+      pendingPayload = await unpackFromHash(hash);
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    } catch (e) {
+      setFooter('二维码数据解不开：' + e.message);
+    }
+  }
+
   const exists = await hasVault();
   showGate(exists, {
     onUnlock: async (pw) => {
       const res = await unlockVault(pw);
       if (res.ok) {
         setState(adoptState(res.state));
+        await applyPendingScan();
         enterApp();
       }
       return res;
     },
     onSetup: async (pw) => {
       setState(seedState());
+      await applyPendingScan();
       try {
         await createVault(state, pw);
         enterApp();

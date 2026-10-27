@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    NT账本 · 流水页组件（表单 / 表格 / 校验）
    公约 3.4：类名统一 nt- 前缀；不用 DOM 层级选择器。
    ============================================================ */
@@ -392,4 +392,49 @@
   color: var(--nt-text);
   font: 12px/1.5 ui-monospace, Consolas, monospace;
   resize: vertical;
+}
+/* 同步弹窗：三个区块（二维码 / 同步码 / 接收） */
+.nt-sync-block {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--nt-bg-line);
+}
+.nt-sync-block:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.nt-sync-block:first-child {
+  padding-top: 0;
+}
+
+.nt-sync-title {
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--nt-text);
+}
+
+/* 二维码：白底、圆角、居中，四周留白让扫码器识别 */
+.nt-sync-qr {
+  display: block;
+  margin: 8px auto;
+  max-width: 200px;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.nt-sync-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.nt-sync-part {
+  min-width: 150px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--nt-text-muted);
+  font-variant-numeric: tabular-nums;
 }
