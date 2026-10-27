@@ -36,9 +36,9 @@ const clampZoom = (z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 
 /**
  * 平移增益。手势已按显示宽度换算过单位（屏幕 px → viewBox 单位），
- * 这个倍数从 4 减到 2，再按用户要求减半到 1（即 1:1 跟手）。
+ * 这个倍数从 4 → 2 → 1，再按用户要求减半到 0.5（慢一倍）。
  */
-const PAN_GAIN = 1;
+const PAN_GAIN = 0.5;
 
 /**
  * 给图表容器挂手势。
@@ -72,16 +72,24 @@ export function mountChartGestures(box, target) {
    * 手势作用在内部的 <g> 上，它的坐标系是 viewBox（6000×6000），
    * 而手指移动是屏幕 px。不换算的话 translate(100px) 只等于屏幕上
    * 100 × (显示宽/6000) ≈ 6px —— 表现就是「使劲搓、移得很慢」。
+   *
+   * 缓存结果：以前每帧都 querySelector + getBoundingClientRect，
+   * 250 条线的图上会掉帧，拖动起来就是「一开始慢、后面一下窜出去」。
    */
+  let cachedK = 0;
+  const resetK = () => { cachedK = 0; };
   const unitScale = () => {
+    if (cachedK) return cachedK;
     const svg = box.querySelector('svg');
     if (!svg) return 1;
     const r = svg.getBoundingClientRect();
     if (!r || !r.width) return 1;
     const vb = String(svg.getAttribute('viewBox') || '').split(/[\s,]+/);
     const size = Number(vb[2]) || r.width;
-    return size / r.width;
+    cachedK = size / r.width;
+    return cachedK;
   };
+  if (typeof window !== 'undefined') window.addEventListener('resize', resetK);
 
   const apply = () => {
     const el = current();
