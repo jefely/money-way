@@ -109,16 +109,17 @@ function versionLine() {
 
   wrap.appendChild(btnRow);
 
+  // 版本号放在按钮下方：左边远端、右边本地
   const mini = document.createElement('span');
   mini.className = 'nt-ver-mini';
 
-  const local = document.createElement('span');
-  local.textContent = '本地：' + APP_VER;
   const remote = document.createElement('span');
   remote.textContent = '远端：检查中…';
+  const local = document.createElement('span');
+  local.textContent = '本地：' + APP_VER;
 
-  mini.appendChild(local);
   mini.appendChild(remote);
+  mini.appendChild(local);
   wrap.appendChild(mini);
 
   let busy = false;

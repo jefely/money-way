@@ -5,7 +5,7 @@
  * 参照单文件版的做法：
  *   ① 只拉 sw.js（几 KB），从 CACHE_NAME 读远端版本；读不到才退回拉 index.html
  *   ② 远端更新 → 清 Cache Storage + 让 SW skipWaiting + 记一个标记 + reload
- *   ③ 已最新 → 只提示，不动缓存
+ *   ③ 已是最新 → 不动缓存，只把远端版本号显示出来
  *
  * 不用 Service Worker 的 waiting 判断：只改 index.html 而 sw.js 没变时，
  * 浏览器根本不触发 install，waiting 永远是空，会一直说「已是最新」。
@@ -113,7 +113,7 @@ async function fetchText(url, timeoutMs) {
  * 硬重载：清掉所有 Cache Storage + 注销 Service Worker + 刷新。
  *
  * 为什么需要它：旧的 SW 是 cache-first，连 sw.js 本身都被缓存过，
- * 于是「检查更新」永远读到旧版本号，说「已最新」但界面还是旧的。
+ * 于是版本检查永远读到旧版本号、看起来「没问题」，但界面还是旧的。
  * 这个按钮把缓存和 SW 一起清掉，是那种情况唯一可靠的解法。
  *
  * @param {{reload?:Function}} [opts] 测试时可注入

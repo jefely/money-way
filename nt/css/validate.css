@@ -111,7 +111,6 @@
 
 /* ===== 说明页顶部：标语 + 二维码分享 ===== */
 
-
 /* 二维码分享：左二维码 + 右说明（窄屏时也保持左右，二维码很小） */
 .nt-share-block {
   margin: 10px 0 14px;
@@ -164,19 +163,39 @@
 }
 
 /* 二维码右侧最下面那行：按钮 + 两行小字（照单文件版，别占太多高度） */
-/* 版本行：上面两个按钮，下面两行小字 */
+/* 版本行：两个按钮横向并列，版本号在下方一行（左远端、右本地） */
 .nt-ver-line {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
   margin-top: 8px;
 }
 
 .nt-ver-btns {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 0 0 auto;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.nt-ver-btns .nt-ver-btn {
+  flex: 1 1 0;
+  padding: 0 18px;
+  height: 28px;
+  font-size: 12px;
+}
+
+/* 版本号一行两端：左远端、右本地（只此一条规则，别再加第二条覆盖它） */
+.nt-ver-mini {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--nt-text-light);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
 }
 
 .nt-ver-btn {
@@ -198,17 +217,6 @@
 }
 
 /* 当前/远端各占一行，小字，不撑高卡片 */
-.nt-ver-mini {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  font-size: 10px;
-  line-height: 1.35;
-  color: var(--nt-text-light);
-  font-variant-numeric: tabular-nums;
-  min-width: 0;
-  overflow: hidden;
-}
 
 /* 段落分隔：比行距大一档，视觉上像「新的一段」而不是「又一行」 */
 .nt-block-line.nt-block-gap {
