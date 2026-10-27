@@ -179,18 +179,19 @@
 }
 
 .nt-ver-btns .nt-ver-btn {
-  flex: 1 1 0;
-  padding: 0 18px;
-  height: 28px;
-  font-size: 12px;
+  flex: 0 0 auto;
+  min-width: 48px;
+  padding: 0 9px;
+  height: 22px;
+  font-size: 11px;
 }
 
 /* 版本号一行两端：左远端、右本地（只此一条规则，别再加第二条覆盖它） */
 .nt-ver-mini {
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-start;
+  gap: 14px;
   font-size: 10.5px;
   line-height: 1.4;
   color: var(--nt-text-light);
