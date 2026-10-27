@@ -117,3 +117,45 @@
   text-align: right;
   padding-right: 8px;
 }
+
+/* ===== 固定收支表列宽 =====
+   8 列在 390px 屏上同样会挤成竖排字。
+*/
+.nt-table-plan {
+  table-layout: fixed;
+  width: 542px;
+  min-width: 542px;
+}
+
+.nt-table-plan th,
+.nt-table-plan td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nt-table-plan th:nth-child(1) { width: 34px; }   /* 序 */
+.nt-table-plan th:nth-child(2) { width: 72px; }   /* 频率 */
+.nt-table-plan th:nth-child(3) { width: 58px; }   /* 日期 */
+.nt-table-plan th:nth-child(4) { width: 90px; }   /* 转出 */
+.nt-table-plan th:nth-child(5) { width: 90px; }   /* 转入 */
+.nt-table-plan th:nth-child(6) { width: 84px; }   /* 金额 */
+.nt-table-plan th:nth-child(7) { width: 80px; }   /* 备注 */
+.nt-table-plan th:nth-child(8) { width: 34px; }   /* 操作 */
+
+.nt-table-plan input.nt-cell-input,
+.nt-table-plan select.nt-cell-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 12px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.nt-plan-fixed .nt-tablewrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.nt-plan-fixed .nt-tablewrap::-webkit-scrollbar {
+  height: 6px;
+}

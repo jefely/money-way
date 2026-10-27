@@ -196,16 +196,65 @@
 </template>
 
 <!-- 计划 · 固定收支行：序 | 频率 | 日期 | 转出 | 转入 | 金额 | 备注 | 本月 -->
+
+
+<!-- 计划 · 固定收支行：序 | 频率 | 日期 | 转出 | 转入 | 金额 | 备注 | 操作 -->
 <template id="tpl-sched-row">
   <tr class="nt-row">
     <td class="nt-cell nt-cell-seq" data-field="seq"></td>
-    <td class="nt-cell" data-field="freq"></td>
-    <td class="nt-cell nt-cell-date" data-field="day"></td>
-    <td class="nt-cell" data-field="from"></td>
-    <td class="nt-cell" data-field="to"></td>
-    <td class="nt-cell nt-cell-num" data-field="amount"></td>
-    <td class="nt-cell" data-field="note"></td>
-    <td class="nt-cell" data-field="state"></td>
+    <td class="nt-cell">
+      <select class="nt-cell-input" data-field="freq" aria-label="频率">
+        <option value="monthly">每月</option>
+        <option value="daily">每天</option>
+      </select>
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="numeric" maxlength="2" data-field="day" aria-label="日期">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" data-field="from" aria-label="转出账户">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" data-field="to" aria-label="转入账户">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="amount" aria-label="金额">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" data-field="note" aria-label="备注">
+    </td>
+    <td class="nt-cell nt-cell-action">
+      <button class="nt-btn nt-btn-icon" type="button" data-act="del" aria-label="删除">×</button>
+    </td>
+  </tr>
+</template>
+
+<!-- 计划 · 固定收支新增行：填了即成 -->
+<template id="tpl-sched-new">
+  <tr class="nt-row nt-row-new" data-new="1">
+    <td class="nt-cell nt-cell-seq">+</td>
+    <td class="nt-cell">
+      <select class="nt-cell-input" data-field="freq" aria-label="频率">
+        <option value="monthly">每月</option>
+        <option value="daily">每天</option>
+      </select>
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="numeric" maxlength="2" data-field="day" aria-label="日期" placeholder="日期">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" data-field="from" aria-label="转出账户" placeholder="转出">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" data-field="to" aria-label="转入账户" placeholder="转入">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="amount" aria-label="金额" placeholder="金额">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" data-field="note" aria-label="备注" placeholder="备注">
+    </td>
+    <td class="nt-cell nt-cell-action"></td>
   </tr>
 </template>
 

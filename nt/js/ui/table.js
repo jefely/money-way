@@ -1,4 +1,4 @@
-// 界面：统计 / 查询 / 固定 / 设置 → 通用表格渲染
+﻿// 界面：统计 / 查询 / 固定 / 设置 → 通用表格渲染
 /**
  * 表格渲染助手（UI 层）
  * 层：第五层 · UI 渲染
@@ -98,4 +98,32 @@ export function renderEmpty(tbody, text, colspan) {
     td.colSpan = colspan || 1;
   }
   tbody.appendChild(tr);
+}
+
+/**
+ * 填一格。
+ * `renderRows` 只会写 textContent，遇到 <input>/<select> 就填不进去；
+ * 表格内直接交互的页面用这个。
+ *
+ * @param {HTMLElement} tr
+ * @param {string} field data-field 的值
+ * @param {any} value
+ */
+export function setCell(tr, field, value) {
+  if (!tr) return;
+  const el = tr.querySelector('[data-field="' + field + '"]');
+  if (!el) return;
+  const v = value == null ? '' : String(value);
+  if (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') {
+    el.value = v;
+  } else {
+    el.textContent = v;
+  }
+}
+
+/** 金额 → 可编辑字符串（0 和空都给空串，别显示 0） */
+export function moneyOrBlank(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n === 0) return '';
+  return String(n);
 }
