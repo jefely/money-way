@@ -149,7 +149,8 @@ export function renderChart(data) {
     let rText = rOut + 8 * RATIO;
     if (crowded) {
       const veryNarrow = arcLen < 12 * RATIO;
-      const coneLen = (veryNarrow && prevVeryNarrow) ? 120 * RATIO : 46 * RATIO;
+      // 锥形默认 115（= 基准 46 的 2.5 倍），连续极窄时第二个 300
+      const coneLen = (veryNarrow && prevVeryNarrow) ? 300 * RATIO : 115 * RATIO;
       prevVeryNarrow = veryNarrow;
       rText = rOut + coneLen;
     }
