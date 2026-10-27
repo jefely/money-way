@@ -39,7 +39,7 @@ const clampZoom = (z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
  * 4 → 2 → 1 → 0.5 → 0.35 → 回到 0.5：0.35 手感偏慢（用户反馈「变慢了」），
  * 0.5 是他确认过「正常」的那一档。
  */
-const PAN_GAIN = 0.5;
+const PAN_GAIN = 0.7;
 
 /**
  * 给图表容器挂手势。
@@ -163,7 +163,7 @@ export function mountChartGestures(box, target) {
 
     if (drag.rotateMode) {
       // 用「相对起点的横移」算绝对角度，避免每帧累加的漂移
-      view.rot = drag.rot + (ev.clientX - drag.x) * 0.3;
+      view.rot = drag.rot + (ev.clientX - drag.x) * 0.15;
     } else {
       view.tx = drag.tx + (ev.clientX - drag.x) * PAN_GAIN;
       view.ty = drag.ty + (ev.clientY - drag.y) * PAN_GAIN;
