@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
   <meta charset="UTF-8">
@@ -146,7 +146,24 @@
           </div>
         </div>
         <div class="nt-plan-inst" id="nt-plan-inst" hidden>
-          <p class="nt-notice">分期矩阵在下一版接入（引擎已就绪：installment-engine / scheduler-engine）。</p>
+          <div class="nt-tablewrap">
+            <table class="nt-table nt-table-inst">
+              <thead>
+                <tr>
+                  <th class="nt-th nt-c-seq" scope="col">序</th>
+                  <th class="nt-th" scope="col">账户</th>
+                  <th class="nt-th nt-c-num" scope="col">每月应还</th>
+                  <th class="nt-th nt-c-num" scope="col">期数</th>
+                  <th class="nt-th nt-c-date" scope="col">首月</th>
+                  <th class="nt-th nt-c-num" scope="col">已还</th>
+                  <th class="nt-th nt-c-num" scope="col">剩余本金</th>
+                  <th class="nt-th nt-c-num" scope="col">剩余利息</th>
+                  <th class="nt-th nt-c-action" scope="col"><span class="nt-visually-hidden">操作</span></th>
+                </tr>
+              </thead>
+              <tbody id="nt-inst-body"></tbody>
+            </table>
+          </div>
         </div>
       </section>
 

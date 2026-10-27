@@ -1,4 +1,4 @@
-// 界面：（无界面）时间分段
+﻿// 界面：（无界面）时间分段
 /**
  * ☐5 时间状态机
  * 层：第二层 · 时间轴引擎
@@ -44,7 +44,7 @@ export function splitByTime(transactions, accounts, installments, opts) {
     else current.push(t);
   }
 
-  const virtual = buildVirtualRepayments(installments, targetMonth);
+  const virtual = buildVirtualRepayments(installments, targetMonth, accounts);
 
   return {
     past,
@@ -72,17 +72,27 @@ export function splitByTime(transactions, accounts, installments, opts) {
  * @param {string} targetMonth 'YYYY-MM'
  * @returns {Array}
  */
-export function buildVirtualRepayments(installments, targetMonth) {
+export function buildVirtualRepayments(installments, targetMonth, accounts) {
   const out = [];
 
+  // 账户表只用来把 id 翻成人名；账本记录里根本没有 name 字段
+  const accById = new Map();
+  for (const a of accounts || []) if (a && a.id) accById.set(a.id, a);
+  const nameOf = (id) => {
+    const a = accById.get(id);
+    return a ? String(a.name || '') : '';
+  };
+
   for (const inst of installments || []) {
-    if (!inst || !inst.name) continue;
+    // 判据是「有没有 inst 规则」，不是有没有 name
+    if (!inst || !inst.inst) continue;
 
     // computeInstallment 只认 'YYYY-MM'，传日期会得到 NaN → 已还期数算成 0
     const st = computeInstallment(inst, targetMonth);
     if (!st.firstMonth || st.periods <= 0) continue;
 
     const payDay = Number(inst.day) || Number((inst.inst || {}).day) || 1;
+    const target = nameOf(inst.to_id) || nameOf(inst.from_id) || inst.note || '分期';
 
     for (let k = st.paidPeriods; k < st.periods; k++) {
       const month = addMonths(st.firstMonth, k);
@@ -91,7 +101,7 @@ export function buildVirtualRepayments(installments, targetMonth) {
       out.push({
         isVirtual: true,
         kind: 'installment',
-        source: inst.name,
+        source: target,
         periodIndex: k + 1,
         periods: st.periods,
         month,
@@ -100,7 +110,7 @@ export function buildVirtualRepayments(installments, targetMonth) {
         principal: st.principalPer,
         interest: st.interestPer,
         fromName: '分期还款',
-        toName: inst.name,
+        toName: target,
       });
     }
   }

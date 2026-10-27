@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    计划页：固定收支表 + 分期矩阵
    ============================================================ */
 
@@ -27,4 +27,34 @@
 .nt-plan-matrix .nt-th,
 .nt-plan-matrix .nt-cell {
   white-space: nowrap;
+}
+
+/* 分期弹窗的表单网格（label 左、输入右） */
+.nt-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.nt-form-row {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--nt-text-muted);
+}
+
+.nt-form-row .nt-input {
+  height: 32px;
+}
+
+/* 分期工具条：只在自己那个子视图里出现 */
+.nt-inst-bar {
+  padding: 8px 10px;
+}
+
+.nt-table-inst .nt-c-date {
+  min-width: 62px;
 }

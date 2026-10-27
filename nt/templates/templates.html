@@ -1,4 +1,4 @@
-<!--
+﻿<!--
   ☐11 模板库
   层：第五层 · UI 渲染
   ------------------------------------------------------------
@@ -206,6 +206,23 @@
     <td class="nt-cell nt-cell-num" data-field="amount"></td>
     <td class="nt-cell" data-field="note"></td>
     <td class="nt-cell" data-field="state"></td>
+  </tr>
+</template>
+
+<!-- 计划 · 分期行：序 | 账户 | 每月应还 | 期数 | 首月 | 已还 | 剩余本金 | 剩余利息 | 操作 -->
+<template id="tpl-inst-row">
+  <tr class="nt-row">
+    <td class="nt-cell nt-cell-seq" data-field="seq"></td>
+    <td class="nt-cell" data-field="name"></td>
+    <td class="nt-cell nt-cell-num" data-field="per"></td>
+    <td class="nt-cell nt-cell-num" data-field="periods"></td>
+    <td class="nt-cell nt-cell-date" data-field="first"></td>
+    <td class="nt-cell nt-cell-num" data-field="paid"></td>
+    <td class="nt-cell nt-cell-num" data-field="remainP"></td>
+    <td class="nt-cell nt-cell-num" data-field="remainI"></td>
+    <td class="nt-cell nt-cell-action">
+      <button class="nt-btn nt-btn-icon" type="button" data-act="del" aria-label="删除分期">×</button>
+    </td>
   </tr>
 </template>
 

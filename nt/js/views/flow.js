@@ -43,7 +43,11 @@ export function mountFlow(section, ctx) {
       virtual = splitByTime(st.transactions, st.accounts, st.scheduled || [], {
         targetDate: todayIso(),
       }).virtual;
-    } catch (e) { /* 分期数据坏了也不该挡住流水页 */ }
+    } catch (e) {
+      // 分期数据坏了不该挡住流水页，但错误必须留痕，否则虚拟行悄悄消失
+      if (typeof console !== 'undefined') console.error('[flow] splitByTime 失败', e);
+      window.__tlError = String(e && e.message || e);
+    }
     renderRows(body, buildFlowRows(st, virtual));
     ctx.setFooter(footerText());
   }
