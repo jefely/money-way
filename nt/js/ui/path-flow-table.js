@@ -264,6 +264,11 @@ export function bindSideToggle() {
   const rail = document.getElementById('pw-rail');
   if (rail) rail.addEventListener('click', () => setSideCollapsed(false));
 
+  // 窄屏才显示的那个「收起」——三角按钮在左上角、手机上是唯一入口，
+  // 用户反馈找不到/点不到，所以标题行也放一个
+  const colBtn = document.getElementById('pw-collapse');
+  if (colBtn) colBtn.addEventListener('click', () => setSideCollapsed(true));
+
   // 图区左上角的三角：展开 / 收起同一个动作
   const tg = document.getElementById('pw-toggle');
   const brand = document.getElementById('pw-brand');
