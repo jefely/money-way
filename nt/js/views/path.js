@@ -11,6 +11,8 @@
 
 import { fetchGraphData } from '../graph/mw-data-fetcher.js';
 import { computeSlots } from '../graph/mw-slot-calculator.js';
+import { matchAccount } from '../core/query-engine.js';
+import { dateInRange } from '../core/date-query.js';
 import { buildChord } from '../graph/mw-path-calculator.js';
 import { traceUpstream, traceByAccount } from '../graph/path-tracer.js';
 import { SVG } from '../ui/mw-svg-renderer.js';
@@ -104,12 +106,17 @@ export function mountPath(section, ctx) {
     const any = f.date || f.from || f.to || f.amount || f.note;
     if (!any) return txs.map((_, i) => i);
 
+    const idx = ctx.getIndex();
+
+    // 账户列要简码和全名都认（与流水查询页同一份规则：core/query-engine 的 matchAccount）
+    const hitAcc = (id, q) => matchAccount(idx && idx.byId ? idx.byId.get(id) : null, q);
+
     const out = [];
     for (let i = 0; i < txs.length; i += 1) {
       const t = txs[i];
-      if (f.date && !String(t.date || '').includes(f.date.replace(/[^0-9]/g, ''))) continue;
-      if (f.from && !nameOf(t.from_id).includes(f.from)) continue;
-      if (f.to && !nameOf(t.to_id).includes(f.to)) continue;
+      if (f.date && !dateInRange(t.date, f.date)) continue;
+      if (f.from && !hitAcc(t.from_id, f.from)) continue;
+      if (f.to && !hitAcc(t.to_id, f.to)) continue;
       if (f.amount && !String(t.amount || '').includes(f.amount)) continue;
       if (f.note && !String(t.note || '').includes(f.note)) continue;
       out.push(i);

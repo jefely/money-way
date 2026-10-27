@@ -8,6 +8,7 @@
  */
 
 import { filterTransactions, queryTotals } from '../core/query-engine.js';
+import { parseDateRange } from '../core/date-query.js';
 import { renderRows, renderEmpty } from '../ui/table.js';
 import { tpl } from '../ui/render-transactions.js';
 import { money, moneyAlways, shortDate } from '../core/format.js';
@@ -34,10 +35,10 @@ export function mountQuery(section, ctx) {
       input.addEventListener('input', () => {
         const key = input.getAttribute('data-cond');
         if (key === 'dateRange') {
-          // 一个框填「起~止」，拆成两个条件，core 那边不用改
-          const { from, to } = splitRange(input.value);
-          cond.dateFrom = from;
-          cond.dateTo = to;
+          // 一个框填「起~止」或单日/整月/整年，拆成两个 ISO 边界（core/date-query）
+          const r = parseDateRange(input.value);
+          cond.dateFrom = r ? r.from : '';
+          cond.dateTo = r ? r.to : '';
         } else {
           cond[key] = input.value;
         }
@@ -65,7 +66,11 @@ export function mountQuery(section, ctx) {
       return { count: 0, sum: 0 };
     }
 
-    const hits = filterTransactions(state.transactions, p.cond, nameOf);
+    // 传账户对象（不是名字）：这样「转出/转入」框里打简码也能筛到，
+    // 与路径页那边用同一份匹配规则（core/query-engine 的 matchAccount）
+    const hits = filterTransactions(
+      state.transactions, p.cond, (id) => (ctx.getIndex().byId.get(id) || null),
+    );
     const rows = hits.map((t, i) => ({
       seq: i + 1,
       date: shortDate(t.date),
@@ -105,26 +110,3 @@ function hasCond(c) {
   return !!(c.dateFrom || c.dateTo || c.from || c.to || c.amount || c.note);
 }
 
-/**
- * 「起~止」拆成两个日期。
- *
- * 认这些写法：
- *   2026-08-01~2026-08-31
- *   2026-08-01 2026-08-31
- *   20260801~20260831
- * 只填一边也可以：~2026-08-31 / 2026-08-01~
- */
-function splitRange(text) {
-  const s = String(text || '').trim();
-  if (!s) return { from: '', to: '' };
-
-  // 优先按 ~ / ～ / 空格 / 逗号切
-  const m = s.split(/[~～\s,，]+/).filter(Boolean);
-  if (m.length >= 2) return { from: m[0], to: m[1] };
-  if (m.length === 1) {
-    // 只有一段：如果以 ~ 开头就是「只给止」，结尾是 ~ 就是「只给起」
-    if (/^[~～]/.test(s)) return { from: '', to: m[0] };
-    return { from: m[0], to: '' };
-  }
-  return { from: '', to: '' };
-}

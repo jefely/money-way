@@ -18,6 +18,7 @@
 | `core/color.js` | （无界面）颜色转换 |
 | `core/crypto-engine.js` | （无界面）PBKDF2 + AES-GCM |
 | `core/csv.js` | CSV 解析（纯函数，Node 可跑） |
+| `core/date-query.js` | 日期筛选框的解析（纯函数，Node 可跑） |
 | `core/export-text.js` | 导出为纯文本（.txt 模板 / .csv） |
 | `core/flow-text.js` | （无界面）账本文本 ↔ state |
 | `core/format.js` | （无界面）金额/日期格式化 |

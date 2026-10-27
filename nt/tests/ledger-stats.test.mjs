@@ -17,7 +17,7 @@ import {
   summariesForAccounts,
   STAT_TYPE_ORDER,
 } from '../js/core/ledger-stats.js';
-import { filterTransactions, queryTotals } from '../js/core/query-engine.js';
+import { filterTransactions, queryTotals, matchAccount } from '../js/core/query-engine.js';
 
 const ACC = {
   bank: { id: 'a1', code: 'ZHC', name: '招行储', type: '资产类', category: '储蓄' },
@@ -168,4 +168,36 @@ test('查询小计：笔数与金额', () => {
   const t = queryTotals(hits);
   assert.equal(t.count, 2);
   assert.equal(t.sum, 500);
+});
+
+/* ---------- 账户筛选：简码也要认 ---------- */
+
+test('matchAccount：全名包含 / 简码相等 / 简码包含都算命中', () => {
+  const acc = { name: '招行储7912', code: 'ZHC' };
+  assert.equal(matchAccount(acc, '招行'), true, '全名片段');
+  assert.equal(matchAccount(acc, 'ZHC'), true, '简码原样');
+  assert.equal(matchAccount(acc, 'zhc'), true, '简码不区分大小写');
+  assert.equal(matchAccount(acc, 'ZH'), true, '简码前缀');
+  assert.equal(matchAccount(acc, 'XJ'), false, '别的简码不该命中');
+  assert.equal(matchAccount(null, 'ZHC'), false);
+  assert.equal(matchAccount(acc, ''), true, '空条件不过滤');
+});
+
+test('filterTransactions：传账户对象时能用简码筛（查询页就是这么用的）', () => {
+  const accs = {
+    a1: { name: '招行储', code: 'ZHC' },
+    a2: { name: '餐饮', code: 'CY' },
+    a3: { name: '信卡', code: 'XY' },
+    a4: { name: '工资', code: 'GZ' },
+  };
+  const accOf = (id) => accs[id] || null;
+
+  const byCode = filterTransactions(TX, { from: 'ZHC' }, accOf);
+  assert.equal(byCode.length, 2, '招行储作为转出的两笔');
+
+  const byName = filterTransactions(TX, { from: '招行' }, accOf);
+  assert.equal(byName.length, 2, '全名片段也要能用');
+
+  const none = filterTransactions(TX, { from: 'XJ' }, accOf);
+  assert.equal(none.length, 0);
 });

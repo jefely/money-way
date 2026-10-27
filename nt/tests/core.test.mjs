@@ -105,7 +105,8 @@ test('format：金额 / 空值 / 短日期', () => {
   assert.equal(moneyAlways(0), '¥0.00');
   assert.equal(moneyOrBlank(0), '');
   assert.equal(moneyOrBlank(12.5), '¥12.50');
-  assert.equal(shortDate('2026-08-30'), '26-08-30');
+  // 六位 YYMMDD（与单文件版一致；带连字符的 26-08-30 是旧格式）
+  assert.equal(shortDate('2026-08-30'), '260830');
   assert.equal(isIsoDate('2026-08-30'), true);
   assert.equal(isIsoDate('2026-02-31'), false);
 });

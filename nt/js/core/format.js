@@ -35,10 +35,16 @@ export function moneyOrBlank(v) {
   return money(n);
 }
 
-/** ISO 日期 → "26-08-30"（界面短格式）。 */
+/**
+ * 短日期：2026-08-30 → 260830（六位，与单文件版一致）
+ *
+ * 之前输出 "26-08-30"（带连字符），和单文件版的 YYMMDD 不是一个格式，
+ * 表格里一列日期看着就是「格式不对」。调用方本来就大多要 .replace(/-/g,'')，
+ * 统一成六位之后那些地方也天然正确。
+ */
 export function shortDate(iso) {
   const s = String(iso || '').replace(/[^0-9]/g, '');
-  if (s.length >= 8) return `${s.slice(2, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+  if (s.length >= 8) return s.slice(2, 8);
   return String(iso || '');
 }
 
