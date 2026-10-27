@@ -95,22 +95,32 @@ export function renderChart(data) {
       + ` fill="none" stroke="currentColor" stroke-width="${f(0.6 * RATIO)}" stroke-opacity="0.28"/>`);
   }
 
-  // ② 环内遮罩：先铺一层底色圆给整个内部打底（在**线下面**）——
-  //    用户要求「遮罩兜底、遮罩上是线」，所以它必须画在弦之前。
-  //    用 class 而不是 fill="var(...)"，presentation attribute 里 CSS 变量解析不可靠。
-  parts.push(`<circle class="mw-mask" cx="${cx}" cy="${cy}" r="${rIn}"`
-    + ` fill-opacity="0.48" pointer-events="none"/>`);
+  // ② 连线分两趟：先画「背景线」，再按需要压一层遮罩，最后画「命中线」。
+  //    这样单线模式下非选中线被遮罩盖住、选中线浮在遮罩之上。
+  const below = [];
+  const above = [];
+  for (const c of chords) (c.above ? above : below).push(c);
 
-  // ③ 连线：坐标 / 线宽 / 颜色 / 透明度全部现成
-  for (const c of chords) {
+  const drawChord = (c) => {
     const op = typeof c.opacity === 'number'
       ? c.opacity
       : (d.opacityOf ? d.opacityOf(c) : 0.2);
-    parts.push(`<path class="mw-chord" d="${chordPath(c.path)}"`
+    return `<path class="mw-chord" d="${chordPath(c.path)}"`
       + ` fill="none" stroke="${c.strokeColor}"`
       + ` stroke-width="${c.strokeWidth}" stroke-opacity="${op}"`
-      + ` stroke-linecap="round" data-tx="${c.txIdx}"/>`);
+      + ` stroke-linecap="round" data-tx="${c.txIdx}"/>`;
+  };
+
+  for (const c of below) parts.push(drawChord(c));
+
+  // 遮罩只在下述情况画：基本模式不画（用户要求「不要黑色遮罩」）
+  const maskOp = typeof d.maskOpacity === 'number' ? d.maskOpacity : 0;
+  if (maskOp > 0) {
+    parts.push(`<circle class="mw-mask" cx="${cx}" cy="${cy}" r="${rIn}"`
+      + ` fill-opacity="${maskOp}" pointer-events="none"/>`);
   }
+
+  for (const c of above) parts.push(drawChord(c));
 
   // ④ 弧块
   // 分隔线：浅色主题纯白 / 深色主题纯黑，2.4×RATIO（约 0.45 显示像素）、75% 不透明。

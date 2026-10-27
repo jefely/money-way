@@ -53,8 +53,15 @@ export function paintChart(host, data, hits, onPick, mode) {
   const chords = data.chords.map((c) => {
     const hit = hits ? hits.has(c.txIdx) : false;
     // 线宽按 RATIO 等比放大：画布从 1800 提到 6000，线还是 2.4px 就显得更细
-    let strokeWidth = W_MID * RATIO;
-    if (mode === 'trace') {
+    // 四种模式的线宽互不干扰：
+    //   基本  → W_MID × 0.75（细一级），不画遮罩
+    //   单线  → 命中 W_MID × 1.0（粗一级），其它同级但被遮罩盖住
+    //   色块  → 沿用层级档位（不动）
+    //   追踪  → 固定四档 6 / 3.6 / 2.4 / 1.2
+    let strokeWidth = W_MID * RATIO * 0.75;
+    if (mode === 'tx') {
+      strokeWidth = W_MID * RATIO * (hit ? 1.0 : 0.75);
+    } else if (mode === 'trace') {
       // 模式 4：追踪 —— 单位 1 = 0.9 个单位角对应的弧长，
       // 再按「转入方类型」乘倍率（费用 1 / 储蓄 0.5 / 负债 0.25 / 收入·权益 0.12）。
       // 这样线宽和「一笔流水在环上占多宽」是同一个量纲，笔数越多线越细。
@@ -71,6 +78,8 @@ export function paintChart(host, data, hits, onPick, mode) {
     }
     return {
       ...c,
+      // 命中线要在遮罩**之上**（单线模式用它浮出来）
+      above: mode === 'tx' && hit,
       strokeWidth,
       opacity: !hits ? OPACITY.GLOBAL : (hit ? OPACITY.HIT : OPACITY.DIM),
     };
@@ -82,6 +91,8 @@ export function paintChart(host, data, hits, onPick, mode) {
     sectors: data.sectors,
     pointAt,
     colorOf,
+    // 遮罩只在单线模式出现：基本模式 0（不要黑遮罩），色块/追踪维持原来的 0.48
+    maskOpacity: mode === 'tx' ? 0.55 : 0,
   });
 
   host.classList.toggle('has-focus', !!hits);
