@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 公约自动检查：任何一条不过 → 退出码 1（= 不准合并到 main）。
  *
  *   node nt/tools/check-rules.mjs
@@ -8,6 +8,7 @@
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, extname, relative, dirname } from 'node:path';
+import { buildJsMap } from './js-map.mjs';
 
 const ROOT = new URL('../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'vendor']);
@@ -142,6 +143,16 @@ function computeDivDepth(html) {
     else { depth += 1; max = Math.max(max, depth); }
   }
   return { max };
+}
+
+// ⑨ JS-MAP.md 必须与各文件头的界面注释一致。
+// 手写文档在 150+ 个文件时必然漂（上一版就漏了一半 ui/ 模块），
+// 所以文档改成生成物，门禁负责它别和代码分家。
+const mapPath = join(ROOT, 'JS-MAP.md');
+const expectedMap = buildJsMap(ROOT).replace(/\r\n/g, '\n');
+const actualMap = (existsSync(mapPath) ? readFileSync(mapPath, 'utf8') : '').replace(/\r\n/g, '\n');
+if (actualMap !== expectedMap) {
+  problems.push('nt/JS-MAP.md 与文件头的 `// 界面：` 不一致 —— 跑 node nt/tools/js-map.mjs --write');
 }
 
 if (problems.length) {

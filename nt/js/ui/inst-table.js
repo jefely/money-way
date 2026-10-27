@@ -15,11 +15,11 @@ import { mountCellRange } from './cell-range.js';
 import { showUndo } from './undo-bar.js';
 import { money, moneyAlways } from '../core/format.js';
 import { computeInstallment, addMonths, monthsBetween, isDueInMonth as isDueMonth } from '../core/installment-engine.js';
-import { createScheduled, normalizeMonth, clampDay } from '../core/schema.js';
+import { createScheduled, normalizeMonth, clampDay, isDayGiven } from '../core/schema.js';
 import { parseAccountInput } from '../core/account-resolver.js';
 import { removeBatch, restoreBatch } from '../core/state-store.js';
 
-const FIELDS = ['name', 'principal', 'periods', 'day', 'interest', 'firstMonth'];
+const FIELDS = ['name', 'principal', 'periods', 'billDay', 'day', 'interest', 'firstMonth'];
 
 /**
  * @param {{getState:Function, setState:Function, getIndex:Function,
@@ -83,8 +83,9 @@ export function mountInstTable(ctx, tbody, opts) {
       trP.appendChild(cellInput(row.id, 'name', acc ? acc.name : '', '', 'nt-c-inst-name'));
       trP.appendChild(cellInput(row.id, 'principal', moneyOrBlank(row.inst.principal), 'nt-cell-input-num'));
       trP.appendChild(cellInput(row.id, 'periods', row.inst.periods || '', 'nt-cell-input-num'));
+      // 账单日是可选字段：没填就是空，不再镜像「还款日」装成有值
+      trP.appendChild(cellInput(row.id, 'billDay', row.billDay || '', 'nt-cell-input-num'));
       trP.appendChild(cellInput(row.id, 'day', row.day || '', 'nt-cell-input-num'));
-      trP.appendChild(cellText(row.day ? String(row.day) : '', ''));
 
       // 下行：利息（左 4 格留空，与上行对齐）
       const trI = document.createElement('tr');
@@ -225,6 +226,11 @@ export function mountInstTable(ctx, tbody, opts) {
       row.inst.firstMonth = m;
     } else if (field === 'day') {
       row.day = clampDay(v);
+    } else if (field === 'billDay') {
+      // 清空账单日 = 真的没有账单日（信用卡账单日不是每张卡都有），
+      // 不能留成 1 号，也不能继续镜像还款日
+      if (isDayGiven(v)) row.billDay = clampDay(v);
+      else delete row.billDay;
     }
 
     row.amount = computeInstallment(row, todayMonth()).perPeriod;
@@ -283,6 +289,7 @@ export function mountInstTable(ctx, tbody, opts) {
         to_id: r.acc.id,
         from_id: null,
         day: clampDay(get('day') || 5),
+        billDay: get('billDay'),
         note: '分期',
         amount: (principal + interest) / periods,
         inst: { periods, firstMonth, principal, interest },

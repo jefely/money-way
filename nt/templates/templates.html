@@ -1,4 +1,4 @@
-﻿<!--
+<!--
   ☐11 模板库
   层：第五层 · UI 渲染
   ------------------------------------------------------------
@@ -388,7 +388,7 @@
   </tr>
 </template>
 
-<!-- 计划 · 分期新增行：填了即成 -->
+<!-- 计划 · 分期新增行：填了即成（账单日可选，空着就是没有账单日） -->
 <template id="tpl-inst-new">
   <tr class="nt-row nt-row-new" data-new="1">
     <td class="nt-cell nt-c-inst-name">
@@ -401,9 +401,11 @@
       <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="numeric" data-field="periods" aria-label="期数" placeholder="期数">
     </td>
     <td class="nt-cell">
-      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="numeric" data-field="day" aria-label="账单日" placeholder="账单日">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="numeric" maxlength="2" data-field="billDay" aria-label="账单日" placeholder="账单日">
     </td>
-    <td class="nt-cell"></td>
+    <td class="nt-cell">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="numeric" maxlength="2" data-field="day" aria-label="还款日" placeholder="还款日">
+    </td>
   </tr>
 </template>
 

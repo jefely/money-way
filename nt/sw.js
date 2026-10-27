@@ -23,11 +23,10 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v0.25';
+const CACHE_NAME = 'nt-v0.26';
 
 const ASSETS = [
   './index.html',
-  './path.html',
   './text.html',
   './manifest.json',
   './templates/templates.html',
@@ -87,7 +86,6 @@ const ASSETS = [
   './js/graph/mw-path-calculator.js',
   './js/graph/mw-slot-calculator.js',
   './js/graph/path-tracer.js',
-  './js/path-app.js',
   './js/platform/device-profile.js',
   './js/text-app.js',
   './js/timeline/time-state.js',

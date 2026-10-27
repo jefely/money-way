@@ -12,7 +12,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  createScheduled, FREQ, ACCOUNT_TYPE, clampDay, normalizeMonth,
+  createScheduled, FREQ, ACCOUNT_TYPE, clampDay, normalizeMonth, isDayGiven,
   OPENING_ACCOUNT_ID,
 } from '../js/core/schema.js';
 import {
@@ -214,4 +214,42 @@ test('分期金额 = 本金 + 利息（别把利息算丢）', () => {
   const st = computeInstallment(INST, '2027-08');
   assert.equal(st.total, st.principal + st.interest);
   assert.equal(st.perPeriod * st.periods, 12720);
+});
+
+/* ---------- 账单日是可选的（不能再镜像还款日） ---------- */
+
+test('createScheduled：填了账单日才写 billDay', () => {
+  const a = createScheduled({ day: 10, billDay: 25 });
+  assert.equal(a.day, 10);
+  assert.equal(a.billDay, 25);
+
+  const b = createScheduled({ day: 10 });
+  assert.equal('billDay' in b, false, '没填账单日就不该有这个字段');
+
+  const c = createScheduled({ day: 10, billDay: '' });
+  assert.equal('billDay' in c, false);
+
+  const d = createScheduled({ day: 10, billDay: 0 });
+  assert.equal('billDay' in d, false, '0 不是「每月 0 号」，是没填');
+});
+
+test('createScheduled：账单日越界钳到 1~31，且与还款日各自独立', () => {
+  const a = createScheduled({ day: 5, billDay: 40 });
+  assert.equal(a.billDay, 31);
+  assert.equal(a.day, 5, '账单日不许反过来覆盖还款日');
+
+  const b = createScheduled({ day: 40, billDay: 5 });
+  assert.equal(b.day, 31);
+  assert.equal(b.billDay, 5);
+});
+
+test('isDayGiven：空 / 0 / 非数字都算没给', () => {
+  assert.equal(isDayGiven(5), true);
+  assert.equal(isDayGiven('25'), true);
+  assert.equal(isDayGiven(''), false);
+  assert.equal(isDayGiven('  '), false);
+  assert.equal(isDayGiven(null), false);
+  assert.equal(isDayGiven(undefined), false);
+  assert.equal(isDayGiven(0), false);
+  assert.equal(isDayGiven('abc'), false);
 });

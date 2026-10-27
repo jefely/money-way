@@ -51,8 +51,7 @@ node nt/tools/probe.mjs http://127.0.0.1:8082/nt/index.html "document.querySelec
 nt/
 ├── index.html                    单页壳：header + 7-tab + 7 个 .nt-view + footer
 ├── text.html                     流水文本整页编辑器（从流水页「添加 / 导入」进入）
-├── path.html                     Money Way 环网图独立页
-├── manifest.json · sw.js         PWA（CACHE_NAME = nt-v0.03）
+├── manifest.json · sw.js         PWA（CACHE_NAME 必须与 js/core/version.js 的 APP_VER 相等）
 ├── css/
 │   ├── theme.css                 双主题变量
 │   ├── base.css                  重置 + 排版

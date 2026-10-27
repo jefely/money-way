@@ -140,6 +140,10 @@ export function createScheduled(patch = {}) {
     note: String(patch.note || ''),
   };
 
+  // 账单日（信用卡的记账日）是**可选**的：没填就不写这个字段。
+  // 不能用 clampDay 兜底 —— 它会把「没填」变成 1 号，那是在替用户编数据。
+  if (isDayGiven(patch.billDay)) base.billDay = clampDay(patch.billDay);
+
   if (patch.inst) {
     base.inst = {
       periods: Math.max(0, Math.floor(Number(patch.inst.periods) || 0)),
@@ -149,6 +153,15 @@ export function createScheduled(patch = {}) {
     };
   }
   return base;
+}
+
+/** 用户真的给了「几号」吗（空串 / null / 0 / 非数字都算没给） */
+export function isDayGiven(raw) {
+  if (raw == null) return false;
+  const s = String(raw).trim();
+  if (!s) return false;
+  const n = Number(s);
+  return Number.isFinite(n) && n > 0;
 }
 
 /** 把「几号」钳到 1~31 */
