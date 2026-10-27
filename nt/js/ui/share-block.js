@@ -1,11 +1,12 @@
-﻿// 界面：二维码分享区块
+// 界面：二维码分享区块
 /**
  * 二维码分享区块（说明页顶部）
  * 层：第五层 · UI
  *
  * 照单文件版的布局：左边二维码、右边说明文字，
- * 右侧最后一行是版本信息（当前 / 远端）+「更新」按钮 —— 不再单独占一张卡片。
+ * 右侧最后一行是版本信息（本地 / 远端）+ 检查更新按钮。
  *
+ * **进页面就自动查一次远端版本**，不用等用户点。
  * 二维码内容只是当前账本地址，不含任何账目。
  */
 
@@ -59,7 +60,7 @@ export function shareBlock(opts) {
     || '安卓 Chrome / iPhone Safari 打开后，用「添加到主屏幕」装成 App，离线可用。';
   txt.appendChild(h);
 
-  // 版本行：按钮 + 两行小字，塞在右侧，不另占高度
+  // 版本行：进页面就自动查，按钮只负责「再查一次」
   txt.appendChild(versionLine());
 
   row.appendChild(txt);
@@ -78,7 +79,7 @@ export function shareBlock(opts) {
   return box;
 }
 
-/** 「更新」按钮 + 当前/远端两行小字 */
+/** 版本行：按钮 + 本地/远端两行小字；挂上去就自动查一次 */
 function versionLine() {
   const wrap = document.createElement('div');
   wrap.className = 'nt-ver-line';
@@ -86,43 +87,75 @@ function versionLine() {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'nt-ver-btn';
-  btn.textContent = '更新';
+  btn.textContent = '检查更新';
   wrap.appendChild(btn);
 
   const mini = document.createElement('span');
   mini.className = 'nt-ver-mini';
 
-  const cur = document.createElement('span');
-  cur.textContent = '当前：' + APP_VER;
+  const local = document.createElement('span');
+  local.textContent = '本地：' + APP_VER;
   const remote = document.createElement('span');
-  remote.textContent = '远端：未检查';
+  remote.textContent = '远端：检查中…';
 
-  mini.appendChild(cur);
+  mini.appendChild(local);
   mini.appendChild(remote);
   wrap.appendChild(mini);
 
-  btn.addEventListener('click', async () => {
-    btn.disabled = true;
+  let busy = false;
+
+  async function refresh() {
+    if (busy) return;
+    busy = true;
     const old = btn.textContent;
+    btn.disabled = true;
     btn.textContent = '检查中';
+    remote.textContent = '远端：检查中…';
+
     try {
-      const r = await checkUpdate({ base: location.pathname.replace(/[^/]*$/, '') });
-      remote.textContent = '远端：' + (r.remote || '读取失败');
+      const r = await checkUpdate({ base: appBase() });
+
+      if (r.reason === 'no-version') {
+        // 说清为什么读不到，别只丢一句「失败」
+        remote.textContent = '远端：读不到版本号（sw.js 取不到）';
+        return;
+      }
+
+      remote.textContent = '远端：' + r.remote;
+
       if (r.update) {
         remote.textContent = '远端：' + r.remote + '（正在更新）';
         await applyUpdate(r.remote);
-      } else if (r.reason === 'up-to-date') {
+      } else {
         remote.textContent = '远端：' + r.remote + '（已最新）';
       }
     } catch (e) {
-      remote.textContent = '远端：检查失败';
+      remote.textContent = '远端：检查失败（' + ((e && e.message) || e) + '）';
     } finally {
+      busy = false;
       btn.disabled = false;
       btn.textContent = old;
     }
-  });
+  }
+
+  btn.addEventListener('click', refresh);
+
+  // 进页面就查：说明页一打开就能看到远端版本
+  setTimeout(refresh, 0);
 
   return wrap;
+}
+
+/**
+ * 应用根路径（用来拼 sw.js 的地址）。
+ * 用 URL 解析而不是正则切字符串：`/nt/` 与 `/nt/index.html` 都能得到 `/nt/`。
+ */
+export function appBase() {
+  try {
+    return new URL('./', location.href).pathname;
+  } catch (e) {
+    return '/';
+  }
 }
 
 /** 当前页面地址（去掉查询串与 hash） */
