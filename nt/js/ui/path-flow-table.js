@@ -178,8 +178,16 @@ function cell(tag, text, cls) {
 /** 左栏宽度的本地记忆（界面偏好，不进加密账本） */
 const SIDE_KEY = 'nt_pw_side_w';
 const SIDE_MIN = 180;
-const SIDE_MAX = 760;
 const SIDE_DEF = 320;
+
+/**
+ * 上限不再写死 760px —— 用户反馈「拖到一定程度就拖不动」。
+ * 现在按窗口宽度的 92% 兜底：手机上可以把侧栏拉到几乎整屏。
+ */
+function maxSideWidth() {
+  const vw = (typeof window !== 'undefined' && window.innerWidth) ? window.innerWidth : 1200;
+  return Math.max(320, Math.round(vw * 0.92));
+}
 
 function savedSideWidth() {
   try {
@@ -192,7 +200,7 @@ function savedSideWidth() {
 
 /** 把左栏宽度写到 :root 的 --nt-pw-side-w（.pw-main 的 grid 第一列读它） */
 export function applySideWidth(w) {
-  const n = Math.max(SIDE_MIN, Math.min(SIDE_MAX, Math.round(Number(w) || SIDE_DEF)));
+  const n = Math.max(SIDE_MIN, Math.min(maxSideWidth(), Math.round(Number(w) || SIDE_DEF)));
   try {
     document.documentElement.style.setProperty('--nt-pw-side-w', n + 'px');
     localStorage.setItem(SIDE_KEY, String(n));

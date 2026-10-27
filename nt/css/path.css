@@ -76,7 +76,8 @@
      读表时图就在旁边，和单文件版一致。
      左栏宽度取 --nt-pw-side-w 与 62vw 的较小者，避免 320px 把图挤没。 */
   .pw-main {
-    grid-template-columns: min(var(--nt-pw-side-w, 320px), 62vw) 1fr;
+    /* 上限放到 92vw：手机上侧栏可以拉到几乎整屏（原来 62vw 会卡住拖动） */
+    grid-template-columns: min(var(--nt-pw-side-w, 320px), 92vw) 1fr;
     grid-template-rows: 1fr;
   }
   .pw-side {
