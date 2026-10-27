@@ -98,6 +98,8 @@
 
 .pw-side {
   position: relative;
+  /* 低于图区：拖动图时图会浮在侧栏之上 */
+  z-index: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -432,10 +434,14 @@
 
 .pw-chart {
   position: relative;
+  /* 图要能盖在侧栏上方：拖到哪都看得见（用户要求「完全自由移动」） */
+  z-index: 2;
   display: flex;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  /* 不再裁剪 —— 之前 overflow:hidden 把平移限制在容器内，
+     看起来就是「只能挪一点点」。现在可以拖出边界。 */
+  overflow: visible;
 }
 
 /* 图的尺寸只由**高度**决定，横向富余时居中留白。
