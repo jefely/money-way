@@ -47,9 +47,15 @@ export function mountChartGestures(box, target) {
   if (box.dataset.gestureBound === '1') return box.__gestures || null;
   box.dataset.gestureBound = '1';
 
-  // 每次变换都重新取当前 svg：
+  // 每次变换都重新取当前目标：
   // 路径页每次重绘都会重建 <svg>，闭包里存一次会写到已经离场的旧元素上。
+  //
+  // 优先拿内部的 <g class="mw-zoom">：对它做 CSS transform 是**矢量重绘**，
+  // 放到多大都清晰；对 <svg> 根元素做则会被光栅化成位图，放大就糊 ——
+  // 这正是「手势放大后模糊、收放侧栏反而清晰」的原因（收放会触发重新光栅化）。
   const current = () => {
+    const g = box.querySelector('.mw-zoom');
+    if (g) return g;
     const el = box.querySelector('svg');
     return el || target;
   };
@@ -57,6 +63,8 @@ export function mountChartGestures(box, target) {
   const apply = () => {
     const el = current();
     if (!el) return;
+    // 对 SVG 子元素：transform-box 用 view-box，原点才是画布中心
+    el.style.transformBox = 'view-box';
     el.style.transformOrigin = '50% 50%';
     el.style.willChange = 'transform';
     el.style.transform =

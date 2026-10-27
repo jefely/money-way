@@ -73,7 +73,13 @@ export function renderChart(data) {
   const parts = [];
 
   parts.push(`<svg viewBox="0 0 ${size} ${size}" width="100%" preserveAspectRatio="xMidYMid meet"`
-    + ` shape-rendering="geometricPrecision">`);
+    + ` shape-rendering="geometricPrecision" style="overflow:visible">`);
+
+  // 所有内容包在 <g class="mw-zoom"> 里。
+  // 手势的平移/旋转/缩放作用在**这个 g** 上，而不是 <svg> 根元素 ——
+  // 对根元素用 CSS transform 时，Chrome 会把它光栅化成一张位图再拉伸，
+  // 放大就糊；对内部 <g> 变换是矢量重绘，放到多大都清晰。
+  parts.push('<g class="mw-zoom">');
 
   // ① 分类扇区的分界线（同类聚合、类间 0.8° 的视觉呈现）
   for (const s of sectors) {
@@ -143,7 +149,7 @@ export function renderChart(data) {
       + `>${esc(label)}</text>`);
   }
 
-  parts.push('</svg>');
+  parts.push('</g></svg>');
   return parts.join('');
 }
 
