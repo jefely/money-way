@@ -201,6 +201,11 @@
   padding: 0 0 4px;
 }
 
+/* 日期框跨「序 + 日期」两列：筛选行不需要序列，日期从最左边开始才够宽 */
+.pw-flow-filter .pw-qf-date {
+  grid-column: span 2;
+}
+
 .pw-qf {
   width: 100%;
   height: 22px;

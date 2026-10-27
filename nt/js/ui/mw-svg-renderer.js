@@ -16,15 +16,16 @@
 /**
  * 画布与环的尺寸。
  *
- * RATIO 是「相对单文件版 1800 画布」的放大倍数：用户要 3000 分辨率，
- * 所有像素量（环半径、环厚、线宽、字号、描边、文字外移距离）都要等比放大，
- * 否则画布变大而线还是 2.4px，放大后的图会显得线更细、字更小。
+ * 单文件版的基准：`SIZE = 1800`、`R_OUT = 640`、`THICK = 44`（mwDrawSvg 里写死）。
+ * 我们按用户要求把画布提到 6000（= 基准的 3.33 倍），所有像素量
+ * （环半径、环厚、线宽、字号、描边、文字外移距离）等比放大 ——
+ * 只放大画布而线宽字号不变，放大后的图会显得线更细、字更小。
  */
 export const BASE_SIZE = 1800;
-export const RATIO = 3000 / BASE_SIZE;
+export const RATIO = 6000 / BASE_SIZE;
 
 export const SVG = {
-  size: 3000,
+  size: 6000,
   rOut: Math.round(640 * RATIO),
   thick: Math.round(44 * RATIO),
   get rIn() { return this.rOut - this.thick; },
@@ -110,7 +111,9 @@ export function renderChart(data) {
     const midA = (b.a1 + b.a2) / 2;
     const arcLen = span * rOut;
 
-    let fs = Math.max(11 * RATIO, Math.min(26 * RATIO,
+    // 字号：下限抬到 13×RATIO —— 侧栏展开时图区只有 400 多 px，
+    // 画布 3000 缩下来字号会小到看不清；太窄的块干脆不标字，避免糊成一片
+    let fs = Math.max(13 * RATIO, Math.min(28 * RATIO,
       (arcLen / Math.max(1, label.length)) * 1.05,
       (rOut - rIn) * 0.58));
 
@@ -118,8 +121,11 @@ export function renderChart(data) {
     let textW = 0;
     for (const ch of label) textW += (ch.charCodeAt(0) > 255 ? 1 : 0.55) * fs;
 
+    // 放不下就别画了：挤在一起比没有更糟
+    if (arcLen < textW * 0.9 && fs < 15 * RATIO) continue;
+
     const crowded = arcLen < textW * 1.5;
-    if (crowded) fs = Math.max(10 * RATIO, fs * 0.8);
+    if (crowded) fs = Math.max(12 * RATIO, fs * 0.85);
     const rText = crowded ? rOut + 46 * RATIO : rOut + 8 * RATIO;
 
     const p = pointAt(cx, cy, rText, midA);
