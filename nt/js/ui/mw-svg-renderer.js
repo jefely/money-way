@@ -106,12 +106,12 @@ export function renderChart(data) {
   }
 
   // ④ 弧块
-  // 分隔线：中性灰 #6b7280，3.5×RATIO（约 0.7 显示像素）、70% 不透明。
-  // 早先用 0.9×RATIO，同分类的两个**同色**弧块挨在一起时几乎看不见分界。
+  // 分隔线：纯黑（用户指定）—— 同色的两个弧块挨在一起时，黑线是唯一看得见的分界。
+  // 宽度 3.5×RATIO（约 0.7 显示像素）、70% 不透明。
   for (const b of blocks) {
     parts.push(`<path class="mw-ring" d="${arcPath(rOut, rIn, b.a1, b.a2, pointAt, cx, cy)}"`
       + ` fill="${colorOf(b.colorKey)}" fill-opacity="1"`
-      + ` stroke="#6b7280" stroke-width="${f(3.5 * RATIO)}" stroke-opacity="0.7"`
+      + ` stroke="#000000" stroke-width="${f(3.5 * RATIO)}" stroke-opacity="0.7"`
       + ` data-node="${esc(b.acc)}"/>`);
   }
 
@@ -149,8 +149,8 @@ export function renderChart(data) {
     let rText = rOut + 8 * RATIO;
     if (crowded) {
       const veryNarrow = arcLen < 12 * RATIO;
-      // 锥形默认 115（= 基准 46 的 2.5 倍），连续极窄时第二个 300
-      const coneLen = (veryNarrow && prevVeryNarrow) ? 300 * RATIO : 115 * RATIO;
+      // 锥形默认 124（= 基准 46 的 2.7 倍），连续极窄时第二个 324
+      const coneLen = (veryNarrow && prevVeryNarrow) ? 324 * RATIO : 124 * RATIO;
       prevVeryNarrow = veryNarrow;
       rText = rOut + coneLen;
     }
