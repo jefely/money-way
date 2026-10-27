@@ -77,7 +77,8 @@ body {
   flex: 1 1 0;
   min-width: 0;
   height: var(--nt-tabs-h);
-  padding: 0 4px;
+  /* 顶部 4px 换来的视觉效果 = 文字下移 2px（内容盒被 border-bottom 占掉 2px） */
+  padding: 4px 4px 0;
   border: 0;
   border-bottom: 2px solid transparent;
   background: var(--nt-tab-bg, transparent);

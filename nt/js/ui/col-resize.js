@@ -149,9 +149,19 @@ export function ensureColgroup(tableEl) {
   const cg = document.createElement('colgroup');
   for (const th of ths) {
     const col = document.createElement('col');
-    if (th.dataset.col) col.className = 'nt-c-' + th.dataset.col;
-    // 不写宽度：生成时表格可能还是隐藏的，量出来是 0 或分摊值。
-    // 宽度统一由 freezeWidths 在渲染后用真实表头宽度覆盖。
+    const key = th.dataset.col;
+    if (key) {
+      col.className = 'nt-c-' + key;
+      // 默认宽度取自 --nt-col-<key>（applySettings 会把「默认列宽」写进去）。
+      // 不读变量的话，重建出来的 col 是零宽度，fixed 布局会把表格塌掉。
+      const v = getComputedStyle(document.documentElement)
+        .getPropertyValue('--nt-col-' + key).trim();
+      const w = parseFloat(v);
+      if (Number.isFinite(w) && w > 0) {
+        col.style.width = w + 'px';
+        col.setAttribute('width', String(w));
+      }
+    }
     cg.appendChild(col);
   }
   tableEl.insertBefore(cg, tableEl.firstChild);

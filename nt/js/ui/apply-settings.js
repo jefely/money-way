@@ -1,4 +1,4 @@
-// 界面：全局：把界面参数写成 CSS 变量（主题/列宽）
+﻿// 界面：全局：把界面参数写成 CSS 变量（主题/列宽）
 /**
  * 把界面参数写到对应作用域的 CSS 变量上（UI 层）
  *
@@ -17,8 +17,6 @@ export function applySettings(settings, theme) {
   const root = document.documentElement;
   if (!root) return;
 
-  let totalColW = 0;
-
   for (const item of toCssList(settings, theme)) {
     const scope = GROUP_SCOPE[item.group] || 'global';
     const target = scope === 'global' ? root : document.querySelector('[data-view="' + scope + '"]');
@@ -26,22 +24,33 @@ export function applySettings(settings, theme) {
     if (item.attr) target.setAttribute(item.attr, item.value);
     else if (item.cssVar) {
       target.style.setProperty(item.cssVar, item.value);
-      // <col> 的 CSS width 用 var() 在表格布局里不生效，同步写 inline width
+
+      // <col> 的 CSS width 用 var() 在表格布局里不生效，必须同步写 inline width。
+      // 注意用 querySelectorAll：每个页面都有一张自己的表，
+      // 只写第一张会让其它表的列宽塌成 0。
       if (item.cssVar.startsWith('--nt-col-')) {
         const name = item.cssVar.slice(9);
-        const col = document.querySelector('col.nt-c-' + name);
-        if (col) {
-          // 只累加实际存在的 <col>，否则会把不存在的列也算进表格宽度
-          totalColW += parseFloat(item.value) || 0;
-          col.style.width = item.value;
-          col.setAttribute('width', String(parseFloat(item.value) || 0));
+        const w = parseFloat(item.value) || 0;
+        if (w > 0) {
+          for (const col of document.querySelectorAll('col.nt-c-' + name)) {
+            col.style.width = item.value;
+            col.setAttribute('width', String(w));
+          }
         }
       }
     }
   }
 
-  // 表格宽度必须等于各列宽总和：否则 table-layout:fixed 会把列按比例拉宽，
-  // 出现「col 设了 84px、实际渲染 193px」的错乱。
-  const table = document.querySelector('.nt-table');
-  if (table && totalColW > 0) table.style.width = totalColW + 'px';
+  // 每张表各自算总宽 = 该表各列之和。
+  // 不设的话 table-layout:fixed 会把列按比例拉回去（col 写 84px、实际渲染 193px）。
+  for (const table of document.querySelectorAll('table.nt-table')) {
+    let total = 0;
+    let missing = false;
+    for (const col of table.querySelectorAll('colgroup col')) {
+      const w = parseFloat(col.style.width);
+      if (!Number.isFinite(w) || w <= 0) { missing = true; continue; }
+      total += w;
+    }
+    if (!missing && total > 0) table.style.width = total + 'px';
+  }
 }
