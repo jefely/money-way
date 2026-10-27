@@ -61,3 +61,55 @@
 .nt-view[data-view="settings"] .nt-tablewrap::-webkit-scrollbar {
   height: 6px;
 }
+
+/* 账户表的 A/B 两大区域标题：让用户一眼看出这个账户属于哪一边 */
+.nt-zone-head .nt-cell {
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.nt-zone-a .nt-cell {
+  background: rgba(60, 160, 100, 0.16);
+  color: var(--nt-ok);
+}
+
+.nt-zone-b .nt-cell {
+  background: rgba(200, 90, 90, 0.16);
+  color: var(--nt-bad);
+}
+
+/* 区域标题里第 6 格放的是「极性说明」，用轻一点的样式 */
+.nt-zone-head .nt-cell-num {
+  font-weight: 500;
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.nt-zone-empty .nt-cell {
+  color: var(--nt-text-light);
+  font-size: 12px;
+  padding-left: 12px;
+}
+
+/* 区域标题整行：左边区域名，右边极性说明 */
+.nt-zone-cell {
+  padding: 0;
+}
+
+.nt-zone-label {
+  display: flex;
+  padding: 5px 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 800;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+}
+
+.nt-zone-hint {
+  font-weight: 500;
+  font-size: 11px;
+  opacity: 0.85;
+}

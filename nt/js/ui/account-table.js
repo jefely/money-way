@@ -22,6 +22,26 @@ const FIELDS = ['type', 'category', 'code', 'name', 'opening'];
 const TYPES = ['资产类', '负债类', '收入类', '权益类', '费用类'];
 
 /**
+ * 设置页的两大区域。
+ * A 角色 = 正向账户（转入增加）；B 角色 = 反向账户（转出增加）。
+ * 分区是为了让用户在**界面层面**就不可能填错极性。
+ */
+export const ZONES = [
+  {
+    key: 'A',
+    label: 'A 我的资产/日常支出',
+    hint: '转入增加，转出减少',
+    types: ['资产类', '费用类'],
+  },
+  {
+    key: 'B',
+    label: 'B 收入与本金/欠款与贷款',
+    hint: '转出增加，转入减少',
+    types: ['负债类', '权益类', '收入类'],
+  },
+];
+
+/**
  * @param {object} ctx
  * @param {HTMLElement} tbody #nt-accounts-body
  * @param {{onSummary?:(text:string)=>void}} [opts]
@@ -36,13 +56,60 @@ export function mountAccountTable(ctx, tbody, opts) {
     tbody.textContent = '';
 
     const rowTpl = tpl('tpl-account-row');
-    if (rowTpl && visible.length) {
-      const frag = document.createDocumentFragment();
-      visible.forEach((acc, i) => {
+    const frag = document.createDocumentFragment();
+    let seq = 0;
+
+    for (const zone of ZONES) {
+      const inZone = visible.filter((a) => zone.types.indexOf(a.type) >= 0);
+
+      // 区域标题：跨整行，左边区域名、右边极性说明
+      // （原来克隆 group 模板塞在类型列里，会被列宽截断成「A 我的资...」）
+      {
+        const head = document.createElement('tr');
+        head.className = 'nt-zone-head ' + (zone.key === 'A' ? 'nt-zone-a' : 'nt-zone-b');
+
+        const td = document.createElement('td');
+        td.className = 'nt-cell nt-zone-cell';
+        td.colSpan = 7;
+
+        // flex 必须放在内层 div 上：直接设在 <td> 上会让它脱离表格布局，
+        // colspan 就不生效了（标题会被压成第一列的宽度）。
+        const inner = document.createElement('div');
+        inner.className = 'nt-zone-label';
+
+        const name = document.createElement('b');
+        name.textContent = zone.label;
+
+        const hint = document.createElement('span');
+        hint.className = 'nt-zone-hint';
+        hint.textContent = zone.hint;
+
+        inner.appendChild(name);
+        inner.appendChild(hint);
+        td.appendChild(inner);
+        head.appendChild(td);
+        frag.appendChild(head);
+      }
+
+      if (!inZone.length) {
+        const tr = document.createElement('tr');
+        tr.className = 'nt-row nt-zone-empty';
+        const td = document.createElement('td');
+        td.className = 'nt-cell';
+        td.colSpan = 7;
+        td.textContent = '（这一类还没有账户）';
+        tr.appendChild(td);
+        frag.appendChild(tr);
+        continue;
+      }
+
+      for (const acc of inZone) {
+        if (!rowTpl) break;
         const tr = rowTpl.cloneNode(true);
         tr.dataset.id = acc.id;
 
-        setCell(tr, 'seq', i + 1);
+        seq += 1;
+        setCell(tr, 'seq', seq);
         const sel = tr.querySelector('[data-field="type"]');
         if (sel) sel.value = TYPES.includes(acc.type) ? acc.type : '资产类';
         setCell(tr, 'category', acc.category || '');
@@ -52,10 +119,12 @@ export function mountAccountTable(ctx, tbody, opts) {
 
         bindRow(tr, acc.id);
         frag.appendChild(tr);
-      });
-      tbody.appendChild(frag);
+      }
     }
 
+    tbody.appendChild(frag);
+
+    // 末尾空行：新建账户
     const newTpl = tpl('tpl-account-new');
     if (newTpl) {
       const tr = newTpl.cloneNode(true);
@@ -65,6 +134,7 @@ export function mountAccountTable(ctx, tbody, opts) {
 
     summarize(visible, state);
   }
+
 
   function bindRow(tr, id) {
     const del = tr.querySelector('[data-act="del"]');
