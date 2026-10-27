@@ -140,7 +140,7 @@ export function mountPath(section, ctx) {
   function hitsFor(f) {
     if (!f || !data || data.empty) return null;
     if (f.kind === 'acc') return new Set(traceByAccount(data.txs, f.id));
-    if (f.kind === 'tx') {
+    if (f.kind === 'tx' || f.kind === 'trace') {
       // f.id 现在指向「全部流水」的下标，不是 data.txs（图上子集）的下标，
       // 所以不能再用 data.txs[f.id] 取值 —— 用点选时记下的 to_id。
       const toId = f.to_id || (data.txs[f.id] && data.txs[f.id].to_id);
@@ -202,11 +202,13 @@ export function mountPath(section, ctx) {
       ? new Set([...hits].map((i) => (data.txs[i] || {}).id).filter(Boolean))
       : null;
 
+    // 四种模式的线宽在 paintChart 里各自独立：
+    //   mode=null 基本模式 / 'acc' 点色块 / 'tx' 点单线 / 'trace' 侧栏追踪
     paintChart(chartBox, data, hits, (acc) => {
       const same = focus && focus.kind === 'acc' && focus.id === acc;
       focus = same ? null : { kind: 'acc', id: acc };
       render();
-    });
+    }, focus ? focus.kind : null);
 
     // 手势要在 paintChart **之后**挂：svg 是 paintChart 里才创建的。
     //
@@ -230,8 +232,10 @@ export function mountPath(section, ctx) {
         const realIdx = idxList[shownIdx];
         const tx = allTx[realIdx];
         // 图上按「转出账户」的上游追踪；这里把 to_id 交给 hitsFor 一致处理
-        const same = focus && focus.kind === 'tx' && focus.id === realIdx;
-        focus = same ? null : { kind: 'tx', id: realIdx, to_id: tx && tx.to_id };
+        const same = focus && (focus.kind === 'tx' || focus.kind === 'trace')
+        && focus.id === realIdx;
+        // 侧栏条目 → 追踪模式（第 4 种）：它和其它三种的线宽配置完全独立
+        focus = same ? null : { kind: 'trace', id: realIdx, to_id: tx && tx.to_id };
         render();
       },
     });

@@ -14,7 +14,7 @@ import { money, shortDate } from '../core/format.js';
 const el = (id) => document.getElementById(id);
 
 /** 画图 + 绑事件 */
-export function paintChart(host, data, hits, onPick) {
+export function paintChart(host, data, hits, onPick, mode) {
   const colorOf = (key) => categoryColor(data.colorIndex, key);
 
   // 线宽照单文件版：
@@ -24,11 +24,27 @@ export function paintChart(host, data, hits, onPick) {
   // 注意：这里**没有**按笔数做密度补偿。曾经加过一版（250 笔时把线调细 0.6 倍），
   // 但在 v0.50 把「图尺寸只由高度决定」修好之后，250 笔在侧栏收起时已经不糊了 ——
   // 线宽恢复成单文件版的 2.4 才是一致的样子。
+  /**
+   * 追踪模式的线宽倍率：看这条线的**转入方**是什么类型的账户。
+   * 费用类 4 倍、资产类 3 倍、负债类 2 倍、收入/权益 1 倍（基准 = W_MID）。
+   */
+  const TRACE_MULT = [[/费用/, 4], [/资产/, 3], [/负债/, 2], [/收入/, 1], [/权益/, 1]];
+  const traceMult = (type) => {
+    const s = String(type || '');
+    for (const [re, m] of TRACE_MULT) if (re.test(s)) return m;
+    return 1;
+  };
+
   const chords = data.chords.map((c) => {
     const hit = hits ? hits.has(c.txIdx) : false;
     // 线宽按 RATIO 等比放大：画布从 1800 提到 6000，线还是 2.4px 就显得更细
     let strokeWidth = W_MID * RATIO;
-    if (hits) {
+    if (mode === 'trace') {
+      // 模式 4：追踪 —— 链上的线按「转入方类型」放大，其它线压到最细
+      strokeWidth = hit
+        ? W_MID * RATIO * traceMult(c.targetType)
+        : W_MID * RATIO * 0.4;
+    } else if (hits) {
       if (hit) {
         const dep = Number.isFinite(c.depth) ? c.depth : DEPTH_WIDTHS.length - 1;
         // 再 ×0.35：用户反馈选中线还是偏粗，继续收细
