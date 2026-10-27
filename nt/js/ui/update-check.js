@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 版本更新（UI 层）
  * 层：第五层 · UI
  *
@@ -107,4 +107,38 @@ async function fetchText(url, timeoutMs) {
     clearTimeout(timer);
     return '';
   }
+}
+
+/**
+ * 硬重载：清掉所有 Cache Storage + 注销 Service Worker + 刷新。
+ *
+ * 为什么需要它：旧的 SW 是 cache-first，连 sw.js 本身都被缓存过，
+ * 于是「检查更新」永远读到旧版本号，说「已最新」但界面还是旧的。
+ * 这个按钮把缓存和 SW 一起清掉，是那种情况唯一可靠的解法。
+ *
+ * @param {{reload?:Function}} [opts] 测试时可注入
+ */
+export async function hardReload(opts) {
+  const o = opts || {};
+
+  // ① 清所有缓存
+  try {
+    if (typeof caches !== 'undefined' && caches.keys) {
+      const names = await caches.keys();
+      await Promise.all(names.map((n) => caches.delete(n)));
+    }
+  } catch (e) { /* 忽略 */ }
+
+  // ② 注销所有 Service Worker（刷新后 app.js 会重新注册）
+  try {
+    if (typeof navigator !== 'undefined' && navigator.serviceWorker
+        && navigator.serviceWorker.getRegistrations) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
+  } catch (e) { /* 忽略 */ }
+
+  // ③ 刷新
+  const reload = o.reload || (() => { location.reload(); });
+  setTimeout(() => { try { reload(); } catch (e) {} }, 80);
 }

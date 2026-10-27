@@ -164,11 +164,19 @@
 }
 
 /* 二维码右侧最下面那行：按钮 + 两行小字（照单文件版，别占太多高度） */
+/* 版本行：上面两个按钮，下面两行小字 */
 .nt-ver-line {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 10px;
   margin-top: 8px;
+}
+
+.nt-ver-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 0 0 auto;
 }
 
 .nt-ver-btn {
@@ -205,4 +213,14 @@
 /* 段落分隔：比行距大一档，视觉上像「新的一段」而不是「又一行」 */
 .nt-block-line.nt-block-gap {
   margin-top: 14px;
+}
+
+/* 重载按钮：次要动作，描边不填充 */
+.nt-ver-btn.ghost {
+  background: transparent;
+  color: var(--nt-primary);
+}
+
+.nt-ver-btn.ghost:disabled {
+  opacity: 0.6;
 }

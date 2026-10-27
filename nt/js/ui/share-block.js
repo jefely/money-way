@@ -1,4 +1,4 @@
-// 界面：二维码分享区块
+﻿// 界面：二维码分享区块
 /**
  * 二维码分享区块（说明页顶部）
  * 层：第五层 · UI
@@ -13,7 +13,7 @@
 import { paintText } from './qr-canvas.js';
 import { APP_VER } from '../core/version.js';
 import { SHARE_URL } from '../core/meta.js';
-import { checkUpdate, applyUpdate } from './update-check.js';
+import { checkUpdate, applyUpdate, hardReload } from './update-check.js';
 
 /** 二维码每个模块多少像素：手机上 4~5 之间最好扫 */
 const MODULE_PX = 5;
@@ -84,11 +84,30 @@ function versionLine() {
   const wrap = document.createElement('div');
   wrap.className = 'nt-ver-line';
 
+  const btnRow = document.createElement('div');
+  btnRow.className = 'nt-ver-btns';
+
+  // 重载：清缓存 + 注销 SW + 刷新（旧 SW 卡住时的唯一可靠解法）
+  const reloadBtn = document.createElement('button');
+  reloadBtn.type = 'button';
+  reloadBtn.className = 'nt-ver-btn ghost';
+  reloadBtn.textContent = '重载';
+  reloadBtn.title = '清掉缓存并重新加载（更新不生效时点这个）';
+  reloadBtn.addEventListener('click', async () => {
+    reloadBtn.disabled = true;
+    reloadBtn.textContent = '重载中';
+    await hardReload();
+  });
+  btnRow.appendChild(reloadBtn);
+
+  // 更新：查远端版本，有新版就清缓存并换班
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'nt-ver-btn';
-  btn.textContent = '检查更新';
-  wrap.appendChild(btn);
+  btn.textContent = '更新';
+  btnRow.appendChild(btn);
+
+  wrap.appendChild(btnRow);
 
   const mini = document.createElement('span');
   mini.className = 'nt-ver-mini';
