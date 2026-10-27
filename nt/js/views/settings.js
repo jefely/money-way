@@ -3,85 +3,32 @@
  * 设置视图（账户结构 + 六个功能）
  * 层：第五层 · UI
  *
- * 账户列表只读展示 + 删除；新增 / 改简码走既有的账户弹窗（ui/account-actions.js）。
+ * 账户表本身在 ui/account-table.js（表格内直接编辑，不弹窗）；
+ * 本文件只管上面的六个功能按钮，以及把账户汇总写到信息栏。
+ *
  * 余额与期初全部来自 core 的纯函数，本文件不算钱。
  */
 
-import { removeAccount } from '../core/state-store.js';
 import { balanceOf } from '../core/balance-calculator.js';
-import { renderMixed, renderEmpty } from '../ui/table.js';
 import { money } from '../core/format.js';
+import { mountAccountTable } from '../ui/account-table.js';
 import * as NtModal from '../ui/modal.js';
 import { applyTheme, saveTheme } from '../ui/theme-manager.js';
 
-const TYPES = ['资产类', '负债类', '收入类', '权益类', '费用类'];
 const ACT_LABEL = { password: '修改密码', config: '配置', layout: '布局' };
 
 export function mountSettings(section, ctx) {
   const body = section.querySelector('#nt-accounts-body');
+  const infoEl = section.querySelector('#nt-settings-info');
 
-  bindActions();
-  body.addEventListener('click', (ev) => {
-    const btn = ev.target.closest('[data-act="del"]');
-    if (!btn) return;
-    const tr = btn.closest('tr');
-    const id = tr && tr.dataset.id;
-    if (!id) return;
-    const acc = ctx.getIndex().byId.get(id);
-    NtModal.confirmDanger(
-      '删除账户',
-      `确定删除「${acc ? acc.name : ''}」？引用它的流水也会一起删除。`,
-      () => {
-        ctx.setState(removeAccount(ctx.getState(), id));
-        render();
-        ctx.saveNow();
-      },
-      '删除',
-    );
+  const table = mountAccountTable(ctx, body, {
+    onSummary: (text) => { if (infoEl) infoEl.textContent = text; },
   });
 
+  bindActions();
+
   function render() {
-    const state = ctx.getState();
-    const visible = (state.accounts || []).filter((a) => a && !a.isHidden);
-
-    const items = [];
-    let seq = 0;
-
-    for (const type of TYPES) {
-      const accs = visible.filter((a) => a.type === type);
-      if (!accs.length) continue;
-
-      let groupOpening = 0;
-      const rows = [];
-      for (const acc of accs) {
-        seq += 1;
-        const op = openingAmount(state, acc.id);
-        groupOpening += op;
-        rows.push({
-          id: acc.id,
-          seq,
-          type: acc.type,
-          category: acc.category || '—',
-          code: acc.code || '—',
-          name: acc.name,
-          opening: money(op),
-        });
-      }
-
-      items.push({ tplId: 'tpl-account-group', data: { label: type, total: money(groupOpening) } });
-      for (const row of rows) {
-        items.push({
-          tplId: 'tpl-account-row',
-          data: row,
-          decorate: (tr, r) => { tr.dataset.id = r.id; },
-        });
-      }
-    }
-
-    if (!items.length) renderEmpty(body, '还没有账户', 7);
-    else renderMixed(body, items);
-
-    ctx.setFooter(`${visible.length} 个账户 · ${(state.transactions || []).length} 笔流水`);
+    table.render();
   }
 
   /* ---------- 六个功能 ---------- */
@@ -89,17 +36,12 @@ export function mountSettings(section, ctx) {
   function bindActions() {
     const bar = section.querySelector('.nt-vbar');
     if (!bar) return;
-    const acts = bar.querySelectorAll('[data-act]');
-    for (const el of acts) {
+    for (const el of bar.querySelectorAll('[data-act]')) {
       el.addEventListener('click', () => onAction(el.getAttribute('data-act')));
     }
   }
 
   function onAction(act) {
-    if (act === 'accounts') {
-      if (ctx.openAccounts) ctx.openAccounts();
-      return;
-    }
     if (act === 'balance') { showBalance(); return; }
     if (act === 'theme') { showTheme(); return; }
     if (act === 'reset') { showReset(); return; }
@@ -129,7 +71,8 @@ export function mountSettings(section, ctx) {
       addKV(kv, '权益类', money(equity));
       addKV(kv, '收入类', money(income));
       addKV(kv, '费用类', money(expense));
-      addKV(kv, '资产 + 费用 − 负债 − 权益 − 收入', money(diff), Math.abs(diff) < 0.005 ? 'ok' : 'bad');
+      addKV(kv, '资产 + 费用 − 负债 − 权益 − 收入', money(diff),
+        Math.abs(diff) < 0.005 ? 'ok' : 'bad');
       b.appendChild(kv);
     });
   }
@@ -180,14 +123,6 @@ export function mountSettings(section, ctx) {
   }
 
   return { render };
-}
-
-function openingAmount(state, id) {
-  let sum = 0;
-  for (const t of state.transactions || []) {
-    if (t.opening && (t.to_id === id || t.from_id === id)) sum += Number(t.amount) || 0;
-  }
-  return sum;
 }
 
 function addKV(dl, k, v, cls) {

@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    设置页：账户列表（简码当冻结列，大号醒目）
    ============================================================ */
 
@@ -12,4 +12,52 @@
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+/* ===== 账户表列宽 =====
+   7 列在手机上会把「账户名称」压成竖排单字。
+*/
+.nt-table-accounts {
+  table-layout: fixed;
+  width: 492px;
+  min-width: 492px;
+}
+
+.nt-table-accounts th,
+.nt-table-accounts td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nt-table-accounts th:nth-child(1) { width: 34px; }   /* 序 */
+.nt-table-accounts th:nth-child(2) { width: 86px; }   /* 类型 */
+.nt-table-accounts th:nth-child(3) { width: 72px; }   /* 分类 */
+.nt-table-accounts th:nth-child(4) { width: 72px; }   /* 简码 */
+.nt-table-accounts th:nth-child(5) { width: 110px; }  /* 名称 */
+.nt-table-accounts th:nth-child(6) { width: 84px; }   /* 期初 */
+.nt-table-accounts th:nth-child(7) { width: 34px; }   /* 操作 */
+
+.nt-table-accounts input.nt-cell-input,
+.nt-table-accounts select.nt-cell-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 12px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+/* 简码用等宽字重，竖排也能认 */
+.nt-table-accounts .nt-cell-input-code {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* 设置页的表格容器要能横向滚 */
+.nt-view[data-view="settings"] .nt-tablewrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.nt-view[data-view="settings"] .nt-tablewrap::-webkit-scrollbar {
+  height: 6px;
 }

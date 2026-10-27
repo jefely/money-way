@@ -195,6 +195,66 @@
   </tr>
 </template>
 
+<!-- 设置 · 账户行（表格内直接编辑）：序 | 类型 | 分类 | 简码 | 名称 | 期初 | 操作 -->
+<template id="tpl-account-row">
+  <tr class="nt-row">
+    <td class="nt-cell nt-cell-seq" data-field="seq"></td>
+    <td class="nt-cell">
+      <select class="nt-cell-input" data-field="type" aria-label="账户类型">
+        <option value="资产类">资产类</option>
+        <option value="负债类">负债类</option>
+        <option value="收入类">收入类</option>
+        <option value="权益类">权益类</option>
+        <option value="费用类">费用类</option>
+      </select>
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" data-field="category" aria-label="统计分类">
+    </td>
+    <td class="nt-cell nt-cell-code">
+      <input class="nt-cell-input nt-cell-input-code" type="text" maxlength="5" data-field="code" aria-label="简码">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户名称">
+    </td>
+    <td class="nt-cell nt-cell-num">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="opening" aria-label="期初">
+    </td>
+    <td class="nt-cell nt-cell-action">
+      <button class="nt-btn nt-btn-icon" type="button" data-act="del" aria-label="删除账户">×</button>
+    </td>
+  </tr>
+</template>
+
+<!-- 设置 · 账户新增行：名称填了就成 -->
+<template id="tpl-account-new">
+  <tr class="nt-row nt-row-new" data-new="1">
+    <td class="nt-cell nt-cell-seq">+</td>
+    <td class="nt-cell">
+      <select class="nt-cell-input" data-field="type" aria-label="账户类型">
+        <option value="资产类">资产类</option>
+        <option value="负债类">负债类</option>
+        <option value="收入类">收入类</option>
+        <option value="权益类">权益类</option>
+        <option value="费用类">费用类</option>
+      </select>
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" data-field="category" aria-label="统计分类" placeholder="分类">
+    </td>
+    <td class="nt-cell nt-cell-code">
+      <input class="nt-cell-input nt-cell-input-code" type="text" maxlength="5" data-field="code" aria-label="简码" placeholder="简码">
+    </td>
+    <td class="nt-cell">
+      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户名称" placeholder="名称">
+    </td>
+    <td class="nt-cell nt-cell-num">
+      <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="opening" aria-label="期初" placeholder="期初">
+    </td>
+    <td class="nt-cell nt-cell-action"></td>
+  </tr>
+</template>
+
 <!-- 计划 · 固定收支行：序 | 频率 | 日期 | 转出 | 转入 | 金额 | 备注 | 本月 -->
 
 
@@ -318,19 +378,7 @@
 </template>
 
 <!-- 设置 · 账户行：序 | 类型 | 分类 | 简码 | 账户名称 | 期初 | 删除 -->
-<template id="tpl-account-row">
-  <tr class="nt-row">
-    <td class="nt-cell nt-cell-seq" data-field="seq"></td>
-    <td class="nt-cell" data-field="type"></td>
-    <td class="nt-cell" data-field="category"></td>
-    <td class="nt-cell nt-cell-code" data-field="code"></td>
-    <td class="nt-cell" data-field="name"></td>
-    <td class="nt-cell nt-cell-num" data-field="opening"></td>
-    <td class="nt-cell nt-cell-action">
-      <button class="nt-btn nt-btn-icon" type="button" data-act="del" aria-label="删除账户">×</button>
-    </td>
-  </tr>
-</template>
+
 
 <!-- 设置 · 类型分组行（资产 / 负债 …，合计 = 该类型期初之和） -->
 <template id="tpl-account-group">
