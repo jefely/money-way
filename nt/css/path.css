@@ -584,3 +584,9 @@
     top: 44px;
   }
 }
+
+
+/* 弧块分隔线：颜色来自主题变量（浅色纯白 / 深色纯黑），宽度由渲染器给 */
+.mw-ring {
+  stroke: var(--nt-ring-sep, #ffffff);
+}

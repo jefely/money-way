@@ -111,7 +111,7 @@ export function renderChart(data) {
   for (const b of blocks) {
     parts.push(`<path class="mw-ring" d="${arcPath(rOut, rIn, b.a1, b.a2, pointAt, cx, cy)}"`
       + ` fill="${colorOf(b.colorKey)}" fill-opacity="1"`
-      + ` stroke="#6b7280" stroke-width="${f(3.5 * RATIO)}" stroke-opacity="0.7"`
+      + ` stroke-width="${f(3.5 * RATIO)}" stroke-opacity="0.7"`
       + ` data-node="${esc(b.acc)}"/>`);
   }
 
@@ -135,12 +135,17 @@ export function renderChart(data) {
     let textW = 0;
     for (const ch of label) textW += (ch.charCodeAt(0) > 255 ? 1 : 0.55) * fs;
 
-    // 放不下就别画了：挤在一起比没有更糟
-    if (arcLen < textW * 0.9 && fs < 15 * RATIO) continue;
-
+    // 不再「太窄就跳过」—— 单文件版每个弧块都有标签，
+    // 窄块是靠锥形引线把它们错开，而不是干脆不显示。
     const crowded = arcLen < textW * 1.5;
     if (crowded) fs = Math.max(12 * RATIO, fs * 0.85);
-    const rText = crowded ? rOut + 46 * RATIO : rOut + 8 * RATIO;
+    let rText = rOut + 8 * RATIO;
+    if (crowded) {
+      const veryNarrow = arcLen < 12 * RATIO;
+      const coneLen = (veryNarrow && prevVeryNarrow) ? 115 * RATIO : 46 * RATIO;
+      prevVeryNarrow = veryNarrow;
+      rText = rOut + coneLen;
+    }
 
     // 放不下的弧块：画单文件版那种**尖锥形引线**，把弧块和外面的文字连起来
     //（照 mwDrawSvg：锥尖贴 rOut 的中点，锥底在文字所在半径上、以 mid 对称，
