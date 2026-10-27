@@ -52,18 +52,7 @@
         </div>
         <div class="nt-tablewrap">
           <table class="nt-table nt-table-flow">
-            <colgroup>
-              <!-- 顺序必须与实际列一一对应：
-                   序 / 日期 / 转出账户 / 转入账户 / 金额 / 备注 / 操作
-                   原来错抄成统计表的 type/cat/code/num，整排列宽都是错的。 -->
-              <col class="nt-c-seq">
-              <col class="nt-c-date">
-              <col class="nt-c-from">
-              <col class="nt-c-to">
-              <col class="nt-c-amount">
-              <col class="nt-c-note">
-              <col class="nt-c-action">
-            </colgroup>
+
             <thead>
               <tr>
                 <th class="nt-th nt-cell-seq" scope="col" data-col="seq">序</th>
@@ -189,7 +178,7 @@
         <div class="nt-plan-inst" id="nt-plan-inst" hidden>
           <div class="nt-tablewrap">
             <table class="nt-table nt-table-inst">
-                  <colgroup id="nt-inst-cols"></colgroup>
+
               <thead>
                 <tr id="nt-inst-head">
                   <!-- 月份列由 JS 按 calcInstallmentMatrix 动态生成，这里只放固定列 -->

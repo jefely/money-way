@@ -103,11 +103,12 @@ export const SCHEMA = [
   { key: '列标行对齐', group: '列标行', type: 'align', prefix: '--nt-th-align-', def: DEFAULT_COL_ALIGN },
   { key: '手柄高度', group: '列标行', def: 26, unit: 'px', cssVar: '--nt-handle-h' },
 
-  /* ---------- 数据区（独立） ---------- */
+  /* ---------- 数据区（独立） ----------
+     列宽不在这里：表格 width:100% + min-width 由 CSS 决定，
+     拖动后整表切 .cols-custom 模式，见 ui/table-layout.js。
+     想恢复默认列宽用面板底部的「恢复默认」。 */
   { key: '数据区行高', group: '数据区', def: 32, unit: 'px', cssVar: '--nt-row-h' },
   { key: '数据区字号', group: '数据区', def: 14, unit: 'px', cssVar: '--nt-cell-font' },
-  { key: '默认列宽', group: '数据区', type: 'array', def: DEFAULT_COL_WIDTHS },
-  { key: '对齐', group: '数据区', type: 'align', prefix: '--nt-align-', def: DEFAULT_COL_ALIGN },
 ];
 
 /** 尺寸/枚举类共用的默认值（四主题一致） */

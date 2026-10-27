@@ -1,20 +1,24 @@
-﻿// 界面：表格布局（列宽 / 冻结列 / 拖动）
+﻿// 界面：表格冻结列 + 列宽拖动
 /**
  * 表格布局
  * 层：第五层 · UI
  *
  * ============================================================
- * 三条铁律（之前混着三处代码互相打架，全部推倒重来）
+ * 照单文件版（personal/index.html）的两套模式
  * ============================================================
- *   ① 列宽的**唯一**来源是 `<col>` 的 style.width
- *      —— th / td 上不许写 width，CSS 里也不许有 .nt-c-* 的宽度规则
- *   ② 表宽 = 各列之和，每次同步都要重算
- *      —— 不设的话 table-layout:fixed 会把列按比例压回容器宽
- *   ③ 冻结列的 left 由 JS 按**实际宽度累加**算出
- *      —— 不能用 CSS 变量写死，前列一变宽就错位
  *
- * 本文件是这三件事的**唯一**执行者。
- * applySettings 只负责把参数写成 CSS 变量，不碰列宽、不碰表宽。
+ *   模式 A · 自适应（默认）
+ *     CSS 给表格 width:100% + min-width，各列宽度由 CSS 定
+ *     JS 只负责算冻结列的 left
+ *
+ *   模式 B · 自定义（拖过一次之后）
+ *     整表切到 .cols-custom（width:auto + min-width:0），
+ *     每列宽度固化到 th 的 style 上，之后只改目标列
+ *     —— 两种模式泾渭分明，不会「一边百分比一边固定 px」打架
+ *
+ * 上一版把「算列宽、算表宽、管 colgroup」全搬进 JS，
+ * 每加一个功能（拖动、参数、动态表头）就多一个出错点，最后必然乱。
+ * ============================================================
  */
 
 /** 每张表冻结几列（键 = 表类名）。必须和 CSS 里的 sticky 声明一致。 */
@@ -27,106 +31,23 @@ const FROZEN_COUNT = {
   'nt-table-query': 0,      // 不冻结
 };
 
-const DEFAULT_COL_W = 88;   // 拿不到任何宽度时的兜底
-const MIN_W = 28;
+const MIN_W = 30;
 const MAX_W = 600;
 
 /* ============================================================
-   一、列定义（colgroup）
+   一、冻结列：left 按实际渲染宽度累加
    ============================================================ */
 
 /**
- * 确保 colgroup 与表头列数一致，且每个 col 带 nt-c-<key> 类。
- * 列数变了（表结构改过）就重建 —— 数量不符会让多出来的列宽度归零。
- */
-export function ensureCols(tableEl) {
-  if (!tableEl) return false;
-  const ths = [...tableEl.querySelectorAll('thead .nt-th')];
-  if (!ths.length) return false;
-
-  const existing = tableEl.querySelector('colgroup');
-  if (existing && existing.children.length === ths.length) return false;
-  if (existing) existing.remove();
-
-  const cg = document.createElement('colgroup');
-  for (const th of ths) {
-    const col = document.createElement('col');
-    const key = th.dataset.col;
-    if (key) col.className = 'nt-c-' + key;
-    cg.appendChild(col);
-  }
-  tableEl.insertBefore(cg, tableEl.firstChild);
-  return true;
-}
-
-/* ============================================================
-   二、同步：列宽 → 表宽 → 冻结 left
-   ============================================================ */
-
-/**
- * 把一张表同步到正确的布局状态。幂等，随时可调。
+ * 为什么必须量实际宽度而不是读 CSS 值：
+ *   · 浏览器会把列压窄（表格要挤进容器）
+ *   · 表格有 min-width，容器更窄时列是缩放的
+ *   · 用户拖过列宽
  *
- * 宽度优先级：col 上已有的 width > --nt-col-<key> 变量 > 表头当前实际宽度
- */
-export function syncTable(tableEl) {
-  if (!tableEl) return;
-  ensureCols(tableEl);
-
-  const root = document.documentElement;
-  const ths = [...tableEl.querySelectorAll('thead .nt-th')];
-  const cols = [...tableEl.querySelectorAll('colgroup col')];
-  if (!cols.length) return;
-
-  let total = 0;
-
-  cols.forEach((col, i) => {
-    let w = parseFloat(col.style.width);
-
-    if (!Number.isFinite(w) || w <= 0) {
-      // 第二优先：读参数变量（applySettings 写的）
-      const key = (col.className || '').replace('nt-c-', '');
-      const v = getComputedStyle(root).getPropertyValue('--nt-col-' + key).trim();
-      const f = parseFloat(v);
-      if (Number.isFinite(f) && f > 0) w = f;
-    }
-
-    if (!Number.isFinite(w) || w <= 0) {
-      // 第三优先：表头当前实际宽度（首次渲染时用）
-      const th = ths[i];
-      if (th) {
-        const rw = Math.round(th.getBoundingClientRect().width);
-        if (rw > 0) w = rw;
-      }
-    }
-
-    // 最后兜底：表还没布局（隐藏的视图）时上面三条都拿不到值。
-    // 不给个默认宽度的话 col 永远是空，表宽会少算几列。
-    if (!Number.isFinite(w) || w <= 0) w = DEFAULT_COL_W;
-
-    if (Number.isFinite(w) && w > 0) {
-      col.style.width = w + 'px';
-      col.setAttribute('width', String(w));
-      total += w;
-    }
-  });
-
-  // ② 表宽 = 各列之和
-  if (total > 0) tableEl.style.width = total + 'px';
-
-  // ③ 冻结列的 left 按实际宽度累加
-  syncFrozen(tableEl);
-}
-
-/** 给页面上所有数据区同步一遍 */
-export function syncAllTables() {
-  for (const table of document.querySelectorAll('table.nt-table')) syncTable(table);
-}
-
-/**
- * 冻结列定位：前 N 列的 left 按实际宽度累加写出来。
  * 表头和数据行必须写同一个 left，否则两者会错开。
  */
 export function syncFrozen(tableEl) {
+  if (!tableEl) return;
   const cls = [...tableEl.classList].find((c) => c in FROZEN_COUNT);
   if (!cls) return;
   const n = FROZEN_COUNT[cls];
@@ -150,33 +71,59 @@ export function syncFrozen(tableEl) {
   }
 }
 
-/** 把某一列的宽度写进 col，并重算表宽和冻结列 */
-export function setColWidth(tableEl, key, width) {
-  const col = tableEl.querySelector('col.nt-c-' + key);
-  if (!col) return;
-  const w = Math.max(MIN_W, Math.min(MAX_W, Math.round(width)));
-  col.style.width = w + 'px';
-  col.setAttribute('width', String(w));
-
-  let total = 0;
-  for (const c of tableEl.querySelectorAll('colgroup col')) {
-    const v = parseFloat(c.style.width);
-    if (Number.isFinite(v) && v > 0) total += v;
-  }
-  if (total > 0) tableEl.style.width = total + 'px';
-
-  syncFrozen(tableEl);
-  return w;
+/** 所有表都同步一遍 */
+export function syncAllFrozen() {
+  for (const t of document.querySelectorAll('table.nt-table')) syncFrozen(t);
 }
 
 /* ============================================================
-   三、拖动
+   二、拖动：切 .cols-custom 之后只改目标列
    ============================================================ */
 
 /**
- * 给一张表挂列宽拖动手柄。
- * 事件委托在 table 上只绑一次；手柄每次都补（表头是动态重建的）。
+ * 进入自定义列宽模式：把每列当前的**实际**宽度固化到 th 上。
+ *
+ * 必须在拖动开始时做一次 —— 否则 A 模式下是百分比/100% 分配，
+ * 改一列宽度会让其它列按比例重新分配（「拖一列动一排」）。
  */
+function enterCustomMode(tableEl) {
+  if (tableEl.classList.contains('cols-custom')) return;
+
+  // ① 先把所有列的宽度量完（边量边设会让后面的测量被前面的改动污染）
+  const widths = [];
+  for (const th of tableEl.querySelectorAll('thead .nt-th')) {
+    widths.push(Math.round(th.getBoundingClientRect().width));
+  }
+
+  // ② 再切模式、统一写入
+  tableEl.classList.add('cols-custom');
+  let i = 0;
+  for (const th of tableEl.querySelectorAll('thead .nt-th')) {
+    const w = widths[i];
+    i += 1;
+    if (w > 0) th.style.width = w + 'px';
+  }
+
+  applyCustomWidth(tableEl);
+}
+
+/**
+ * B 模式专用：表格宽度 = 各列 th 的固定宽度之和。
+ *
+ * 不设的话 table-layout:fixed + width:auto 会让表格跟随容器，
+ * 每列设的 px 被按比例均分掉（整表压成容器宽）。
+ * A 模式不需要这个 —— 那边宽度完全由 CSS 的 width:100% + min-width 决定。
+ */
+function applyCustomWidth(tableEl) {
+  let total = 0;
+  for (const th of tableEl.querySelectorAll('thead .nt-th')) {
+    const w = parseFloat(th.style.width);
+    if (Number.isFinite(w) && w > 0) total += w;
+  }
+  if (total > 0) tableEl.style.width = total + 'px';
+}
+
+/** 给一张表挂拖动手柄（事件委托只绑一次；手柄每次都补） */
 export function mountResize(tableEl, opts) {
   const o = opts || {};
   if (!tableEl) return;
@@ -188,7 +135,7 @@ export function mountResize(tableEl, opts) {
 
   tableEl.addEventListener('pointerdown', (ev) => {
     const th = ev.target.closest('.nt-th');
-    if (!th || !th.dataset.col) return;
+    if (!th) return;
 
     const rect = th.getBoundingClientRect();
     if (ev.clientX < rect.right - 7) return;   // 只在右边缘 7px 内才开始拖
@@ -196,27 +143,25 @@ export function mountResize(tableEl, opts) {
     ev.preventDefault();
     ev.stopPropagation();
 
-    const key = th.dataset.col;
+    enterCustomMode(tableEl);
+
     const startX = ev.clientX;
-    const startW = Math.round(rect.width);
-    let width = startW;
-
-    // 拖动前把每一列的当前宽度固化到 col 上：
-    // 否则只有目标列有宽度，其它列在总宽变化时会被重新分配（拖一列动一排）
-    freezeFromActual(tableEl);
-
+    const startW = Math.round(th.getBoundingClientRect().width);
+    const idx = [...tableEl.querySelectorAll('thead .nt-th')].indexOf(th);
     document.body.classList.add('nt-col-resizing');
 
     const onMove = (e) => {
-      width = startW + (e.clientX - startX);
-      setColWidth(tableEl, key, width);
+      const w = Math.max(MIN_W, Math.min(MAX_W, startW + (e.clientX - startX)));
+      th.style.width = w + 'px';
+      applyCustomWidth(tableEl);
+      syncFrozen(tableEl);
     };
 
     const onUp = () => {
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
       document.body.classList.remove('nt-col-resizing');
-      if (o.onResize) o.onResize(key, Math.round(width));
+      if (o.onResize) o.onResize(idx, Math.round(parseFloat(th.style.width) || 0));
     };
 
     document.addEventListener('pointermove', onMove);
@@ -224,9 +169,9 @@ export function mountResize(tableEl, opts) {
   });
 }
 
-/** 给每个带 data-col 的表头补一个拖动手柄 */
+/** 给每个表头补一个拖动手柄 */
 export function paintHandles(tableEl) {
-  for (const th of tableEl.querySelectorAll('thead .nt-th[data-col]')) {
+  for (const th of tableEl.querySelectorAll('thead .nt-th')) {
     if (th.querySelector('.nt-col-handle')) continue;
     const handle = document.createElement('span');
     handle.className = 'nt-col-handle';
@@ -235,36 +180,24 @@ export function paintHandles(tableEl) {
   }
 }
 
-/** 把每列当前的实际渲染宽度写进 col（拖动前调用） */
-function freezeFromActual(tableEl) {
-  const ths = [...tableEl.querySelectorAll('thead .nt-th')];
-  const cols = [...tableEl.querySelectorAll('colgroup col')];
-  ths.forEach((th, i) => {
-    const col = cols[i];
-    if (!col) return;
-    const w = Math.round(th.getBoundingClientRect().width);
-    if (w > 0) {
-      col.style.width = w + 'px';
-      col.setAttribute('width', String(w));
-    }
-  });
-}
-
-/* 表头被 buildHead 重建后，自动同步一次布局（表宽 / 冻结 left / 手柄） */
-if (typeof document !== 'undefined') {
-  document.addEventListener('nt-layout-refresh', (ev) => {
-    const table = ev.target && ev.target.closest ? ev.target.closest('table') : null;
-    if (table) {
-      paintHandles(table);
-      syncTable(table);
-    }
-  });
-}
-
-/** 给所有数据区挂手柄并同步布局 */
-export function bindAllResize(opts) {
+/** 给所有数据区挂手柄 + 同步冻结列 */
+export function bindAllTables(opts) {
   for (const table of document.querySelectorAll('table.nt-table')) {
     mountResize(table, opts);
-    syncTable(table);
+    paintHandles(table);
+    syncFrozen(table);
   }
+}
+
+/** 恢复默认列宽：回到 A 模式 */
+export function resetColWidths(tableEl) {
+  tableEl.classList.remove('cols-custom');
+  tableEl.style.width = '';
+  for (const th of tableEl.querySelectorAll('thead .nt-th')) {
+    th.style.width = '';
+    th.style.minWidth = '';
+    th.style.maxWidth = '';
+    th.style.left = '';
+  }
+  syncFrozen(tableEl);
 }

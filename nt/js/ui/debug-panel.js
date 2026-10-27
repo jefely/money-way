@@ -6,6 +6,7 @@ import { openColorPicker } from './color-picker.js';
 import { createThemeButtons, currentTheme, applyTheme, saveThemeSettings, loadThemeSettings } from './debug-themes.js';
 import { createPiPButton } from './debug-pip.js';
 import { layoutTextBar, mergePatch } from './layout-text.js';
+import { resetColWidths } from './table-layout.js';
 
 const POS_KEY = 'nt_debug_pos';
 
@@ -172,6 +173,8 @@ export function mountDebugPanel(opts) {
     current = normalize(o.getState ? loadThemeSettings(o, theme) : {}, theme);
     renderBody();
     applySettings(current, theme);
+    // 列宽也一起回到默认（从 .cols-custom 模式退回 CSS 的 width:100% + min-width）
+    for (const t of document.querySelectorAll('table.nt-table')) resetColWidths(t);
   });
   readColBtn.addEventListener('click', () => {
     if (!o.getState) return;

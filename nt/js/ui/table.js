@@ -16,6 +16,8 @@ import { tpl } from './render-transactions.js';
  * @param {HTMLElement} thead
  * @param {Array<{label:string, cls?:string}>} columns
  */
+import { paintHandles, syncFrozen } from './table-layout.js';
+
 export function buildHead(thead, columns) {
   if (!thead) return;
   thead.textContent = '';
@@ -31,9 +33,12 @@ export function buildHead(thead, columns) {
   }
   thead.appendChild(tr);
 
-  // 表头重建了，布局要跟着同步一次（colgroup 列数、手柄、表宽、冻结列）
+  // 表头重建了：补手柄 + 重算冻结列的 left
   const table = thead.closest('table');
-  if (table) table.dispatchEvent(new CustomEvent('nt-layout-refresh', { bubbles: false }));
+  if (table) {
+    paintHandles(table);
+    syncFrozen(table);
+  }
 }
 
 /** 把一行数据填进克隆体：只认带 [data-field] 的格子。 */
