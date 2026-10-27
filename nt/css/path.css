@@ -110,9 +110,9 @@
      这里只负责「内容比侧栏宽就裁掉」，别把整个界面顶出去 */
   overflow: hidden;
   border-right: 1px solid var(--nt-bg-line);
-  /* 侧栏实色、盖在图上面（用户要求「侧边栏做到图的上边」）：
-     环图在它下面是更低的 z-index，完全被挡住，不会和表格互相干扰 */
-  background: var(--nt-bg-soft);
+  /* 侧栏几乎透明（15% 底色）：它仍然在图的上面（z-index 2 > 1），
+     但后面的环图基本能透出来 */
+  background: color-mix(in srgb, var(--nt-bg-soft) 15%, transparent);
 }
 
 /* 右缘的拖条：拖动改 --nt-pw-side-w */
