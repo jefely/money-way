@@ -20,7 +20,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v0.17';
+const CACHE_NAME = 'nt-v0.18';
 
 const ASSETS = [
   './index.html',
@@ -117,6 +117,12 @@ const ASSETS = [
   './js/ui/suggest-popover.js',
   './js/ui/sync-dialog.js',
   './js/ui/table-layout.js',
+  './js/ui/import-dialog.js',
+  './js/ui/xlsx-read.js',
+  './js/core/import-table.js',
+  './js/core/bill-parse.js',
+  './js/core/csv.js',
+  './js/core/xlsx-xml.js',
   './js/ui/range-bar.js',
   './js/ui/cell-range.js',
   './js/ui/table.js',

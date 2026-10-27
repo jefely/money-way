@@ -19,6 +19,7 @@ import { openAddDialog } from '../ui/add-dialog.js';
 import { openSyncDialog } from '../ui/sync-dialog.js';
 import { splitByTime } from '../timeline/time-state.js';
 import { mountCellRange } from '../ui/cell-range.js';
+import { openImportDialog } from '../ui/import-dialog.js';
 
 const WIP = '该功能在后续版本接入（当前版本先做单页壳）。';
 
@@ -33,6 +34,72 @@ export function mountFlow(section, ctx) {
     parseAccount: (v) => parseAccountInput(ctx.getIndex(), v),
     suggestAccounts: (v) => suggestByIndex(ctx.getIndex(), v),
   });
+
+  /**
+   * 把导入解析结果写进 state。
+   *
+   * 通用表能直接导（转出/转入就是账户名）；
+   * 账单是单边记录，必须补出另一端，补不出来就跳过并计数 —— 不能静默丢数据。
+   */
+  function importItems(res) {
+    const idx = ctx.getIndex();
+    let st = ctx.getState();
+
+    const acc = (v) => {
+      if (!v) return null;
+      const r = parseAccountInput(idx, String(v).trim());
+      return (r && r.acc) || null;
+    };
+
+    // 兜底「我的账户」：第一个资产类账户
+    const fallbackSelf = (state) => {
+      const list = (state.accounts || []).filter((a) => a && a.type === '资产类');
+      return list.length ? list[0] : null;
+    };
+
+    let added = 0;
+    let skipped = 0;
+
+    for (const it of res.items) {
+      const amount = Math.abs(Number(it.amount) || 0);
+      if (!amount) { skipped += 1; continue; }
+
+      let fromId = null;
+      let toId = null;
+
+      if (res.kind === 'generic') {
+        const f = acc(it.from);
+        const t = acc(it.to);
+        if (!f || !t) { skipped += 1; continue; }
+        fromId = f.id;
+        toId = t.id;
+      } else {
+        // 账单：单边。支出 = 我的账户 → 对方；收入 = 对方 → 我的账户
+        const self = acc(it.method) || fallbackSelf(st);
+        const other = acc(it.party);
+        if (!self || !other) { skipped += 1; continue; }
+
+        const isIncome = /收入/.test(it.dir || '');
+        if (isIncome) { fromId = other.id; toId = self.id; }
+        else { fromId = self.id; toId = other.id; }
+      }
+
+      st = addTransaction(st, {
+        date: it.date,
+        from_id: fromId,
+        to_id: toId,
+        amount,
+        note: it.note || it.item || it.party || '',
+      });
+      added += 1;
+    }
+
+    ctx.setState(st);
+    ctx.save();
+    render();
+
+    ctx.setFooter(`导入 ${added} 笔` + (skipped ? `，跳过 ${skipped} 笔（账户认不出）` : ''));
+  }
 
   bindToolbar(section, ctx);
 
@@ -130,6 +197,13 @@ function bindToolbar(section, ctx) {
 
   const exp = section.querySelector('[data-act="export"]');
   if (exp) exp.addEventListener('click', () => NtModal.info('导出', (b) => { b.textContent = WIP; }));
+
+  const imp = section.querySelector('[data-act="import"]');
+  if (imp) {
+    imp.addEventListener('click', () => {
+      openImportDialog({ onImport: (res) => importItems(res) });
+    });
+  }
 
   const acc = section.querySelector('[data-act="accounts"]');
   if (acc) acc.addEventListener('click', () => {
