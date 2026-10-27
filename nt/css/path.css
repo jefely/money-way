@@ -438,17 +438,12 @@
 /* ---------- 图区：收起/展开三角 + Money Way 标识 ---------- */
 
 .pw-chart {
-  /* 图脱离栅格，固定在**视口中央**：
-     收展侧栏只改变左栏宽度，图的容器尺寸与位置都不再变化 ——
-     这样「收展侧栏」和「图」彻底断开联动（用户要求）。
-     同时它天然盖在侧栏上方（z-index 高于 .pw-side）。 */
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  width: min(94vw, 86vh);
-  height: min(94vw, 86vh);
-  transform: translate(-50%, -50%);
-  z-index: 1;
+  /* 图回到右侧那一列（不覆盖表格），但层级高于侧栏：
+     拖出容器时能浮在侧栏上方，静止时又不会把它整块盖住。
+     尺寸只由高度决定（见 .pw-chart-inner svg 的 height:100%/width:auto），
+     所以收展侧栏只改变它的水平位置，不会放大缩小。 */
+  position: relative;
+  z-index: 3;
   display: flex;
   min-width: 0;
   min-height: 0;
