@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    查询页：三段独立查询表（A / B / C）并排
    ============================================================ */
 
@@ -62,13 +62,68 @@
   font-size: 12px;
 }
 
+/* ------------------------------------------------------------
+   窄屏：三栏横向排列，左右滑动切换（参照单文件版）
+   ------------------------------------------------------------
+   以前是上下堆叠，手机上要滚三屏才能看完 A/B/C。
+   现在一屏一栏，滑动吸附，右侧露出一点下一栏做提示。
+   ------------------------------------------------------------ */
+
 @media (max-width: 900px) {
   .nt-query-grid {
-    grid-template-columns: 1fr;
-    grid-auto-rows: minmax(220px, 1fr);
+    display: flex;
+    flex-direction: row;
+    grid-template-columns: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
   }
+
   .nt-query-panel {
-    border-right: 0;
-    border-bottom: 1px solid var(--nt-bg-line);
+    flex: 0 0 92%;                 /* 露出 8% 的下一栏，提示可以左右滑 */
+    min-width: 0;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    border-right: 1px solid var(--nt-bg-line);
+    border-bottom: 0;
   }
+
+  .nt-query-panel:last-child {
+    border-right: 0;
+  }
+}
+
+/* ---------- 查询表 7 列宽度（窄屏要塞进 92% 的一栏里） ---------- */
+
+.nt-table-query {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.nt-c-q-seq { width: 30px; }
+.nt-c-q-freq { width: 34px; }
+.nt-c-q-date { width: 66px; }
+.nt-c-q-from { width: 62px; }
+.nt-c-q-to { width: 62px; }
+.nt-c-q-amount { width: 58px; }
+.nt-c-q-note { width: auto; }
+
+/* 表头与数据都不许换行：换行会把「转出账户」压成竖排单字 */
+.nt-table-query .nt-th,
+.nt-table-query .nt-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11.5px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+/* 筛选框：6 个挤一行太窄，改成 3 列网格 */
+.nt-query-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
 }

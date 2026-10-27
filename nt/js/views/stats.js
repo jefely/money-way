@@ -1,4 +1,4 @@
-// 界面：统计 tab
+﻿// 界面：统计 tab
 /**
  * 统计视图（分类 / 汇总）
  * 层：第五层 · UI
@@ -7,7 +7,7 @@
  * 本文件只负责「取范围 → 调核心 → 套模板 → 写页脚」，不算钱。
  */
 
-import { categoryGroups, accountRows } from '../core/ledger-stats.js';
+import { categoryGroups, accountRows, openingOf } from '../core/ledger-stats.js';
 import { buildHead, renderMixed, renderEmpty } from '../ui/table.js';
 import { money } from '../core/format.js';
 
@@ -49,10 +49,12 @@ export function mountStats(section, ctx) {
   function renderCategory(state, range) {
     buildHead(thead, [
       { label: '序', cls: 'nt-c-seq' },
-      { label: '分类' },
+      { label: '分类', cls: 'nt-c-cat' },
       { label: '当前结余', cls: 'nt-c-num' },
       { label: '转出', cls: 'nt-c-num' },
       { label: '转入', cls: 'nt-c-num' },
+      { label: '转出历史', cls: 'nt-c-num' },
+      { label: '转入历史', cls: 'nt-c-num' },
     ]);
 
     const groups = categoryGroups(state.accounts, state.transactions, range);
@@ -72,6 +74,8 @@ export function mountStats(section, ctx) {
             balance: money(c.balance),
             out: money(c.periodOut),
             iin: money(c.periodIn),
+            histOut: money(c.historyOut || 0),
+            histIn: money(c.historyIn || 0),
           },
         });
       }
@@ -93,16 +97,20 @@ export function mountStats(section, ctx) {
   }
 
   function renderSummary(state, range) {
+    // 列顺序按最新规划：序 / 账户名称 / 结余 / 转出 / 转入 / 两个历史 / 期初 / 类型 / 分类 / 账单日 / 还款日
     buildHead(thead, [
       { label: '序', cls: 'nt-c-seq' },
-      { label: '类型', cls: 'nt-c-type' },
-      { label: '分类', cls: 'nt-c-cat' },
-      { label: '账户名称' },
+      { label: '账户名称', cls: 'nt-c-name' },
       { label: '当前结余', cls: 'nt-c-num' },
       { label: '转出', cls: 'nt-c-num' },
       { label: '转入', cls: 'nt-c-num' },
       { label: '转出历史', cls: 'nt-c-num' },
       { label: '转入历史', cls: 'nt-c-num' },
+      { label: '期初', cls: 'nt-c-num' },
+      { label: '类型', cls: 'nt-c-type' },
+      { label: '分类', cls: 'nt-c-cat' },
+      { label: '账单日', cls: 'nt-c-day' },
+      { label: '还款日', cls: 'nt-c-day' },
     ]);
 
     const rows = accountRows(state.accounts, state.transactions, range);
@@ -110,18 +118,21 @@ export function mountStats(section, ctx) {
       tplId: 'tpl-stat-account',
       data: {
         seq: i + 1,
-        type: row.acc.type,
-        category: row.acc.category || '—',
         name: row.acc.name,
         balance: money(row.s.balance),
         out: money(row.s.periodOut),
         iin: money(row.s.periodIn),
         histOut: money(row.s.historyOut),
         histIn: money(row.s.historyIn),
+        opening: money(openingOf(state, row.acc.id)),
+        type: row.acc.type,
+        category: row.acc.category || '—',
+        billDay: row.acc.billDay || '',
+        repayDay: row.acc.repayDay || '',
       },
     }));
 
-    if (!items.length) renderEmpty(body, '还没有账户', 9);
+    if (!items.length) renderEmpty(body, '还没有账户', 12);
     else renderMixed(body, items);
 
     ctx.setFooter(`${visibleCount(state)} 个账户 · ${scopeLabel()}`);

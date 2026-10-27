@@ -1,4 +1,4 @@
-// 界面：查询 tab
+﻿// 界面：查询 tab
 /**
  * 查询视图（三段独立查询表 A / B / C）
  * 层：第五层 · UI
@@ -59,6 +59,7 @@ export function mountQuery(section, ctx) {
     const hits = filterTransactions(state.transactions, p.cond, nameOf);
     const rows = hits.map((t, i) => ({
       seq: i + 1,
+      freq: freqOf(t),
       date: shortDate(t.date),
       from: nameOf(t.from_id),
       to: nameOf(t.to_id),
@@ -66,7 +67,7 @@ export function mountQuery(section, ctx) {
       note: t.note || '',
     }));
 
-    if (!rows.length) renderEmpty(p.body, '没有命中的流水', 6);
+    if (!rows.length) renderEmpty(p.body, '没有命中的流水', 7);
     else renderRows(p.body, rows, 'tpl-query-row');
 
     const t = queryTotals(hits);
@@ -81,6 +82,14 @@ export function mountQuery(section, ctx) {
       parts.push(`${p.name}: ${t.count} 笔 ${moneyAlways(t.sum)}`);
     }
     ctx.setFooter(parts.join(' | '));
+  }
+
+  /** 频率：普通流水没有（留空）；固定收支是「月/周/日」，分期是「分期」 */
+  function freqOf(t) {
+    if (t.installmentId) return '分期';
+    if (t.freq) return t.freq;
+    if (t.isFixed) return '固定';
+    return '';
   }
 
   function nameOf(id) {

@@ -12,6 +12,7 @@
 
 import { tpl } from './render-transactions.js';
 import { setCell, moneyOrBlank } from './table.js';
+import { openingOf } from '../core/ledger-stats.js';
 import { money } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
 import { addAccount, updateAccount, removeAccount, addTransaction } from '../core/state-store.js';
@@ -292,11 +293,5 @@ export function mountAccountTable(ctx, tbody, opts) {
   return { render };
 }
 
-/** 某个账户的期初（opening 流水金额） */
-export function openingOf(state, id) {
-  let sum = 0;
-  for (const t of state.transactions || []) {
-    if (t.opening && t.to_id === id) sum += Number(t.amount) || 0;
-  }
-  return sum;
-}
+/** 期初：实现在 core，这里转出以保持既有调用点不变 */
+export { openingOf } from '../core/ledger-stats.js';

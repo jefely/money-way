@@ -311,3 +311,76 @@ body {
     padding: 5px 6px;
   }
 }
+
+/* ============================================================
+   冻结列：横向滚动时前面的关键列保持可见
+   ------------------------------------------------------------
+   用 position: sticky 做，left 偏移由各表的第 1 列宽度决定。
+   第 2 列（分类统计 / 汇总统计的「分类」「账户名称」）要叠在第 1 列右侧，
+   所以它的 left 必须等于第 1 列宽度 —— 这里直接引用 seq 列宽变量。
+   ============================================================ */
+
+.nt-tablewrap {
+  overflow-x: auto;
+}
+
+/* 第 1 列冻结：流水、查询、固定、分期、账户 */
+.nt-table-flow .nt-th:nth-child(1),
+.nt-table-flow .nt-cell:nth-child(1),
+.nt-table-plan .nt-th:nth-child(1),
+.nt-table-plan .nt-cell:nth-child(1),
+.nt-table-inst .nt-th:nth-child(1),
+.nt-table-inst .nt-cell:nth-child(1),
+.nt-table-accounts .nt-th:nth-child(1),
+.nt-table-accounts .nt-cell:nth-child(1) {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+}
+
+/* 第 2 列冻结：分类统计 / 汇总统计（left 要避开第 1 列） */
+.nt-table-stats .nt-th:nth-child(1),
+.nt-table-stats .nt-cell:nth-child(1) {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+}
+
+.nt-table-stats .nt-th:nth-child(2),
+.nt-table-stats .nt-cell:nth-child(2) {
+  position: sticky;
+  left: var(--nt-col-seq, 44px);
+  z-index: 3;
+}
+
+/* 冻结列要有自己的底色，否则会透出后面滚动的文字 */
+.nt-table-flow .nt-th:nth-child(-n+1),
+.nt-table-stats .nt-th:nth-child(-n+2),
+.nt-table-plan .nt-th:nth-child(-n+1),
+.nt-table-inst .nt-th:nth-child(-n+1),
+.nt-table-accounts .nt-th:nth-child(-n+1) {
+  background: var(--nt-th-bg, var(--nt-bg-soft));
+}
+
+.nt-table-flow .nt-cell:nth-child(-n+1),
+.nt-table-stats .nt-cell:nth-child(-n+2),
+.nt-table-plan .nt-cell:nth-child(-n+1),
+.nt-table-inst .nt-cell:nth-child(-n+1),
+.nt-table-accounts .nt-cell:nth-child(-n+1) {
+  background: var(--nt-row-bg, var(--nt-bg));
+}
+
+/* 右侧接缝给一条细线，滚动时能看出冻结边界 */
+.nt-table-flow .nt-th:nth-child(1)::after,
+.nt-table-stats .nt-th:nth-child(2)::after,
+.nt-table-plan .nt-th:nth-child(1)::after,
+.nt-table-inst .nt-th:nth-child(1)::after,
+.nt-table-accounts .nt-th:nth-child(1)::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -1px;
+  bottom: 0;
+  width: 1px;
+  background: var(--nt-bg-line);
+}

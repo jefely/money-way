@@ -164,6 +164,8 @@
     <td class="nt-cell nt-cell-num" data-field="balance"></td>
     <td class="nt-cell nt-cell-num" data-field="out"></td>
     <td class="nt-cell nt-cell-num" data-field="iin"></td>
+    <td class="nt-cell nt-cell-num" data-field="histOut"></td>
+    <td class="nt-cell nt-cell-num" data-field="histIn"></td>
   </tr>
 </template>
 
@@ -182,14 +184,17 @@
 <template id="tpl-stat-account">
   <tr class="nt-row">
     <td class="nt-cell nt-cell-seq" data-field="seq"></td>
-    <td class="nt-cell" data-field="type"></td>
-    <td class="nt-cell" data-field="category"></td>
     <td class="nt-cell" data-field="name"></td>
     <td class="nt-cell nt-cell-num" data-field="balance"></td>
     <td class="nt-cell nt-cell-num" data-field="out"></td>
     <td class="nt-cell nt-cell-num" data-field="iin"></td>
     <td class="nt-cell nt-cell-num" data-field="histOut"></td>
     <td class="nt-cell nt-cell-num" data-field="histIn"></td>
+    <td class="nt-cell nt-cell-num" data-field="opening"></td>
+    <td class="nt-cell" data-field="type"></td>
+    <td class="nt-cell" data-field="category"></td>
+    <td class="nt-cell" data-field="billDay"></td>
+    <td class="nt-cell" data-field="repayDay"></td>
   </tr>
 </template>
 
@@ -197,7 +202,8 @@
 <template id="tpl-query-row">
   <tr class="nt-row">
     <td class="nt-cell nt-cell-seq" data-field="seq"></td>
-    <td class="nt-cell nt-cell-date" data-field="date"></td>
+    <td class="nt-cell" data-field="freq"></td>
+    <td class="nt-cell" data-field="date"></td>
     <td class="nt-cell" data-field="from"></td>
     <td class="nt-cell" data-field="to"></td>
     <td class="nt-cell nt-cell-num" data-field="amount"></td>
@@ -428,15 +434,25 @@
     </div>
     <div class="nt-tablewrap">
       <table class="nt-table nt-table-query">
+        <colgroup>
+          <col class="nt-c-q-seq">
+          <col class="nt-c-q-freq">
+          <col class="nt-c-q-date">
+          <col class="nt-c-q-from">
+          <col class="nt-c-q-to">
+          <col class="nt-c-q-amount">
+          <col class="nt-c-q-note">
+        </colgroup>
         <thead>
-          <tr>
-            <th class="nt-th nt-c-seq" scope="col">序</th>
-            <th class="nt-th nt-c-date" scope="col">日期</th>
-            <th class="nt-th" scope="col">转出</th>
-            <th class="nt-th" scope="col">转入</th>
-            <th class="nt-th nt-c-amount" scope="col">金额</th>
-            <th class="nt-th" scope="col">备注</th>
-          </tr>
+            <tr>
+              <th class="nt-th nt-c-seq" scope="col">序</th>
+              <th class="nt-th nt-c-freq" scope="col">频率</th>
+              <th class="nt-th nt-c-date" scope="col">日期</th>
+              <th class="nt-th" scope="col">转出账户</th>
+              <th class="nt-th" scope="col">转入账户</th>
+              <th class="nt-th nt-c-amount" scope="col">金额</th>
+              <th class="nt-th" scope="col">备注</th>
+            </tr>
         </thead>
         <tbody data-body></tbody>
       </table>

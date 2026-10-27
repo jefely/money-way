@@ -1,4 +1,4 @@
-// 界面：（无界面）账本统计
+﻿// 界面：（无界面）账本统计
 /**
  * 账本统计（纯 Σ流水）
  * 层：第一层 · 数据基座
@@ -151,4 +151,16 @@ export function accountRows(accounts, transactions, range) {
     if (c) return c;
     return byZh(a.acc.name, b.acc.name);
   });
+}
+
+/**
+ * 某个账户的期初 = 该账户所有 opening 流水的金额之和。
+ * 纯计算，放在 core 里让统计页和设置页共用。
+ */
+export function openingOf(state, id) {
+  let sum = 0;
+  for (const t of (state && state.transactions) || []) {
+    if (t.opening && t.to_id === id) sum += Number(t.amount) || 0;
+  }
+  return sum;
 }
