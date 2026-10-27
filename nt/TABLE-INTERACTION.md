@@ -624,6 +624,59 @@ wrap.style.overflowX = 'hidden';
 wrap.style.overflowX = prev;
 ```
 
+### 5.9 拖动必须用 setPointerCapture（这是「时灵时不灵」和「其它也亮」的共同解）
+
+单文件版的 `initColResize`（`personal/index.html` §18231）做法：
+
+```js
+grip.addEventListener('pointerdown', (e) => {
+  grip.classList.add('dragging');
+  try { grip.setPointerCapture(e.pointerId); } catch (err) {}   // ★
+
+  grip.addEventListener('pointermove', onMove);      // ★ 绑在 grip 上
+  grip.addEventListener('pointerup', onUp);
+  grip.addEventListener('pointercancel', onUp);      // ★ 三个都要
+});
+```
+
+**`setPointerCapture` 一次解决两个症状**：
+
+| 症状 | 原因 | 捕获后 |
+|---|---|---|
+| 一下拖得动、一下拖不动 | 手指移出手柄后事件发给别的元素，拖动链断掉 | 事件全发给抓取者，手指移出也继续 |
+| 按住一个手柄，其它也亮 | 手指扫过其它列，`:hover` 在每列上成立 | 其它元素收不到 `pointerover`，不 hover |
+
+### 5.10 手柄必须完全落在列内
+
+```css
+/* 错：跨到下一列 */
+right: calc(-1 * var(--nt-handle-offset, 0px));   /* 默认 -3 → right: 3px */
+
+/* 对：完全在列内，靠加宽来方便按 */
+right: 0;
+width: var(--nt-handle-w, 14px);
+```
+
+跨出去以后，点手柄的**右半**时 `event.target.closest('.nt-th')` 拿到的是**右边那一列**，
+如果判定又依赖坐标（`clientX >= 那一列.right - 7`），条件不成立 → **直接 return，拖不动**。
+
+**加宽只能往左加，不能往右跨边界。**
+
+### 5.11 拖动的宽度写入要用 rAF 合并
+
+```js
+let raf = 0;
+const flush = () => { raf = 0; th.style.width = width + 'px'; applyCustomWidth(tableEl); syncFrozen(tableEl); };
+const onMove = (e) => {
+  width = ...;
+  if (!raf) raf = requestAnimationFrame(flush);   // 每帧一次
+};
+```
+
+每个 `pointermove` 都写样式 + 重算冻结 left，会让长表明显发滞（单文件版注释：1000 行的表会卡）。
+
+---
+
 ## 六、单元格文本
 
 ```css

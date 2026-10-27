@@ -128,7 +128,15 @@ function applyCustomWidth(tableEl) {
   if (total > 0) tableEl.style.width = total + 'px';
 }
 
-/** 给一张表挂拖动手柄（事件委托只绑一次；手柄每次都补） */
+/**
+ * 给一张表挂拖动手柄。
+ *
+ * 做法照单文件版的 initColResize，三道关键：
+ *   ① setPointerCapture —— 指针捕获后事件全发给手柄，手指移出也不断，
+ *      而且其它列收不到 pointerover，不会跟着 hover 亮起来
+ *   ② 事件绑在 grip 自己身上（move / up / cancel），不绑 document
+ *   ③ 宽度写入用 rAF 合并到每帧一次，长表才不卡
+ */
 export function mountResize(tableEl, opts) {
   const o = opts || {};
   if (!tableEl) return;
@@ -138,66 +146,84 @@ export function mountResize(tableEl, opts) {
   if (tableEl.dataset.resizeBound === '1') return;
   tableEl.dataset.resizeBound = '1';
 
+  // 只做一件事：从被按下的手柄找到目标列，然后把后续事件交给手柄自己
   tableEl.addEventListener('pointerdown', (ev) => {
-    const th = ev.target.closest('.nt-th');
-    if (!th) return;
-
-    const rect = th.getBoundingClientRect();
-    if (ev.clientX < rect.right - 7) return;   // 只在右边缘 7px 内才开始拖
+    const grip = ev.target.closest && ev.target.closest('.nt-col-handle');
+    if (!grip) return;
+    if (ev.button !== 0 && ev.pointerType === 'mouse') return;
 
     ev.preventDefault();
     ev.stopPropagation();
 
-    enterCustomMode(tableEl);
-
-    const startX = ev.clientX;
-    const startW = Math.round(th.getBoundingClientRect().width);
-    const idx = [...tableEl.querySelectorAll('thead .nt-th')].indexOf(th);
-    th.classList.add('nt-col-dragging');
-    document.body.classList.add('nt-col-resizing');
-    // 再兜一层保险：拖动期间禁掉容器的横向滚动，
-    // 免得浏览器在触摸序列中途接管手势导致内容一起滚
-    const wrap = tableEl.closest('.nt-tablewrap');
-    const prevOverflow = wrap ? wrap.style.overflowX : '';
-    if (wrap) wrap.style.overflowX = 'hidden';
-
-    const onMove = (e) => {
-      const w = Math.max(MIN_W, Math.min(MAX_W, startW + (e.clientX - startX)));
-      th.style.width = w + 'px';
-      applyCustomWidth(tableEl);
-      syncFrozen(tableEl);
-    };
-
-    let done = false;
-
-    /**
-     * 收尾。必须幂等，并且同时绑到 pointerup 和 pointercancel：
-     * 触摸手势被打断时浏览器只发 pointercancel、不发 pointerup，
-     * 漏了它 body 上的类会永久残留 —— 而那条类会把容器的 overflow-x 锁成 hidden，
-     * 表格从此不能横向滑动，且完全看不出原因。
-     */
-    const finish = () => {
-      if (done) return;
-      done = true;
-
-      document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerup', finish);
-      document.removeEventListener('pointercancel', finish);
-      window.removeEventListener('blur', finish);
-
-      th.classList.remove('nt-col-dragging');
-      document.body.classList.remove('nt-col-resizing');
-      if (wrap) wrap.style.overflowX = prevOverflow;
-
-      if (o.onResize) o.onResize(idx, Math.round(parseFloat(th.style.width) || 0));
-    };
-
-    document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', finish);
-    document.addEventListener('pointercancel', finish);
-    // 兜底：窗口失焦时也要收尾
-    window.addEventListener('blur', finish);
+    startDrag(tableEl, grip, ev, o);
   });
+}
+
+/** 一次拖动的全过程 */
+function startDrag(tableEl, grip, downEv, o) {
+  const th = grip.closest('.nt-th');
+  if (!th) return;
+
+  // 进 B 模式：把当前各列的实际宽度固化，之后只改目标列
+  enterCustomMode(tableEl);
+
+  const startX = downEv.clientX;
+  const startW = Math.round(th.getBoundingClientRect().width);
+  const idx = [...tableEl.querySelectorAll('thead .nt-th')].indexOf(th);
+  const wrap = tableEl.closest('.nt-tablewrap');
+  const prevOverflow = wrap ? wrap.style.overflowX : '';
+
+  grip.classList.add('dragging');
+  th.classList.add('nt-col-dragging');
+  document.body.classList.add('nt-col-resizing');
+  if (wrap) wrap.style.overflowX = 'hidden';
+
+  // ① 指针捕获：手指移出手柄也继续收事件
+  try { grip.setPointerCapture(downEv.pointerId); } catch (e) { /* 忽略 */ }
+
+  let width = startW;
+  let raf = 0;
+
+  const flush = () => {
+    raf = 0;
+    th.style.width = width + 'px';
+    applyCustomWidth(tableEl);
+    syncFrozen(tableEl);
+  };
+
+  const onMove = (e) => {
+    width = Math.max(MIN_W, Math.min(MAX_W, startW + (e.clientX - startX)));
+    // ③ 每帧只写一次，别每个 move 都写
+    if (!raf) raf = requestAnimationFrame(flush);
+  };
+
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+
+    if (raf) { cancelAnimationFrame(raf); flush(); }
+
+    grip.removeEventListener('pointermove', onMove);
+    grip.removeEventListener('pointerup', finish);
+    grip.removeEventListener('pointercancel', finish);
+    window.removeEventListener('blur', finish);
+
+    try { grip.releasePointerCapture(downEv.pointerId); } catch (e) { /* 忽略 */ }
+
+    grip.classList.remove('dragging');
+    th.classList.remove('nt-col-dragging');
+    document.body.classList.remove('nt-col-resizing');
+    if (wrap) wrap.style.overflowX = prevOverflow;
+
+    if (o.onResize) o.onResize(idx, Math.round(width));
+  };
+
+  // ② 绑在手柄自己身上
+  grip.addEventListener('pointermove', onMove);
+  grip.addEventListener('pointerup', finish);
+  grip.addEventListener('pointercancel', finish);
+  window.addEventListener('blur', finish);
 }
 
 /** 给每个表头补一个拖动手柄 */

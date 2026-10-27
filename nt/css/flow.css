@@ -165,9 +165,12 @@
 .nt-col-handle {
   position: absolute;
   top: 0;
-  bottom: 0;                                       /* 铺满整个列标高度 */
-  right: calc(-1 * var(--nt-handle-offset, 0px));  /* 面板「手柄位置」 */
-  width: var(--nt-handle-w, 7px);                  /* 面板「手柄宽度」 */
+  bottom: 0;
+  /* 关键：完全落在列内。不能往外跨 ——
+     跨出去以后点手柄的右半，closest('.nt-th') 会拿到右边那一列，
+     坐标判定不成立，手柄就时灵时不灵。 */
+  right: 0;
+  width: var(--nt-handle-w, 14px);
   cursor: col-resize;
   background: transparent;
   z-index: 5;
@@ -191,6 +194,14 @@
   top: 0;
   bottom: 0;
   background: var(--nt-primary);
+}
+
+/* 拖动期间：压掉其它列的 hover 高亮。
+   手指扫过时 :hover 会在每一列上同时成立，看起来像「全都亮了」。 */
+body.nt-col-resizing .nt-th:hover > .nt-col-handle::after {
+  top: 15%;
+  bottom: 15%;
+  background: var(--nt-handle-color, rgba(140, 130, 190, 0.55));
 }
 
 /* 正在拖的时候禁止选中文字 */
@@ -466,12 +477,7 @@ body.nt-col-resizing {
 
 /* 拖动期间：只留目标列那条线，其它淡出。
    拖一列时右侧各列必然一起右移，六条线同时动视觉上很吵。 */
-body.nt-col-resizing .nt-col-handle::after {
-  opacity: 0.15;
-}
-
 body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
-  opacity: 1;
   top: 0;
   bottom: 0;
   background: var(--nt-primary);
