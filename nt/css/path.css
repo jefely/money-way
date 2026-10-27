@@ -72,17 +72,19 @@
 }
 
 @media (max-width: 820px) {
+  /* 手机上**保持左右分栏**（不再改成上下）：表和图并排，
+     读表时图就在旁边，和单文件版一致。
+     左栏宽度取 --nt-pw-side-w 与 62vw 的较小者，避免 320px 把图挤没。 */
   .pw-main {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-columns: min(var(--nt-pw-side-w, 320px), 62vw) 1fr;
+    grid-template-rows: 1fr;
   }
-  /* 手机上把列表收到图下面，先看图 */
   .pw-side {
-    order: 2;
-    max-height: 42vh;
+    order: 0;
+    max-height: none;
   }
   .pw-chart {
-    order: 1;
+    order: 0;
   }
 }
 
@@ -333,16 +335,17 @@
 
 /* 窄屏：左栏收到图下面，默认仍然收起 */
 @media (max-width: 820px) {
+  /* 手机上也保持左右：边框在右侧，不再变成上边框 */
   .pw-side {
-    order: 2;
-    max-height: 46vh;
-    border-right: 0;
-    border-top: 1px solid var(--nt-bg-line);
+    order: 0;
+    max-height: none;
+    border-right: 1px solid var(--nt-bg-line);
+    border-top: 0;
   }
   .pw-side.collapsed {
     width: auto;
     flex: 0 0 26px;
-    max-height: 26px;
+    max-height: none;
   }
   .pw-side.collapsed .pw-rail {
     writing-mode: horizontal-tb;
