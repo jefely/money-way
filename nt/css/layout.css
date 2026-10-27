@@ -31,9 +31,6 @@
 }
 
 .nt-footer {
-  /* 环图是 position:fixed 的，底部状态栏不设层级就会被图盖住 */
-  position: relative;
-  z-index: 20;
   min-height: var(--nt-footer-h);
   padding: 4px 16px;
   border-top: 1px solid var(--nt-bg-line);

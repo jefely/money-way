@@ -26,7 +26,7 @@ export const RATIO = 6000 / BASE_SIZE;
 
 export const SVG = {
   size: 6000,
-  rOut: Math.round(480 * RATIO),
+  rOut: Math.round(640 * RATIO),
   thick: Math.round(44 * RATIO),
   get rIn() { return this.rOut - this.thick; },
 };
@@ -106,22 +106,17 @@ export function renderChart(data) {
   }
 
   // ④ 弧块
-  // 分隔线：颜色走 CSS 变量 --nt-ring-sep（深色=纯黑、浅色=纯白），
-  // 因为同色弧块之间只有这条线能分界，而它必须在任何底色上都看得见。
-  // 宽度 3.5×RATIO（约 0.7 显示像素）、70% 不透明。
+  // 分隔线：中性灰 #6b7280，3.5×RATIO（约 0.7 显示像素）、70% 不透明。
+  // 早先用 0.9×RATIO，同分类的两个**同色**弧块挨在一起时几乎看不见分界。
   for (const b of blocks) {
     parts.push(`<path class="mw-ring" d="${arcPath(rOut, rIn, b.a1, b.a2, pointAt, cx, cy)}"`
       + ` fill="${colorOf(b.colorKey)}" fill-opacity="1"`
-      + ` stroke-width="${f(3.5 * RATIO)}" stroke-opacity="0.7"`
+      + ` stroke="#6b7280" stroke-width="${f(3.5 * RATIO)}" stroke-opacity="0.7"`
       + ` data-node="${esc(b.acc)}"/>`);
   }
 
   // ④ 弧块文字：沿半径向外排（照单文件版）
   //    放得下就贴外沿；放不下就往外挪一段并缩字号
-  // 「上一个弧块是否极窄」——连续两个极窄时把第二个的锥形拉长，标签才不会叠在一起
-  // （照单文件版：默认锥长 50，连续极窄时第二个用 120）
-  let prevVeryNarrow = false;
-
   for (const b of blocks) {
     const label = String(b.label || '');
     if (!label) continue;
@@ -140,19 +135,12 @@ export function renderChart(data) {
     let textW = 0;
     for (const ch of label) textW += (ch.charCodeAt(0) > 255 ? 1 : 0.55) * fs;
 
+    // 放不下就别画了：挤在一起比没有更糟
+    if (arcLen < textW * 0.9 && fs < 15 * RATIO) continue;
+
     const crowded = arcLen < textW * 1.5;
     if (crowded) fs = Math.max(12 * RATIO, fs * 0.85);
-
-    // 极窄 = 弧长不足 12 个基准单位；连续两个极窄时第二个锥形拉长到 120
-    let rText = rOut + 8 * RATIO;
-    if (crowded) {
-      const veryNarrow = arcLen < 12 * RATIO;
-      // 只两档：常规 46（1 倍），连续两个极窄时第二个 92（2 倍）。
-      // 之前试过 2.5 / 2.7 倍，标签被推得太远、整体乱掉，退回单文件版量级。
-      const coneLen = (veryNarrow && prevVeryNarrow) ? 92 * RATIO : 46 * RATIO;
-      prevVeryNarrow = veryNarrow;
-      rText = rOut + coneLen;
-    }
+    const rText = crowded ? rOut + 46 * RATIO : rOut + 8 * RATIO;
 
     // 放不下的弧块：画单文件版那种**尖锥形引线**，把弧块和外面的文字连起来
     //（照 mwDrawSvg：锥尖贴 rOut 的中点，锥底在文字所在半径上、以 mid 对称，
