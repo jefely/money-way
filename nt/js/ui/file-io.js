@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 本地文件读写（UI 层）
  * 层：第五层 · UI
  *
@@ -83,4 +83,28 @@ export function datedName(prefix, ext) {
     + String(d.getMonth() + 1).padStart(2, '0')
     + String(d.getDate()).padStart(2, '0');
   return prefix + '-' + ymd + '.' + (ext || 'txt');
+}
+
+/**
+ * 下载二进制内容（xlsx 用）。
+ * @param {string} filename
+ * @param {Uint8Array|ArrayBuffer} bytes
+ * @param {string} mime
+ */
+export function downloadBlob(filename, bytes, mime) {
+  const blob = new Blob([bytes], { type: (mime || 'application/octet-stream') });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+
+  // 立刻 revoke 在部分浏览器上会打断下载，延迟一下
+  setTimeout(() => {
+    try { URL.revokeObjectURL(url); } catch (e) { /* 忽略 */ }
+    a.remove();
+  }, 1500);
 }

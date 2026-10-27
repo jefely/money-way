@@ -20,6 +20,7 @@ import { openSyncDialog } from '../ui/sync-dialog.js';
 import { splitByTime } from '../timeline/time-state.js';
 import { mountCellRange } from '../ui/cell-range.js';
 import { openImportDialog } from '../ui/import-dialog.js';
+import { openExportDialog } from '../ui/export-dialog.js';
 
 const WIP = '该功能在后续版本接入（当前版本先做单页壳）。';
 
@@ -196,7 +197,15 @@ function bindToolbar(section, ctx) {
   if (sync) sync.addEventListener('click', () => openSyncDialog(ctx));
 
   const exp = section.querySelector('[data-act="export"]');
-  if (exp) exp.addEventListener('click', () => NtModal.info('导出', (b) => { b.textContent = WIP; }));
+  if (exp) {
+    exp.addEventListener('click', () => openExportDialog({
+      getState: () => ctx.getState(),
+      codeOf: (id) => {
+        const a = ctx.getIndex().byId.get(id);
+        return a ? (a.code || a.name || '') : '';
+      },
+    }));
+  }
 
   const imp = section.querySelector('[data-act="import"]');
   if (imp) {

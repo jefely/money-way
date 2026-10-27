@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 公约自动检查：任何一条不过 → 退出码 1（= 不准合并到 main）。
  *
  *   node nt/tools/check-rules.mjs
@@ -97,13 +97,21 @@ for (const file of files) {
     // ⑧ 纯计算层禁止碰浏览器 API（core / timeline / graph 都是「脱离浏览器能用 Node 跑」的层）
     const pureLayers = ['/core/', '/timeline/', '/graph/'];
     if (pureLayers.some((p) => rel(file).includes(p))) {
-      const banned = ['window.', 'document.', 'localStorage', 'navigator.userAgent'];
+      // 注意：必须用「前面不是字母数字」的断言。
+// 否则 application/vnd.openxmlformats-officedocument.spreadsheetml 这种 MIME
+// 里的 "officedocument." 会被当成 document. 而误报（xlsx 导出就踩过）。
+const banned = [
+  /(?<![A-Za-z0-9_])window\./,
+  /(?<![A-Za-z0-9_])document\./,
+  /(?<![A-Za-z0-9_])localStorage\b/,
+  /(?<![A-Za-z0-9_])navigator\.userAgent/,
+];
       lines.forEach((line, i) => {
         const t = line.trim();
         if (t.startsWith('*') || t.startsWith('//')) return;
         for (const b of banned) {
-          if (line.includes(b)) {
-            problems.push(`${rel(file)}:${i + 1} 纯计算层里出现 ${b}（公约 3.3：必须能脱离浏览器跑测试）`);
+          if (b.test(line)) {
+            problems.push(`${rel(file)}:${i + 1} 纯计算层里出现 ${b.source}（公约 3.3：必须能脱离浏览器跑测试）`);
           }
         }
       });

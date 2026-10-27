@@ -128,3 +128,49 @@ test('analyzeTable 认不出时给 unknown', () => {
   assert.equal(r.kind, 'unknown');
   assert.equal(r.items.length, 0);
 });
+
+test('parseBillDate 认 Excel 日期序列号', () => {
+  // 46296 = 2026-10-24（单文件版导出的流水表里就是这个格式）
+  assert.equal(parseBillDate('46296'), '2026-10-01');
+  assert.equal(parseBillDate(45000), '2023-03-15');
+  // 4 位以内的数字不当序列号（可能是别的含义）
+  assert.equal(parseBillDate('1234'), null);
+});
+
+test('genericRowsToItems 能吃 Excel 序列号日期', () => {
+  const rows = [
+    ['序', '日期', '转出账户', '转入账户', '金额', '备注', '时间'],
+    ['1', '46296', '招行储', '地铁', '3', '测试', '09:00'],
+    ['2', '46297', '地铁', '食堂', '18', '午饭', '12:30'],
+  ];
+  const g = findGenericHeader(rows);
+  assert.equal(g.idx, 0);
+  const items = genericRowsToItems(rows, g);
+  assert.equal(items.length, 2);
+  assert.equal(items[0].date, '2026-10-01');
+  assert.equal(items[0].amount, 3);
+  assert.equal(items[0].from, '招行储');
+});
+
+test('analyzeTable 认得单文件版导出的流水表结构', () => {
+  // 前两行是标题和说明，表头在第 3 行
+  const rows = [
+    ['流水记录'],
+    ['格式：日期写 YYMMDD（如 261022）；账户可写简码或全名；金额填数字。'],
+    ['序', '日期', '转出账户', '转入账户', '金额', '备注', '时间'],
+    ['1', '46296', '招行储', '地铁', '3', '测试', '09:00'],
+  ];
+  const r = analyzeTable(rows);
+  assert.equal(r.kind, 'generic');
+  assert.equal(r.headerIdx, 2);
+  assert.equal(r.items.length, 1);
+  assert.equal(r.items[0].date, '2026-10-01');
+});
+
+test('parseBillDate 认 YYMMDD（6 位）', () => {
+  assert.equal(parseBillDate('261024'), '2026-10-24');
+  assert.equal(parseBillDate('260801'), '2026-08-01');
+  assert.equal(parseBillDate('991231'), '1999-12-31');
+  // 月份/日期越界的不能瞎认
+  assert.equal(parseBillDate('261399'), null);
+});

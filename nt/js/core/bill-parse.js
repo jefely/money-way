@@ -12,6 +12,7 @@
  */
 
 import { normalizeDate } from './import-parser.js';
+import { excelSerialToISO } from './xlsx-xml.js';
 
 /** 列名关键词表：命中越多越像表头 */
 export const BILL_PRESETS = [
@@ -151,6 +152,26 @@ export function parseBillAmount(v) {
 export function parseBillDate(v) {
   const s = String(v || '').trim();
   if (!s) return null;
+
+  // ① 6 位纯数字 = YYMMDD（261024 → 2026-10-24）。
+  //    必须在通用正则之前处理：261024 走正则会变成 2610-02-04。
+  if (/^\d{6}$/.test(s)) {
+    const y = Number(s.slice(0, 2));
+    const year = y >= 70 ? 1900 + y : 2000 + y;
+    const mo = s.slice(2, 4);
+    const d = s.slice(4, 6);
+    if (+mo >= 1 && +mo <= 12 && +d >= 1 && +d <= 31) {
+      return `${year}-${mo}-${d}`;
+    }
+    // 6 位既然当 YYMMDD 解释，越界就是无效日期
+    return null;
+  }
+
+  // ② 5 位纯数字 = Excel 序列号（46296 也是 2026-10 那一片）
+  if (/^\d{5}$/.test(s)) {
+    const iso = excelSerialToISO(Number(s));
+    if (iso) return iso;
+  }
 
   const m = s.match(/(\d{4})[-/年.]?(\d{1,2})[-/月.]?(\d{1,2})/);
   if (m) {

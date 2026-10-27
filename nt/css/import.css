@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    NT账本 · 导入 / 账户管理
    ============================================================ */
 
@@ -136,4 +136,47 @@
   .nt-acc-cat {
     display: none;
   }
+}
+
+/* ---------- 导出对话框 ---------- */
+
+.nt-exp-sec {
+  margin: 10px 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--nt-primary);
+}
+
+.nt-exp-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.nt-exp-main {
+  border-color: var(--nt-primary);
+  color: var(--nt-primary);
+  font-weight: 700;
+}
+
+.nt-exp-out {
+  width: 100%;
+  height: 200px;
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 6px;
+  background: var(--nt-bg);
+  color: var(--nt-text);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.nt-exp-out:focus {
+  outline: 0;
+  border-color: var(--nt-primary);
 }
