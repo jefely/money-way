@@ -140,10 +140,15 @@ export function mountPath(section, ctx) {
   function hitsFor(f) {
     if (!f || !data || data.empty) return null;
     if (f.kind === 'acc') return new Set(traceByAccount(data.txs, f.id));
-    if (f.kind === 'tx' || f.kind === 'trace') {
-      // f.id 现在指向「全部流水」的下标，不是 data.txs（图上子集）的下标，
-      // 所以不能再用 data.txs[f.id] 取值 —— 用点选时记下的 to_id。
-      const toId = f.to_id || (data.txs[f.id] && data.txs[f.id].to_id);
+    if (f.kind === 'tx') {
+      // 模式 2（点单线）：**只点亮这一根**。
+      // 早先这里用了 traceUpstream（整条上游链），所以一点就亮一片。
+      const idx = Number(f.txIdx);
+      return Number.isFinite(idx) && idx >= 0 ? new Set([idx]) : null;
+    }
+    if (f.kind === 'trace') {
+      // 模式 4（点侧栏条目）：倒序追踪，整条上游链都点亮
+      const toId = f.to_id;
       if (!toId) return null;
       return new Set(traceUpstream(data.txs, toId).linkIndices);
     }
@@ -213,7 +218,9 @@ export function mountPath(section, ctx) {
         const tx = data.txs[value] || {};
         const realIdx = allTx.findIndex((t) => t && t.id === tx.id);
         const same = focus && focus.kind === 'tx' && focus.id === realIdx;
-        focus = same ? null : { kind: 'tx', id: realIdx, to_id: tx.to_id };
+        focus = same ? null : {
+          kind: 'tx', id: realIdx, txIdx: value, to_id: tx.to_id,
+        };
       }
       render();
     }, focus ? focus.kind : null);
