@@ -66,7 +66,11 @@ export function mountChartGestures(box, target) {
     // 对 SVG 子元素：transform-box 用 view-box，原点才是画布中心
     el.style.transformBox = 'view-box';
     el.style.transformOrigin = '50% 50%';
-    el.style.willChange = 'transform';
+    // ⚠️ 不要设 will-change: transform。
+    // 它会把该元素提升成合成层，Chrome 于是把内容光栅化成一张位图再缩放 ——
+    // 放大就糊；收展侧栏触发重新光栅化，反而变清晰（用户观察到的正是这个）。
+    // SVG 的矢量变换不需要合成层加速，宁可每次重绘。
+    el.style.willChange = '';
     el.style.transform =
       `translate(${view.tx.toFixed(1)}px, ${view.ty.toFixed(1)}px) `
       + `rotate(${view.rot.toFixed(2)}deg) scale(${view.zoom.toFixed(3)})`;
