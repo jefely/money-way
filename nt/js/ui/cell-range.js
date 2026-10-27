@@ -10,6 +10,10 @@
  *
  * 手机上没有鼠标，所以用长按起手 —— 直接拖是横向滚动。
  * 框选期间 body 加 nt-range-mode，拖动不再触发滚动。
+ *
+ * 多表共存：每张表各自登记一份能力（能否粘贴、能否删行、粘贴是整片还是一格），
+ * 记在 tableMap 里；选区与剪贴板仍是全局单份 —— 同一时刻只有一个选区。
+ * 早期版本把回调放在模块级变量里，第二张表一挂就把第一张表的删除回调顶掉了。
  */
 
 import { bindBar, showBar, hideBar, setPasteEnabled } from './range-bar.js';
@@ -17,14 +21,19 @@ import { bindBar, showBar, hideBar, setPasteEnabled } from './range-bar.js';
 const LONG_PRESS_MS = 480;
 const MOVE_TOLERANCE = 8;      // 长按期间移动超过这个距离就算滚动，放弃长按
 
-/** 内部剪贴板：二维字符串数组 */
+/** 内部剪贴板：二维字符串数组（跨表共享：流水表复制 → 别的表也能粘） */
 let clip = null;
 
 /** 当前选区 { anchorR, anchorC, focusR, focusC, tableEl } */
 let sel = null;
 
-/** 挂载时传入的回调 */
-let handlers = {};
+/**
+ * 每张表的能力与回调
+ *   paste:         'block'（整片）| 'single'（一次一格）| 'off'（只读，不给粘贴按钮）
+ *   onDeleteRows:  (ids:string[]) => void   —— 没有就不显示「删除行」
+ *   onNotice:      (text:string) => void    —— 粘贴结果如实回报（写到页脚）
+ */
+const tableMap = new WeakMap();
 
 /* ============================================================
    一、挂载
@@ -32,13 +41,18 @@ let handlers = {};
 
 /**
  * @param {HTMLTableElement} tableEl
- * @param {{onDeleteRows?:(ids:string[])=>void}} opts
+ * @param {{paste?:'block'|'single'|'off', onDeleteRows?:(ids:string[])=>void,
+ *          onNotice?:(text:string)=>void}} [opts]
  */
 export function mountCellRange(tableEl, opts) {
-  const o = opts || {};
   if (!tableEl) return;
+  const o = opts || {};
 
-  handlers = o;
+  tableMap.set(tableEl, {
+    paste: o.paste || 'block',
+    onDeleteRows: o.onDeleteRows || null,
+    onNotice: o.onNotice || null,
+  });
 
   bindBar({
     onCopy: doCopy,
@@ -52,11 +66,25 @@ export function mountCellRange(tableEl, opts) {
   tableEl.addEventListener('pointerdown', (ev) => onDown(tableEl, ev));
 }
 
+function capsOf(tableEl) {
+  const c = (tableEl && tableMap.get(tableEl)) || {};
+  return {
+    paste: c.paste || 'block',
+    onDeleteRows: c.onDeleteRows || null,
+    notice: c.onNotice || (() => {}),
+  };
+}
+
 /* ---------- 几何 ---------- */
+
+/** 跨列单元格（空状态、合计行）不参与框选：它的列号算不出来，会把整个矩形带歪 */
+function isSpan(td) {
+  return !!td && td.colSpan > 1;
+}
 
 function cellOf(tableEl, el) {
   const td = el && el.closest ? el.closest('td') : null;
-  if (!td || !tableEl.contains(td)) return null;
+  if (!td || !tableEl.contains(td) || isSpan(td)) return null;
   const tr = td.parentElement;
   if (!tr || !tr.parentElement || tr.parentElement.tagName !== 'TBODY') return null;
   return {
@@ -64,6 +92,10 @@ function cellOf(tableEl, el) {
     r: [...tr.parentElement.children].indexOf(tr),
     c: [...tr.children].indexOf(td),
   };
+}
+
+function bodyRows(tableEl) {
+  return [...tableEl.querySelectorAll('tbody tr')];
 }
 
 function bounds() {
@@ -120,6 +152,8 @@ function onDown(tableEl, ev) {
    ============================================================ */
 
 function startSelection(tableEl, hit, ev) {
+  // 在别的表上起新选区时，先把上一张表的高亮清掉 —— 否则会同时亮着两处
+  clearSelection();
   sel = { anchorR: hit.r, anchorC: hit.c, focusR: hit.r, focusC: hit.c, tableEl };
 
   document.body.classList.add('nt-range-mode');
@@ -142,14 +176,24 @@ function startSelection(tableEl, hit, ev) {
     try { tableEl.releasePointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
 
     document.body.classList.remove('nt-range-mode');
-    showBar(tableEl, { hasClip: !!clip });
+    showBar(tableEl, barState(tableEl));
   };
 
   tableEl.addEventListener('pointermove', onMove);
   tableEl.addEventListener('pointerup', finish);
   tableEl.addEventListener('pointercancel', finish);
 
-  showBar(tableEl, { hasClip: !!clip });
+  showBar(tableEl, barState(tableEl));
+}
+
+/** 工具条的状态：能力来自这张表自己，不是全局 */
+function barState(tableEl) {
+  const caps = capsOf(tableEl);
+  return {
+    hasClip: !!clip,
+    canPaste: caps.paste !== 'off',
+    canDelete: !!caps.onDeleteRows,
+  };
 }
 
 /** 重画高亮 */
@@ -157,9 +201,9 @@ function paint() {
   if (!sel) return;
   const { r1, r2, c1, c2 } = bounds();
 
-  [...sel.tableEl.querySelectorAll('tbody tr')].forEach((tr, r) => {
+  bodyRows(sel.tableEl).forEach((tr, r) => {
     [...tr.children].forEach((td, c) => {
-      const inside = r >= r1 && r <= r2 && c >= c1 && c <= c2;
+      const inside = !isSpan(td) && r >= r1 && r <= r2 && c >= c1 && c <= c2;
       td.classList.toggle('nt-range-sel', inside);
       td.classList.toggle('nt-range-edge-top', inside && r === r1);
       td.classList.toggle('nt-range-edge-bottom', inside && r === r2);
@@ -191,55 +235,101 @@ function cellValue(td) {
   return input ? input.value : td.textContent.trim();
 }
 
-/** 写一个格子的值：只写 input，不动只读文本列 */
-function setCellValue(td, v) {
+/** 写一个格子的值（只设 value，不派发事件；派发统一放在循环之后） */
+function writeCell(td, v) {
   const input = td.querySelector('input, textarea');
-  if (!input) return false;
+  if (!input) return null;
   input.value = v;
-  input.dispatchEvent(new Event('input', { bubbles: true }));
-  input.dispatchEvent(new Event('change', { bubbles: true }));
-  return true;
+  return input;
+}
+
+/** 一行的每个 td 都是整格（没有跨列）才取，跨列行整行跳过 */
+function rowCells(tr) {
+  const tds = [...tr.children];
+  return tds.some(isSpan) ? null : tds;
 }
 
 function doCopy() {
   if (!sel) return;
   const { r1, r2, c1, c2 } = bounds();
-  const rows = [...sel.tableEl.querySelectorAll('tbody tr')].slice(r1, r2 + 1);
 
-  clip = rows.map((tr) => {
-    const tds = [...tr.children];
+  clip = [];
+  for (const tr of bodyRows(sel.tableEl).slice(r1, r2 + 1)) {
+    const tds = rowCells(tr);
+    if (!tds) continue;                       // 合计行 / 空状态行不参与复制
     const out = [];
     for (let c = c1; c <= c2; c += 1) out.push(tds[c] ? cellValue(tds[c]) : '');
-    return out;
-  });
+    clip.push(out);
+  }
+
+  // 同时写系统剪贴板：统计表这类只读表复制出来就是为了贴到别处
+  const tsv = clip.map((line) => line.join('\t')).join('\n');
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(tsv).catch(() => { /* 无权限就算了 */ });
+    }
+  } catch (e) { /* 忽略 */ }
 
   setPasteEnabled(true);
 }
 
 function doPaste() {
   if (!sel || !clip) return;
+  const caps = capsOf(sel.tableEl);
+  if (caps.paste === 'off') return;
+
+  const total = clip.reduce((n, line) => n + line.length, 0);
   const { r1, c1 } = bounds();
-  const rows = [...sel.tableEl.querySelectorAll('tbody tr')];
+
+  // 固定收支 / 分期这类「改一格就落库并重渲染」的表：整片粘贴会只生效第一格，
+  // 与其静默丢数据，不如说清楚 —— 一次只粘一格。
+  if (caps.paste === 'single' && total > 1) {
+    caps.notice(`这张表一次只能粘一格（剪贴板里有 ${total} 格）`);
+    return;
+  }
+
+  const rows = bodyRows(sel.tableEl);
+  const inputs = [];
+  let blocked = 0;
 
   clip.forEach((line, dr) => {
     const tr = rows[r1 + dr];
-    if (!tr) return;
-    const tds = [...tr.children];
+    const tds = tr ? rowCells(tr) : null;
     line.forEach((v, dc) => {
-      const td = tds[c1 + dc];
-      if (td) setCellValue(td, v);
+      const td = tds ? tds[c1 + dc] : null;
+      const input = td ? writeCell(td, v) : null;
+      if (input) inputs.push(input);
+      else blocked += 1;
     });
   });
 
+  // 值先全部落地，再统一派发 —— 否则第一格的 change 触发重渲染，后面的格子就写在旧节点上了
+  for (const input of inputs) {
+    try {
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    } catch (e) { /* 重渲染后旧节点可能已脱离 */ }
+  }
+
   clearSelection();
+  caps.notice(blocked
+    ? `粘贴 ${inputs.length} 格，另有 ${blocked} 格是只读列没写`
+    : `粘贴 ${inputs.length} 格`);
 }
 
 function doDelete() {
   if (!sel) return;
+  const caps = capsOf(sel.tableEl);
+  if (!caps.onDeleteRows) return;
+
   const { r1, r2 } = bounds();
-  const rows = [...sel.tableEl.querySelectorAll('tbody tr')].slice(r1, r2 + 1);
-  const ids = rows.map((tr) => tr.dataset.id).filter(Boolean);
+  // 分期表一条记录占上下两行（同 data-id），去重后才不会删两次
+  const ids = [];
+  for (const tr of bodyRows(sel.tableEl).slice(r1, r2 + 1)) {
+    const id = tr.dataset.id;
+    if (id && !ids.includes(id)) ids.push(id);
+  }
 
   clearSelection();
-  if (ids.length && handlers.onDeleteRows) handlers.onDeleteRows(ids);
+  if (ids.length) caps.onDeleteRows(ids);
 }

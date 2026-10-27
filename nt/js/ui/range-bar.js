@@ -51,7 +51,12 @@ export function bindBar(handlers) {
   return el;
 }
 
-/** 显示并定位（定位走 CSS 变量，不使用内联 style） */
+/**
+ * 显示并定位（定位走 CSS 变量，不使用内联 style）
+ *
+ * 按钮按这张表的能力裁剪：只读表（统计）没有「粘贴 / 删除行」，
+ * 留着禁用按钮等于让用户反复点一个永远不会响的东西。
+ */
 export function showBar(tableEl, opts) {
   const el = document.getElementById('nt-range-bar');
   if (!el) return;
@@ -61,8 +66,16 @@ export function showBar(tableEl, opts) {
   el.style.setProperty('--nt-range-left', Math.round(rect.left + 8) + 'px');
   el.hidden = false;
 
-  const paste = el.querySelector('[data-act="paste"]');
-  if (paste && opts) paste.disabled = !opts.hasClip;
+  const o = opts || {};
+  for (const b of el.querySelectorAll('.nt-range-btn')) {
+    const act = b.dataset.act;
+    if (act === 'paste') {
+      b.hidden = o.canPaste === false;
+      b.disabled = !o.hasClip;
+    } else if (act === 'del') {
+      b.hidden = o.canDelete === false;
+    }
+  }
 }
 
 export function hideBar() {

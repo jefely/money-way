@@ -1,4 +1,4 @@
-﻿// 界面：固定收支表（表格内直接交互）
+// 界面：固定收支表（表格内直接交互）
 /**
  * 固定收支表
  * 层：第五层 · UI
@@ -11,6 +11,7 @@
 
 import { tpl } from './render-transactions.js';
 import { setCell, moneyOrBlank } from './table.js';
+import { mountCellRange } from './cell-range.js';
 import { moneyAlways } from '../core/format.js';
 import { createScheduled, clampDay } from '../core/schema.js';
 import { parseAccountInput } from '../core/account-resolver.js';
@@ -24,6 +25,19 @@ const FIELDS = ['freq', 'day', 'from', 'to', 'amount', 'note'];
  */
 export function mountFixedTable(ctx, tbody, opts) {
   const o = opts || {};
+
+  // 框选：整片可复制；粘贴只允许一格（改一格就落库并重渲染，整片粘会只生效第一格）
+  mountCellRange(tbody.closest('table'), {
+    paste: 'single',
+    onDeleteRows: (ids) => {
+      const st = ctx.getState();
+      ctx.setState({ ...st, scheduled: (st.scheduled || []).filter((x) => !ids.includes(x.id)) });
+      ctx.saveNow();
+      render();
+      ctx.setFooter(`已删除 ${ids.length} 条固定收支`);
+    },
+    onNotice: (t) => ctx.setFooter(t),
+  });
 
   function render() {
     const state = ctx.getState();

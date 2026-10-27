@@ -1,4 +1,4 @@
-﻿// 界面：分期表（表格内直接交互）
+// 界面：分期表（表格内直接交互）
 /**
  * 分期表
  * 层：第五层 · UI
@@ -11,6 +11,7 @@
 
 import { tpl } from './render-transactions.js';
 import { setCell, moneyOrBlank } from './table.js';
+import { mountCellRange } from './cell-range.js';
 import { money, moneyAlways } from '../core/format.js';
 import { computeInstallment, addMonths, monthsBetween, isDueInMonth as isDueMonth } from '../core/installment-engine.js';
 import { createScheduled, normalizeMonth, clampDay } from '../core/schema.js';
@@ -29,6 +30,20 @@ export function mountInstTable(ctx, tbody, opts) {
 
   /** 固定列数（账户名称 / 分期金额 / 期数 / 账单日 / 还款日） */
   const FIXED_COLS = 5;
+
+  // 框选：一条分期占上下两行（同 data-id），cell-range 已去重；
+  // 粘贴只允许一格 —— 月份格本来就不是输入框，整片粘一半会被拒。
+  mountCellRange(tbody.closest('table'), {
+    paste: 'single',
+    onDeleteRows: (ids) => {
+      const st = ctx.getState();
+      ctx.setState({ ...st, scheduled: (st.scheduled || []).filter((x) => !ids.includes(x.id)) });
+      ctx.saveNow();
+      render();
+      ctx.setFooter(`已删除 ${ids.length} 条分期`);
+    },
+    onNotice: (t) => ctx.setFooter(t),
+  });
 
   function render() {
     const state = ctx.getState();

@@ -88,6 +88,11 @@ body.nt-range-mode .nt-tablewrap {
   cursor: default;
 }
 
+/* 这张表没有这个能力时整颗按钮收起来，不留一个永远点不动的禁用态 */
+.nt-range-btn[hidden] {
+  display: none;
+}
+
 .nt-range-btn[data-act="del"] {
   color: var(--nt-danger, #e05555);
 }

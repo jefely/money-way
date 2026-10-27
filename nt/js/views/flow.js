@@ -1,4 +1,4 @@
-﻿// 界面：流水 tab
+// 界面：流水 tab
 /**
  * 流水视图（页面装配）
  * 层：第五层 · UI
@@ -107,6 +107,7 @@ export function mountFlow(section, ctx) {
   // 单元格区域框选：长按起手，可复制 / 粘贴 / 批量删除行
   const flowTable = section.querySelector('.nt-table-flow');
   mountCellRange(flowTable, {
+    onNotice: (t) => ctx.setFooter(t),
     onDeleteRows: (ids) => {
       let st = ctx.getState();
       for (const id of ids) st = removeTransaction(st, id);

@@ -1,4 +1,4 @@
-﻿// 界面：统计 tab
+// 界面：统计 tab
 /**
  * 统计视图（分类 / 汇总）
  * 层：第五层 · UI
@@ -9,6 +9,7 @@
 
 import { categoryGroups, accountRows, openingOf } from '../core/ledger-stats.js';
 import { buildHead, renderMixed, renderEmpty } from '../ui/table.js';
+import { mountCellRange } from '../ui/cell-range.js';
 import { money } from '../core/format.js';
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -32,6 +33,12 @@ export function mountStats(section, ctx) {
 
   bindCaps();
   bindScope();
+
+  // 统计表是只读的：框选只提供「复制」（同时进系统剪贴板，方便贴到 Excel）
+  mountCellRange(section.querySelector('#nt-stats-table'), {
+    paste: 'off',
+    onNotice: (t) => ctx.setFooter(t),
+  });
 
   /* ---------- 渲染 ---------- */
 
