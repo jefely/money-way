@@ -117,6 +117,10 @@ export function renderChart(data) {
 
   // ④ 弧块文字：沿半径向外排（照单文件版）
   //    放得下就贴外沿；放不下就往外挪一段并缩字号
+  // 「上一个弧块是否极窄」——连续两个极窄时把第二个的锥形拉长，标签才不会叠在一起
+  // （照单文件版：默认锥长 50，连续极窄时第二个用 120）
+  let prevVeryNarrow = false;
+
   for (const b of blocks) {
     const label = String(b.label || '');
     if (!label) continue;
@@ -140,7 +144,15 @@ export function renderChart(data) {
 
     const crowded = arcLen < textW * 1.5;
     if (crowded) fs = Math.max(12 * RATIO, fs * 0.85);
-    const rText = crowded ? rOut + 46 * RATIO : rOut + 8 * RATIO;
+
+    // 极窄 = 弧长不足 12 个基准单位；连续两个极窄时第二个锥形拉长到 120
+    let rText = rOut + 8 * RATIO;
+    if (crowded) {
+      const veryNarrow = arcLen < 12 * RATIO;
+      const coneLen = (veryNarrow && prevVeryNarrow) ? 120 * RATIO : 46 * RATIO;
+      prevVeryNarrow = veryNarrow;
+      rText = rOut + coneLen;
+    }
 
     // 放不下的弧块：画单文件版那种**尖锥形引线**，把弧块和外面的文字连起来
     //（照 mwDrawSvg：锥尖贴 rOut 的中点，锥底在文字所在半径上、以 mid 对称，
