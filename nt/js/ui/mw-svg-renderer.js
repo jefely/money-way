@@ -162,7 +162,7 @@ export function renderChart(data) {
 
     // 字号：下限抬到 13×RATIO —— 侧栏展开时图区只有 400 多 px，
     // 画布 3000 缩下来字号会小到看不清；太窄的块干脆不标字，避免糊成一片
-    let fs = Math.max(13 * RATIO, Math.min(28 * RATIO,
+    let fs = Math.max(12 * RATIO, Math.min(27 * RATIO,
       (arcLen / Math.max(1, label.length)) * 1.05,
       (rOut - rIn) * 0.58));
 

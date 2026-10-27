@@ -97,8 +97,10 @@ export function mountPath(section, ctx) {
     for (const b of blocks) {
       b.label = nameOf(b.acc);
       const amt = amtOf.get(b.acc) || 0;
-      // 取整显示（不要小数点后的两位），千分位与货币符号沿用 money()
-      b.amountText = amt ? money(Math.round(amt)).replace(/\.00$/, '') : '';
+      // 取整 + 不要千位分隔符（只要 ¥ 和数字）
+      b.amountText = amt
+        ? money(Math.round(amt)).replace(/\.00$/, '').replace(/,/g, '')
+        : '';
     }
 
     const chords = [];
