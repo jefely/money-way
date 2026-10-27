@@ -140,7 +140,14 @@ export function renderChart(data) {
 
     const crowded = arcLen < textW * 1.5;
     if (crowded) fs = Math.max(12 * RATIO, fs * 0.85);
-    const rText = crowded ? rOut + 46 * RATIO : rOut + 8 * RATIO;
+    let rText = rOut + 8 * RATIO;
+    if (crowded) {
+      // 两档：常规 40；连续两个极窄时第二个 100（错开标签用）
+      const veryNarrow = arcLen < 12 * RATIO;
+      const coneLen = (veryNarrow && prevVeryNarrow) ? 100 * RATIO : 40 * RATIO;
+      prevVeryNarrow = veryNarrow;
+      rText = rOut + coneLen;
+    }
 
     // 放不下的弧块：画单文件版那种**尖锥形引线**，把弧块和外面的文字连起来
     //（照 mwDrawSvg：锥尖贴 rOut 的中点，锥底在文字所在半径上、以 mid 对称，
