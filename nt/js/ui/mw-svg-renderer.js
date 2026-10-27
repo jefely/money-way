@@ -106,12 +106,12 @@ export function renderChart(data) {
   }
 
   // ④ 弧块
-  // 描边照单文件版用中性灰（#6b7280）+ 55% 不透明 ——
-  // 之前用 --nt-bg-line（背景色），两个**同色**弧块挨在一起时根本看不出分界。
+  // 分隔线：中性灰 #6b7280，3.5×RATIO（约 0.7 显示像素）、70% 不透明。
+  // 早先用 0.9×RATIO，同分类的两个**同色**弧块挨在一起时几乎看不见分界。
   for (const b of blocks) {
     parts.push(`<path class="mw-ring" d="${arcPath(rOut, rIn, b.a1, b.a2, pointAt, cx, cy)}"`
       + ` fill="${colorOf(b.colorKey)}" fill-opacity="1"`
-      + ` stroke="#6b7280" stroke-width="${f(0.9 * RATIO)}" stroke-opacity="0.55"`
+      + ` stroke="#6b7280" stroke-width="${f(3.5 * RATIO)}" stroke-opacity="0.7"`
       + ` data-node="${esc(b.acc)}"/>`);
   }
 
