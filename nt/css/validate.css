@@ -107,19 +107,6 @@
 
 /* ===== 说明页顶部：标语 + 二维码分享 ===== */
 
-/* 标语：比正文大一号，但不用标题的重量级字号 */
-.nt-tagline {
-  margin: 12px 0 4px;
-  padding: 10px 12px;
-  border-left: 3px solid var(--nt-primary);
-  border-radius: 4px;
-  background: var(--nt-bg-soft);
-  color: var(--nt-text);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  line-height: 1.6;
-}
 
 /* 二维码分享：左二维码 + 右说明（窄屏时也保持左右，二维码很小） */
 .nt-share-block {
@@ -170,4 +157,43 @@
 
 .nt-share-hint.bad {
   color: var(--nt-bad);
+}
+
+/* 二维码右侧最下面那行：按钮 + 两行小字（照单文件版，别占太多高度） */
+.nt-ver-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.nt-ver-btn {
+  flex: 0 0 auto;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--nt-primary);
+  border-radius: 5px;
+  background: var(--nt-primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nt-ver-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* 当前/远端各占一行，小字，不撑高卡片 */
+.nt-ver-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--nt-text-light);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+  overflow: hidden;
 }
