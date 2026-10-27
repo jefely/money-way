@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 版本更新（UI 层）
  * 层：第五层 · UI
  *
@@ -148,18 +148,17 @@ export async function hardReload(opts) {
   const reload = o.reload || (() => { location.reload(); });
 
   /**
-   * 更新 = 让 SW 换班，**不注销、不清缓存**。
+   * 更新 = 让 SW 换班 + **清掉旧缓存**，但不注销 SW。
    *
-   * 为什么不能清缓存 + 注销：Service Worker 是离线可用的唯一基础。
-   * 注销之后断网刷新会得到浏览器原生的「打不开网页」，而且它会一直这样 ——
-   * 因为用户手上已经没有 SW 了，只能联网重新装一次。
+   * 为什么必须清缓存：SW 的 fetch 是 stale-while-revalidate ——
+   * 命中缓存就立刻返回，后台才去更新。于是「点了重载」当浏览器没认出
+   * sw.js 变了（reg.update 拿不到新文件 / installing 一直为空）时，
+   * 刷新回来仍然全是缓存里的旧代码：表现为「更新不下来」，而且不报错。
    *
-   * 正确顺序：
-   *   ① reg.update() 让浏览器去比对 sw.js
-   *   ② 等新 SW install 完成 —— 它在 install 里会把全部资源预缓存好
-   *   ③ SKIP_WAITING 让它立刻接管
-   *   ④ 刷新
-   * 全程 SW 都在，离线能力一次都没断。
+   * 清缓存不会掉离线能力：SW 还在，下一次请求走网络并重新填缓存。
+   * 真正会掉的是「注销 SW」——这里仍然不注销。
+   *
+   * 顺序：① reg.update() 比对 sw.js ② 最多等 3 秒让它装 ③ 清所有 Cache Storage ④ 刷新
    */
   try {
     if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
@@ -169,11 +168,11 @@ export async function hardReload(opts) {
         // ① 检查新版
         try { await reg.update(); } catch (e) { /* 离线时这里会失败，正常 */ }
 
-        // ② 等新 SW 装好（最多等 20 秒）
+        // ② 等新 SW 装好（最多 3 秒；等不到就走清缓存那条路）
         const incoming = reg.installing;
         if (incoming) {
           await new Promise((resolve) => {
-            const timer = setTimeout(resolve, 20000);
+            const timer = setTimeout(resolve, 3000);
             incoming.addEventListener('statechange', () => {
               if (incoming.state === 'installed' || incoming.state === 'activated') {
                 clearTimeout(timer);
@@ -186,10 +185,12 @@ export async function hardReload(opts) {
         // ③ 让它接管
         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       } else {
-        // 从来没装过：注册一次，等它就绪再刷新
-        const reg2 = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+        // 从来没装过：注册一次（sw.js 本身不走 HTTP 缓存）
+        const reg2 = await navigator.serviceWorker.register('./sw.js', {
+          scope: './', updateViaCache: 'none',
+        });
         await new Promise((resolve) => {
-          const timer = setTimeout(resolve, 20000);
+          const timer = setTimeout(resolve, 3000);
           if (reg2.active) { clearTimeout(timer); resolve(); return; }
           const w = reg2.installing;
           if (w) {
@@ -202,12 +203,19 @@ export async function hardReload(opts) {
           }
         });
       }
+
+      // ④ 清缓存：这一步才是「一定拿到新文件」的保证
+      try {
+        const names = await caches.keys();
+        await Promise.all(names.map((n) => caches.delete(n)));
+      } catch (e) { /* 忽略 */ }
     }
+  } catch (e) { /* 忽略 */ }
   } catch (e) {
     /* 任何一步失败都不该让用户卡住，直接刷新即可 */
   }
 
-  // ④ 刷新（SW 保留）
+  // ⑤ 刷新（SW 保留；缓存已清，页面一定走网络拿新文件）
   setTimeout(() => { try { reload(); } catch (e) {} }, 150);
 }
 

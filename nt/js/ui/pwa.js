@@ -1,4 +1,4 @@
-﻿// 界面：PWA 注册
+// 界面：PWA 注册
 
 /**
  * Service Worker 注册（UI 层，只在浏览器里跑）
@@ -32,7 +32,9 @@ export function registerServiceWorker() {
 
       // 关键：注销完立刻重新注册，别让离线能力断掉
       try {
-        await navigator.serviceWorker.register('./sw.js');
+        // updateViaCache:'none' —— sw.js 自己也必须每次走网络，
+        // 否则浏览器按 HTTP 缓存给一份旧 sw.js，reg.update() 永远看不出变化
+        await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
       } catch (e) { /* 忽略 */ }
 
       // 只在第一次清完后重载一次，避免循环
@@ -44,5 +46,5 @@ export function registerServiceWorker() {
     return;
   }
 
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => {});
 }
