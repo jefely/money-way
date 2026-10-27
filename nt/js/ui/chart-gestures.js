@@ -35,11 +35,10 @@ export function currentView() {
 const clampZoom = (z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 
 /**
- * 平移增益。
- * 手势作用在 viewBox 坐标系的 <g> 上，已经按显示宽度换算过单位；
- * 再乘这个倍数是因为用户反馈「速度还是偏慢，翻 4 倍合适」。
+ * 平移增益。手势已按显示宽度换算过单位（屏幕 px → viewBox 单位），
+ * 这里再乘一个倍数：4 太快（用户反馈「平移太快」），取 2。
  */
-const PAN_GAIN = 4;
+const PAN_GAIN = 2;
 
 /**
  * 给图表容器挂手势。

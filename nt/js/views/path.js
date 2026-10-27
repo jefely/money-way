@@ -209,14 +209,16 @@ export function mountPath(section, ctx) {
     });
 
     // 手势要在 paintChart **之后**挂：svg 是 paintChart 里才创建的。
-    // 没拿到就留到下次重绘再试（所以不在 dataset 上提前打标）。
-    if (chartBox && !chartBox.dataset.gestures) {
+    //
+    // 而且每次重绘（点弧块、改筛选条件）都会重建 <svg>，新元素没有 transform ——
+    // 之前只在第一次挂手势，所以点一下图就「跳回 1 倍」看起来像点击导致缩放。
+    // 这里每次重绘后都把当前视图状态重新套上去。
+    let gestures = chartBox.__gestures || null;
+    if (!gestures) {
       const svgEl = chartBox.querySelector('svg');
-      if (svgEl) {
-        chartBox.dataset.gestures = '1';
-        mountChartGestures(chartBox, svgEl);
-      }
+      if (svgEl) gestures = mountChartGestures(chartBox, svgEl);
     }
+    if (gestures && typeof gestures.apply === 'function') gestures.apply();
 
     // 左栏：流水查询表 —— 与图用同一份筛选结果（allTx/idxList/shownTxs 在 render 开头算好）
     paintFlowRows(flowBody, {
