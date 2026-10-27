@@ -413,6 +413,16 @@
   position: relative;
 }
 
+/* 图里的文字只是标签：长按不该被选中、更不该出现反色高亮块 */
+.pw-chart,
+.pw-chart text {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-touch-callout: none;
+}
+
 .pw-toggle {
   position: absolute;
   left: 6px;

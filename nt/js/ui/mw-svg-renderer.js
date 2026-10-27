@@ -137,7 +137,8 @@ export function renderChart(data) {
       + ` text-anchor="${upside ? 'end' : 'start'}" dominant-baseline="middle"`
       + ` font-size="${fs.toFixed(1)}" font-weight="600" fill="currentColor" fill-opacity="0.9"`
       + ` transform="rotate(${theta.toFixed(1)} ${p[0].toFixed(1)} ${p[1].toFixed(1)})"`
-      + ` style="pointer-events:none">${esc(label)}</text>`);
+      + ` style="pointer-events:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none"`
+      + `>${esc(label)}</text>`);
   }
 
   parts.push('</svg>');
