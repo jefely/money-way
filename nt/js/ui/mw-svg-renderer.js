@@ -118,10 +118,10 @@ export function renderChart(data) {
   // ④ 弧块文字：沿半径向外排（照单文件版）
   //    放得下就贴外沿；放不下就往外挪一段并缩字号
   //
-  // 「上一个弧块是否极窄」—— 连续两个极窄时第二个锥形拉长到 2.5 倍，把标签错开。
+  // 「上一个弧块是否也需要锥形」—— 连续需要锥形时交替 46 / 115，把标签错开。
   // ⚠️ 这个声明必须留在循环**外面**：上一版只加了引用没加声明，
   //    渲染时抛 ReferenceError，整个 render 中断 —— 表现就是「侧边栏数据是空的」。
-  let prevVeryNarrow = false;
+  let prevCrowded = false;
 
   for (const b of blocks) {
     const label = String(b.label || '');
@@ -147,10 +147,13 @@ export function renderChart(data) {
     if (crowded) fs = Math.max(12 * RATIO, fs * 0.85);
     let rText = rOut + 8 * RATIO;
     if (crowded) {
-      const veryNarrow = arcLen < 12 * RATIO;
-      const coneLen = (veryNarrow && prevVeryNarrow) ? 115 * RATIO : 46 * RATIO;
-      prevVeryNarrow = veryNarrow;
+      // 连续需要锥形时交替：第一个 46、第二个 115（2.5 倍）、第三个又回 46…
+      // 这样一串极窄块的标签会分两层排开，不会全挤在同一圈上。
+      const coneLen = prevCrowded ? 115 * RATIO : 46 * RATIO;
+      prevCrowded = !prevCrowded;
       rText = rOut + coneLen;
+    } else {
+      prevCrowded = false;
     }
 
     // 放不下的弧块：画单文件版那种**尖锥形引线**，把弧块和外面的文字连起来
