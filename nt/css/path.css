@@ -536,7 +536,7 @@
      也不会再压住左栏的「路径追踪 / 清空」那一行。 */
   position: fixed;
   left: calc(50vw - min(94vw, 86vh) / 2 + 6px);
-  top: calc(50vh - min(94vw, 86vh) / 2 + 6px);
+  top: calc(50vh - min(94vw, 86vh) / 2 + 21px);
   z-index: 7;
   width: 22px;
   height: 22px;
@@ -560,7 +560,7 @@
 .pw-brand {
   position: fixed;
   left: calc(50vw - min(94vw, 86vh) / 2 + 34px);
-  top: calc(50vh - min(94vw, 86vh) / 2 + 6px);
+  top: calc(50vh - min(94vw, 86vh) / 2 + 21px);
   z-index: 7;
   height: 22px;
   line-height: 22px;
