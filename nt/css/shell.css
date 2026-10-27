@@ -86,7 +86,9 @@ body {
   font-size: var(--nt-tab-font);
   line-height: var(--nt-tabs-h);
   text-align: center;
-  white-space: nowrap;
+  white-space: nowrap;            /* 不许换行：换行会把两个字拆成两行，看着就像变小 */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 .nt-tab:hover {
@@ -293,7 +295,7 @@ body {
   /* 只收内边距，**不要写死 font-size**：
      写死会盖掉布局参数 --nt-tab-font，用户在「布局」里把标签栏字号调大也没用。 */
   .nt-tab {
-    padding: 8px 2px;
+    padding: 8px 0;                 /* 横向不留内边距，给字腾空间 */
     font-size: var(--nt-tab-font);
   }
   .nt-vbar {
