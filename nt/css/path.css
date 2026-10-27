@@ -467,6 +467,14 @@
   height: 100%;
 }
 
+/* 图区自己接管手势：否则手机上单指拖动会被浏览器当成页面滚动，
+   平移就「受限」了（左右尤其明显）。 */
+.pw-chart,
+.pw-chart-inner,
+.pw-chart-inner svg {
+  touch-action: none;
+}
+
 /* 图里的文字只是标签：长按不该被选中、更不该出现反色高亮块 */
 .pw-chart,
 .pw-chart text {

@@ -1,18 +1,18 @@
-﻿// 界面：环网图的手势（拖动 / 缩放 / 平移 / 旋转）
+// 界面：环网图的手势（拖动 / 缩放 / 平移 / 旋转）
 /**
  * 图表手势
  * 层：第五层 · UI
  *
- * 照单文件版（personal/index.html §10081-10129）的做法：
- *   · 滚轮           → 缩放（0.3 ~ 6 倍）
- *   · 单指/左键拖动    → 平移
- *   · Shift + 横拖    → 旋转
- *   · 双指捏合        → 缩放
- *   · 双击            → 复位
- *
  * 变换写成一个 transform，顺序固定：
  *   translate(tx, ty) rotate(rot) scale(zoom)
  * 顺序不能换 —— 先平移再旋转缩放，坐标系才是直觉上的「图跟着手指走」。
+ *
+ * 操作：
+ *   · 滚轮 / 双指捏合     → 缩放
+ *   · 单指 / 左键拖动      → 平移（不受限，可以拖出容器）
+ *   · 右键长按拖动         → 旋转（Shift+左键也保留，给桌面老习惯）
+ *   · 双指旋转             → 旋转（两指连线转多少，图就转多少）
+ *   · 双击                 → 复位
  */
 
 const MIN_ZOOM = 0.3;
@@ -31,6 +31,8 @@ export function resetView() {
 export function currentView() {
   return { ...view };
 }
+
+const clampZoom = (z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 
 /**
  * 给图表容器挂手势。
@@ -68,12 +70,12 @@ export function mountChartGestures(box, target) {
 
   const onWheel = (ev) => {
     ev.preventDefault();
-    view.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, view.zoom + (ev.deltaY > 0 ? -STEP : STEP)));
+    view.zoom = clampZoom(view.zoom + (ev.deltaY > 0 ? -STEP : STEP));
     apply();
   };
   box.addEventListener('wheel', onWheel, { passive: false });
 
-  /* ---------- 拖动平移 / Shift 旋转 ---------- */
+  /* ---------- 拖动：左键平移 / 右键（或 Shift）旋转 ---------- */
 
   let drag = null;
 
@@ -82,16 +84,26 @@ export function mountChartGestures(box, target) {
     const t = ev.target;
     if (t && t.closest && t.closest('.mw-ring, .pw-ring, .pw-edge, .nt-chord')) return;
 
-    drag = { x: ev.clientX, y: ev.clientY, tx: view.tx, ty: view.ty, shift: ev.shiftKey };
+    // 右键 = 旋转（用户要求从 Shift+左键 改成右键长按）
+    const rotateMode = ev.button === 2 || (ev.buttons & 2) === 2 || ev.shiftKey;
+
+    drag = {
+      x: ev.clientX,
+      y: ev.clientY,
+      tx: view.tx,
+      ty: view.ty,
+      rot: view.rot,
+      rotateMode,
+    };
     try { box.setPointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
   };
 
   const onMove = (ev) => {
     if (!drag) return;
 
-    if (ev.shiftKey || drag.shift) {
-      view.rot += (ev.clientX - drag.x) * 0.3;
-      drag.x = ev.clientX;
+    if (drag.rotateMode) {
+      // 用「相对起点的横移」算绝对角度，避免每帧累加的漂移
+      view.rot = drag.rot + (ev.clientX - drag.x) * 0.3;
     } else {
       view.tx = drag.tx + (ev.clientX - drag.x);
       view.ty = drag.ty + (ev.clientY - drag.y);
@@ -106,24 +118,54 @@ export function mountChartGestures(box, target) {
   box.addEventListener('pointerup', onUp);
   box.addEventListener('pointercancel', onUp);
 
-  /* ---------- 双指捏合缩放 ---------- */
+  /* ---------- 右键菜单：图区里不要弹出来 ---------- */
+
+  const onContextMenu = (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    return false;
+  };
+  box.addEventListener('contextmenu', onContextMenu);
+
+  /* ---------- 双指：捏合缩放 + 旋转 ---------- */
 
   let pinch = null;
 
   const dist = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
 
+  /** 两指连线的角度（度），转到 [-180, 180] 避免跨 ±180 时跳变 */
+  const angleOf = (a, b) => {
+    let deg = Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX) * 180 / Math.PI;
+    while (deg > 180) deg -= 360;
+    while (deg < -180) deg += 360;
+    return deg;
+  };
+
   const onTouchStart = (ev) => {
     if (ev.touches.length === 2) {
       drag = null;
-      pinch = { d: Math.max(1, dist(ev.touches[0], ev.touches[1])), z: view.zoom };
+      const [a, b] = ev.touches;
+      pinch = {
+        d: Math.max(1, dist(a, b)),
+        z: view.zoom,
+        a: angleOf(a, b),
+        r: view.rot,
+      };
     }
   };
 
   const onTouchMove = (ev) => {
     if (ev.touches.length === 2 && pinch) {
       ev.preventDefault();
-      const d2 = dist(ev.touches[0], ev.touches[1]);
-      view.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, pinch.z * (d2 / pinch.d)));
+      const [a, b] = ev.touches;
+      view.zoom = clampZoom(pinch.z * (dist(a, b) / pinch.d));
+
+      // 双指旋转：两指连线转了多少度，图就转多少（-180~180 之间）
+      let delta = angleOf(a, b) - pinch.a;
+      while (delta > 180) delta -= 360;
+      while (delta < -180) delta += 360;
+      view.rot = pinch.r + delta;
+
       apply();
     }
   };
@@ -148,6 +190,7 @@ export function mountChartGestures(box, target) {
       box.removeEventListener('pointermove', onMove);
       box.removeEventListener('pointerup', onUp);
       box.removeEventListener('pointercancel', onUp);
+      box.removeEventListener('contextmenu', onContextMenu);
       box.removeEventListener('touchstart', onTouchStart);
       box.removeEventListener('touchmove', onTouchMove);
       box.removeEventListener('touchend', onTouchEnd);
