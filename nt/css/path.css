@@ -463,8 +463,14 @@
 
 .pw-chart-inner svg {
   display: block;
-  width: 100%;
+  /* 尺寸**只由高度**决定：width:auto + height:100%。
+     viewBox 是正方形，所以 svg 实际宽 = 高。
+     之前是 width:100% + height:100%，图会按「宽高的较小边」缩放 ——
+     侧栏一收图区变宽，图就跟着放大一截（用户说的「收展侧边栏会缩放视图」）。
+     现在收展只改变水平居中位置，图的大小纹丝不动。 */
   height: 100%;
+  width: auto;
+  max-width: none;
 }
 
 /* 图区自己接管手势：否则手机上单指拖动会被浏览器当成页面滚动，
