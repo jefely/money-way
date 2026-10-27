@@ -9,6 +9,7 @@
 
 import { categoryGroups, accountRows, openingOf } from '../core/ledger-stats.js';
 import { buildHead, renderMixed, renderEmpty } from '../ui/table.js';
+import { bindAllColResize } from '../ui/col-resize.js';
 import { money } from '../core/format.js';
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -44,6 +45,7 @@ export function mountStats(section, ctx) {
 
     if (sel.cap === 'summary') renderSummary(state, range);
     else renderCategory(state, range);
+    bindAllColResize();
   }
 
   function renderCategory(state, range) {

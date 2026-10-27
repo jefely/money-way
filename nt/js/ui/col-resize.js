@@ -23,51 +23,88 @@ const MAX_W = 600;
  */
 export function mountColResize(tableEl, opts) {
   const o = opts || {};
-  if (!tableEl || tableEl.dataset.colResize === '1') return;
+  if (!tableEl) return;
 
-  const ths = [...tableEl.querySelectorAll('thead .nt-th')].filter((th) => th.dataset.col);
-  if (!ths.length) return;          // 没有 data-col 的表不动它
+  // ① 手柄：每次都补（表头是动态重建的，旧手柄会跟着消失）
+  paintHandles(tableEl);
 
+  // ② 事件：只绑一次，绑在 table 上做委托
+  if (tableEl.dataset.colResize === '1') return;
   tableEl.dataset.colResize = '1';
+
   const scope = tableEl.closest('[data-view]') || document.documentElement;
 
-  for (const th of ths) {
+  tableEl.addEventListener('pointerdown', (ev) => {
+    const th = ev.target.closest('.nt-th');
+    if (!th || !th.dataset.col) return;
+
+    const rect = th.getBoundingClientRect();
+    // 只有落在右边缘 7px 内才算拖列宽，否则正常点选
+    if (ev.clientX < rect.right - 7) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+
     const col = th.dataset.col;
 
-    // 视觉手柄：本身不接事件，真正的判断在 th 的 pointerdown 里
+    // 拖动前固化所有列宽：否则只有目标列有 width，
+    // 其它列在表格总宽变化时会被重新分配 —— 就是「拖一列，别的列跟着动」。
+    freezeWidths(tableEl, th.dataset.col);
+
+    const startX = ev.clientX;
+    const startW = Math.round(rect.width);
+    let width = startW;
+    document.body.classList.add('nt-col-resizing');
+
+    const onMove = (e) => {
+      width = Math.max(MIN_W, Math.min(MAX_W, Math.round(startW + (e.clientX - startX))));
+      applyWidth(tableEl, scope, col, width);
+    };
+
+    const onUp = () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.body.classList.remove('nt-col-resizing');
+      if (o.onResize) o.onResize(col, width);
+    };
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  });
+}
+
+/** 给每个带 data-col 的表头补一个拖动手柄（已在就不重复加） */
+export function paintHandles(tableEl) {
+  for (const th of tableEl.querySelectorAll('thead .nt-th[data-col]')) {
+    if (th.querySelector('.nt-col-handle')) continue;
     const handle = document.createElement('span');
     handle.className = 'nt-col-handle';
     handle.setAttribute('aria-hidden', 'true');
     th.appendChild(handle);
-
-    th.addEventListener('pointerdown', (ev) => {
-      const rect = th.getBoundingClientRect();
-      // 只有落在右边缘 7px 内才算拖列宽，否则正常点选
-      if (ev.clientX < rect.right - 7) return;
-      ev.preventDefault();
-      ev.stopPropagation();
-
-      const startX = ev.clientX;
-      const startW = Math.round(rect.width);
-      let width = startW;
-      document.body.classList.add('nt-col-resizing');
-
-      const onMove = (e) => {
-        width = Math.max(MIN_W, Math.min(MAX_W, Math.round(startW + (e.clientX - startX))));
-        applyWidth(tableEl, scope, col, width);
-      };
-
-      const onUp = () => {
-        document.removeEventListener('pointermove', onMove);
-        document.removeEventListener('pointerup', onUp);
-        document.body.classList.remove('nt-col-resizing');
-        if (o.onResize) o.onResize(col, width);
-      };
-
-      document.addEventListener('pointermove', onMove);
-      document.addEventListener('pointerup', onUp);
-    });
   }
+}
+
+
+/**
+ * 把所有列的当前渲染宽度固化到对应 <col> 上。
+ * <col> 量不到宽度，所以借表头 <th> 的宽度；已经写过的就不动。
+ */
+export function freezeWidths(tableEl, skipCol) {
+  const ths = [...tableEl.querySelectorAll('thead .nt-th')];
+  const cols = [...tableEl.querySelectorAll('colgroup col')];
+  if (!cols.length) return;
+
+  ths.forEach((th, i) => {
+    const col = cols[i];
+    if (!col) return;
+    // 正在拖的那一列不覆盖，它的宽度接下来由拖动决定
+    if (skipCol && th.dataset.col === skipCol) return;
+
+    const w = Math.round(th.getBoundingClientRect().width);
+    if (w > 0) {
+      col.style.width = w + 'px';
+      col.setAttribute('width', String(w));
+    }
+  });
 }
 
 /** 把某一列的宽度同时写到 CSS 变量、<col> 和表格总宽上 */
@@ -100,13 +137,21 @@ export function applyWidth(tableEl, scope, col, width) {
 
 /** 给一张表补 colgroup（没有的话），列宽从 th 的 data-col 生成 */
 export function ensureColgroup(tableEl) {
-  if (tableEl.querySelector('colgroup')) return;
   const ths = [...tableEl.querySelectorAll('thead .nt-th')];
   if (!ths.length) return;
+
+  const existing = tableEl.querySelector('colgroup');
+
+  // 列数一致才复用；数量变了（表结构改过）就重建，否则按索引对不上
+  if (existing && existing.children.length === ths.length) return;
+  if (existing) existing.remove();
+
   const cg = document.createElement('colgroup');
   for (const th of ths) {
     const col = document.createElement('col');
     if (th.dataset.col) col.className = 'nt-c-' + th.dataset.col;
+    // 不写宽度：生成时表格可能还是隐藏的，量出来是 0 或分摊值。
+    // 宽度统一由 freezeWidths 在渲染后用真实表头宽度覆盖。
     cg.appendChild(col);
   }
   tableEl.insertBefore(cg, tableEl.firstChild);
@@ -120,6 +165,7 @@ export function ensureColgroup(tableEl) {
 export function bindAllColResize(opts) {
   for (const table of document.querySelectorAll('table.nt-table')) {
     ensureColgroup(table);
+    freezeWidths(table);        // 每次渲染后固化一次：表头是动态重建的
     mountColResize(table, opts);
   }
 }

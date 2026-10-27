@@ -236,45 +236,19 @@ body {
 
 /* ---------- 列宽（table-layout:fixed 认表头第一行） ---------- */
 
-.nt-table-flow .nt-cell-seq { width: 44px; }
-.nt-table-flow .nt-cell-date { width: 84px; }
-.nt-table-flow .nt-cell-amount { width: 104px; }
-.nt-table-flow .nt-cell-action { width: 40px; }
-
-/* 统计 / 计划 / 账户表：内容宽度、贴左（与单文件版一致，右侧留白） */
+/* 所有数据区统一 fixed：
+   列宽由 <colgroup> 决定，这样拖动才有效、也不会被内容长度左右。
+   宽度取 auto，最终宽 = 各列之和，窄屏靠 .nt-tablewrap 横向滚动。 */
 .nt-table-stats,
 .nt-table-plan,
-.nt-table-accounts {
-  table-layout: auto;
+.nt-table-accounts,
+.nt-table-inst,
+.nt-table-query {
+  table-layout: fixed;
   width: auto;
 }
 
-.nt-c-seq { width: var(--nt-col-seq, 44px); }
-.nt-c-date { width: var(--nt-col-date, 84px); }
-.nt-c-type { width: var(--nt-col-type, 72px); }
-.nt-c-cat { width: var(--nt-col-cat, 76px); }
-.nt-c-code { width: var(--nt-col-code, 64px); }
-.nt-c-num { width: var(--nt-col-num, 100px); }
-.nt-c-amount { width: var(--nt-col-amount, 96px); }
 /* 流水表专用的三列（原来借用 type/cat/code，导致列宽全错位） */
-.nt-c-from { width: var(--nt-col-from, 88px); }
-.nt-c-to { width: var(--nt-col-to, 88px); }
-.nt-c-note { width: var(--nt-col-note, 90px); }
-.nt-c-action { width: var(--nt-col-action, 40px); }
-.nt-c-state { width: var(--nt-col-state, 64px); }
-.nt-c-freq { width: var(--nt-col-freq, 64px); }
-.nt-c-day { width: var(--nt-col-day, 64px); }
-.nt-c-date { width: var(--nt-col-date, 84px); }
-.nt-c-type { width: var(--nt-col-type, 72px); }
-.nt-c-cat { width: var(--nt-col-cat, 76px); }
-.nt-c-code { width: var(--nt-col-code, 64px); }
-.nt-c-num { width: var(--nt-col-num, 100px); }
-.nt-c-amount { width: var(--nt-col-amount, 96px); }
-.nt-c-action { width: var(--nt-col-action, 40px); }
-.nt-c-state { width: var(--nt-col-state, 64px); }
-.nt-c-freq { width: var(--nt-col-freq, 64px); }
-.nt-c-day { width: var(--nt-col-day, 64px); }
-
 /* ---------- 小号按钮 ---------- */
 
 .nt-btn-sm {
@@ -380,3 +354,31 @@ body {
 .nt-table-accounts .nt-th:nth-child(1) {
   box-shadow: inset -1px 0 0 0 var(--nt-bg-line);
 }
+
+/* ============================================================
+   数据区一律不换行
+   ------------------------------------------------------------
+   表格里的文字换行会让行高忽高忽低、列宽也被撑开，
+   所以统一 nowrap + 省略号；要看全文靠拖动加宽那一列。
+   ============================================================ */
+
+.nt-table .nt-th,
+.nt-table .nt-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 输入框本身也不许换行内容 */
+.nt-table .nt-cell-input {
+  white-space: nowrap;
+}
+
+/* ============================================================
+   列宽的唯一来源是 <col>
+   ------------------------------------------------------------
+   以前这里给 .nt-c-seq / .nt-c-type / .nt-c-num … 都写了 width，
+   而 table-layout: fixed 下 th 自己带的类也会参与布局，
+   于是拖 <col> 时有几列不听话（拖动一列，另外几列跟着变）。
+   现在这些宽度全部交给 <col>（见 ui/col-resize.js 的 freezeWidths）。
+   ============================================================ */
