@@ -213,14 +213,14 @@ export function renderChart(data) {
       + `>${esc(label)}</text>`);
   }
 
-  // ⑤ 圆心的拖动把手：直径 = 环直径的 25%，画在所有元素**之上**。
-  //    它的作用是给「平移图」一个明确的落点 —— 中间区域不再被线/命中带占满，
-  //    按住这里拖动就是平移（手势的排除列表里没有它，所以能进拖动）。
+  // ⑤ 圆心的拖动把手：直径 = 环直径的 25%，**完全透明**，只作为命中区。
+  //    放在最上层，所以这一带的指针事件全被它吃掉 —— 不会误触到下面的线，
+  //    按住拖动就是平移（手势的排除列表里没有它）。
+  //    用 fill="transparent" 而不是 "none"：前者有填充（整面命中），
+  //    后者没有填充，只有描边能命中，圆内部会漏到线上去。
   parts.push(`<circle class="mw-grab" cx="${cx}" cy="${cy}"`
     + ` r="${Math.round(rOut * 0.25)}"`
-    + ` fill="currentColor" fill-opacity="0.06"`
-    + ` stroke="currentColor" stroke-opacity="0.16" stroke-width="${f(1.5 * RATIO)}"`
-    + ` pointer-events="all"/>`);
+    + ` fill="transparent" pointer-events="all"/>`);
 
   parts.push('</g></svg>');
   return parts.join('');
