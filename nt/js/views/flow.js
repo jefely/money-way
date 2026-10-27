@@ -133,13 +133,15 @@ export function mountFlow(section, ctx) {
 
   bindToolbar(section, ctx, {
     onImport: importItems,
-    // 整本备份：直接用备份里的账户 / 流水 / 计划替换当前 state
+    // 整本备份 / .lz 快照：直接用备份里的账户 / 流水 / 计划替换当前 state
     onImportTemplate: (next, stats) => {
       ctx.setState(next);
       ctx.saveNow();
       render();
-      ctx.setFooter(`已从备份恢复：账户 ${stats.accounts} 个 · 流水 ${stats.transactions} 笔`
-        + ` · 固定 ${stats.fixed} 条 · 分期 ${stats.inst} 条`);
+      const tail = (stats.scheduled != null)
+        ? ` · 计划 ${stats.scheduled} 条`
+        : ` · 固定 ${stats.fixed || 0} 条 · 分期 ${stats.inst || 0} 条`;
+      ctx.setFooter(`已从备份恢复：账户 ${stats.accounts} 个 · 流水 ${stats.transactions} 笔${tail}`);
     },
   });
 

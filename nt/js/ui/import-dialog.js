@@ -17,6 +17,7 @@ import { pickTemplateSheets } from '../core/xlsx-template.js';
 import {
   parseSettingsRows, parseFlowRows, parseFixedRows, parseInstRows, stateFromTemplate,
 } from '../core/xlsx-template-read.js';
+import { readLzText, stateFromLzPayload } from '../core/lz-file.js';
 
 /**
  * 打开导入对话框。
@@ -28,7 +29,7 @@ export function openImportDialog(opts) {
 
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.xlsx,.csv,.txt,.tsv';
+  input.accept = '.xlsx,.csv,.txt,.tsv,.lz';
   input.style.display = 'none';
   document.body.appendChild(input);
 
@@ -36,6 +37,21 @@ export function openImportDialog(opts) {
     const file = input.files && input.files[0];
     input.remove();
     if (!file) return;
+
+    // .lz = 跨设备快照（LZ1/LZ0 + gzip(JSON)），与 xlsx 是两条完全不同的通道
+    if (/\.lz$/i.test(file.name)) {
+      try {
+        const payload = await readLzText(await file.text());
+        showLzImport(payload, file.name, o);
+      } catch (e) {
+        NtModal.open({
+          title: '导入失败',
+          body: String((e && e.message) || e),
+          actions: [{ label: '关闭', kind: 'ghost', close: true }],
+        });
+      }
+      return;
+    }
 
     let result = null;
     let error = '';
@@ -130,6 +146,55 @@ function showTemplateImport(picked, fileName, o) {
           ul.appendChild(li);
         }
         body.appendChild(ul);
+      }
+    },
+    actions: [
+      { label: '取消', kind: 'ghost', close: true },
+      {
+        label: '覆盖并导入',
+        kind: 'danger',
+        onClick: () => {
+          if (o.onImportTemplate) o.onImportTemplate(built.state, s);
+        },
+      },
+    ],
+  });
+}
+
+/**
+ * .lz 快照 → 覆盖重建。
+ *
+ * 格式与单文件版一致（LZ1:base64(gzip(JSON))），语义是「快照覆盖」，
+ * 所以这里跟「整本备份」一样先警告、再确认。
+ */
+function showLzImport(payload, fileName, o) {
+  const built = stateFromLzPayload(payload);
+  const s = built.stats;
+
+  NtModal.open({
+    title: '快照导入',
+    build: (body) => {
+      const tip = document.createElement('p');
+      tip.className = 'nt-sync-hint';
+      tip.textContent = '这是一份 .lz 账本快照（LZ1/LZ0 + gzip JSON）。';
+      body.appendChild(tip);
+
+      const warn = document.createElement('p');
+      warn.className = 'nt-sync-hint nt-import-map-err';
+      warn.textContent = '导入会**覆盖**当前账本：现在的账户、流水与计划都会被替换。';
+      body.appendChild(warn);
+
+      const info = document.createElement('p');
+      info.className = 'nt-sync-hint';
+      info.textContent = `文件：${fileName}`
+        + `　账户 ${s.accounts} 个 · 流水 ${s.transactions} 笔 · 计划 ${s.scheduled} 条`;
+      body.appendChild(info);
+
+      if (s.loose) {
+        const p = document.createElement('p');
+        p.className = 'nt-import-map-err';
+        p.textContent = `${s.loose} 笔流水两端账户都对不上（会留空，导入后补）`;
+        body.appendChild(p);
       }
     },
     actions: [

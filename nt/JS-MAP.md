@@ -28,6 +28,7 @@
 | `core/ledger-file.js` | （未标注界面）账本文件（纯函数） |
 | `core/ledger-stats.js` | （无界面）账本统计 |
 | `core/ledgers.js` | （无界面）多账本 create/switch/rename/remove |
+| `core/lz-file.js` | .lz 快照文件（跨设备同步码）的解析与还原（纯函数，Node 可跑） |
 | `core/meta.js` | （未标注界面）项目地址（常量） |
 | `core/migrate.js` | （无界面）旧数据迁移 |
 | `core/opening-migrator.js` | （无界面）期初迁移 |
