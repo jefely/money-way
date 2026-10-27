@@ -147,8 +147,9 @@ export function renderChart(data) {
     let rText = rOut + 8 * RATIO;
     if (crowded) {
       const veryNarrow = arcLen < 12 * RATIO;
-      // 锥形默认 115（= 基准 46 的 2.5 倍），连续极窄时第二个 300
-      const coneLen = (veryNarrow && prevVeryNarrow) ? 300 * RATIO : 115 * RATIO;
+      // 只两档：常规 46（1 倍），连续两个极窄时第二个 92（2 倍）。
+      // 之前试过 2.5 / 2.7 倍，标签被推得太远、整体乱掉，退回单文件版量级。
+      const coneLen = (veryNarrow && prevVeryNarrow) ? 92 * RATIO : 46 * RATIO;
       prevVeryNarrow = veryNarrow;
       rText = rOut + coneLen;
     }
