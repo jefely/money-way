@@ -106,12 +106,13 @@ export function renderChart(data) {
   }
 
   // ④ 弧块
-  // 分隔线：纯黑（用户指定）—— 同色的两个弧块挨在一起时，黑线是唯一看得见的分界。
+  // 分隔线：颜色走 CSS 变量 --nt-ring-sep（深色=纯黑、浅色=纯白），
+  // 因为同色弧块之间只有这条线能分界，而它必须在任何底色上都看得见。
   // 宽度 3.5×RATIO（约 0.7 显示像素）、70% 不透明。
   for (const b of blocks) {
     parts.push(`<path class="mw-ring" d="${arcPath(rOut, rIn, b.a1, b.a2, pointAt, cx, cy)}"`
       + ` fill="${colorOf(b.colorKey)}" fill-opacity="1"`
-      + ` stroke="#000000" stroke-width="${f(3.5 * RATIO)}" stroke-opacity="0.7"`
+      + ` stroke-width="${f(3.5 * RATIO)}" stroke-opacity="0.7"`
       + ` data-node="${esc(b.acc)}"/>`);
   }
 
