@@ -43,17 +43,26 @@ export function mountPath(section, ctx) {
 
   /* ---------- 取数 + 算图 ---------- */
 
-  function build() {
+  /**
+   * 取数 + 算图。
+   * @param {Array} list 要画的流水 —— **就是左栏筛选后的结果**，
+   *   不是全账本。用户要求「图的统计范围完全由左边筛选框决定」。
+   */
+  function build(list) {
     const state = ctx.getState();
     const index = ctx.getIndex();
+    const txsIn = list || [];
 
-    const range = rangeOfAll(state);
+    if (!txsIn.length) {
+      return { empty: true, range: { start: '', end: '' }, picked: 0, sliced: { folded: 0 } };
+    }
+
+    const range = rangeOf(txsIn);
     const sliced = fetchGraphData({
-      transactions: state.transactions,
+      transactions: txsIn,
       accounts: state.accounts,
       range,
       showInternal: true,
-      topN: 24,
     });
 
     const txs = sliced.txs;
@@ -164,14 +173,23 @@ export function mountPath(section, ctx) {
   });
 
   function render() {
-    data = build();
+    // 先按左栏筛选框过滤，再拿结果去画图 —— 图的统计范围就是筛选结果
+    const st0 = ctx.getState();
+    const allTx = (st0.transactions || []).filter((t) => t && !t.opening);
+    const idxList = visibleIdx(allTx);
+    const shownTxs = idxList.map((i) => allTx[i]);
+
+    data = build(shownTxs);
 
     if (data.empty) {
       paintEmpty({
-        totalTx: (ctx.getState().transactions || []).length,
+        totalTx: allTx.length,
         range: data.range,
+        picked: shownTxs.length,
       });
-      ctx.setFooter('路径追踪 · 这段时间没有可画的流水');
+      ctx.setFooter(shownTxs.length
+        ? '路径追踪 · 这批流水画不出图'
+        : '路径追踪 · 按当前筛选没有流水');
       return;
     }
 
@@ -200,13 +218,7 @@ export function mountPath(section, ctx) {
       }
     }
 
-    // 左栏：流水查询表 —— 列**全部**流水，不只是图上画出来的那几笔。
-    // 期初流水不列：图上不画它（它是背景板，不是资金流动），
-    // 列出来就成了一串「000101 期初余额 → 某账户」永远高亮不到的行。
-    const allTx = (ctx.getState().transactions || []).filter((t) => t && !t.opening);
-    const idxList = visibleIdx(allTx);
-    const shownTxs = idxList.map((i) => allTx[i]);
-
+    // 左栏：流水查询表 —— 与图用同一份筛选结果（allTx/idxList/shownTxs 在 render 开头算好）
     paintFlowRows(flowBody, {
       txs: shownTxs,
       hits: hitIds,
@@ -237,9 +249,10 @@ export function mountPath(section, ctx) {
   return { render };
 }
 
-function rangeOfAll(state) {
-  const dates = (state.transactions || [])
-    .map((t) => String(t.date || ''))
+/** 一批流水的日期区间（图的范围 = 这批流水的范围，不再看全账本） */
+function rangeOf(list) {
+  const dates = (list || [])
+    .map((t) => String((t && t.date) || ''))
     .filter(Boolean)
     .sort();
   return dates.length
