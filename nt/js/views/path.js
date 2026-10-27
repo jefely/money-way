@@ -27,7 +27,6 @@ export function mountPath(section, ctx) {
   const chartBox = section.querySelector('#pw-chart');
   const flowBody = section.querySelector('#pw-flow-body');
   const titleBox = section.querySelector('#pw-side-title');
-  const hintBox = section.querySelector('#pw-hint');
   const clearBtn = section.querySelector('#pw-clear');
 
   let focus = null;      // { kind:'acc'|'tx', id }
@@ -224,9 +223,9 @@ export function mountPath(section, ctx) {
     });
 
     titleBox.textContent = focus && focus.kind === 'acc' ? nameOf(focus.id) : '路径追踪';
-    hintBox.textContent = hits
-      ? `已高亮 ${hits.size} 条 · 点「清空」看全图`
-      : '点弧块看它的来路与去向';
+
+    // 图上那行提示（「点弧块看它的来路与去向」）已按用户要求删掉：
+    // 它压在图中间，太抢眼。高亮条数改由页脚给出。
 
     // 图的参数压成一行放页脚（和其它页一样在屏幕底部），左栏不再占一块高度给统计
     ctx.setFooter(`路径追踪 · ${data.txs.length} 笔 · ${data.blocks.length} 块`

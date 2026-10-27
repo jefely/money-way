@@ -117,5 +117,4 @@ export function paintEmpty(info) {
   // 图的参数已经合并进页脚，没有 #pw-stats 这个元素了。
   setText('pw-flow-body', '');
   setText('pw-side-title', '暂无数据');
-  setText('pw-hint', '');
 }
