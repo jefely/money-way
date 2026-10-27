@@ -11,7 +11,7 @@
  * 解析结果永远是**账户对象**（含 id），绝不含"把简码当外键"这种事。
  */
 
-import { normalizeCode } from './schema.js';
+import { normalizeCode, createAccount } from './schema.js';
 import { getByCode, getByName } from './account-index.js';
 
 /** 候选气泡最多给几个（手机上放太多会挡视线） */
@@ -96,4 +96,51 @@ export function parseAccountInput(index, input) {
   }
 
   return { acc: null, display: raw, via: null };
+}
+
+/* ============================================================
+   导入时的兜底账户：「待分类」
+   ============================================================ */
+
+/**
+ * 认不出的那一侧先挂到「待分类」，**不整笔丢掉**。
+ *
+ * 这是照单文件版的做法（`ensurePendingAccount`）：账单里的对方大多是商户名
+ * （「某某餐厅」「地铁」），它们本来就不是这个账本里的账户。
+ * 旧版要求两端都解析成账户，否则整笔跳过 —— 结果是用户选完文件、看完预览、
+ * 点「导入 N 笔」，一笔也没进来，只在页脚看到一个「跳过」。
+ *
+ * 名字保持中文且固定：用户要在流水表里按这个名字找回来改。
+ */
+export const PENDING_NAME = '待分类';
+
+/** 「待分类」的简码 —— 与名字一样是用户可见的，不要随手改 */
+const PENDING_CODE = 'DCL';
+
+/** 找已有的「待分类」（没有就返回 null） */
+export function findPendingAccount(state) {
+  const list = (state && state.accounts) || [];
+  return list.find((a) => a && String(a.name || '').trim() === PENDING_NAME) || null;
+}
+
+/**
+ * 保证「待分类」存在。
+ * @returns {{state:object, acc:object, created:boolean}} state 可能是新的（新建了账户）
+ */
+export function ensurePendingAccount(state) {
+  const hit = findPendingAccount(state);
+  if (hit) return { state, acc: hit, created: false };
+
+  const acc = createAccount({
+    name: PENDING_NAME,
+    code: PENDING_CODE,
+    type: '资产类',
+    category: PENDING_NAME,
+  });
+
+  return {
+    state: { ...state, accounts: ((state && state.accounts) || []).concat([acc]) },
+    acc,
+    created: true,
+  };
 }

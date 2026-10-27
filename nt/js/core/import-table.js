@@ -23,6 +23,34 @@ const GENERIC = {
 };
 
 /**
+ * 按关键词给**一行**表头猜列映射。
+ *
+ * 抽出来是因为「手动指定列」那个界面也要同一个初值：
+ * 认不出表头时先猜一遍，用户只需要改猜错的那几列，不用从零开始选。
+ *
+ * @param {string[]} cells 一行单元格
+ * @returns {Record<string, number>} 角色 → 列号
+ */
+export function guessMapForRow(cells) {
+  const map = {};
+  const list = cells || [];
+
+  for (const key of Object.keys(GENERIC)) {
+    const kws = GENERIC[key];
+    for (let ci = 0; ci < list.length; ci += 1) {
+      if (map[key] != null) break;
+      const cell = String(list[ci] || '');
+      if (!cell) continue;
+      if (kws.some((kw) => cell.toLowerCase().includes(kw.toLowerCase()))) {
+        map[key] = ci;
+      }
+    }
+  }
+
+  return map;
+}
+
+/**
  * 认通用表头（日期 + 金额是必须的）。
  * @param {string[][]} rows
  */
@@ -34,21 +62,8 @@ export function findGenericHeader(rows) {
     const cells = rows[i] || [];
     if (cells.length < 2) continue;
 
-    const map = {};
-    let score = 0;
-
-    for (const key of Object.keys(GENERIC)) {
-      const kws = GENERIC[key];
-      for (let ci = 0; ci < cells.length; ci += 1) {
-        if (map[key] != null) break;
-        const cell = String(cells[ci] || '');
-        if (!cell) continue;
-        if (kws.some((kw) => cell.toLowerCase().includes(kw.toLowerCase()))) {
-          map[key] = ci;
-          score += 1;
-        }
-      }
-    }
+    const map = guessMapForRow(cells);
+    let score = Object.keys(map).length;
 
     if (map.date != null && map.amount != null) score += 2;
     if (score > best.score) best = { idx: i, score, map };

@@ -12,6 +12,7 @@ import {
 import { buildAccountIndex, getByCode, getByName, getById } from '../js/core/account-index.js';
 import {
   resolveAccount, suggestAccounts, parseAccountInput, MAX_SUGGEST, MIN_SUGGEST_LEN,
+  ensurePendingAccount, findPendingAccount, PENDING_NAME,
 } from '../js/core/account-resolver.js';
 import { validate, issuesOf } from '../js/core/validator.js';
 import { createState, addAccount, updateAccount, addTransaction } from '../js/core/state-store.js';
@@ -197,4 +198,42 @@ test('★ 改简码：历史流水一分不差，且用新简码还能解析到�
   assert.equal(getByCode(idx, 'JHC'), null, '旧简码要失效');
   assert.equal(getByCode(idx, 'jhk').id, 'acc_x', '新简码生效');
   assert.equal(changed.transactions[0].from_id, 'acc_x', '流水仍然只认 ID');
+});
+
+/* ---------- 导入兜底账户：待分类 ---------- */
+
+test('ensurePendingAccount 建「待分类」，且不改原 state', () => {
+  const s0 = createState();
+  const base = s0.accounts.length;          // 空账本里也有期初虚拟账户，不能写死 0
+  const r1 = ensurePendingAccount(s0);
+
+  assert.equal(r1.created, true);
+  assert.equal(r1.acc.name, PENDING_NAME);
+  assert.equal(r1.acc.code, 'DCL');
+  assert.equal(r1.acc.type, ACCOUNT_TYPE.ASSET);
+  assert.equal(r1.state.accounts.length, base + 1);
+  assert.equal(s0.accounts.length, base, '原 state 必须原封不动（state 是不可变更新的）');
+});
+
+test('ensurePendingAccount 第二次复用同一个，不再新建', () => {
+  const base = createState().accounts.length;
+  const r1 = ensurePendingAccount(createState());
+  const r2 = ensurePendingAccount(r1.state);
+
+  assert.equal(r2.created, false);
+  assert.equal(r2.acc.id, r1.acc.id);
+  assert.equal(r2.state.accounts.length, base + 1);
+});
+
+test('findPendingAccount 认名字不认简码', () => {
+  const r1 = ensurePendingAccount(createState());
+  assert.equal(findPendingAccount(r1.state).id, r1.acc.id);
+  assert.equal(findPendingAccount(createState()), null);
+});
+
+test('「待分类」的简码能被解析回来（导入后用户要能找到它）', () => {
+  const r1 = ensurePendingAccount(createState());
+  const idx = buildAccountIndex(r1.state.accounts);
+  assert.equal(parseAccountInput(idx, 'DCL').acc.id, r1.acc.id);
+  assert.equal(parseAccountInput(idx, PENDING_NAME).acc.id, r1.acc.id);
 });

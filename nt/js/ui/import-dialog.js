@@ -1,4 +1,4 @@
-﻿// 界面：导入 Excel / CSV / 账单
+// 界面：导入 Excel / CSV / 账单
 /**
  * 导入对话框
  * 层：第五层 · UI
@@ -12,6 +12,7 @@
 import * as NtModal from './modal.js';
 import { readAnyTable } from './xlsx-read.js';
 import { analyzeTable } from '../core/import-table.js';
+import { openColumnMapper } from './import-map.js';
 
 /**
  * 打开导入对话框。
@@ -34,11 +35,13 @@ export function openImportDialog(opts) {
 
     let result = null;
     let error = '';
+    let rows = [];
 
     try {
       const book = await readAnyTable(file);
       const sheet = book.sheets[0];
       if (!sheet) throw new Error('这个文件里没有可读的表');
+      rows = sheet.rows;
       result = analyzeTable(sheet.rows);
       result.sheetName = sheet.name;
       result.fileName = file.name;
@@ -60,14 +63,14 @@ export function openImportDialog(opts) {
       return;
     }
 
-    showPreview(result, o);
+    showPreview(result, o, rows);
   });
 
   input.click();
 }
 
 /** 预览 + 确认 */
-function showPreview(result, o) {
+function showPreview(result, o, rows) {
   NtModal.open({
     title: '导入预览',
     build: (body) => {
@@ -84,8 +87,8 @@ function showPreview(result, o) {
       if (result.kind === 'unknown' || !result.items.length) {
         const bad = document.createElement('p');
         bad.className = 'nt-sync-hint';
-        bad.textContent = '这张表认不出来。需要至少一列日期 + 一列金额，'
-          + '或者用支付宝 / 微信 / 招行的原始账单文件。';
+        bad.textContent = '这张表认不出表头。可以手动指定每列是什么 —— '
+          + '只要有一列日期 + 一列金额就能导。';
         body.appendChild(bad);
         return;
       }
@@ -117,7 +120,26 @@ function showPreview(result, o) {
       }
     },
     actions: result.kind === 'unknown' || !result.items.length
-      ? [{ label: '关闭', kind: 'ghost', close: true }]
+      ? [
+        { label: '关闭', kind: 'ghost', close: true },
+        {
+          label: '手动指定列',
+          kind: 'primary',
+          onClick: () => openColumnMapper(rows, (mapped) => {
+            const next = {
+              ...result,
+              kind: 'generic',
+              presetName: '',
+              headerIdx: mapped.headerIdx,
+              map: mapped.map,
+              items: mapped.items,
+              needAccount: true,
+              note: `按手动指定的列映射解析，共 ${mapped.items.length} 笔`,
+            };
+            showPreview(next, o, rows);
+          }),
+        },
+      ]
       : [
         { label: '取消', kind: 'ghost', close: true },
         {

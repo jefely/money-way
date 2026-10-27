@@ -12,7 +12,7 @@ import {
 } from '../core/state-store.js';
 import { buildFlowRows, buildFooterInfo } from '../ui/flow-model.js';
 import { renderRows } from '../ui/render-transactions.js';
-import { parseAccountInput, suggestAccounts as suggestByIndex } from '../core/account-resolver.js';
+import { parseAccountInput, suggestAccounts as suggestByIndex, ensurePendingAccount } from '../core/account-resolver.js';
 import { bindRowEditing } from '../ui/row-editor.js';
 import * as NtModal from '../ui/modal.js';
 import { openAddDialog } from '../ui/add-dialog.js';
@@ -39,12 +39,14 @@ export function mountFlow(section, ctx) {
   /**
    * 把导入解析结果写进 state。
    *
-   * 通用表能直接导（转出/转入就是账户名）；
-   * 账单是单边记录，必须补出另一端，补不出来就跳过并计数 —— 不能静默丢数据。
+   * 两端账户：认得出就用真账户，认不出的那一侧挂到「待分类」——**不整笔丢掉**。
+   * 账单里的对方多半是商户名（「地铁」「某某餐厅」），它们本来就不是这个账本里的账户；
+   * 旧版要求两端都解析成功，于是用户选完文件、看完预览、点「导入 N 笔」，
+   * 一笔也没进来，只在页脚看到一个「跳过」。数据先落地的价值大得多。
    */
   function importItems(res) {
-    const idx = ctx.getIndex();
     let st = ctx.getState();
+    const idx = ctx.getIndex();
 
     const acc = (v) => {
       if (!v) return null;
@@ -58,8 +60,19 @@ export function mountFlow(section, ctx) {
       return list.length ? list[0] : null;
     };
 
+    // 待分类账户按需创建（一次导入最多建一个）；st 会被换成含它的新 state
+    let pendingAcc = null;
+    const pending = () => {
+      if (pendingAcc) return pendingAcc;
+      const r = ensurePendingAccount(st);
+      st = r.state;
+      pendingAcc = r.acc;
+      return pendingAcc;
+    };
+
     let added = 0;
     let skipped = 0;
+    let guessed = 0;
 
     for (const it of res.items) {
       const amount = Math.abs(Number(it.amount) || 0);
@@ -67,23 +80,34 @@ export function mountFlow(section, ctx) {
 
       let fromId = null;
       let toId = null;
+      let loose = false;      // 这一笔有没有一侧落到「待分类」
+      let dead = false;       // 两端都空 / 两端同账户 → 没有意义，跳过
 
       if (res.kind === 'generic') {
         const f = acc(it.from);
         const t = acc(it.to);
-        if (!f || !t) { skipped += 1; continue; }
-        fromId = f.id;
-        toId = t.id;
+        if (f) fromId = f.id;
+        else if (String(it.from || '').trim()) { fromId = pending().id; loose = true; }
+        if (t) toId = t.id;
+        else if (String(it.to || '').trim()) { toId = pending().id; loose = true; }
+        if (!fromId && !toId) dead = true;
       } else {
         // 账单：单边。支出 = 我的账户 → 对方；收入 = 对方 → 我的账户
         const self = acc(it.method) || fallbackSelf(st);
         const other = acc(it.party);
-        if (!self || !other) { skipped += 1; continue; }
+
+        const selfId = self ? self.id : pending().id;
+        const otherId = other ? other.id : pending().id;
+        if (!self || !other) loose = true;
 
         const isIncome = /收入/.test(it.dir || '');
-        if (isIncome) { fromId = other.id; toId = self.id; }
-        else { fromId = self.id; toId = other.id; }
+        if (isIncome) { fromId = otherId; toId = selfId; }
+        else { fromId = selfId; toId = otherId; }
       }
+
+      // 自己转自己：金额不落地，只会让统计多一笔假流水
+      if (!dead && fromId && toId && fromId === toId) dead = true;
+      if (dead) { skipped += 1; continue; }
 
       st = addTransaction(st, {
         date: it.date,
@@ -93,16 +117,19 @@ export function mountFlow(section, ctx) {
         note: it.note || it.item || it.party || '',
       });
       added += 1;
+      if (loose) guessed += 1;
     }
 
     ctx.setState(st);
     ctx.save();
     render();
 
-    ctx.setFooter(`导入 ${added} 笔` + (skipped ? `，跳过 ${skipped} 笔（账户认不出）` : ''));
+    ctx.setFooter(`导入 ${added} 笔`
+      + (guessed ? `，${guessed} 笔有一侧账户认不出（已挂到「待分类」，可在流水表里改）` : '')
+      + (skipped ? `，跳过 ${skipped} 笔（金额为空或两端同账户）` : ''));
   }
 
-  bindToolbar(section, ctx);
+  bindToolbar(section, ctx, { onImport: importItems });
 
   // 单元格区域框选：长按起手，可复制 / 粘贴 / 批量删除行
   const flowTable = section.querySelector('.nt-table-flow');
@@ -189,7 +216,17 @@ export function mountFlow(section, ctx) {
 
 /* ---------- 工具条 ---------- */
 
-function bindToolbar(section, ctx) {
+/**
+ * 工具条接线。
+ *
+ * 注意这里是**模块级**函数：mountFlow 内部的 importItems 拿不到，
+ * 必须由调用方通过 h.onImport 传进来。早先这里直接写 `onImport: (res) => importItems(res)`，
+ * 结果是「确认导入」时抛 `importItems is not defined` —— 对话框能开、能预览，
+ * 但一笔也写不进库，而且只在点确认那一刻才炸。
+ */
+function bindToolbar(section, ctx, h) {
+  const o = h || {};
+
   section.querySelectorAll('[data-act="add"]').forEach((b) => {
     b.addEventListener('click', () => openAddDialog(ctx));
   });
@@ -211,7 +248,11 @@ function bindToolbar(section, ctx) {
   const imp = section.querySelector('[data-act="import"]');
   if (imp) {
     imp.addEventListener('click', () => {
-      openImportDialog({ onImport: (res) => importItems(res) });
+      openImportDialog({
+        onImport: (res) => {
+          if (o.onImport) o.onImport(res);
+        },
+      });
     });
   }
 

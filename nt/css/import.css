@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    NT账本 · 导入 / 账户管理
    ============================================================ */
 
@@ -78,6 +78,70 @@
   font-size: 11px;
   line-height: 1.7;
   overflow-x: auto;
+}
+
+/* ---------- 手动指定列（认不出表头时） ---------- */
+
+.nt-import-map-table {
+  width: 100%;
+  margin: 8px 0;
+  border-collapse: collapse;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.nt-import-map-table th,
+.nt-import-map-table td {
+  max-width: 96px;
+  padding: 2px 5px;
+  border: 1px solid var(--nt-bg-line);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nt-import-map-table th {
+  color: var(--nt-text-light);
+  font-weight: 400;
+  text-align: center;
+}
+
+.nt-import-map-table tr.is-head td {
+  background: var(--nt-bg-soft);
+  color: var(--nt-primary);
+  font-weight: 700;
+}
+
+.nt-import-roles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+  margin-top: 8px;
+}
+
+.nt-import-role {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.nt-import-role > span {
+  flex: 0 0 42px;
+  color: var(--nt-text-muted);
+}
+
+.nt-import-role select {
+  flex: 1;
+  min-width: 0;
+}
+
+.nt-import-map-err {
+  min-height: 18px;
+  margin: 8px 0 0;
+  color: var(--nt-bad);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 /* ---------- 账户管理 ---------- */

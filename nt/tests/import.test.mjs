@@ -7,7 +7,7 @@ import {
   parseBillDate, billFingerprint, BILL_PRESETS,
 } from '../js/core/bill-parse.js';
 import {
-  analyzeTable, findGenericHeader, genericRowsToItems,
+  analyzeTable, findGenericHeader, genericRowsToItems, guessMapForRow,
 } from '../js/core/import-table.js';
 
 const ALIPAY = [
@@ -173,4 +173,61 @@ test('parseBillDate 认 YYMMDD（6 位）', () => {
   assert.equal(parseBillDate('991231'), '1999-12-31');
   // 月份/日期越界的不能瞎认
   assert.equal(parseBillDate('261399'), null);
+});
+
+/* ---------- 手动指定列（认不出表头时的唯一出口） ---------- */
+
+test('guessMapForRow 按关键词认列', () => {
+  const map = guessMapForRow(['交易时间', '金额(元)', '备注']);
+  assert.equal(map.date, 0);
+  assert.equal(map.amount, 1);
+  assert.equal(map.note, 2);
+});
+
+test('guessMapForRow 只认认得的列，认不出的留空', () => {
+  // 「交易日」「数字」都不在通用关键词里 —— 留给用户手指定
+  const map = guessMapForRow(['交易日', '对方户名', '我的户名', '数字', '摘要']);
+  assert.deepEqual(map, { note: 4 });
+});
+
+test('guessMapForRow 空行 / 空表返回空对象', () => {
+  assert.deepEqual(guessMapForRow([]), {});
+  assert.deepEqual(guessMapForRow(['', '']), {});
+});
+
+test('findGenericHeader 与 guessMapForRow(表头行) 结果一致', () => {
+  const g = findGenericHeader(GENERIC);
+  assert.deepEqual(g.map, guessMapForRow(GENERIC[g.idx]));
+});
+
+test('★ 认不出表头的表，手工指定列后能解析', () => {
+  const rows = [
+    ['交易日', '对方户名', '我的户名', '数字', '摘要'],
+    ['2026/10/24', '地铁', '招行储', '3.00', '通勤'],
+    ['2026/10/25', '食堂', '招行储', '18.00', '午饭'],
+  ];
+
+  // 自动识别失败（日期/金额两列都认不出）
+  const auto = analyzeTable(rows);
+  assert.equal(auto.kind, 'unknown');
+
+  // 用户手工指定：交易日→日期、数字→金额、我的户名→转出、对方户名→转入、摘要→备注
+  const map = { date: 0, amount: 3, from: 2, to: 1, note: 4 };
+  const items = genericRowsToItems(rows, { idx: 0, map });
+  assert.equal(items.length, 2);
+  assert.equal(items[0].date, '2026-10-24');
+  assert.equal(items[0].amount, 3);
+  assert.equal(items[0].from, '招行储');
+  assert.equal(items[0].to, '地铁');
+  assert.equal(items[0].note, '通勤');
+});
+
+test('手工映射指错了列 → 0 条（界面据此报错，不静默导入）', () => {
+  const rows = [
+    ['交易日', '对方户名', '我的户名', '数字', '摘要'],
+    ['2026/10/24', '地铁', '招行储', '3.00', '通勤'],
+  ];
+  // 把「对方户名」当日期列
+  const items = genericRowsToItems(rows, { idx: 0, map: { date: 1, amount: 3, from: 2, to: 1 } });
+  assert.equal(items.length, 0);
 });
