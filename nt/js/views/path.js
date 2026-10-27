@@ -13,6 +13,7 @@ import { fetchGraphData } from '../graph/mw-data-fetcher.js';
 import { computeSlots } from '../graph/mw-slot-calculator.js';
 import { matchAccount } from '../core/query-engine.js';
 import { dateInRange } from '../core/date-query.js';
+import { money } from '../core/format.js';
 import { buildChord } from '../graph/mw-path-calculator.js';
 import { traceUpstream, traceByAccount } from '../graph/path-tracer.js';
 import { SVG } from '../ui/mw-svg-renderer.js';
@@ -85,7 +86,19 @@ export function mountPath(section, ctx) {
     const gctx = { byId: index.byId, colorKeyOf, colorIndex, depthOf };
 
     // 弧块文字要显示账户名
-    for (const b of blocks) b.label = nameOf(b.acc);
+    // 每个账户在图里参与的金额合计（转出 + 转入），拼到标签后面
+    const amtOf = new Map();
+    for (const t of txs) {
+      for (const id of [t.from_id, t.to_id]) {
+        if (!id) continue;
+        amtOf.set(id, (amtOf.get(id) || 0) + (Number(t.amount) || 0));
+      }
+    }
+    for (const b of blocks) {
+      b.label = nameOf(b.acc);
+      const amt = amtOf.get(b.acc) || 0;
+      b.amountText = amt ? money(amt) : '';
+    }
 
     const chords = [];
     for (const [txIdx, pair] of byTx) {

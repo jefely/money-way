@@ -150,8 +150,11 @@ export function renderChart(data) {
   let prevCrowded = false;
 
   for (const b of blocks) {
-    const label = String(b.label || '');
-    if (!label) continue;
+    const name = String(b.label || '');
+    if (!name) continue;
+    // 标签 = 账户名 + 金额（金额由调用方格式化成字符串传进来，
+    // 渲染器不引 core/format，保持「只拼字符串」的职责）
+    const label = b.amountText ? `${name} ${b.amountText}` : name;
 
     const span = b.a2 - b.a1;
     const midA = (b.a1 + b.a2) / 2;
