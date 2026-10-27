@@ -110,10 +110,9 @@
      这里只负责「内容比侧栏宽就裁掉」，别把整个界面顶出去 */
   overflow: hidden;
   border-right: 1px solid var(--nt-bg-line);
-  /* 毛玻璃：半透明背景 + 背景模糊，后面的环图会像隔着磨砂玻璃透出来 */
-  background: color-mix(in srgb, var(--nt-bg-soft) 66%, transparent);
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  /* 侧栏实色、盖在图上面（用户要求「侧边栏做到图的上边」）：
+     环图在它下面是更低的 z-index，完全被挡住，不会和表格互相干扰 */
+  background: var(--nt-bg-soft);
 }
 
 /* 右缘的拖条：拖动改 --nt-pw-side-w */
@@ -438,11 +437,16 @@
 /* ---------- 图区：收起/展开三角 + Money Way 标识 ---------- */
 
 .pw-chart {
-  /* 图在右侧那一列，层级**低于**侧栏：
-     拖到侧栏范围内会被磨砂玻璃盖住（侧栏是半透明 + backdrop blur），
-     不再出现「图浮在表格上面、两者互相打架」。
-     静止时图和侧栏本来就不重叠，所以不会被遮。 */
-  position: relative;
+  /* 用户确认 nt-v0.84 那一版最对，回到它：
+     图脱离栅格、固定在视口中央（尺寸 min(94vw,86vh)），层级在侧栏**下面**
+     （z-index 1 < 侧栏 2）—— 侧栏是半透明 + backdrop blur，
+     图隔着磨砂玻璃透出来；收展侧栏只改变左栏宽度，图的尺寸和位置都不动。 */
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: min(94vw, 86vh);
+  height: min(94vw, 86vh);
+  transform: translate(-50%, -50%);
   z-index: 1;
   display: flex;
   min-width: 0;
