@@ -9,6 +9,7 @@
 
 import {
   addTransaction, updateTransaction, removeTransaction, nextSeq,
+  removeBatch, restoreBatch,
 } from '../core/state-store.js';
 import { buildFlowRows, buildFooterInfo } from '../ui/flow-model.js';
 import { renderRows } from '../ui/render-transactions.js';
@@ -19,6 +20,7 @@ import { openAddDialog } from '../ui/add-dialog.js';
 import { openSyncDialog } from '../ui/sync-dialog.js';
 import { splitByTime } from '../timeline/time-state.js';
 import { mountCellRange } from '../ui/cell-range.js';
+import { showUndo } from '../ui/undo-bar.js';
 import { openImportDialog } from '../ui/import-dialog.js';
 import { openExportDialog } from '../ui/export-dialog.js';
 
@@ -136,11 +138,20 @@ export function mountFlow(section, ctx) {
   mountCellRange(flowTable, {
     onNotice: (t) => ctx.setFooter(t),
     onDeleteRows: (ids) => {
-      let st = ctx.getState();
-      for (const id of ids) st = removeTransaction(st, id);
-      ctx.setState(st);
+      const before = ctx.getState();
+      const r = removeBatch(before, 'transactions', ids);
+      ctx.setState(r.state);
       ctx.save();
       render();
+
+      // 框选一次能删掉整片，误删的代价太大 —— 给 8 秒撤销
+      showUndo(`已删除 ${r.removed.length} 笔流水`, () => {
+        const s0 = ctx.getState();
+        ctx.setState(restoreBatch(s0, 'transactions', r.removed));
+        ctx.saveNow();
+        render();
+        ctx.setFooter(`已恢复 ${r.removed.length} 笔流水`);
+      });
     },
   });
 

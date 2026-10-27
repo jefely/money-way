@@ -12,10 +12,12 @@
 import { tpl } from './render-transactions.js';
 import { setCell, moneyOrBlank } from './table.js';
 import { mountCellRange } from './cell-range.js';
+import { showUndo } from './undo-bar.js';
 import { money, moneyAlways } from '../core/format.js';
 import { computeInstallment, addMonths, monthsBetween, isDueInMonth as isDueMonth } from '../core/installment-engine.js';
 import { createScheduled, normalizeMonth, clampDay } from '../core/schema.js';
 import { parseAccountInput } from '../core/account-resolver.js';
+import { removeBatch, restoreBatch } from '../core/state-store.js';
 
 const FIELDS = ['name', 'principal', 'periods', 'day', 'interest', 'firstMonth'];
 
@@ -35,15 +37,27 @@ export function mountInstTable(ctx, tbody, opts) {
   // 粘贴只允许一格 —— 月份格本来就不是输入框，整片粘一半会被拒。
   mountCellRange(tbody.closest('table'), {
     paste: 'single',
-    onDeleteRows: (ids) => {
-      const st = ctx.getState();
-      ctx.setState({ ...st, scheduled: (st.scheduled || []).filter((x) => !ids.includes(x.id)) });
-      ctx.saveNow();
-      render();
-      ctx.setFooter(`已删除 ${ids.length} 条分期`);
-    },
+    onDeleteRows: (ids) => deleteRows(ids),
     onNotice: (t) => ctx.setFooter(t),
   });
+
+  /**
+   * 删若干条分期，并给 8 秒撤销。
+   * 一条分期在表里是上下两行，但只对应一个 id —— 删一条不能只删半条。
+   */
+  function deleteRows(ids) {
+    const r = removeBatch(ctx.getState(), 'scheduled', ids);
+    ctx.setState(r.state);
+    ctx.saveNow();
+    render();
+
+    showUndo(`已删除 ${r.removed.length} 条分期`, () => {
+      ctx.setState(restoreBatch(ctx.getState(), 'scheduled', r.removed));
+      ctx.saveNow();
+      render();
+      ctx.setFooter(`已恢复 ${r.removed.length} 条分期`);
+    });
+  }
 
   function render() {
     const state = ctx.getState();
@@ -175,13 +189,7 @@ export function mountInstTable(ctx, tbody, opts) {
   function bindRow(tr, id) {
     const del = tr.querySelector('[data-act="del"]');
     if (del) {
-      del.addEventListener('click', () => {
-        const st = ctx.getState();
-        ctx.setState({ ...st, scheduled: (st.scheduled || []).filter((x) => x.id !== id) });
-        ctx.saveNow();
-        render();
-        ctx.setFooter('已删除 1 条分期');
-      });
+      del.addEventListener('click', () => { deleteRows([id]); });
     }
 
     for (const f of FIELDS) {

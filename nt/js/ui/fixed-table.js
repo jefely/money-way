@@ -12,9 +12,11 @@
 import { tpl } from './render-transactions.js';
 import { setCell, moneyOrBlank } from './table.js';
 import { mountCellRange } from './cell-range.js';
+import { showUndo } from './undo-bar.js';
 import { moneyAlways } from '../core/format.js';
 import { createScheduled, clampDay } from '../core/schema.js';
 import { parseAccountInput } from '../core/account-resolver.js';
+import { removeBatch, restoreBatch } from '../core/state-store.js';
 
 const FIELDS = ['freq', 'day', 'from', 'to', 'amount', 'note'];
 
@@ -29,15 +31,27 @@ export function mountFixedTable(ctx, tbody, opts) {
   // 框选：整片可复制；粘贴只允许一格（改一格就落库并重渲染，整片粘会只生效第一格）
   mountCellRange(tbody.closest('table'), {
     paste: 'single',
-    onDeleteRows: (ids) => {
-      const st = ctx.getState();
-      ctx.setState({ ...st, scheduled: (st.scheduled || []).filter((x) => !ids.includes(x.id)) });
-      ctx.saveNow();
-      render();
-      ctx.setFooter(`已删除 ${ids.length} 条固定收支`);
-    },
+    onDeleteRows: (ids) => deleteRows(ids),
     onNotice: (t) => ctx.setFooter(t),
   });
+
+  /**
+   * 删若干条固定收支，并给 8 秒撤销。
+   * 单行 × 与框选批量删走同一条路 —— 两个入口给不同待遇最容易长歪。
+   */
+  function deleteRows(ids) {
+    const r = removeBatch(ctx.getState(), 'scheduled', ids);
+    ctx.setState(r.state);
+    ctx.saveNow();
+    render();
+
+    showUndo(`已删除 ${r.removed.length} 条固定收支`, () => {
+      ctx.setState(restoreBatch(ctx.getState(), 'scheduled', r.removed));
+      ctx.saveNow();
+      render();
+      ctx.setFooter(`已恢复 ${r.removed.length} 条固定收支`);
+    });
+  }
 
   function render() {
     const state = ctx.getState();
@@ -85,13 +99,7 @@ export function mountFixedTable(ctx, tbody, opts) {
   function bindRow(tr, id) {
     const del = tr.querySelector('[data-act="del"]');
     if (del) {
-      del.addEventListener('click', () => {
-        const st = ctx.getState();
-        ctx.setState({ ...st, scheduled: (st.scheduled || []).filter((x) => x.id !== id) });
-        ctx.saveNow();
-        render();
-        ctx.setFooter('已删除 1 条固定收支');
-      });
+      del.addEventListener('click', () => deleteRows([id]));
     }
 
     for (const f of FIELDS) {

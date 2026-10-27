@@ -96,3 +96,32 @@ body.nt-range-mode .nt-tablewrap {
 .nt-range-btn[data-act="del"] {
   color: var(--nt-danger, #e05555);
 }
+
+/* ---------- 删除后的撤销条 ---------- */
+
+.nt-undo {
+  position: fixed;
+  left: 50%;
+  bottom: 48px;              /* 让开页脚，别把合计盖住 */
+  z-index: 70;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  max-width: 92vw;
+  padding: 5px 10px;
+  border: 1px solid var(--nt-line-strong, var(--nt-bg-line));
+  border-radius: 999px;
+  background: var(--nt-bg-soft, var(--nt-bg));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  font-size: 12px;
+  transform: translateX(-50%);
+}
+
+.nt-undo[hidden] {
+  display: none;
+}
+
+.nt-undo-text {
+  color: var(--nt-text-muted);
+  white-space: nowrap;
+}

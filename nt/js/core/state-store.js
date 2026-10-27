@@ -107,6 +107,51 @@ export function removeTransaction(state, id) {
   return { ...state, transactions: state.transactions.filter((t) => t.id !== id) };
 }
 
+/* ---------- 批量删除 + 撤销 ---------- */
+
+/**
+ * 按 id 批量删一个字段里的元素，并返回「删了什么、原来在第几个」。
+ *
+ * 撤销必须靠这个返回值：只记内容不记位置，恢复回来的顺序就变了，
+ * 而流水 / 计划流水的顺序是用户直接看得到的（序列表、当月分期先后）。
+ *
+ * @param {object} state
+ * @param {'transactions'|'scheduled'} field
+ * @param {string[]} ids
+ * @returns {{state:object, removed:Array<{index:number, row:object}>}}
+ */
+export function removeBatch(state, field, ids) {
+  const list = state[field] || [];
+  const keep = [];
+  const removed = [];
+
+  list.forEach((row, index) => {
+    if (row && ids.includes(row.id)) removed.push({ index, row });
+    else keep.push(row);
+  });
+
+  return { state: { ...state, [field]: keep }, removed };
+}
+
+/**
+ * 把 removeBatch 返回的 removed 按原位置插回去。
+ * @param {object} state
+ * @param {'transactions'|'scheduled'} field
+ * @param {Array<{index:number, row:object}>} removed
+ */
+export function restoreBatch(state, field, removed) {
+  const list = (state[field] || []).slice();
+  const ordered = (removed || []).slice().sort((a, b) => a.index - b.index);
+
+  for (const item of ordered) {
+    if (!item || !item.row) continue;
+    const at = Math.min(Math.max(0, Number(item.index) || 0), list.length);
+    list.splice(at, 0, item.row);
+  }
+
+  return { ...state, [field]: list };
+}
+
 /* ---------- 期初迁移 ---------- */
 
 /**
