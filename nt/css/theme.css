@@ -253,11 +253,3 @@ html[data-theme] body {
     color-scheme: dark;
   }
 }
-
-
-/* 环图弧块分隔线：深色系主题用纯黑（浅色走 .mw-ring 的 fallback 纯白） */
-[data-theme="dark"],
-[data-theme="alt1"],
-[data-theme="alt2"] {
-  --nt-ring-sep: #000000;
-}

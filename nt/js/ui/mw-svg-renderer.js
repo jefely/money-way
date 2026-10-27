@@ -111,7 +111,7 @@ export function renderChart(data) {
   for (const b of blocks) {
     parts.push(`<path class="mw-ring" d="${arcPath(rOut, rIn, b.a1, b.a2, pointAt, cx, cy)}"`
       + ` fill="${colorOf(b.colorKey)}" fill-opacity="1"`
-      + ` stroke-width="${f(3.5 * RATIO)}" stroke-opacity="0.7"`
+      + ` stroke="#6b7280" stroke-width="${f(3.5 * RATIO)}" stroke-opacity="0.7"`
       + ` data-node="${esc(b.acc)}"/>`);
   }
 
