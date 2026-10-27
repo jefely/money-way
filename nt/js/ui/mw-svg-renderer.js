@@ -117,6 +117,12 @@ export function renderChart(data) {
 
   // ④ 弧块文字：沿半径向外排（照单文件版）
   //    放得下就贴外沿；放不下就往外挪一段并缩字号
+  //
+  // 「上一个弧块是否极窄」—— 连续两个极窄时第二个锥形拉长到 2.5 倍，把标签错开。
+  // ⚠️ 这个声明必须留在循环**外面**：上一版只加了引用没加声明，
+  //    渲染时抛 ReferenceError，整个 render 中断 —— 表现就是「侧边栏数据是空的」。
+  let prevVeryNarrow = false;
+
   for (const b of blocks) {
     const label = String(b.label || '');
     if (!label) continue;
