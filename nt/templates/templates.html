@@ -12,6 +12,16 @@
 -->
 
 <!-- 流水行：行内直接编辑（5 个可编辑格 + 序号 + 删除） -->
+<!-- 路径 · 追踪列表行：日期 | 转出 | 转入 | 金额 -->
+<template id="tpl-pw-row">
+  <li class="pw-row">
+    <span class="pw-cell pw-cell-date"></span>
+    <span class="pw-cell pw-cell-from"></span>
+    <span class="pw-cell pw-cell-to"></span>
+    <span class="pw-cell pw-cell-amount"></span>
+  </li>
+</template>
+
 <template id="tpl-flow-row">
   <tr class="nt-row">
     <td class="nt-cell nt-cell-seq"></td>

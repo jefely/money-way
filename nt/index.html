@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="./css/validate.css">
   <link rel="stylesheet" href="./css/plan.css">
   <link rel="stylesheet" href="./css/settings.css">
+  <link rel="stylesheet" href="./css/path.css">
   <link rel="stylesheet" href="./css/debug.css">
   <script type="module" src="./js/app.js"></script>
 </head>
@@ -108,11 +109,23 @@
       </section>
 
       <!-- ============ 路径：环网图在独立页打开（引擎/渲染已完成） ============ -->
-      <section class="nt-view" data-view="path" hidden>
-        <div class="nt-notice">
-          <p class="nt-block-line">Money Way 环网图的引擎与渲染都已完成（graph/ + mw-svg-renderer），</p>
-          <p class="nt-block-line">当前版本先在独立页面打开，下一版收进本页。</p>
-          <p><a class="nt-btn nt-btn-primary" href="./path.html">打开环网图</a></p>
+      <section class="nt-view nt-view-path" data-view="path" hidden>
+        <div class="pw-main">
+          <!-- 左：追踪列表 -->
+          <aside class="pw-side">
+            <div class="pw-side-head">
+              <span class="pw-side-title" id="pw-side-title">全部流水</span>
+              <button class="pw-mini-btn" type="button" id="pw-clear">清空</button>
+            </div>
+            <dl class="pw-stats" id="pw-stats"></dl>
+            <ul class="pw-list" id="pw-list"></ul>
+          </aside>
+
+          <!-- 右：环网图 -->
+          <section class="pw-chart" aria-label="资金环网图">
+            <div class="pw-chart-inner" id="pw-chart"></div>
+            <p class="pw-hint" id="pw-hint">点弧块看它的来路与去向</p>
+          </section>
         </div>
       </section>
 
