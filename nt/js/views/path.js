@@ -204,9 +204,17 @@ export function mountPath(section, ctx) {
 
     // 四种模式的线宽在 paintChart 里各自独立：
     //   mode=null 基本模式 / 'acc' 点色块 / 'tx' 点单线 / 'trace' 侧栏追踪
-    paintChart(chartBox, data, hits, (acc) => {
-      const same = focus && focus.kind === 'acc' && focus.id === acc;
-      focus = same ? null : { kind: 'acc', id: acc };
+    paintChart(chartBox, data, hits, (kind, value) => {
+      if (kind === 'acc') {
+        const same = focus && focus.kind === 'acc' && focus.id === value;
+        focus = same ? null : { kind: 'acc', id: value };
+      } else {
+        // 点线：value 是 data.txs 的下标，换回「全部流水」的下标再记
+        const tx = data.txs[value] || {};
+        const realIdx = allTx.findIndex((t) => t && t.id === tx.id);
+        const same = focus && focus.kind === 'tx' && focus.id === realIdx;
+        focus = same ? null : { kind: 'tx', id: realIdx, to_id: tx.to_id };
+      }
       render();
     }, focus ? focus.kind : null);
 

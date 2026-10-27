@@ -100,7 +100,16 @@ export function paintChart(host, data, hits, onPick, mode) {
   host.querySelectorAll('.mw-ring').forEach((node) => {
     node.addEventListener('click', () => {
       const acc = node.getAttribute('data-node');
-      if (acc) onPick(acc);
+      if (acc) onPick('acc', acc);
+    });
+  });
+
+  // 线也能点：命中带和可见线都绑同一个回调
+  host.querySelectorAll('.mw-hitarea, .mw-chord').forEach((node) => {
+    node.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const idx = Number(node.getAttribute('data-tx'));
+      if (Number.isFinite(idx)) onPick('tx', idx);
     });
   });
 }

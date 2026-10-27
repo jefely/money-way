@@ -105,10 +105,18 @@ export function renderChart(data) {
     const op = typeof c.opacity === 'number'
       ? c.opacity
       : (d.opacityOf ? d.opacityOf(c) : 0.2);
-    return `<path class="mw-chord" d="${chordPath(c.path)}"`
+    const dd = chordPath(c.path);
+    // 可见的那条线（细）
+    let out = `<path class="mw-chord" d="${dd}"`
       + ` fill="none" stroke="${c.strokeColor}"`
       + ` stroke-width="${c.strokeWidth}" stroke-opacity="${op}"`
       + ` stroke-linecap="round" data-tx="${c.txIdx}"/>`;
+    // 一条透明的粗线盖在上面：线只有 1-2px，直接点很难点中。
+    // pointer-events="stroke" 让它的整条描边都成为命中区。
+    out += `<path class="mw-hitarea" d="${dd}" fill="none" stroke="transparent"`
+      + ` stroke-width="${Math.max(c.strokeWidth, 14 * RATIO)}"`
+      + ` stroke-linecap="round" pointer-events="stroke" data-tx="${c.txIdx}"/>`;
+    return out;
   };
 
   for (const c of below) parts.push(drawChord(c));
