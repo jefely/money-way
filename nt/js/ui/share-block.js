@@ -13,7 +13,7 @@
 import { paintText } from './qr-canvas.js';
 import { APP_VER } from '../core/version.js';
 import { SHARE_URL } from '../core/meta.js';
-import { checkUpdate, applyUpdate, hardReload } from './update-check.js';
+import { checkUpdate, hardReload } from './update-check.js';
 
 /** 二维码每个模块多少像素：手机上 4~5 之间最好扫 */
 const MODULE_PX = 5;
@@ -87,29 +87,23 @@ function versionLine() {
   const btnRow = document.createElement('div');
   btnRow.className = 'nt-ver-btns';
 
-  // 重载：清缓存 + 注销 SW + 刷新（旧 SW 卡住时的唯一可靠解法）
-  const reloadBtn = document.createElement('button');
-  reloadBtn.type = 'button';
-  reloadBtn.className = 'nt-ver-btn ghost';
-  reloadBtn.textContent = '重载';
-  reloadBtn.title = '清掉缓存并重新加载（更新不生效时点这个）';
-  reloadBtn.addEventListener('click', async () => {
-    reloadBtn.disabled = true;
-    reloadBtn.textContent = '重载中';
-    await hardReload();
-  });
-  btnRow.appendChild(reloadBtn);
-
-  // 更新：查远端版本，有新版就清缓存并换班
+  // 唯一的按钮：清缓存 + 注销 SW + 刷新。
+  // 不用「更新」那种「清缓存 + 让 SW 换班」的做法 —— app 更新时新 SW 往往还没接管，
+  // 刷新后仍是旧文件，所以点了像没反应。注销 SW 才能保证拿到最新的。
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'nt-ver-btn ghost';
-  btn.textContent = '更新';
+  btn.textContent = '重载';
+  btn.title = '清掉缓存并重新加载（有新版时点这个）';
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.textContent = '重载中';
+    await hardReload();
+  });
   btnRow.appendChild(btn);
-
   wrap.appendChild(btnRow);
 
-  // 版本号放在按钮下方：左边远端、右边本地
+  // 版本号放在按钮下方：左远端、右本地
   const mini = document.createElement('span');
   mini.className = 'nt-ver-mini';
 
@@ -124,53 +118,35 @@ function versionLine() {
 
   let busy = false;
 
-  async function refresh(force) {
+  async function refresh() {
     if (busy) return;
     busy = true;
-    btn.disabled = true;
-    btn.textContent = '检查中';
     remote.textContent = '远端：检查中…';
 
     try {
       const r = await checkUpdate({ base: appBase() });
 
       if (r.reason === 'no-version') {
-        // 说清为什么读不到，别只丢一句「失败」
-        remote.textContent = '远端：读不到版本号（sw.js 取不到）';
+        remote.textContent = '远端：读不到版本号';
         return;
       }
 
-      remote.textContent = '远端：' + r.remote;
-
-      // 自动检查**只显示**，只有用户主动点按钮（force）才真更新。
-      // 自动更新会触发刷新（→ 回密码页）；缓存没清干净时还会反复触发，形成循环。
       if (r.update) {
-        if (force) {
-          remote.textContent = '远端：' + r.remote + '（正在更新）';
-          busy = false;
-          btn.disabled = false;
-          await applyUpdate(r.remote);
-          return;
-        }
-        remote.textContent = '远端：' + r.remote + '（点按钮更新）';
+        remote.textContent = '远端：' + r.remote + '（点重载）';
         btn.classList.add('has-update');
       } else {
+        remote.textContent = '远端：' + r.remote;
         btn.classList.remove('has-update');
       }
     } catch (e) {
-      remote.textContent = '远端：检查失败（' + ((e && e.message) || e) + '）';
+      remote.textContent = '远端：检查失败';
     } finally {
       busy = false;
-      btn.disabled = false;
-      // 不要无条件恢复成 old：有新版时按钮要一直显示「更新到 x」
-      if (!btn.classList.contains('has-update')) btn.textContent = '更新';
     }
   }
 
-  btn.addEventListener('click', () => refresh(true));
-
-  // 进页面就查：说明页一打开就能看到远端版本
-  setTimeout(() => refresh(false), 0);
+  // 进页面自动查一次，只显示版本，不做任何跳转
+  setTimeout(refresh, 0);
 
   return wrap;
 }

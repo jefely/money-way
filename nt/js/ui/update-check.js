@@ -56,6 +56,13 @@ export async function checkUpdate(opts) {
  *      刷新后拿到的仍是旧文件，于是「检测到更新 → 刷新 → 还是旧的 → 又检测到更新」无限循环
  *   ② 打一个时间戳标记，30 秒内不再触发更新，避免任何形式的循环
  */
+/**
+ * @deprecated 已不再使用。改用 hardReload。
+ *
+ * 为什么弃用：它只清缓存 + 让 SW 换班，而 reg.update() 是异步的，
+ * 250ms 后 reload 时新 SW 往往还没接管，刷新后仍是旧文件 ——
+ * 用户点了没反应，以为「更新失败」。hardReload 注销 SW，一定拿到最新的。
+ */
 export async function applyUpdate(remoteVer, opts) {
   const o = opts || {};
 

@@ -233,3 +233,16 @@
 .nt-ver-btn.ghost:disabled {
   opacity: 0.6;
 }
+
+/* 远端有新版时，「重载」按钮变醒目 —— 告诉用户点这里 */
+.nt-ver-btn.has-update {
+  border-color: var(--nt-primary);
+  color: var(--nt-primary);
+  font-weight: 700;
+}
+
+.nt-ver-btn.has-update::after {
+  content: " ●";
+  font-size: 8px;
+  vertical-align: top;
+}
