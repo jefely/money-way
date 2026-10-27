@@ -1,4 +1,4 @@
-// 界面：路径页左栏的流水查询表
+﻿// 界面：路径页左栏的流水查询表
 /**
  * 路径页 · 左栏流水表
  * 层：第五层 · UI
@@ -125,4 +125,18 @@ export function bindSideToggle() {
 
   const col = document.getElementById('pw-collapse');
   if (col) col.addEventListener('click', () => setSideCollapsed(true));
+
+  // 图区左上角的三角：和顶部「收起」按钮做同一件事，
+  // 顺手把「Money Way」标识跟着挪
+  const tg = document.getElementById('pw-toggle');
+  const brand = document.getElementById('pw-brand');
+  if (tg) {
+    tg.addEventListener('click', () => {
+      const collapsed = !side.classList.contains('collapsed');
+      setSideCollapsed(collapsed);
+      tg.textContent = collapsed ? '▶' : '◀';
+      tg.classList.toggle('shifted', collapsed);
+      if (brand) brand.classList.toggle('shifted', collapsed);
+    });
+  }
 }

@@ -16,6 +16,7 @@ import { traceUpstream, traceByAccount } from '../graph/path-tracer.js';
 import { SVG } from '../ui/mw-svg-renderer.js';
 import { paintChart, paintList, paintStats, paintEmpty } from '../ui/path-view.js';
 import { bindFlowFilters, paintFlowRows, bindSideToggle } from '../ui/path-flow-table.js';
+import { mountChartGestures } from '../ui/chart-gestures.js';
 
 export function mountPath(section, ctx) {
   const chartBox = section.querySelector('#pw-chart');
@@ -162,6 +163,16 @@ export function mountPath(section, ctx) {
       focus = same ? null : { kind: 'acc', id: acc };
       render();
     });
+
+    // 手势要在 paintChart **之后**挂：svg 是 paintChart 里才创建的。
+    // 没拿到就留到下次重绘再试（所以不在 dataset 上提前打标）。
+    if (chartBox && !chartBox.dataset.gestures) {
+      const svgEl = chartBox.querySelector('svg');
+      if (svgEl) {
+        chartBox.dataset.gestures = '1';
+        mountChartGestures(chartBox, svgEl);
+      }
+    }
 
     // 左栏：流水查询表 —— 列**全部**流水，不只是图上画出来的那几笔。
     // 图为了可读性会折叠小额（MIN_EDGE_RATIO），但查询表不该跟着折叠。

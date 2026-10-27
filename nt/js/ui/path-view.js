@@ -1,4 +1,4 @@
-// 界面：路径 tab
+﻿// 界面：路径 tab
 ﻿/**
  * 路径页视图（UI 层）
  *
@@ -94,6 +94,12 @@ export function paintStats(host, data, hits) {
   }
 }
 
+/** 安全写文本：元素不存在就跳过（渲染不该因为一个可选元素中断） */
+function setText(id, text) {
+  const node = el(id);
+  if (node) node.textContent = text;
+}
+
 /** 空状态（把内部数字也显示出来，便于定位是哪一步变空的） */
 export function paintEmpty(info) {
   const i = info || {};
@@ -105,9 +111,10 @@ export function paintEmpty(info) {
   el('pw-chart').innerHTML =
     '<div class="pw-empty">这段时间没有可画的流水<br>先在「流水」页记几笔'
     + '<br><small>' + detail + '</small></div>';
-  el('pw-list').textContent = '';
-  el('pw-stats').textContent = '';
-  el('pw-side-title').textContent = '暂无数据';
-  el('pw-hint').textContent = '';
-  el('pw-footer').textContent = '路径追踪 · 无数据 · ' + detail;
+  // 左栏现在是流水查询表（#pw-flow-body），原来的 #pw-list 已删；
+  // 底部状态栏由 ctx.setFooter 负责，没有 #pw-footer 这个元素。
+  setText('pw-flow-body', '');
+  setText('pw-stats', '');
+  setText('pw-side-title', '暂无数据');
+  setText('pw-hint', '');
 }
