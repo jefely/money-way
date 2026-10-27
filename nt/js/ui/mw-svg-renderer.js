@@ -79,7 +79,7 @@ export function renderChart(data) {
   for (const s of sectors) {
     parts.push(`<path class="mw-sector-line"`
       + ` d="${arcPath(rOut, rIn, s.a1, s.a2, pointAt, cx, cy)}"`
-      + ` fill="none" stroke="currentColor" stroke-width="${f(0.6 * RATIO)}" stroke-opacity="0.18"/>`);
+      + ` fill="none" stroke="currentColor" stroke-width="${f(0.6 * RATIO)}" stroke-opacity="0.28"/>`);
   }
 
   // ② 连线：坐标 / 线宽 / 颜色 / 透明度全部现成
@@ -94,10 +94,12 @@ export function renderChart(data) {
   }
 
   // ③ 弧块
+  // 描边照单文件版用中性灰（#6b7280）+ 55% 不透明 ——
+  // 之前用 --nt-bg-line（背景色），两个**同色**弧块挨在一起时根本看不出分界。
   for (const b of blocks) {
     parts.push(`<path class="mw-ring" d="${arcPath(rOut, rIn, b.a1, b.a2, pointAt, cx, cy)}"`
       + ` fill="${colorOf(b.colorKey)}" fill-opacity="1"`
-      + ` stroke="var(--nt-bg-line)" stroke-width="${f(0.6 * RATIO)}"`
+      + ` stroke="#6b7280" stroke-width="${f(0.9 * RATIO)}" stroke-opacity="0.55"`
       + ` data-node="${esc(b.acc)}"/>`);
   }
 
