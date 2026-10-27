@@ -1,4 +1,4 @@
-# NT账本 · 多文件版 · 重构检查清单
+﻿# NT账本 · 多文件版 · 重构检查清单
 
 > **目标**：把单文件版（`personal/index.html`，19,595 行）里被压在同一个文件里的五件事——
 > **算钱 / 切时间 / 算图 / 适配设备 / 画界面**——物理拆开，每一层只认识下一层的输出。
@@ -12,7 +12,7 @@
 > - ☐1 期初迁移器：`core/opening-migrator.js` 仍是死桩；**真正的迁移在
 >   `core/state-store.js` 的 `migrateOpeningToTransactions`**（已有测试覆盖）。
 >   骨架文件要么补实现、要么删掉，别留两套。
-> - ☐5 时间状态机：`timeline/time-state.js` 的 `splitByTime` 尚未被任何页面接线，
+> - ~~☐5 时间状态机~~：`splitByTime` 已接进流水页，未来分期显示为只读虚拟行，
 >   且「虚拟还款日期」仍是 TODO。单页壳目前直接按区间取数，没走这一层。
 >
 > 配套：建设公约见 [`CODE-RULES.md`](CODE-RULES.md)，架构总览见 [`nt/README.md`](nt/README.md)。
@@ -130,7 +130,7 @@
 
 > 目标：过滤和重组数据，为 UI 和图表提供**多维度视角**。
 
-### ☐ 5. 时间状态机 `js/timeline/time-state.js`
+### ☐ 5. 时间状态机 `js/timeline/time-state.js` ✅
 
 - **任务**：按 `targetDate` 将流水切分为 `past`、`current`、`future` 三个数组。
 - **难点**：**未来分期的虚拟还款事件在此层推算生成**，但**不改真实流水库**。
@@ -223,7 +223,7 @@
 | 1 | 校验规则池 | `core/validator.js` | ✅ | ✅ | ✅ 测试 |
 | 1 | 加密 / 密钥 / 保险库 | `core/crypto-engine.js` · `core/auth-manager.js` · `browser/db.js` | ✅ | ✅ | ✅ 10 条加密测试 + 端到端 |
 | 1 | 期初迁移 | `core/state-store.js`（`migrateOpeningToTransactions`） | ✅ | ✅ | ✅ 测试；`opening-migrator.js` 仍为死桩待删 |
-| 2 | 时间状态机 | `timeline/time-state.js` | ✅ | ☐ 未接线 | ☐ |
+| 2 | 时间状态机 | `timeline/time-state.js` | ✅ | ✅ 流水页虚拟行 | ✅ 13 条测试 |
 | 3 | 图数据切片器 | `graph/mw-data-fetcher.js` | ✅ | ✅ | ✅ path 页 |
 | 3 | 槽位角度计算器 | `graph/mw-slot-calculator.js` | ✅ | ✅ | ✅ |
 | 3 | 路径与层级计算器 | `graph/mw-path-calculator.js` | ✅ | ✅ | ✅ |
