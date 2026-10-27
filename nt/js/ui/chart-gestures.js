@@ -36,9 +36,9 @@ const clampZoom = (z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 
 /**
  * 平移增益。手势已按显示宽度换算过单位（屏幕 px → viewBox 单位），
- * 这里再乘一个倍数：4 太快（用户反馈「平移太快」），取 2。
+ * 这个倍数从 4 减到 2，再按用户要求减半到 1（即 1:1 跟手）。
  */
-const PAN_GAIN = 2;
+const PAN_GAIN = 1;
 
 /**
  * 给图表容器挂手势。
@@ -214,7 +214,14 @@ export function mountChartGestures(box, target) {
 
   /* ---------- 双击复位 ---------- */
 
-  const onDbl = () => { resetView(); apply(); };
+  const onDbl = (ev) => {
+    // 点在弧块上不复位：手机连点两个弧块会被识别成 dblclick，
+    // 图就突然跳回 1 倍（用户看到的「点图块导致缩放跳动、角度也变」）。
+    const t = ev && ev.target;
+    if (t && t.closest && t.closest('.mw-ring, .pw-ring, .pw-edge, .nt-chord')) return;
+    resetView();
+    apply();
+  };
   box.addEventListener('dblclick', onDbl);
 
   box.__gestures = {
