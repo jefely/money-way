@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v0.41';
+const CACHE_NAME = 'nt-v0.42';
 
 const ASSETS = [
   './index.html',
@@ -156,8 +156,11 @@ self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME)
       // 单个文件失败不该让整个安装失败（否则永远装不上）
+      // ⚠️ 必须带 cache:'reload' —— c.add(url) 默认会走浏览器 HTTP 缓存。
+      // GitHub Pages 的静态资源是 max-age=600，于是新 SW 预缓存时
+      // 装进去的其实是**旧文件**，看起来就是「点了更新、版本号永远不动」。
       .then((c) => Promise.all(
-        ASSETS.map((u) => c.add(u).catch(() => null)),
+        ASSETS.map((u) => c.add(new Request(u, { cache: 'reload' })).catch(() => null)),
       ))
       .then(() => self.skipWaiting()),
   );
@@ -192,7 +195,8 @@ self.addEventListener('fetch', (e) => {
 
     if (cached) {
       // 后台更新缓存，不阻塞返回 —— 下一次打开就是新版
-      fetch(e.request)
+      // 同样要 cache:'reload'，否则后台拿回来的还是 HTTP 缓存里的旧文件
+      fetch(e.request, { cache: 'reload' })
         .then((res) => {
           if (res && res.ok && res.type === 'basic') {
             const copy = res.clone();
@@ -204,7 +208,7 @@ self.addEventListener('fetch', (e) => {
     }
 
     try {
-      const res = await fetch(e.request);
+      const res = await fetch(e.request, { cache: 'reload' });
       if (res && res.ok && res.type === 'basic') {
         const copy = res.clone();
         caches.open(CACHE_NAME).then((c) => c.put(e.request, copy)).catch(() => {});
