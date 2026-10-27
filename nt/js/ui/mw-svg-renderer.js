@@ -136,6 +136,21 @@ export function renderChart(data) {
     if (crowded) fs = Math.max(12 * RATIO, fs * 0.85);
     const rText = crowded ? rOut + 46 * RATIO : rOut + 8 * RATIO;
 
+    // 放不下的弧块：画单文件版那种**尖锥形引线**，把弧块和外面的文字连起来
+    //（照 mwDrawSvg：锥尖贴 rOut 的中点，锥底在文字所在半径上、以 mid 对称，
+    //  半宽 5px 换算成角度 = 5 / rText）
+    if (crowded) {
+      const halfAngle = (5 * RATIO) / Math.max(1, rText);
+      const tip = pointAt(cx, cy, rOut, midA);
+      const base1 = pointAt(cx, cy, rText, midA - halfAngle);
+      const base2 = pointAt(cx, cy, rText, midA + halfAngle);
+      parts.push(`<path d="M ${tip[0].toFixed(1)} ${tip[1].toFixed(1)}`
+        + ` L ${base1[0].toFixed(1)} ${base1[1].toFixed(1)}`
+        + ` L ${base2[0].toFixed(1)} ${base2[1].toFixed(1)} Z"`
+        + ` fill="${colorOf(b.colorKey)}" fill-opacity="0.5"`
+        + ` stroke="none" pointer-events="none"/>`);
+    }
+
     const p = pointAt(cx, cy, rText, midA);
     let theta = (midA * 180) / Math.PI - 90;
     const upside = theta > 90 || theta < -90;
