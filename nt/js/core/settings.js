@@ -45,10 +45,11 @@ export const GROUP_SCOPE = {
 };
 
 /** 列宽/对齐数组的列顺序（对应 colgroup 的 .nt-c-*） */
-export const COL_KEYS = ['seq', 'date', 'type', 'cat', 'code', 'num', 'amount', 'action', 'state', 'freq', 'day'];
+export const COL_KEYS = ['seq', 'date', 'type', 'cat', 'code', 'num', 'amount', 'action', 'state', 'freq', 'day', 'name', 'balance', 'opening', 'histOut', 'histIn', 'periods', 'principal'];
 
-export const DEFAULT_COL_WIDTHS = '44,84,72,76,64,100,96,40,64,64,64';
-export const DEFAULT_COL_ALIGN = '左,左,左,左,左,右,右,中,中,中,中';
+// 顺序与 COL_KEYS 一一对应；后 7 个是账户/统计表用到的列
+export const DEFAULT_COL_WIDTHS = '44,84,72,76,64,100,96,40,64,64,64,110,100,96,90,90,64,96';
+export const DEFAULT_COL_ALIGN = '左,左,左,左,左,右,右,中,中,中,中,左,右,右,右,右,右,右';
 
 /** 主题 id 列表（与 theme-manager 的 VALID 一致） */
 export const THEME_IDS = ['light', 'dark', 'alt1', 'alt2'];

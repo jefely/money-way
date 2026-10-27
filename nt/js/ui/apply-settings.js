@@ -42,15 +42,28 @@ export function applySettings(settings, theme) {
   }
 
   // 每张表各自算总宽 = 该表各列之和。
-  // 不设的话 table-layout:fixed 会把列按比例拉回去（col 写 84px、实际渲染 193px）。
+  // 不设的话 table-layout:fixed 会把列按比例压回去（col 写 44px、实际渲染 28px），
+  // 冻结列的 left 偏移就和前一列的实际宽度对不上，边界错位。
   for (const table of document.querySelectorAll('table.nt-table')) {
     let total = 0;
-    let missing = false;
     for (const col of table.querySelectorAll('colgroup col')) {
-      const w = parseFloat(col.style.width);
-      if (!Number.isFinite(w) || w <= 0) { missing = true; continue; }
-      total += w;
+      let w = parseFloat(col.style.width);
+
+      // 还没宽度的列，用 --nt-col-<key> 兜底（SCHEMA 的默认值保证这里有值）
+      if (!Number.isFinite(w) || w <= 0) {
+        const key = (col.className || '').replace('nt-c-', '');
+        const v = root.style.getPropertyValue('--nt-col-' + key)
+          || getComputedStyle(root).getPropertyValue('--nt-col-' + key);
+        const f = parseFloat(v);
+        if (Number.isFinite(f) && f > 0) {
+          col.style.width = f + 'px';
+          col.setAttribute('width', String(f));
+          w = f;
+        }
+      }
+
+      if (Number.isFinite(w) && w > 0) total += w;
     }
-    if (!missing && total > 0) table.style.width = total + 'px';
+    if (total > 0) table.style.width = total + 'px';
   }
 }

@@ -122,6 +122,130 @@ th 上不许再写 width
 
 ---
 
+## 三点五、冻结列的五条硬规则（来自单文件版的踩坑记录）
+
+单文件版（`personal/index.html`）在这些地方反复迭代过，结论比推测可靠。
+
+### ① 冻结列的 `left` 必须由 JS 累加算出
+
+**不要**用 CSS 变量固定：
+
+```css
+/* ❌ 前面那列的宽度一变，这里的 44px 立刻错位 */
+.nt-table-stats .nt-th:nth-child(2) { left: var(--nt-col-seq, 44px); }
+```
+
+```js
+// ✅ 渲染后累加实际宽度
+export function layoutFrozen(tableEl) {
+  const n = FROZEN_COUNT[tableClass];        // 这张表冻结几列
+  const ths = [...tableEl.querySelectorAll('thead .nt-th')];
+  let left = 0;
+  for (let i = 0; i < n; i += 1) {
+    const th = ths[i];
+    th.style.left = left + 'px';
+    for (const tr of tableEl.querySelectorAll('tbody tr')) {
+      const td = tr.children[i];
+      if (td) td.style.left = left + 'px';    // 数据行必须同步
+    }
+    left += Math.round(th.getBoundingClientRect().width);
+  }
+}
+```
+
+**调用时机**：每次渲染后 + 每次拖动中（`applyWidth` 里）。
+**症状**：不这么做就是「拖动时乱跳」—— 前一刻的 `left` 还指着旧宽度。
+
+单文件版原话（line 4314）：摘要表五列的 `left` 全部由累加算出。
+
+### ② `sticky` 不能加在 `<th>` 上
+
+> 不能把 sticky 加在 th 上 —— table-cell 的包含块是它自己那一行（tr），
+> 高度与单元格相同就没有可移动空间，sticky 会失效。
+
+表头吸顶要加在 `<thead>`：
+
+```css
+/* ✅ */
+.nt-table thead { position: sticky; top: 0; z-index: 5; }
+```
+
+本项目的 `.nt-th` 上也有 `position: sticky`，因为表格用了 `border-collapse` 分离 + 显式 `height`，勉强能生效；**但这是走钢丝**，新表建议直接加在 `thead` 上。
+
+### ③ `sticky` 只认「最近的滚动祖先」
+
+横向滚动必须发生在 **`.nt-tablewrap`** 上：
+
+```css
+.nt-tablewrap { overflow-x: auto; }   /* ← 冻结列认的就是它 */
+```
+
+如果滚动跑到更外层（比如 `#main`），冻结列**跟不上**——一滚就被甩出去。
+
+推论：**不要给 `.nt-tablewrap` 加 `overflow: hidden`**，那会新建一个裁剪上下文，把 sticky 的锚点搞乱。
+
+### ④ 冻结列必须有不透明背景
+
+```css
+.nt-table-flow .nt-cell:nth-child(1) {
+  background: var(--nt-row-bg, var(--nt-bg));   /* 跟随行底色，不是固定色 */
+}
+```
+
+背景跟随行（斑马纹、悬停、分组行都要覆盖），否则滚动时下面的文字会透出来。
+
+### ⑤ `z-index` 要分层，且右列盖左列
+
+```
+普通单元格     0
+表头           2
+冻结列        3 ~ 4
+拖动中的手柄   5 以上
+```
+
+*右*的冻结列要高于*左*的冻结列，否则左边的列变宽时会盖住右边那个。
+
+---
+
+## 三点六、表宽必须显式设置（否则列宽全错）
+
+`table-layout: fixed` 下，表格宽度**默认跟着容器**，列会按比例缩水：
+
+```
+col 写 44px  →  实际渲染 28px
+```
+
+于是：
+
+- 冻结列的 `left` 和前一列的实际宽度对不上 → 边界错位
+- 拖动时 `getBoundingClientRect().width` 拿到的也不是设定值 → 手感发飘
+
+**必须**：
+
+```js
+// 表宽 = 各列之和
+let total = 0;
+for (const col of table.querySelectorAll('colgroup col')) {
+  const w = parseFloat(col.style.width);
+  if (Number.isFinite(w) && w > 0) total += w;
+}
+if (total > 0) table.style.width = total + 'px';
+```
+
+**时机**：每次渲染后（`syncTableWidth`）。不能只在解锁时跑一次 —— 那时统计页的表还没渲染（表头是 `buildHead` 动态建的）。
+
+### 附带要求：每列都必须有明确宽度
+
+`col` 没宽度 → 总宽算不出来 → 表格被压回容器宽 → 又回到缩水状态。
+
+所以 `COL_KEYS` 必须覆盖所有用到的列 key。本项目原来只有 14 个，
+缺 `name / balance / opening / histOut / histIn / periods / principal`，
+导致 `--nt-col-name` 不存在、账户名称整列宽度为 0。
+
+> 追加只能加在**末尾**：`COL_KEYS` 的顺序被存档的「默认列宽」逗号数组依赖。
+
+---
+
 ## 四、列宽拖动
 
 ### 4.1 手柄尺寸

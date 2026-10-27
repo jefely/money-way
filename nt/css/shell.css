@@ -319,17 +319,14 @@ body {
 }
 
 /* 第 2 列冻结：分类统计 / 汇总统计（left 要避开第 1 列） */
+/* 冻结列：只声明 sticky + z-index，**left 由 JS 累加算出**（layoutFrozen）。
+   写死 left 变量的问题：前面那列被拖动后宽度变了，这里的 left 不会跟着变，
+   冻结边界立刻错位 —— 表现就是「拖动时乱跳」。 */
 .nt-table-stats .nt-th:nth-child(1),
-.nt-table-stats .nt-cell:nth-child(1) {
-  position: sticky;
-  left: 0;
-  z-index: 3;
-}
-
+.nt-table-stats .nt-cell:nth-child(1),
 .nt-table-stats .nt-th:nth-child(2),
 .nt-table-stats .nt-cell:nth-child(2) {
   position: sticky;
-  left: var(--nt-col-seq, 44px);
   z-index: 3;
 }
 
