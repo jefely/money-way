@@ -370,17 +370,13 @@ body {
   background: var(--nt-row-bg, var(--nt-bg));
 }
 
-/* 右侧接缝给一条细线，滚动时能看出冻结边界 */
-.nt-table-flow .nt-th:nth-child(1)::after,
-.nt-table-stats .nt-th:nth-child(2)::after,
-.nt-table-plan .nt-th:nth-child(1)::after,
-.nt-table-inst .nt-th:nth-child(1)::after,
-.nt-table-accounts .nt-th:nth-child(1)::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: -1px;
-  bottom: 0;
-  width: 1px;
-  background: var(--nt-bg-line);
+/* 冻结列的右边界：只画 1px、且不超出列外（原来 right:-1px + 绝对定位
+   会在列右侧多出一条穿透到底色的宽带，看着就是「冻结列右边很宽的黑区域」）。
+   用 box-shadow 内描边，不占布局、不溢出。 */
+.nt-table-flow .nt-th:nth-child(1),
+.nt-table-stats .nt-th:nth-child(2),
+.nt-table-plan .nt-th:nth-child(1),
+.nt-table-inst .nt-th:nth-child(1),
+.nt-table-accounts .nt-th:nth-child(1) {
+  box-shadow: inset -1px 0 0 0 var(--nt-bg-line);
 }

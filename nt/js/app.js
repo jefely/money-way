@@ -28,10 +28,11 @@ import { mountValidate } from './views/validate.js';
 import { mountPath } from './views/path.js';
 import { mountDebugPanel } from './ui/debug-panel.js';
 import { applySettings } from './ui/apply-settings.js';
-import { mountColResize } from './ui/col-resize.js';
+import { bindAllColResize } from './ui/col-resize.js';
 import { COL_KEYS } from './core/settings.js';
 import { APP_VER } from './core/version.js';
-import { takeUpdatedFlag } from './ui/update-check.js';
+import { initVersion } from './ui/update-check.js';
+import { registerServiceWorker } from './ui/pwa.js';
 import { mergeFlowText, mergeRows as mergeRowsPure } from './core/sync-merge.js';
 import { unpackFromHash } from './core/sync-code.js';
 
@@ -66,20 +67,10 @@ function setFooter(text) {
   if (el) el.textContent = text || '';
 }
 
-/** 把版本写进标题；如果有「刚更新过」标记，顺手提示一下 */
-function initVersion() {
-  try {
-    const ver = document.getElementById('nt-ver');
-    if (ver) ver.textContent = APP_VER;
-  } catch (e) { /* 忽略 */ }
-
-  const updated = takeUpdatedFlag();
-  if (updated) setFooter('已更新到 ' + updated);
-}
-
 function renderActive() {
   const v = views[active];
   if (v && typeof v.render === 'function') v.render();
+  bindAllColResize();
 }
 
 /* ---------- 存盘（防抖 + 立即两种） ---------- */
@@ -226,9 +217,8 @@ function enterApp() {
   if (themeSettings['用户列宽']) merged['默认列宽'] = themeSettings['用户列宽'];
   applySettings(merged, theme);
 
-  // 列宽拖动手柄：拖动后同步到当前主题的「默认列宽」并保存
-  const tableEl = document.querySelector('.nt-table');
-  if (tableEl) mountColResize(tableEl, { onResize: onColResize });
+  // 列宽拖动手柄：**所有**数据区都挂，拖动后同步到当前主题的「默认列宽」并保存
+  bindAllColResize({ onResize: onColResize });
 
   mountViews();
   bindTabs({
@@ -245,7 +235,7 @@ function enterApp() {
 async function boot() {
   initTheme();
   await loadTemplates();
-  initVersion();
+  initVersion(setFooter);
 
   window.addEventListener('beforeunload', () => {
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = 0; }
@@ -289,24 +279,4 @@ async function boot() {
 
 boot();
 
-/* PWA：注册 Service Worker（file:// 下会失败，静默忽略）
- * CACHE_NAME 与 sw.js 里的版本号一起改（公约 4.4）。
- * ?debug=1 时反而要清除旧 SW，避免本地调试被旧缓存挡住。 */
-const isDebugMode = new URLSearchParams(location.search).has('debug');
-if ('serviceWorker' in navigator) {
-  if (isDebugMode) {
-    navigator.serviceWorker.getRegistrations()
-      .then((regs) => {
-        if (!regs.length) return;
-        regs.forEach((r) => r.unregister());
-        // 只自动重载一次，避免循环
-        if (navigator.serviceWorker.controller && !sessionStorage.getItem('nt_sw_cleared')) {
-          sessionStorage.setItem('nt_sw_cleared', '1');
-          location.reload();
-        }
-      })
-      .catch(() => {});
-  } else {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  }
-}
+registerServiceWorker();

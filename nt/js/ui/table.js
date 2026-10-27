@@ -25,6 +25,8 @@ export function buildHead(thead, columns) {
     th.className = 'nt-th' + (c.cls ? ' ' + c.cls : '');
     th.scope = 'col';
     th.textContent = c.label || '';
+    // 列宽拖动靠 data-col 认列；没给就按标签猜一个稳定的 key
+    th.dataset.col = c.col || colForLabel(c.label);
     tr.appendChild(th);
   }
   thead.appendChild(tr);
@@ -126,4 +128,32 @@ export function moneyOrBlank(v) {
   const n = Number(v);
   if (!Number.isFinite(n) || n === 0) return '';
   return String(n);
+}
+
+/** 表头文字 → 列宽用的稳定 key（统计页的表头是 JS 生成的，没有手写 data-col） */
+const LABEL_COL = {
+  序: 'seq',
+  日期: 'date',
+  转出账户: 'from',
+  转入账户: 'to',
+  转出: 'out',
+  转入: 'iin',
+  金额: 'amount',
+  备注: 'note',
+  频率: 'freq',
+  类型: 'type',
+  分类: 'cat',
+  简码: 'code',
+  账户名称: 'name',
+  当前结余: 'balance',
+  期初: 'opening',
+  账单日: 'billDay',
+  还款日: 'repayDay',
+  转出历史: 'histOut',
+  转入历史: 'histIn',
+  期数: 'periods',
+};
+
+function colForLabel(label) {
+  return LABEL_COL[String(label || '').trim()] || '';
 }

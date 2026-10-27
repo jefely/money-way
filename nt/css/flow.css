@@ -158,14 +158,16 @@
   border-bottom: 0;
 }
 
-/* 列宽拖动手柄：列标行右边缘，拖动同时改列标行与数据区列宽 */
+/* ---------- 列宽拖动手柄 ----------
+   放在列标右边缘，宽 7px（手指也能按住），中线 1px 常显。
+   旧版这里 ::after 写了两遍、颜色默认 transparent，所以「手柄看不见」。 */
+
 .nt-col-handle {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  right: calc(-1 * var(--nt-handle-offset, 0px));
-  width: 12px;
-  height: var(--nt-handle-h, 100%);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 7px;
   cursor: col-resize;
   background: transparent;
   z-index: 5;
@@ -175,23 +177,25 @@
 .nt-col-handle::after {
   content: '';
   position: absolute;
-  left: 5px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: var(--nt-handle-color, transparent);
+  top: 20%;
+  bottom: 20%;
+  left: 3px;
+  width: 1px;
   border-radius: 1px;
+  background: var(--nt-handle-color, rgba(140, 130, 190, 0.55));
 }
 
-.nt-col-handle::after {
-  content: '';
-  position: absolute;
-  left: 3px;
+/* 悬停时整条竖线变亮，提示这里可以拖 */
+.nt-th:hover > .nt-col-handle::after {
   top: 0;
   bottom: 0;
-  width: 2px;
-  background: var(--nt-handle-color, transparent);
-  border-radius: 1px;
+  background: var(--nt-primary);
+}
+
+/* 正在拖的时候禁止选中文字 */
+body.nt-col-resizing {
+  user-select: none;
+  cursor: col-resize;
 }
 
 [data-th-border="none"] .nt-th,

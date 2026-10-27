@@ -142,3 +142,17 @@ export async function hardReload(opts) {
   const reload = o.reload || (() => { location.reload(); });
   setTimeout(() => { try { reload(); } catch (e) {} }, 80);
 }
+
+/**
+ * 启动时把版本号写进页面的 #nt-ver；如果上一次刚更新过，顺手提示一下。
+ * @param {(text:string)=>void} [setFooter]
+ */
+export function initVersion(setFooter) {
+  try {
+    const ver = document.getElementById('nt-ver');
+    if (ver) ver.textContent = APP_VER;
+  } catch (e) { /* 忽略 */ }
+
+  const updated = takeUpdatedFlag();
+  if (updated && typeof setFooter === 'function') setFooter('已更新到 ' + updated);
+}
