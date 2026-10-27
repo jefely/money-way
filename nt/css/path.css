@@ -64,6 +64,7 @@
 /* ---------- 主体：左右分栏 ---------- */
 
 .pw-main {
+  position: relative;
   flex: 1;
   display: grid;
   grid-template-columns: var(--nt-pw-side-w, 320px) 1fr;
@@ -508,11 +509,12 @@
 }
 
 .pw-toggle {
-  /* 图容器现在是 fixed 居中的一块，三角不能再相对它定位 ——
-     要相对**视口**钉在左上（tab 栏下面），否则会跟着图跑到图里。 */
-  position: fixed;
+  /* 钉在路径页内容区左上角（.pw-main 是 position:relative）。
+     不能用 fixed：页面里只要有一个带 transform 的祖先，
+     fixed 就会相对那个祖先定位，按钮会跟着图乱跑。 */
+  position: absolute;
   left: 8px;
-  top: 56px;
+  top: 8px;
   z-index: 7;
   width: 22px;
   height: 22px;
