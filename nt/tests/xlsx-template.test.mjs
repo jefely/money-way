@@ -122,13 +122,18 @@ test('导出：流水表不含期初行，设置表带分区行与期初合计',
 
   const nameOf = (id) => (s.accounts.find((a) => a.id === id) || {}).name || '';
   const flow = buildFlowSheet(s, nameOf);
-  assert.equal(flow.length, 3, '标题 + 表头 + 1 笔；期初不写进流水表');
-  assert.equal(flow[2][1], '2026-08-01');
+  assert.equal(flow.rows.length, 3, '标题 + 表头 + 1 笔；期初不写进流水表');
+  assert.equal(flow.rows[1].kind, 'head', '第 2 行是表头（带底色）');
+  assert.equal(flow.rows[2].cells[1].v, '2026-08-01');
+  assert.equal(flow.rows[2].cells[1].k, 'date', '日期列要写成真日期，不是文本');
+  assert.equal(flow.rows[2].cells[4].k, 'num', '金额列要写成数字（才有千分位）');
+  assert.ok(flow.freeze >= 2, '前两行（标题 + 表头）冻结');
 
   const settings = buildSettingsSheet(s);
-  const labels = settings.map((r) => r[0]);
+  const labels = settings.rows.map((r) => (r.cells[0] || {}).v);
   assert.ok(labels.includes('A 资产/支出'), '分区行要写');
-  assert.equal(settings.find((r) => r[0] === '资产')[5], 200, '类型行写期初合计');
+  const assetRow = settings.rows.find((r) => (r.cells[0] || {}).v === '资产');
+  assert.equal(assetRow.cells[5].v, 200, '类型行写期初合计');
 });
 
 test('buildTemplateSheets 出 4 张表，名字与顺序都固定', () => {

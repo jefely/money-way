@@ -97,7 +97,9 @@ test('buildXlsxFiles 生成完整的 5+N 个文件', () => {
   assert.ok(names.includes('xl/_rels/workbook.xml.rels'));
   assert.ok(names.includes('xl/worksheets/sheet1.xml'));
   assert.ok(names.includes('xl/worksheets/sheet2.xml'));
-  assert.equal(files.length, 6);
+  // 5 个固定件（Content_Types / .rels / workbook / workbook.rels / styles）+ N 张 sheet
+  assert.equal(files.length, 7);
+  assert.ok(names.includes('xl/styles.xml'), '要带样式表，否则 Excel 里是白板');
 });
 
 test('buildXlsxFiles 的 sheet 里有数据', () => {
