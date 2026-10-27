@@ -135,6 +135,7 @@ export function mountDebugPanel(opts) {
 
   // 布局文本导出/导入（单独一行，避免把底部按钮挤成一坨）
   const textBar = layoutTextBar({
+    ctx: o,
     getCurrent: () => current,
     getTheme: () => theme,
     apply: (patch) => {

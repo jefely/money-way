@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 跨设备同步码与二维码载荷（纯函数）
  * 层：第一层 · 数据基座
  *
@@ -122,7 +122,15 @@ function ymdShort(dateStr) {
  * @param {Array} txs 要打包的流水
  * @param {[number,number]|null} part 分片序号（第几片 / 共几片）
  */
-export function packPayload(state, txs, part) {
+/**
+ * @param {object} state
+ * @param {Array} txs
+ * @param {number|null} part 二维码分片序号
+ * @param {{withSettings?:boolean}} [opts]
+ *   withSettings=true 时把「默认设置」一起打包（用户设置不上传）
+ */
+export function packPayload(state, txs, part, opts) {
+  const o = opts || {};
   const byId = new Map();
   for (const a of state.accounts || []) byId.set(a.id, a);
 
@@ -146,13 +154,23 @@ export function packPayload(state, txs, part) {
   });
 
   const dates = (txs || []).map((t) => String(t.date || '')).filter(Boolean).sort();
-  return {
+  const out = {
     v: 3,
     u: dates.length ? dates[dates.length - 1] : '',
     p: part || null,
     a: [...codeMap.entries()],
     t: lines.join('\n'),
   };
+
+  // 只带「默认设置」这一层；「用户设置」是本地操作痕迹，不上传
+  if (o.withSettings) {
+    const theme = 'dark';
+    const raw = (state.settings || {})[theme];
+    const defs = raw && raw.defaults && typeof raw.defaults === 'object' ? raw.defaults : null;
+    if (defs && Object.keys(defs).length) out.s = defs;
+  }
+
+  return out;
 }
 
 /**

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 合并远端记录（纯函数）
  * 层：第一层 · 数据基座
  *
@@ -55,4 +55,20 @@ export function mergeRows(state, rows) {
     return { state, added: 0, created: [], errors: [] };
   }
   return mergeFlowText(state, rowsToFlowText(rows));
+}
+
+/**
+ * 把同步包里带来的「默认设置」合进 state（只动 defaults，不碰 user）。
+ * @param {object} state
+ * @param {object} payload
+ */
+export function applyPayloadSettings(state, payload) {
+  const defs = payload && payload.s && typeof payload.s === 'object' ? payload.s : null;
+  if (!defs || !Object.keys(defs).length) return state;
+
+  const theme = 'dark';
+  const all = { ...(state.settings && typeof state.settings === 'object' ? state.settings : {}) };
+  const cur = all[theme] && typeof all[theme] === 'object' ? all[theme] : {};
+  all[theme] = { ...cur, defaults: { ...(cur.defaults || {}), ...defs } };
+  return { ...state, settings: all };
 }
