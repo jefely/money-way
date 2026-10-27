@@ -30,6 +30,8 @@ import { mountDebugPanel } from './ui/debug-panel.js';
 import { applySettings } from './ui/apply-settings.js';
 import { mountColResize } from './ui/col-resize.js';
 import { COL_KEYS } from './core/settings.js';
+import { APP_VER } from './core/version.js';
+import { takeUpdatedFlag } from './ui/update-check.js';
 import { mergeFlowText, mergeRows as mergeRowsPure } from './core/sync-merge.js';
 import { unpackFromHash } from './core/sync-code.js';
 
@@ -52,7 +54,8 @@ function setState(next) {
 /** 窗口/标签标题显示当前账本：NT 账本 - 主账本 */
 function updateDocTitle() {
   const name = (state.ledgerNames || {})[state.activeLedger] || '';
-  document.title = 'NT 账本' + (name ? ' - ' + name : '');
+  // 版本号只在这里拼一次，避免被其它地方覆盖掉
+  document.title = 'NT 账本' + (name ? ' - ' + name : '') + ' ' + APP_VER;
 }
 
 function getState() { return state; }
@@ -61,6 +64,17 @@ function getIndex() { return index; }
 function setFooter(text) {
   const el = document.getElementById('nt-footer');
   if (el) el.textContent = text || '';
+}
+
+/** 把版本写进标题；如果有「刚更新过」标记，顺手提示一下 */
+function initVersion() {
+  try {
+    const ver = document.getElementById('nt-ver');
+    if (ver) ver.textContent = APP_VER;
+  } catch (e) { /* 忽略 */ }
+
+  const updated = takeUpdatedFlag();
+  if (updated) setFooter('已更新到 ' + updated);
 }
 
 function renderActive() {
@@ -231,6 +245,7 @@ function enterApp() {
 async function boot() {
   initTheme();
   await loadTemplates();
+  initVersion();
 
   window.addEventListener('beforeunload', () => {
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = 0; }

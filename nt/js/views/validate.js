@@ -1,4 +1,4 @@
-// 界面：校验 tab
+﻿// 界面：校验 tab
 /**
  * 校验视图（账本说明 / 账本校验 / 赞助感谢）
  * 层：第五层 · UI
@@ -10,6 +10,8 @@
 import { balanceOf } from '../core/balance-calculator.js';
 import { validate } from '../core/validator.js';
 import { money } from '../core/format.js';
+import { APP_VER } from '../core/version.js';
+import { checkUpdate, applyUpdate } from '../ui/update-check.js';
 
 const TYPES = ['资产类', '负债类', '收入类', '权益类', '费用类'];
 
@@ -111,7 +113,67 @@ export function mountValidate(section, ctx) {
     ));
   }
 
+  /** 版本卡片：当前 / 远端 + 检查更新（参照单文件版的做法） */
+  function versionCard() {
+    const box = document.createElement('div');
+    box.className = 'nt-audit-card nt-version-card';
+
+    const title = document.createElement('div');
+    title.className = 'nt-audit-title';
+    title.textContent = '版本';
+    box.appendChild(title);
+
+    const kv = document.createElement('dl');
+    kv.className = 'nt-kv';
+    kv.appendChild(dtNode('当前版本'));
+    kv.appendChild(ddNode(APP_VER));
+    const remoteDD = document.createElement('dd');
+    remoteDD.textContent = '未检查';
+    kv.appendChild(dtNode('远端版本'));
+    kv.appendChild(remoteDD);
+    box.appendChild(kv);
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'nt-btn nt-btn-sm';
+    btn.textContent = '检查更新';
+    box.appendChild(btn);
+
+    const note = document.createElement('p');
+    note.className = 'nt-hint-line';
+    box.appendChild(note);
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      const old = btn.textContent;
+      btn.textContent = '检查中…';
+      note.textContent = '';
+      try {
+        const r = await checkUpdate({
+          base: location.pathname.replace(/[^/]*$/, ''),
+        });
+        remoteDD.textContent = r.remote || '读取失败';
+        if (r.update) {
+          note.textContent = `发现 ${r.remote}，正在更新…`;
+          await applyUpdate(r.remote);
+        } else if (r.reason === 'up-to-date') {
+          note.textContent = '已是最新版本';
+        } else {
+          note.textContent = '读不到远端版本号，检查网络后重试';
+        }
+      } catch (e) {
+        note.textContent = '检查失败：' + e.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = old;
+      }
+    });
+
+    return box;
+  }
+
   function renderAbout() {
+    host.appendChild(versionCard());
     host.appendChild(textBlock('NT账本 · 简介', [
       '紫老头专属账本，用「NT = 直觉 + 思考」的习惯记账。',
       '每一笔钱，都从一个账户转出、进入另一个账户。不用记「借 / 贷」，只回答「这笔钱从哪来、到哪去」。',
@@ -218,4 +280,19 @@ function titleEl(title) {
 
 function visibleCount(state) {
   return (state.accounts || []).filter((a) => a && !a.isHidden).length;
+}
+
+/** 造一个 <dt> */
+function dtNode(text) {
+  const dt = document.createElement('dt');
+  dt.textContent = text;
+  return dt;
+}
+
+/** 造一个 <dd> */
+function ddNode(text, cls) {
+  const dd = document.createElement('dd');
+  dd.textContent = text;
+  if (cls) dd.className = cls;
+  return dd;
 }

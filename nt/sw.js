@@ -1,10 +1,10 @@
-/* NT账本 · 多文件版 Service Worker
+﻿/* NT账本 · 多文件版 Service Worker
  * 公约 4.4：CACHE_NAME 必须随静态资源更新自增（nt-v0.03 → nt-v0.04 …）
  *
  * 只预缓存「壳 + 入口 + 主题」，其余模块由 fetch 事件按需缓存。
  * 这样新增模块不用同步改这里，也不会因为漏列一个文件而让整个 install 失败。
  */
-const CACHE_NAME = 'nt-v0.04.01';
+const CACHE_NAME = 'nt-v0.04';
 
 const ASSETS = [
   './index.html',
