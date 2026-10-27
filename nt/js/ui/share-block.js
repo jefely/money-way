@@ -103,7 +103,7 @@ function versionLine() {
   // 更新：查远端版本，有新版就清缓存并换班
   const btn = document.createElement('button');
   btn.type = 'button';
-  btn.className = 'nt-ver-btn';
+  btn.className = 'nt-ver-btn ghost';
   btn.textContent = '更新';
   btnRow.appendChild(btn);
 
