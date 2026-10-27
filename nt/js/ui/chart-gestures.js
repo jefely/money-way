@@ -60,9 +60,27 @@ export function mountChartGestures(box, target) {
     return el || target;
   };
 
+  /**
+   * 屏幕像素 → viewBox 单位 的换算系数。
+   *
+   * 手势作用在内部的 <g> 上，它的坐标系是 viewBox（6000×6000），
+   * 而手指移动是屏幕 px。不换算的话 translate(100px) 只等于屏幕上
+   * 100 × (显示宽/6000) ≈ 6px —— 表现就是「使劲搓、移得很慢」。
+   */
+  const unitScale = () => {
+    const svg = box.querySelector('svg');
+    if (!svg) return 1;
+    const r = svg.getBoundingClientRect();
+    if (!r || !r.width) return 1;
+    const vb = String(svg.getAttribute('viewBox') || '').split(/[\s,]+/);
+    const size = Number(vb[2]) || r.width;
+    return size / r.width;
+  };
+
   const apply = () => {
     const el = current();
     if (!el) return;
+    const k = (el.tagName && el.tagName.toLowerCase() === 'g') ? unitScale() : 1;
     // 对 SVG 子元素：transform-box 用 view-box，原点才是画布中心
     el.style.transformBox = 'view-box';
     el.style.transformOrigin = '50% 50%';
@@ -72,7 +90,7 @@ export function mountChartGestures(box, target) {
     // SVG 的矢量变换不需要合成层加速，宁可每次重绘。
     el.style.willChange = '';
     el.style.transform =
-      `translate(${view.tx.toFixed(1)}px, ${view.ty.toFixed(1)}px) `
+      `translate(${(view.tx * k).toFixed(1)}px, ${(view.ty * k).toFixed(1)}px) `
       + `rotate(${view.rot.toFixed(2)}deg) scale(${view.zoom.toFixed(3)})`;
   };
 
