@@ -538,7 +538,7 @@
   position: fixed;
   /* 与左栏标题行（「路径追踪」）同一水平线，横向让开它：
      tab 栏 41px + 8px 内边距 = top 49px；「路径追踪」约占到 70px，从 78px 起 */
-  left: 78px;
+  left: 63px;
   top: 49px;
   z-index: 7;
   width: 22px;
@@ -562,7 +562,7 @@
 /* 「Money Way」跟着三角走，同一水平线 */
 .pw-brand {
   position: fixed;
-  left: 106px;
+  left: 91px;
   top: 49px;
   z-index: 7;
   height: 22px;
