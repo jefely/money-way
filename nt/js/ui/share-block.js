@@ -1,4 +1,4 @@
-// 界面：二维码分享区块
+﻿// 界面：二维码分享区块
 /**
  * 二维码分享区块（说明页顶部）
  * 层：第五层 · UI
@@ -11,6 +11,7 @@
 
 import { paintText } from './qr-canvas.js';
 import { APP_VER } from '../core/version.js';
+import { SHARE_URL, APP_URL } from '../core/meta.js';
 import { checkUpdate, applyUpdate } from './update-check.js';
 
 /** 二维码每个模块多少像素：手机上 4~5 之间最好扫 */
@@ -22,7 +23,7 @@ const MODULE_PX = 5;
  */
 export function shareBlock(opts) {
   const o = opts || {};
-  const url = o.url || currentUrl();
+  const url = o.url || SHARE_URL;
 
   const box = document.createElement('div');
   box.className = 'nt-share-block';
@@ -42,9 +43,9 @@ export function shareBlock(opts) {
 
   const t1 = document.createElement('div');
   const b = document.createElement('b');
-  b.textContent = o.title || '手机安装';
+  b.textContent = o.title || '项目仓库';
   t1.appendChild(b);
-  t1.appendChild(document.createTextNode('：扫码打开本账本'));
+  t1.appendChild(document.createTextNode('：扫码打开仓库，看版本说明与源码'));
   txt.appendChild(t1);
 
   const u = document.createElement('div');
@@ -55,7 +56,7 @@ export function shareBlock(opts) {
   const h = document.createElement('div');
   h.className = 'nt-share-hint';
   h.textContent = o.hint
-    || '安卓 Chrome / iPhone Safari 打开后，用「添加到主屏幕」装成 App，离线可用。';
+    || '账本本身在 ' + APP_URL + ' ，用手机浏览器打开后「添加到主屏幕」即可离线使用。';
   txt.appendChild(h);
 
   // 版本行：按钮 + 两行小字，塞在右侧，不另占高度
