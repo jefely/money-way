@@ -209,7 +209,18 @@ export function mountSideResizer() {
   if (!side) return;
   if (side.querySelector('.pw-side-resizer')) return;
 
-  applySideWidth(savedSideWidth());
+  /**
+   * 初始状态必须和 --nt-pw-side-w 对齐。
+   *
+   * HTML 上 .pw-side 天生带 collapsed（默认收起），但栅格列宽默认是 320px ——
+   * 于是第一次进路径页时：侧栏本身宽 0（看不见），栅格却仍占 320px，
+   * 左边留一大块黑、图被挤到右下角变小。这里按 class 把列宽一起定下来。
+   */
+  if (side.classList.contains('collapsed')) {
+    document.documentElement.style.setProperty('--nt-pw-side-w', '0px');
+  } else {
+    applySideWidth(savedSideWidth());
+  }
 
   const bar = document.createElement('button');
   bar.type = 'button';
