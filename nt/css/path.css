@@ -411,6 +411,32 @@
 
 .pw-chart {
   position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 图的尺寸只由**高度**决定，横向富余时居中留白。
+   ------------------------------------------------------------
+   之前 svg 只有 width:100%，图形是正方形 → 高度跟着宽度走，
+   于是「点三角收起左栏」时图区变宽，整张图就跟着放大一截，看着很跳。
+   现在 width/height 都撑满 + preserveAspectRatio 等比（xMidYMid meet），
+   容器再宽也只是左右留白，图的大小不变。 */
+.pw-chart-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pw-chart-inner svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 /* 图里的文字只是标签：长按不该被选中、更不该出现反色高亮块 */
