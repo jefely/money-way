@@ -24,6 +24,13 @@
 export const BASE_SIZE = 1800;
 export const RATIO = 6000 / BASE_SIZE;
 
+/** 当前是否浅色主题（决定弧块边框的颜色） */
+function isLightTheme() {
+  if (typeof document === 'undefined') return true;
+  const t = document.documentElement.dataset.theme;
+  return !t || t === 'light';
+}
+
 export const SVG = {
   size: 6000,
   rOut: Math.round(640 * RATIO),
@@ -106,12 +113,13 @@ export function renderChart(data) {
   }
 
   // ④ 弧块
-  // 分隔线：中性灰 #6b7280，3.5×RATIO（约 0.7 显示像素）、70% 不透明。
+  // 分隔线：浅色主题纯白 / 深色主题纯黑，2.4×RATIO（约 0.45 显示像素）、75% 不透明。
   // 早先用 0.9×RATIO，同分类的两个**同色**弧块挨在一起时几乎看不见分界。
   for (const b of blocks) {
     parts.push(`<path class="mw-ring" d="${arcPath(rOut, rIn, b.a1, b.a2, pointAt, cx, cy)}"`
       + ` fill="${colorOf(b.colorKey)}" fill-opacity="1"`
-      + ` stroke="#6b7280" stroke-width="${f(3.5 * RATIO)}" stroke-opacity="0.7"`
+      + ` stroke="${isLightTheme() ? '#ffffff' : '#000000'}"`
+      + ` stroke-width="${f(2.4 * RATIO)}" stroke-opacity="0.75"`
       + ` data-node="${esc(b.acc)}"/>`);
   }
 
@@ -144,7 +152,8 @@ export function renderChart(data) {
     // 不再「太窄就跳过」—— 单文件版每个弧块都有标签，
     // 窄块是靠锥形引线把它们错开，而不是干脆不显示。
     const crowded = arcLen < textW * 1.5;
-    if (crowded) fs = Math.max(12 * RATIO, fs * 0.85);
+    // 走锥形的标签被推到环外、周围没有别的元件，字号可以给得更足
+    if (crowded) fs = Math.max(18 * RATIO, fs * 1.0);
     let rText = rOut + 8 * RATIO;
     if (crowded) {
       // 连续需要锥形时交替：第一个 46、第二个 115（2.5 倍）、第三个又回 46…
