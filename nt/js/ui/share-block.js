@@ -13,7 +13,7 @@
 import { paintText } from './qr-canvas.js';
 import { APP_VER } from '../core/version.js';
 import { SHARE_URL } from '../core/meta.js';
-import { checkUpdate, hardReload } from './update-check.js';
+import { checkUpdate, hardReload, resetApp } from './update-check.js';
 
 /** 二维码每个模块多少像素：手机上 4~5 之间最好扫 */
 const MODULE_PX = 5;
@@ -87,17 +87,17 @@ function versionLine() {
   const btnRow = document.createElement('div');
   btnRow.className = 'nt-ver-btns';
 
-  // 唯一的按钮：清缓存 + 注销 SW + 刷新。
-  // 不用「更新」那种「清缓存 + 让 SW 换班」的做法 —— app 更新时新 SW 往往还没接管，
-  // 刷新后仍是旧文件，所以点了像没反应。注销 SW 才能保证拿到最新的。
+  // 唯一按钮 = 更新。它的做法是「让 Service Worker 换班」：
+  // 等新版 SW install 完成（那时全部资源已预缓存）+ SKIP_WAITING + 刷新。
+  // **不清缓存、不注销 SW** —— 那两件事会拆掉离线能力，断网就变成「打不开网页」。
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'nt-ver-btn ghost';
-  btn.textContent = '重载';
-  btn.title = '清掉缓存并重新加载（有新版时点这个）';
+  btn.textContent = '更新';
+  btn.title = '检查并切换到新版本（离线也能用）';
   btn.addEventListener('click', async () => {
     btn.disabled = true;
-    btn.textContent = '重载中';
+    btn.textContent = '更新中';
     await hardReload();
   });
   btnRow.appendChild(btn);
@@ -111,6 +111,23 @@ function versionLine() {
   remote.textContent = '远端：检查中…';
   const local = document.createElement('span');
   local.textContent = '本地：' + APP_VER;
+
+  // 救砖入口：连点 5 次版本号才出现（清缓存 + 注销 SW，会拆掉离线能力，
+  // 只在真的打不开的时候用）
+  let taps = 0;
+  let tapTimer = 0;
+  local.style.cursor = 'pointer';
+  local.addEventListener('click', () => {
+    taps += 1;
+    clearTimeout(tapTimer);
+    tapTimer = setTimeout(() => { taps = 0; }, 1200);
+    if (taps >= 5) {
+      taps = 0;
+      if (confirm('彻底重置？会清掉离线缓存，之后必须联网才能重新装回来。')) {
+        resetApp();
+      }
+    }
+  });
 
   mini.appendChild(remote);
   mini.appendChild(local);

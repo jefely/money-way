@@ -145,8 +145,81 @@ async function fetchText(url, timeoutMs) {
  */
 export async function hardReload(opts) {
   const o = opts || {};
+  const reload = o.reload || (() => { location.reload(); });
 
-  // ① 清所有缓存
+  /**
+   * 更新 = 让 SW 换班，**不注销、不清缓存**。
+   *
+   * 为什么不能清缓存 + 注销：Service Worker 是离线可用的唯一基础。
+   * 注销之后断网刷新会得到浏览器原生的「打不开网页」，而且它会一直这样 ——
+   * 因为用户手上已经没有 SW 了，只能联网重新装一次。
+   *
+   * 正确顺序：
+   *   ① reg.update() 让浏览器去比对 sw.js
+   *   ② 等新 SW install 完成 —— 它在 install 里会把全部资源预缓存好
+   *   ③ SKIP_WAITING 让它立刻接管
+   *   ④ 刷新
+   * 全程 SW 都在，离线能力一次都没断。
+   */
+  try {
+    if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+      const reg = await navigator.serviceWorker.getRegistration();
+
+      if (reg) {
+        // ① 检查新版
+        try { await reg.update(); } catch (e) { /* 离线时这里会失败，正常 */ }
+
+        // ② 等新 SW 装好（最多等 20 秒）
+        const incoming = reg.installing;
+        if (incoming) {
+          await new Promise((resolve) => {
+            const timer = setTimeout(resolve, 20000);
+            incoming.addEventListener('statechange', () => {
+              if (incoming.state === 'installed' || incoming.state === 'activated') {
+                clearTimeout(timer);
+                resolve();
+              }
+            });
+          });
+        }
+
+        // ③ 让它接管
+        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      } else {
+        // 从来没装过：注册一次，等它就绪再刷新
+        const reg2 = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+        await new Promise((resolve) => {
+          const timer = setTimeout(resolve, 20000);
+          if (reg2.active) { clearTimeout(timer); resolve(); return; }
+          const w = reg2.installing;
+          if (w) {
+            w.addEventListener('statechange', () => {
+              if (w.state === 'installed' || w.state === 'activated') {
+                clearTimeout(timer);
+                resolve();
+              }
+            });
+          }
+        });
+      }
+    }
+  } catch (e) {
+    /* 任何一步失败都不该让用户卡住，直接刷新即可 */
+  }
+
+  // ④ 刷新（SW 保留）
+  setTimeout(() => { try { reload(); } catch (e) {} }, 150);
+}
+
+/**
+ * 彻底重置：清所有缓存 + 注销所有 SW。
+ *
+ * **只在真的坏了的时候用** —— 它会拆掉离线能力，之后必须联网才能重新装回来。
+ * 所以入口藏起来（连点几次版本号才出现），不作为常规按钮。
+ */
+export async function resetApp(opts) {
+  const o = opts || {};
+
   try {
     if (typeof caches !== 'undefined' && caches.keys) {
       const names = await caches.keys();
@@ -154,7 +227,6 @@ export async function hardReload(opts) {
     }
   } catch (e) { /* 忽略 */ }
 
-  // ② 注销所有 Service Worker（刷新后 app.js 会重新注册）
   try {
     if (typeof navigator !== 'undefined' && navigator.serviceWorker
         && navigator.serviceWorker.getRegistrations) {
@@ -163,9 +235,8 @@ export async function hardReload(opts) {
     }
   } catch (e) { /* 忽略 */ }
 
-  // ③ 刷新
   const reload = o.reload || (() => { location.reload(); });
-  setTimeout(() => { try { reload(); } catch (e) {} }, 80);
+  setTimeout(() => { try { reload(); } catch (e) {} }, 100);
 }
 
 /**
