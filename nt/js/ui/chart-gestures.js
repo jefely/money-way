@@ -169,8 +169,9 @@ export function mountChartGestures(box, target) {
 
     if (drag.rotateMode) {
       // 用「相对起点的横移」算绝对角度，避免每帧累加的漂移。
-      // 方向与增益都按 nt-v0.75 那一版定稿（用户确认那一版手感最对）。
-      view.rot = drag.rot + (ev.clientX - drag.x) * 0.08;
+      // 方向取负（右拖 = 逆时针）：用户明确要求与「跟着鼠标同向」相反。
+      // 增益 0.08 是 nt-v0.75 定稿值，双指旋转的方向不受这里影响。
+      view.rot = drag.rot - (ev.clientX - drag.x) * 0.08;
     } else {
       view.tx = drag.tx + (ev.clientX - drag.x) * PAN_GAIN;
       view.ty = drag.ty + (ev.clientY - drag.y) * PAN_GAIN;
