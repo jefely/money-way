@@ -425,6 +425,74 @@ seq, date, type, cat, code, num, amount, action, state, freq, day, from, to, not
 
 ---
 
+## 七点五、参数作用域：为什么有些参数「怎么调都控制不到」
+
+`applySettings` 写 CSS 变量时，**不是全写 `:root`**，而是看 `GROUP_SCOPE`：
+
+```js
+const scope = GROUP_SCOPE[item.group] || 'global';
+const target = scope === 'global'
+  ? document.documentElement
+  : document.querySelector('[data-view="' + scope + '"]');
+target.style.setProperty(item.cssVar, item.value);
+```
+
+| 作用域 | 变量写到哪 | 影响范围 |
+|---|---|---|
+| `global` | `:root` | 全部页面 |
+| `flow` 等 | `[data-view="flow"]` 容器 | **只有那一页** |
+
+### 踩过的坑
+
+`按钮尺寸` / `列标行` / `数据区` 三个组原来标的是 `'flow'`。但本项目 **7 个页面都有表头和按钮区**，于是：
+
+- 面板里改「列标行字号」→ **只有流水页变**，其它页不动
+- 看着就是「这个参数控制不到」
+- 而且用 `:root` 做的探针改不动它 —— 元素读的是更近的 `[data-view="flow"]` 上的值，**不是 `:root`**
+
+修法：三个组全部改成 `'global'`。
+
+### 判断规则
+
+**只有确实只属于某一页的参数才用 `flow` 作用域。**
+目前 `GROUP_SCOPE` 里全部是 `global` —— 因为表头、按钮区、数据区在每一页都有。
+
+### 排查这类问题的方法
+
+**① 先审计变量有没有被 CSS 用**
+
+```python
+# 从 settings.js 抽 cssVar，再到所有 css 里查 var(<name>
+for it in items:
+    used = re.search(r"var\(\s*" + re.escape(it["var"]) + r"\b", css) is not None
+```
+
+本项目第一次审计：32 项里 **6 项没被任何 CSS 消费**（改了必然没反应）。
+
+**② 再查作用域**
+
+变量被 CSS 用了还是不动？看它被写到哪个元素上：
+
+```js
+// 在浏览器里
+getComputedStyle(document.documentElement).getPropertyValue('--nt-th-font')      // :root 上有没有
+getComputedStyle(document.querySelector('[data-view="flow"]')).getPropertyValue('--nt-th-font')
+```
+
+**③ 最后用 CDP 看谁赢了**
+
+```python
+st = b.call("CSS.getMatchedStylesForNode", {"nodeId": node_id}, sid)
+for m in st["matchedCSSRules"]:
+    for p in m["rule"]["style"]["cssProperties"]:
+        if p["name"] == "font-size":
+            print(m["rule"]["selectorList"]["text"], p["value"])
+```
+
+脚本：`_tools/audit_css_vars.py`、`_tools/nt_css_matched.py`
+
+---
+
 ## 八、各表结构速查
 
 ### 流水记录 · 7 列 · 冻结序

@@ -36,9 +36,12 @@ export const GROUP_SCOPE = {
   按钮区: 'global',
   表格: 'global',
   信息栏: 'global',
-  按钮尺寸: 'flow',
-  列标行: 'flow',
-  数据区: 'flow',
+  // 这三个原本是 'flow'（只作用于流水页）。但 7 个页面都有表头和按钮区，
+  // 标成 flow 会让「列标行字号 / 按钮尺寸字号 / 数据区字号」在别的页面不起作用，
+  // 面板上看着就是「怎么调都控制不到」。全部改 global。
+  按钮尺寸: 'global',
+  列标行: 'global',
+  数据区: 'global',
 };
 
 /** 列宽/对齐数组的列顺序（对应 colgroup 的 .nt-c-*） */
