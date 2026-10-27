@@ -438,14 +438,6 @@
       <button class="nt-btn nt-btn-sm" type="button" data-act="clear">清空</button>
       <span class="nt-query-total" data-total></span>
     </header>
-    <div class="nt-query-filters">
-      <input class="nt-input nt-input-sm" type="text" data-cond="dateFrom" placeholder="日期 起" aria-label="日期起">
-      <input class="nt-input nt-input-sm" type="text" data-cond="dateTo" placeholder="止" aria-label="日期止">
-      <input class="nt-input nt-input-sm" type="text" data-cond="from" placeholder="转出" aria-label="转出账户">
-      <input class="nt-input nt-input-sm" type="text" data-cond="to" placeholder="转入" aria-label="转入账户">
-      <input class="nt-input nt-input-sm" type="text" data-cond="amount" placeholder="金额" aria-label="金额">
-      <input class="nt-input nt-input-sm" type="text" data-cond="note" placeholder="备注搜索" aria-label="备注">
-    </div>
     <div class="nt-tablewrap">
       <table class="nt-table nt-table-query">
         <colgroup>
@@ -458,6 +450,26 @@
           <col class="nt-c-q-note">
         </colgroup>
         <thead>
+            <!-- 筛选行：每个框就在自己那一列的格子里，列宽一变它跟着变 -->
+            <tr class="nt-query-filter-row">
+              <th class="nt-th"></th>
+              <th class="nt-th"></th>
+              <th class="nt-th">
+                <input class="nt-qf" type="text" data-cond="dateRange" placeholder="日期 起~止" aria-label="日期范围">
+              </th>
+              <th class="nt-th">
+                <input class="nt-qf" type="text" data-cond="from" placeholder="转出" aria-label="转出账户">
+              </th>
+              <th class="nt-th">
+                <input class="nt-qf" type="text" data-cond="to" placeholder="转入" aria-label="转入账户">
+              </th>
+              <th class="nt-th">
+                <input class="nt-qf" type="text" data-cond="amount" placeholder="金额" aria-label="金额">
+              </th>
+              <th class="nt-th">
+                <input class="nt-qf" type="text" data-cond="note" placeholder="备注" aria-label="备注">
+              </th>
+            </tr>
             <tr>
               <th class="nt-th nt-c-seq" scope="col" data-col="seq">序</th>
               <th class="nt-th nt-c-freq" scope="col" data-col="freq">频率</th>

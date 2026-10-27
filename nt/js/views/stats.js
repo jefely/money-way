@@ -27,7 +27,6 @@ export function mountStats(section, ctx) {
   const caps = section.querySelector('#nt-stats-caps');
   const scopeCaps = section.querySelector('#nt-stats-scope');
   const pills = section.querySelector('#nt-stats-pills');
-  const info = section.querySelector('#nt-stats-info');
   const thead = section.querySelector('#nt-stats-head');
   const body = section.querySelector('#nt-stats-body');
 
@@ -39,7 +38,6 @@ export function mountStats(section, ctx) {
   function render() {
     const state = ctx.getState();
     const range = currentRange();
-    info.textContent = scopeLabel();
     renderPills();
 
     if (sel.cap === 'summary') renderSummary(state, range);

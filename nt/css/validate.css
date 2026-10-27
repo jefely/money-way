@@ -164,10 +164,11 @@
 
 /* 二维码右侧最下面那行：按钮 + 两行小字（照单文件版，别占太多高度） */
 /* 版本行：两个按钮横向并列，版本号在下方一行（左远端、右本地） */
+/* 按钮和版本号在同一行：左「更新」、右「远端 / 本地」 */
 .nt-ver-line {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  flex-direction: row;
+  align-items: center;
   gap: 6px;
   margin-top: 8px;
 }
@@ -175,7 +176,10 @@
 .nt-ver-btns {
   display: flex;
   flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
 }
 
 .nt-ver-btns .nt-ver-btn {
@@ -190,8 +194,11 @@
 .nt-ver-mini {
   display: flex;
   flex-direction: row;
+  align-items: center;
   justify-content: flex-start;
-  gap: 14px;
+  flex: 0 1 auto;
+  min-width: 0;
+  gap: 10px;
   font-size: 10.5px;
   line-height: 1.4;
   color: var(--nt-text-light);

@@ -101,9 +101,8 @@ function versionLine() {
     await hardReload();
   });
   btnRow.appendChild(btn);
-  wrap.appendChild(btnRow);
 
-  // 版本号放在按钮下方：左远端、右本地
+  // 版本号跟在按钮**后面**，同一行：左远端、右本地
   const mini = document.createElement('span');
   mini.className = 'nt-ver-mini';
 
@@ -131,7 +130,10 @@ function versionLine() {
 
   mini.appendChild(remote);
   mini.appendChild(local);
-  wrap.appendChild(mini);
+
+  // 版本号与按钮同一行，一起放进 btnRow
+  btnRow.appendChild(mini);
+  wrap.appendChild(btnRow);
 
   let busy = false;
 
@@ -148,13 +150,9 @@ function versionLine() {
         return;
       }
 
-      if (r.update) {
-        remote.textContent = '远端：' + r.remote + '（点重载）';
-        btn.classList.add('has-update');
-      } else {
-        remote.textContent = '远端：' + r.remote;
-        btn.classList.remove('has-update');
-      }
+      // 只显示版本号，不附加「点重载」这类提示
+      remote.textContent = '远端：' + r.remote;
+      btn.classList.toggle('has-update', !!r.update);
     } catch (e) {
       remote.textContent = '远端：检查失败';
     } finally {

@@ -174,9 +174,11 @@ body {
 /* ---------- 月份 / 年份 pills ---------- */
 
 .nt-pills {
-  display: flex;
+  /* 6 列网格：12 个月自动排成 2 行 × 6 列。
+     不能用 flex-wrap —— 那会按容器宽度随机换行（390px 下正好 11+1）。 */
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 4px;
-  flex-wrap: wrap;
   padding: 6px 10px;
   border-bottom: 1px solid var(--nt-bg-line);
   background: var(--nt-bg);
@@ -187,9 +189,10 @@ body {
 }
 
 .nt-pill {
-  min-width: 30px;
+  /* 宽度由 grid 列决定，这里只管高度和内边距 */
+  min-width: 0;
   height: 26px;
-  padding: 0 8px;
+  padding: 0 4px;
   border: 1px solid var(--nt-bg-line);
   border-radius: var(--nt-radius);
   background: var(--nt-bg);
@@ -496,21 +499,3 @@ body.nt-col-resizing .nt-tablewrap {
 .nt-table-accounts .nt-th:nth-child(13) { width: var(--nt-col-repayDay, 56px); }
 .nt-table-accounts .nt-th:nth-child(14) { width: 40px;  min-width: 40px;  max-width: 40px; }
 
-/* ---------- 流水查询（7 列，三栏各一份） ---------- */
-
-.nt-table-query { min-width: 480px; }
-.nt-table-query .nt-th:nth-child(1) { width: var(--nt-col-seq, 40px);  min-width: 40px;  max-width: 40px; }
-.nt-table-query .nt-th:nth-child(2) { width: var(--nt-col-freq, 48px); }
-.nt-table-query .nt-th:nth-child(3) { width: var(--nt-col-date, 70px); }
-.nt-table-query .nt-th:nth-child(4) { width: var(--nt-col-from, 88px); }
-.nt-table-query .nt-th:nth-child(5) { width: var(--nt-col-to, 88px); }
-.nt-table-query .nt-th:nth-child(6) { width: var(--nt-col-amount, 74px); }
-.nt-table-query .nt-th:nth-child(7) { width: var(--nt-col-note, 72px); }
-
-/* 跨列单元格（colspan > 1）永远不参与冻结：
-   它是整行的提示/占位，加 sticky 会让整行跟着横向移动。
-   渲染时会给这类格子加 .nt-cell-span 类。 */
-.nt-cell-span {
-  position: static !important;
-  left: auto !important;
-}

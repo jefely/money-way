@@ -82,7 +82,7 @@
   }
 
   .nt-query-panel {
-    flex: 0 0 92%;                 /* 露出 8% 的下一栏，提示可以左右滑 */
+    flex: 0 0 100%;                /* 一屏一栏，滑动切换（和单文件版一致） */
     min-width: 0;
     scroll-snap-align: start;
     scroll-snap-stop: always;
@@ -100,15 +100,18 @@
 .nt-table-query {
   table-layout: fixed;
   width: 100%;
+  /* 查询表要一屏一栏，必须能压进容器宽度。
+     这里不能写 min-width —— 写了就会溢出、最后一列（备注）跑到屏幕外。 */
+  min-width: 0;
 }
 
-.nt-c-q-seq { width: 30px; }
-.nt-c-q-freq { width: 34px; }
-.nt-c-q-date { width: 66px; }
-.nt-c-q-from { width: 62px; }
-.nt-c-q-to { width: 62px; }
-.nt-c-q-amount { width: 58px; }
-.nt-c-q-note { width: auto; }
+.nt-c-q-seq { width: 26px; }
+.nt-c-q-freq { width: 36px; }
+.nt-c-q-date { width: 56px; }
+.nt-c-q-from { width: 58px; }
+.nt-c-q-to { width: 58px; }
+.nt-c-q-amount { width: 54px; }
+.nt-c-q-note { width: auto; min-width: 0; }
 
 /* 表头与数据都不许换行：换行会把「转出账户」压成竖排单字 */
 .nt-table-query .nt-th,
@@ -121,9 +124,33 @@
   padding-right: 4px;
 }
 
-/* 筛选框：6 个挤一行太窄，改成 3 列网格 */
-.nt-query-filters {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
+/* 筛选行：就长在表头里，每格宽度由列宽决定，拖动列宽时跟着变 */
+.nt-query-filter-row .nt-th {
+  height: auto;
+  padding: 3px 3px;
+  background: var(--nt-bg);
+  font-weight: 400;
+}
+
+.nt-qf {
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+  padding: 0 4px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 4px;
+  background: var(--nt-bg);
+  color: var(--nt-text);
+  font-size: 11px;
+  box-sizing: border-box;
+}
+
+.nt-qf:focus {
+  outline: 0;
+  border-color: var(--nt-primary);
+}
+
+.nt-qf::placeholder {
+  color: var(--nt-text-light);
+  opacity: 0.7;
 }

@@ -32,7 +32,15 @@ export function mountQuery(section, ctx) {
 
     for (const input of inputs) {
       input.addEventListener('input', () => {
-        cond[input.getAttribute('data-cond')] = input.value;
+        const key = input.getAttribute('data-cond');
+        if (key === 'dateRange') {
+          // 一个框填「起~止」，拆成两个条件，core 那边不用改
+          const { from, to } = splitRange(input.value);
+          cond.dateFrom = from;
+          cond.dateTo = to;
+        } else {
+          cond[key] = input.value;
+        }
         render();
       });
     }
@@ -43,6 +51,7 @@ export function mountQuery(section, ctx) {
       render();
     });
 
+
     host.appendChild(node);
     return p;
   }
@@ -51,7 +60,7 @@ export function mountQuery(section, ctx) {
     const state = ctx.getState();
 
     if (!hasCond(p.cond)) {
-      renderEmpty(p.body, '设置上方任一条件后显示结果', 6);
+      renderEmpty(p.body, '设置上方任一条件后显示结果', 7);
       p.totalEl.textContent = moneyAlways(0);
       return { count: 0, sum: 0 };
     }
@@ -102,4 +111,28 @@ export function mountQuery(section, ctx) {
 
 function hasCond(c) {
   return !!(c.dateFrom || c.dateTo || c.from || c.to || c.amount || c.note);
+}
+
+/**
+ * 「起~止」拆成两个日期。
+ *
+ * 认这些写法：
+ *   2026-08-01~2026-08-31
+ *   2026-08-01 2026-08-31
+ *   20260801~20260831
+ * 只填一边也可以：~2026-08-31 / 2026-08-01~
+ */
+function splitRange(text) {
+  const s = String(text || '').trim();
+  if (!s) return { from: '', to: '' };
+
+  // 优先按 ~ / ～ / 空格 / 逗号切
+  const m = s.split(/[~～\s,，]+/).filter(Boolean);
+  if (m.length >= 2) return { from: m[0], to: m[1] };
+  if (m.length === 1) {
+    // 只有一段：如果以 ~ 开头就是「只给止」，结尾是 ~ 就是「只给起」
+    if (/^[~～]/.test(s)) return { from: '', to: m[0] };
+    return { from: m[0], to: '' };
+  }
+  return { from: '', to: '' };
 }

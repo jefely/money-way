@@ -21,10 +21,9 @@ const ACT_LABEL = { password: '修改密码', config: '配置', layout: '布局'
 
 export function mountSettings(section, ctx) {
   const body = section.querySelector('#nt-accounts-body');
-  const infoEl = section.querySelector('#nt-settings-info');
 
   const table = mountAccountTable(ctx, body, {
-    onSummary: (text) => { if (infoEl) infoEl.textContent = text; },
+    onSummary: (text) => { ctx.setFooter(text); },
   });
 
   bindActions();
