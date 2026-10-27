@@ -20,9 +20,13 @@ export function paintChart(host, data, hits, onPick) {
   // 线宽照单文件版：
   //   没追踪 → 全部统一 W_MID(2.4)
   //   追踪中 → 命中线用「离费用端几跳」的档位 × PICK_BOOST，其它线收细
+  //
+  // 注意：这里**没有**按笔数做密度补偿。曾经加过一版（250 笔时把线调细 0.6 倍），
+  // 但在 v0.50 把「图尺寸只由高度决定」修好之后，250 笔在侧栏收起时已经不糊了 ——
+  // 线宽恢复成单文件版的 2.4 才是一致的样子。
   const chords = data.chords.map((c) => {
     const hit = hits ? hits.has(c.txIdx) : false;
-    // 线宽按 RATIO 等比放大：画布从 1800 提到 3000，线还是 2.4px 就显得更细
+    // 线宽按 RATIO 等比放大：画布从 1800 提到 6000，线还是 2.4px 就显得更细
     let strokeWidth = W_MID * RATIO;
     if (hits) {
       if (hit) {
