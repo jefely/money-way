@@ -122,6 +122,7 @@ export function mountValidate(section, ctx) {
       '最底层的数学本质：',
       'A角色：「转入增加，转出减少」，',
       'B角色：「转出增加，转入减少」。',
+      '',
       '紫老头专属账本',
       '用「NT = 直觉 + 思考」的习惯记账。',
       '每一笔钱，都从一个账户转出、进入另一个账户。',
@@ -206,10 +207,17 @@ function textBlock(title, lines) {
   const el = document.createElement('section');
   el.className = 'nt-text-block';
   el.appendChild(titleEl(title));
+
+  // 空串 = 段落分隔：不画空行，而是给下一个元素更大的上间距
+  let pendingGap = false;
   for (const line of lines) {
+    if (!line) { pendingGap = true; continue; }
+
     const p = document.createElement('p');
     p.className = 'nt-block-line';
     p.textContent = line;
+    if (pendingGap) p.classList.add('nt-block-gap');
+    pendingGap = false;
     el.appendChild(p);
   }
   return el;

@@ -201,3 +201,8 @@
   min-width: 0;
   overflow: hidden;
 }
+
+/* 段落分隔：比行距大一档，视觉上像「新的一段」而不是「又一行」 */
+.nt-block-line.nt-block-gap {
+  margin-top: 14px;
+}
