@@ -88,7 +88,13 @@ export function renderChart(data) {
       + ` fill="none" stroke="currentColor" stroke-width="${f(0.6 * RATIO)}" stroke-opacity="0.28"/>`);
   }
 
-  // ② 连线：坐标 / 线宽 / 颜色 / 透明度全部现成
+  // ② 环内遮罩：先铺一层底色圆给整个内部打底（在**线下面**）——
+  //    用户要求「遮罩兜底、遮罩上是线」，所以它必须画在弦之前。
+  //    用 class 而不是 fill="var(...)"，presentation attribute 里 CSS 变量解析不可靠。
+  parts.push(`<circle class="mw-mask" cx="${cx}" cy="${cy}" r="${rIn}"`
+    + ` fill-opacity="0.48" pointer-events="none"/>`);
+
+  // ③ 连线：坐标 / 线宽 / 颜色 / 透明度全部现成
   for (const c of chords) {
     const op = typeof c.opacity === 'number'
       ? c.opacity
@@ -98,11 +104,6 @@ export function renderChart(data) {
       + ` stroke-width="${c.strokeWidth}" stroke-opacity="${op}"`
       + ` stroke-linecap="round" data-tx="${c.txIdx}"/>`);
   }
-
-  // ③ 环内遮罩：把圆环内部的连线压暗 48%，让环和标签跳出来
-  //    （用 class 而不是 fill="var(...)"，presentation attribute 里 CSS 变量解析不可靠）
-  parts.push(`<circle class="mw-mask" cx="${cx}" cy="${cy}" r="${rIn}"`
-    + ` fill-opacity="0.48" pointer-events="none"/>`);
 
   // ④ 弧块
   // 描边照单文件版用中性灰（#6b7280）+ 55% 不透明 ——
