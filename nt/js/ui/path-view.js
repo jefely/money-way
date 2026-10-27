@@ -42,7 +42,7 @@ export function paintChart(host, data, hits, onPick, mode) {
     if (mode === 'trace') {
       // 模式 4：追踪 —— 链上的线按「转入方类型」放大，其它线压到最细
       strokeWidth = hit
-        ? W_MID * RATIO * traceMult(c.targetType)
+        ? W_MID * RATIO * traceMult(c.toType)
         : W_MID * RATIO * 0.4;
     } else if (hits) {
       if (hit) {

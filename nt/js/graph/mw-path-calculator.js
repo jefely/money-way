@@ -145,6 +145,8 @@ export function buildChord(input) {
     path: { from: geo.from, c1: geo.c1, c2: geo.c2, to: geo.to },
     strokeWidth,
     strokeColor: style.strokeColor,
+    // 转入方账户类型 —— 追踪模式的线宽倍率按它来（targetType 是转出方那侧）
+    toType: (ctx && ctx.byId && ctx.byId.get(String(to_id)) || {}).type || '',
     colorKey: style.colorKey,
     weight: style.weight,
     targetType: style.targetType,
