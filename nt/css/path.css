@@ -131,10 +131,13 @@
 
 /* ---------- 收起态 ---------- */
 
+/* 用户要求：收起后**不留那条竖条**，整块让给图。
+   展开入口改由左上角的三角按钮负责（点它切回来）。 */
 .pw-side.collapsed {
-  width: 22px;
-  min-width: 22px;
-  flex: 0 0 22px;
+  width: 0;
+  min-width: 0;
+  flex: 0 0 0;
+  border-right: 0;
   overflow: hidden;
 }
 
@@ -159,8 +162,9 @@
   padding: 8px 0;
 }
 
+/* 收起态不再显示竖条（要展开就点图区左上角的三角） */
 .pw-side.collapsed .pw-rail {
-  display: flex;
+  display: none;
 }
 
 .pw-rail:hover {
@@ -350,15 +354,9 @@
     border-top: 0;
   }
   .pw-side.collapsed {
-    width: auto;
-    flex: 0 0 26px;
+    width: 0;
+    flex: 0 0 0;
     max-height: none;
-  }
-  .pw-side.collapsed .pw-rail {
-    /* 收起态是左侧 26px 的竖条，文字必须竖排 ——
-       横排会在这个宽度里被截成一两个字 */
-    writing-mode: vertical-rl;
-    letter-spacing: 0.12em;
   }
 }
 

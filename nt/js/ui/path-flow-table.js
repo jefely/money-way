@@ -250,8 +250,9 @@ export function setSideCollapsed(collapsed) {
   if (!side) return;
   side.classList.toggle('collapsed', !!collapsed);
   try {
+    // 收起时整条栅格列压到 0 —— 不再留 22px 的竖条（用户要求）
     document.documentElement.style.setProperty(
-      '--nt-pw-side-w', collapsed ? '22px' : savedSideWidth() + 'px',
+      '--nt-pw-side-w', collapsed ? '0px' : savedSideWidth() + 'px',
     );
   } catch (e) { /* 忽略 */ }
 }
