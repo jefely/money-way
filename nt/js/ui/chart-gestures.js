@@ -39,7 +39,7 @@ const clampZoom = (z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
  * 4 → 2 → 1 → 0.5 → 0.35 → 回到 0.5：0.35 手感偏慢（用户反馈「变慢了」），
  * 0.5 是他确认过「正常」的那一档。
  */
-const PAN_GAIN = 1.2;
+const PAN_GAIN = 1.5;
 
 /**
  * 给图表容器挂手势。
@@ -148,6 +148,10 @@ export function mountChartGestures(box, target) {
     const rotateMode = ev.button === 2 || (ev.buttons & 2) === 2 || ev.shiftKey;
 
     box.classList.add('is-dragging');
+    // 拖动期间走合成层：250 条曲线每帧矢量重绘在手机上就是卡顿，
+    // 合成层是位图拉伸（略糊但跟手），松手再换回矢量（清晰）。
+    const gl = current();
+    if (gl) gl.style.willChange = 'transform';
 
     drag = {
       x: ev.clientX,
@@ -176,6 +180,14 @@ export function mountChartGestures(box, target) {
   const onUp = () => {
     drag = null;
     box.classList.remove('is-dragging');
+    const gl = current();
+    if (gl) {
+      gl.style.willChange = '';
+      // 踢一脚让它按矢量重画一遍（同值赋 transform 不会触发重绘）
+      const t = gl.style.transform;
+      gl.style.transform = t.replace(/scale\(([\d.]+)\)/, 'scale($1) ');
+      requestAnimationFrame(() => { gl.style.transform = t; });
+    }
   };
 
   box.addEventListener('pointerdown', onDown);
