@@ -257,9 +257,6 @@ export function buildChord(input) {
     toType: toAcc.type || '',
     colorKey: style.colorKey,
     colorBy: style.colorBy,
-    // 两端的分类 key：点弧块时颜色要取**远端**（见 ui/path-view.js）
-    colorKeyTo: ctx && ctx.colorKeyOf ? ctx.colorKeyOf(String(to_id)) : '',
-    colorKeyFrom: ctx && ctx.colorKeyOf ? ctx.colorKeyOf(String(from_id)) : '',
     weight: style.weight,
     targetType: style.targetType,
   };
