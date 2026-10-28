@@ -11,6 +11,7 @@
  */
 
 import { money, shortDate } from '../core/format.js';
+import { syncFrozen } from './table-layout.js';
 
 export const CLASS = {
   row: 'nt-row',
@@ -64,7 +65,11 @@ let currentTbody = null;
 let raf = 0;
 
 function getRowH() {
-  const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nt-row-h'));
+  // 每张表一套行高之后，「数据区行高」这组全局参数已经删了 ——
+  // 还读 --nt-row-h 的话永远是 fallback 32，用户在面板里把流水行高调到 40
+  // 时虚拟滚动仍按 32 算，spacer 高度就错，滚动到中间会跳。
+  const cs = getComputedStyle(document.documentElement);
+  const v = parseFloat(cs.getPropertyValue('--nt-row-h-flow'));
   return Number.isFinite(v) && v > 0 ? v : 32;
 }
 
@@ -158,6 +163,11 @@ function renderWindow() {
   if (newTpl) frag.appendChild(newTpl.cloneNode(true));
 
   tbody.replaceChildren(frag);
+
+  // 虚拟滚动每次只重建可视区那几十行，新行上没有冻结列的 left ——
+  // 不给它们补上，横向滚动时表头「序」钉住了、下面的序号却跟着跑
+  //（用户原话：「序列标被固定住了，但是序的内容区域未固定」）。
+  syncFrozen(tbody.closest('table'));
 }
 
 /**

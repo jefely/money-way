@@ -205,13 +205,15 @@
 /* 6 列：序 · 日期 · 转出账户 · 转入账户 · 金额 · 备注（来自参数「路径追踪/列宽」） */
 .pw-flow-grid {
   display: grid;
+  /* 自适应列用 minmax 而不是裸 1fr：1fr 在容器不够宽时会被压到 0，
+     最后一列（备注）就永远滑不出来。80px 是「至少看得到两个字」的下限。 */
   grid-template-columns:
     var(--nt-col-path-seq, 28px)
     var(--nt-col-path-date, 62px)
-    var(--nt-col-path-from, 1fr)
-    var(--nt-col-path-to, 1fr)
+    var(--nt-col-path-from, minmax(80px, 1fr))
+    var(--nt-col-path-to, minmax(80px, 1fr))
     var(--nt-col-path-amount, 68px)
-    var(--nt-col-path-note, 1fr);
+    var(--nt-col-path-note, minmax(80px, 1fr));
   gap: 0 4px;
   align-items: center;
 }
@@ -309,10 +311,10 @@
   grid-template-columns:
     var(--nt-col-path-seq, 28px)
     var(--nt-col-path-date, 62px)
-    var(--nt-col-path-from, 1fr)
-    var(--nt-col-path-to, 1fr)
+    var(--nt-col-path-from, minmax(80px, 1fr))
+    var(--nt-col-path-to, minmax(80px, 1fr))
     var(--nt-col-path-amount, 68px)
-    var(--nt-col-path-note, 1fr);
+    var(--nt-col-path-note, minmax(80px, 1fr));
   gap: 0 4px;
   align-items: center;
   padding: 3px 10px;

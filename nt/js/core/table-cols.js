@@ -40,7 +40,10 @@ export const TABLE_COLS = {
     label: '路径追踪',
     screen: 'path',
     cols: ['seq', 'date', 'from', 'to', 'amount', 'note'],
-    autoValue: '1fr',
+    // 原来写的是 1fr：容器不够宽时 fr 会被压到 0，最后一列（备注）就永远
+    // 「滑不出来」（用户原话）。下限 80px 保证每列都占位，整表溢出后
+    // 交给 .pw-flow-body 横向滚动，滚到底能看到备注。
+    autoValue: 'minmax(80px, 1fr)',
   },
   plan: {
     label: '固定开支',

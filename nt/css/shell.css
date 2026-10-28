@@ -510,6 +510,15 @@ body.nt-col-resizing .nt-tablewrap {
 .nt-table-flow .nt-th:nth-child(7) { width: var(--nt-col-flow-fixed, 48px); }
 .nt-table-flow .nt-th:nth-child(8) { width: var(--nt-col-flow-action, 40px); }
 
+/* 流水表最后两列（固定收支 / 删除）是固定小格，不参与列宽参数。
+   宽度写死并用 !important 压过 inline style（拖动写的是 th.style.width），
+   手柄也藏掉 —— 拖了没反应比拖不动更让人困惑。
+   列宽数组里这两项仍原样保存，只是视觉上不再生效。 */
+.nt-table-flow .nt-th:nth-child(7) { width: 48px !important; }
+.nt-table-flow .nt-th:nth-child(8) { width: 40px !important; }
+.nt-table-flow .nt-th:nth-child(7) .nt-col-handle,
+.nt-table-flow .nt-th:nth-child(8) .nt-col-handle { display: none; }
+
 /* ---------- 统计（分类 8 列 / 汇总 10 列，两张视图列宽各自独立） ---------- */
 
 /* 同上：不再给表级 min-width */
