@@ -152,7 +152,8 @@
      列宽手柄是 absolute 子元素，sticky 一样提供定位上下文，不用改。 */
   position: sticky;
   top: 0;
-  z-index: 3;
+  /* 5：高于所有冻结单元格（td 是 3/4），低于冻结表头（6） */
+  z-index: 5;
   /* 行高/字号已下放到每张表（见文件下半部分的 .nt-table-* 规则）；
      这里的 fallback 是「参数还没写进 :root」时的兜底（启动瞬间、未解锁）。 */
   height: var(--nt-th-h, 26px);

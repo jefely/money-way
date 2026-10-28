@@ -253,35 +253,34 @@ body {
        （写死 left 变量的话，前列一变宽就错位）
    ============================================================ */
 
-/* 冻结几列必须和 table-layout.js 的 FROZEN_COUNT 一致 */
+/* 冻结几列必须和 table-layout.js 的 FROZEN_COUNT 一致。
+   z-index 分六层：
+     普通 td 0 · 冻结 td 3/4 · 普通表头 th 5 · 冻结表头 th 6
+   表头必须压在冻结 td 之上 —— 否则纵向滚动时冻结的序号格子（z-index 4）
+   会盖住 sticky 表头，看起来就是「序」被数据行顶掉（2026-10 用户实测）。 */
 
 .nt-table-flow .nt-th:nth-child(1),
-.nt-table-flow .nt-cell:nth-child(1),
 .nt-table-plan .nt-th:nth-child(1),
-.nt-table-plan .nt-cell:nth-child(1),
 .nt-table-inst .nt-th:nth-child(1),
-.nt-table-inst .nt-cell:nth-child(1),
 .nt-table-accounts .nt-th:nth-child(1),
-.nt-table-accounts .nt-cell:nth-child(1) {
-  position: sticky;
-  z-index: 4;
-}
-
-/* 账户表冻结两列：简码 + 序号（第二列压在第一列之下） */
 .nt-table-accounts .nt-th:nth-child(2),
-.nt-table-accounts .nt-cell:nth-child(2) {
+.nt-table-stats .nt-th:nth-child(1),
+.nt-table-stats .nt-th:nth-child(2) {
   position: sticky;
-  z-index: 3;
+  z-index: 6;
 }
 
-/* 统计表冻结两列：第二列必须压在普通列之上、第一列之下 */
-.nt-table-stats .nt-th:nth-child(1),
+.nt-table-flow .nt-cell:nth-child(1),
+.nt-table-plan .nt-cell:nth-child(1),
+.nt-table-inst .nt-cell:nth-child(1),
+.nt-table-accounts .nt-cell:nth-child(1),
 .nt-table-stats .nt-cell:nth-child(1) {
   position: sticky;
   z-index: 4;
 }
 
-.nt-table-stats .nt-th:nth-child(2),
+/* 冻结两列的表：第二列压在第一列之下 */
+.nt-table-accounts .nt-cell:nth-child(2),
 .nt-table-stats .nt-cell:nth-child(2) {
   position: sticky;
   z-index: 3;

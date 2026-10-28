@@ -55,10 +55,11 @@ test('迁移不会把「自适应列」写成固定宽度', () => {
   const query = parseTableWidths(n['流水查询/列宽'], 'query');
   assert.equal(query[query.length - 1], 0, '查询表备注列必须保持自适应');
 
+  // 路径表已改成 noAuto（2026-10）：它的列必须是固定 px，
+  // 自适应列算出的列宽和与数据行实际宽度对不上，横滚到右边表头会整块移出视口。
   const path = parseTableWidths(n['路径追踪/列宽'], 'path');
-  assert.equal(path[2], 0);
-  assert.equal(path[3], 0);
-  assert.equal(path[5], 0);
+  assert.ok(path.every((w) => w > 0), '路径表不应再有 0 = 自适应');
+  assert.deepEqual(path, [44, 62, 110, 110, 68, 120]);
 });
 
 test('旧数组本身缺位时补的是「旧默认宽度」，不是 64', () => {
@@ -81,10 +82,10 @@ test('CSS 变量名是 --nt-col-<表>-<列>，0 变自适应', () => {
   const byVar = new Map(list.map((x) => [x.cssVar, x.value]));
   assert.equal(byVar.get('--nt-col-flow-amount'), '96px');
   assert.equal(byVar.get('--nt-col-query-note'), 'auto');
-  // 路径表的自适应列是 minmax 而不是裸 1fr：1fr 在容器不够宽时会被压到 0，
-  // 最后一列（备注）就永远滚不出来（2026-10 用户实测「备注滑不出来」）。
-  assert.equal(byVar.get('--nt-col-path-from'), 'minmax(80px, 1fr)');
-  assert.equal(byVar.get('--nt-col-path-note'), 'minmax(80px, 1fr)');
+  // 路径表的列宽必须是固定 px：自适应列（1fr/minmax）算出的列宽和与数据行
+  // 实际宽度对不上，横滚到右边时表头会整块移出视口（2026-10 用户实测）。
+  assert.equal(byVar.get('--nt-col-path-from'), '110px');
+  assert.equal(byVar.get('--nt-col-path-note'), '120px');
   assert.equal(byVar.get('--nt-col-sum-histBalance'), '96px');
 });
 

@@ -354,6 +354,11 @@ function legacyFor(table, raw) {
   const t = TABLE_COLS[table];
   if (!t) return '';
 
+  // noAuto 的表（路径追踪）不参与旧「默认列宽」迁移：
+  // 它现在是固定 px 语义，从旧的按列名数组里抽出来的宽度（112 / 96 …）
+  // 既不是新的默认值，也不是用户拖出来的值 —— 直接用该表默认。
+  if (t.noAuto) return '';
+
   const def = String(TABLE_DEFAULT_WIDTHS[table] || '').split(',').map((x) => Number(x.trim()));
 
   return t.cols.map((c, i) => {

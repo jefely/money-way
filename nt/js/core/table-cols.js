@@ -40,10 +40,12 @@ export const TABLE_COLS = {
     label: '路径追踪',
     screen: 'path',
     cols: ['seq', 'date', 'from', 'to', 'amount', 'note'],
-    // 原来写的是 1fr：容器不够宽时 fr 会被压到 0，最后一列（备注）就永远
-    // 「滑不出来」（用户原话）。下限 80px 保证每列都占位，整表溢出后
-    // 交给 .pw-flow-body 横向滚动，滚到底能看到备注。
-    autoValue: 'minmax(80px, 1fr)',
+    // 路径侧栏的列宽**必须是固定 px**：
+    // 用 1fr / minmax 时 grid 的列宽和会被容器压到比内容窄，而数据行的长文本
+    // 又会把滚动宽度撑大 —— 两者宽度不同，横滚到右边时表头整块移出视口
+    //（用户看到「转入账户之后的标题行没颜色、备注也滑不出来」）。
+    // noAuto：存档里遗留的 0（旧版 1fr）在 parseTableWidths 里落回该表默认值。
+    noAuto: true,
   },
   plan: {
     label: '固定开支',
@@ -77,7 +79,7 @@ export const TABLE_DEFAULT_WIDTHS = {
   cat: '44,76,84,84,100,90,90,96',
   sum: '110,44,72,76,84,84,100,90,90,96',
   query: '44,0,0,0,0,0',
-  path: '44,0,0,0,96,0',
+  path: '44,62,110,110,68,120',
   plan: '44,64,64,112,112,96,116,40',
   accounts: '64,44,72,76,110,96,56,56,40,40',
 };
@@ -100,6 +102,9 @@ export function parseTableWidths(text, table) {
     if (raw === '') return fallback;
     const n = Number(raw);
     if (!Number.isFinite(n) || n < 0) return fallback;
+    // noAuto 的表（路径追踪）不接受 0 = 自适应：grid 的自适应列算出来的
+    // 列宽和与数据行实际宽度对不上，横滚时表头和数据行会各走各的。
+    if (n === 0 && t.noAuto) return fallback;
     return n;
   });
 }
