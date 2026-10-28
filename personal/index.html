@@ -5558,6 +5558,10 @@ table#summary-table tbody td.col-name { z-index: auto !important; }
 .mw-side-set { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
 .mw-side-frozen {
   position: sticky; top: 0; z-index: 6;
+  /* 宽度跟表格对齐：横向滚动时冻结区的底色要覆盖整段内容宽，否则右边会漏出数据行 */
+  width: max(var(--mw-cols-w, 0px), 100%);
+  min-width: 100%;
+  box-sizing: border-box;
   background: var(--bg-main);
   padding: 0 0 3px;
   margin-top: 0;
@@ -5589,7 +5593,8 @@ table#summary-table tbody td.col-name { z-index: auto !important; }
 .mw-side-left {
   flex: 0 0 var(--mw-side-w, 330px); width: var(--mw-side-w, 330px); box-sizing: border-box;
   align-self: stretch; position: relative;
-  overflow-y: auto; overflow-x: hidden;
+  /* 表格内容可以左右拖动：两个方向都滚，竖向仍然是「表头钉住 + 数据行滚动」 */
+  overflow: auto; overscroll-behavior: contain;
   padding: 0 12px 22px 8px;
   background: var(--bg-main); border: 0 !important; outline: 0 !important;
   box-shadow: none;
@@ -5634,6 +5639,8 @@ table#summary-table tbody td.col-name { z-index: auto !important; }
   .mw-chart { position: relative; }
   .mw-toggle-left { left: calc(var(--mw-side-w, 330px) + 2px) !important; top: 6px !important; z-index: 40; }
   .mw-toggle-left.shifted { left: 4px !important; }
+  .mw-dir-toggle { left: calc(var(--mw-side-w, 330px) + 24px) !important; top: 10px !important; z-index: 40; }
+  .mw-dir-toggle.shifted { left: 26px !important; }
 }
 
 .mw-in-title { font-size: 12px; font-weight: 700; color: var(--primary);
@@ -5670,7 +5677,13 @@ table#summary-table tbody td.col-name { z-index: auto !important; }
 /* 左栏表格化：ID 左、账本居中、金额靠右；列宽可拖动调整 */
 .mw-flow-grid {
   display: grid;
-  grid-template-columns: var(--mw-col-date, 78px) var(--mw-col-from, 1fr) var(--mw-col-to, 1fr) var(--mw-col-amt, 56px) var(--mw-col-note, 1fr);
+  /* 数字列固定像素、备注列至少 minmax 的 px —— 五列之和超过侧栏宽度时整张表就横向溢出，
+     由 .mw-side-left 的 overflow:auto 变成可左右拖动；侧栏够宽时备注列用 1fr 吃掉余量。 */
+  grid-template-columns:
+    var(--mw-col-date, 78px) var(--mw-col-from, 96px) var(--mw-col-to, 96px)
+    var(--mw-col-amt, 56px) minmax(var(--mw-col-note, 120px), 1fr);
+  width: max(var(--mw-cols-w, 0px), 100%);
+  box-sizing: border-box;
   align-items: center;
   column-gap: 0;
 }
@@ -5758,33 +5771,17 @@ th.col-range { text-align: left; }
   border-color: #3d3159 !important;
 }
 [data-theme="dark"] .mw-clear-btn:hover { border-color: var(--primary) !important; }
-/* 追踪方向：只显示一个字（逆 / 顺），和「清空」同高同宽，不抢位置 */
-.mw-dir-btn {
-  height: 26px; min-width: 26px; padding: 0 6px; border-radius: var(--radius);
-  background: #fff; color: var(--text-muted);
-  border: 1px solid var(--border);
-  font-size: 13px; font-weight: 700; line-height: 1; cursor: pointer;
+/* 追踪方向（逆 / 顺）：紧跟在收起三角右边，同尺寸、同样无框，跟着三角一起移动 */
+.mw-dir-toggle {
+  left: calc(var(--mw-side-w, 330px) + 26px);
+  right: auto;
+  top: 10px;
+  width: 20px; height: 20px; padding: 0;
+  font-size: 12px; font-weight: 700; line-height: 20px;
+  opacity: .75;
 }
-.mw-dir-btn:hover { color: var(--primary); border-color: var(--primary); }
-[data-theme="dark"] .mw-dir-btn {
-  background: #241b3a !important; color: var(--text-main) !important;
-  border-color: #3d3159 !important;
-}
-[data-theme="dark"] .mw-dir-btn:hover { border-color: var(--primary) !important; }
-/* 手机上图区左上角的浮动方向键：和上面的按钮同款，但它不依赖左栏是否展开 */
-.mw-chart { position: relative; }
-.mw-dir-float {
-  position: absolute; right: 10px; top: 10px; left: auto; z-index: 6;
-  height: 26px; min-width: 26px; padding: 0 6px; border-radius: var(--radius);
-  background: #fff; color: var(--text-muted);
-  border: 1px solid var(--border);
-  font-size: 13px; font-weight: 700; line-height: 1; cursor: pointer;
-}
-.mw-dir-float:hover { color: var(--primary); border-color: var(--primary); }
-[data-theme="dark"] .mw-dir-float {
-  background: #241b3a !important; color: var(--text-main) !important;
-  border-color: #3d3159 !important;
-}
+.mw-dir-toggle.shifted { left: 26px !important; right: auto; }
+.mw-dir-toggle:hover { opacity: 1; }
 .mw-flow-grid .mw-dto, .mw-flow-grid .mw-note {
   font-weight: 400; text-align: right; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap; padding-right: 3px;
@@ -6509,7 +6506,7 @@ html body .confirm-mask .sync-box button.danger-btn:not(.sync-tab):not(.row-del)
 /* 路径页：「Money Way」跟在收起/展开三角右边，随它一起移动 */
 .mw-toggle-label {
   position: absolute;
-  left: calc(var(--mw-side-w, 330px) + 30px);
+  left: calc(var(--mw-side-w, 330px) + 52px);
   top: 10px;
   z-index: 25;
   font-size: 13px;
@@ -6520,7 +6517,7 @@ html body .confirm-mask .sync-box button.danger-btn:not(.sync-tab):not(.row-del)
   user-select: none;
   white-space: nowrap;
 }
-.mw-toggle-label.shifted { left: 30px; }
+.mw-toggle-label.shifted { left: 52px; }
 [data-theme="dark"] .mw-toggle-label { color: #b6a8f5; }
 
 
@@ -8205,7 +8202,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.74';
+const APP_VER = 'v13.76';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -9158,6 +9155,9 @@ var MW_COLOR = {
 };
 var mwRange = null;
 var mwLastInfo = null;      // 上一次渲染的统计（命中几根线 / 焦点类型），页脚用它说话
+// 左栏折叠状态：null = 按窗口宽度决定（手机上默认收起）；一旦手动收/展过就记住，
+// 否则每次重渲染（点方向键、点行、换焦点）都会把用户刚收起的栏弹回来。
+var mwSideCollapsed = null;
 /* 焦点模型（复刻 NT v1.40 的语义）：
      kind='acc'   点弧块 → 只看**当前方向的一侧**：逆流=流入它的线，顺流=从它流出的线（不递归）
      kind='tx'    点线   → 只点亮这一根
@@ -9978,25 +9978,16 @@ function mwDrawSvg(nodes, edges) {
   var sideBox = document.createElement('div');
   sideBox.className = 'mw-side mw-side-left';
   sideBox.id = 'mw-side-wrap';
-  // 手机上左栏默认收起，避免挡住图；桌面常驻
+  // 手机上左栏默认收起，避免挡住图；桌面常驻。手动收/展过就按记忆来。
   var isNarrow = (window.innerWidth || 1200) < 760;
-  if (isNarrow) sideBox.classList.add('collapsed');
+  var collapsedNow = (mwSideCollapsed === null || mwSideCollapsed === undefined)
+    ? isNarrow : !!mwSideCollapsed;
+  if (collapsedNow) sideBox.classList.add('collapsed');
   wrap.appendChild(sideBox);
 
   var chartBox = document.createElement('div');
   chartBox.className = 'mw-chart';
   chartBox.innerHTML = parts.join('');
-  /* 手机上左栏默认收起，「逆/顺」按钮会跟着藏进去 —— 图区左上角再放一颗，
-     保证任何时候都能换方向（桌面左栏常驻，不重复显示）。 */
-  if (isNarrow) {
-    var floatDir = document.createElement('button');
-    floatDir.type = 'button';
-    floatDir.className = 'mw-dir-float';
-    floatDir.id = 'mw-dir-float';
-    floatDir.textContent = (mwDir === 'down' ? '顺' : '逆');
-    floatDir.title = '追踪方向：' + (mwDir === 'down' ? '顺流' : '逆流') + '，点一下切换';
-    chartBox.appendChild(floatDir);
-  }
   wrap.appendChild(chartBox);
 
   /* ---------- 左栏内容 ---------- */
@@ -10017,7 +10008,6 @@ function mwDrawSvg(nodes, edges) {
     + '<div class="mw-side-frozen">'
     + '<div class="mw-flow-title">'
     + '  <span class="mw-flow-title-txt">路径追踪</span>'
-    + '  <button type="button" class="mw-dir-btn" id="mw-dir" title="追踪方向：' + (mwDir === 'down' ? '顺流' : '逆流') + '，点一下切换" aria-label="追踪方向：' + (mwDir === 'down' ? '顺流' : '逆流') + '">' + (mwDir === 'down' ? '顺' : '逆') + '</button>'
     + '  <button type="button" class="mw-clear-btn" id="mw-clear">清空</button>'
     + '</div>'
     + '<div class="mw-side-stat">' + txs.length + ' 笔 · ' + groupList.length + ' 类 · '
@@ -10114,22 +10104,38 @@ function mwDrawSvg(nodes, edges) {
   tg.type = 'button';
   tg.className = 'mw-toggle mw-toggle-left';
   tg.title = '收起 / 展开左侧信息栏';
-  tg.textContent = '◀';
-  if (isNarrow) { tg.classList.add('shifted'); tg.textContent = '▶'; }
+  tg.textContent = collapsedNow ? '▶' : '◀';
+  if (collapsedNow) tg.classList.add('shifted');
+
+  /* 追踪方向键：**紧跟在三角右边**，和它同尺寸、同样无框，
+     并且共用同一个 shifted —— 三角往左收，它也跟着往左收。 */
+  var dirTg = document.createElement('button');
+  dirTg.type = 'button';
+  dirTg.className = 'mw-toggle mw-dir-toggle';
+  dirTg.textContent = (mwDir === 'down' ? '顺' : '逆');
+  dirTg.title = '追踪方向：' + (mwDir === 'down' ? '顺流' : '逆流') + '，点一下切换';
+  if (collapsedNow) dirTg.classList.add('shifted');
+  dirTg.onclick = function () {
+    mwDir = (mwDir === 'down') ? 'up' : 'down';
+    renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
+  };
 
   // 「Money Way」标签：紧跟在三角右边，和三角一起移动 / 一起隐藏
   var mwLabel = document.createElement('span');
   mwLabel.className = 'mw-toggle-label';
   mwLabel.textContent = 'Money Way';
-  if (isNarrow) mwLabel.classList.add('shifted');
+  if (collapsedNow) mwLabel.classList.add('shifted');
 
   tg.onclick = function () {
     var hidden = sideBox.classList.toggle('collapsed');
+    mwSideCollapsed = hidden;
     tg.textContent = hidden ? '▶' : '◀';
     tg.classList.toggle('shifted', hidden);
+    dirTg.classList.toggle('shifted', hidden);
     mwLabel.classList.toggle('shifted', hidden);
   };
   wrap.appendChild(tg);
+  wrap.appendChild(dirTg);
   wrap.appendChild(mwLabel);
 
   /* ---------- 绑定 ---------- */
@@ -10141,19 +10147,6 @@ function mwDrawSvg(nodes, edges) {
     mwFilter = { date: '', from: '', to: '', amount: '', note: '' };
     // 清空 = 连视图一起复位（这是唯一会重置缩放/滚动的地方）
     mwView = { zoom: null, rot: 0, tx: 0, ty: 0, scroll: 0 };
-    renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
-  };
-
-  // 追踪方向：一颗字「逆 / 顺」，点一下换方向。**只改画法**，焦点保留。
-  var dirB = sideBox.querySelector('#mw-dir');
-  if (dirB) dirB.onclick = function () {
-    mwDir = (mwDir === 'down') ? 'up' : 'down';
-    renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
-  };
-  // 手机上那颗浮动方向键（左栏收起时也够得着）
-  var dirF = chartBox.querySelector('#mw-dir-float');
-  if (dirF) dirF.onclick = function () {
-    mwDir = (mwDir === 'down') ? 'up' : 'down';
     renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
   };
 
@@ -10225,17 +10218,26 @@ function mwDrawSvg(nodes, edges) {
     var COLS = { date: 1, from: 1, to: 1, amt: 1, note: 1 };
     var saved = null;
     try { saved = JSON.parse(localStorage.getItem('mw_flow_colw') || 'null'); } catch (e) {}
-    var widths = saved || { date: 78, from: 0, to: 0, amt: 56, note: 0 };
-    if (widths.date == null) widths.date = 78;
+    /* 五个列宽都是**像素**（不再用 1fr）：列宽之和 > 侧栏宽度时整张表横向溢出，
+       由 .mw-side-left 的 overflow:auto 变成「可以左右拖动」。
+       旧存档里 from/to/note 可能是 0，按新默认值补齐。 */
+    var COL_DEF = { date: 78, from: 96, to: 96, amt: 56, note: 120 };
+    var widths = saved || {};
+    Object.keys(COL_DEF).forEach(function (k) {
+      var v = Number(widths[k]);
+      widths[k] = (v > 0) ? v : COL_DEF[k];
+    });
     // 注意：变量必须设在 **容器** 上，因为每一行都是独立的 .mw-flow-grid，
     // 只给表头设变量的话，下面每一行都读不到 —— 这就是「只有标题栏能调」的原因。
     var applyW = function () {
       var host = document.getElementById('mw-side-wrap') || sideBox;
-      host.style.setProperty('--mw-col-date', (widths.date || 78) + 'px');
-      host.style.setProperty('--mw-col-from', widths.from > 0 ? widths.from + 'px' : '1fr');
-      host.style.setProperty('--mw-col-to', widths.to > 0 ? widths.to + 'px' : '1fr');
-      host.style.setProperty('--mw-col-amt', (widths.amt || 56) + 'px');
-      host.style.setProperty('--mw-col-note', widths.note > 0 ? widths.note + 'px' : '1fr');
+      Object.keys(COL_DEF).forEach(function (k) {
+        host.style.setProperty('--mw-col-' + k, Math.round(widths[k]) + 'px');
+      });
+      // 表格内容的整体宽度 = 各列之和（对应 CSS 里的 --mw-cols-w）
+      var sum = 0;
+      Object.keys(COL_DEF).forEach(function (k) { sum += Number(widths[k]) || 0; });
+      host.style.setProperty('--mw-cols-w', Math.round(sum) + 'px');
     };
     applyW();
 
