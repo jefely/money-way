@@ -42,14 +42,12 @@ export function mountPath(section, ctx) {
 
   let data = null;
 
-  /** 把方向状态画到那颗按钮上（两个标签 + 换向符，当前方向高亮） */
+  /** 把方向画到那颗按钮上：**一个字** —— 「逆」= 逆流，「顺」= 顺流 */
   function paintDir() {
     if (!dirBox) return;
-    dirBox.querySelectorAll('.pw-dir-tag').forEach((tag) => {
-      tag.classList.toggle('is-on', tag.dataset.dir === dir);
-    });
     const now = dir === 'down' ? '顺流' : '逆流';
     const next = dir === 'down' ? '逆流' : '顺流';
+    dirBox.textContent = dir === 'down' ? '顺' : '逆';
     const tip = `追踪方向：${now}，点一下切到${next}`;
     dirBox.setAttribute('aria-label', tip);
     dirBox.setAttribute('aria-pressed', dir === 'down' ? 'true' : 'false');

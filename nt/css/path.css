@@ -549,42 +549,25 @@
   background: var(--nt-bg);
 }
 
-/* 顺 / 逆 一体切换：两个标签 + 中间的换向符，当前方向高亮。
-   整块是一个按钮（点哪儿都换向），不做成两个独立段。 */
+/* 顺 / 逆 切换：**一个字** ——「逆」=逆流、「顺」=顺流，点一下换向。
+   只占 22px 宽、和三角按钮同尺寸（两个字的标签太占地方）。 */
 .pw-dir {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  min-width: 22px;
   height: 22px;
-  padding: 0 7px;
+  padding: 0 6px;
   border: 0;
   border-radius: 5px;
   background: var(--nt-bg-soft);
-  font-size: 11px;
+  color: var(--nt-primary);
+  font-size: 12px;
+  font-weight: 700;
   line-height: 22px;
+  text-align: center;
   cursor: pointer;
 }
 
-.pw-dir-tag {
-  color: var(--nt-text-light);
-}
-
-.pw-dir-tag.is-on {
-  color: var(--nt-primary);
-  font-weight: 700;
-}
-
-.pw-dir-swap {
-  color: var(--nt-text-light);
-  font-size: 10px;
-}
-
-.pw-dir:hover .pw-dir-tag {
-  color: var(--nt-text);
-}
-
-.pw-dir:hover .pw-dir-tag.is-on {
-  color: var(--nt-primary);
+.pw-dir:hover {
+  background: var(--nt-bg);
 }
 
 /* 「Money Way」跟着三角走，同一水平线 */
@@ -596,14 +579,6 @@
   letter-spacing: 0.06em;
   color: var(--nt-primary);
   pointer-events: none;
-}
-
-@media (max-width: 820px) {
-  /* 手机上 tab 栏高度不变（--nt-tabs-h: 40px + 1px 边框），
-     所以工具条**不再单独上抬** —— 它要和标题行的「清空」同一水平线 */
-  .pw-dir {
-    padding: 0 6px;
-  }
 }
 
 
