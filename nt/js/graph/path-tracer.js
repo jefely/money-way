@@ -105,28 +105,21 @@ export function traceFromTx(links, txIndex) {
 }
 
 /**
- * 某个账户**直接相连**的线（点弧块用，**不递归**）。
+ * 某个账户**直接相连**的线（点弧块用，**不递归**）：
+ * 流入它的 + 从它流出的，全部返回。
  *
- *   dir='up'   流入它的线（to_id === id）—— 逆流
- *   dir='down' 从它流出的线（from_id === id）—— 顺流
- *   不传 dir   双向（「看这个账户的全部往来」）
- *
- * 注意：它不是 traceUpstream —— 弧块模式只看这一个账户的一圈线，
- * 递归上游链是「点左栏某一笔」才做的事。
+ * 方向**不参与**选线 —— 逆流 / 顺流只改线的颜色取哪一端
+ * （逆流取转入方、顺流取转出方，见 mw-path-calculator 的 STYLE_*）。
+ * 所以点费用类的弧块时：逆流是一堆它自己颜色的线（来源都归到它名下），
+ * 顺流是一堆各自来源颜色的线（看得出钱是从哪些账户来的）。
  */
-export function traceByAccount(links, accountId, dir) {
+export function traceByAccount(links, accountId) {
   const id = String(accountId || '');
   const out = [];
   for (let i = 0; i < (links || []).length; i++) {
     const l = links[i];
     if (!l) continue;
-    if (dir === 'up') {
-      if (l.to_id === id) out.push(i);
-    } else if (dir === 'down') {
-      if (l.from_id === id) out.push(i);
-    } else if (l.from_id === id || l.to_id === id) {
-      out.push(i);
-    }
+    if (l.from_id === id || l.to_id === id) out.push(i);
   }
   return out;
 }

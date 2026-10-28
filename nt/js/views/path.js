@@ -195,9 +195,9 @@ export function mountPath(section, ctx) {
     const idxOf = (id) => data.txs.findIndex((t) => t && t.id === id);
 
     if (f.kind === 'acc') {
-      // 点弧块：只看**直接相连**的线，不递归。
-      // 逆流 = 流入它的线，顺流 = 从它流出的线。
-      return new Set(traceByAccount(data.txs, f.id, dir));
+      // 点弧块：与它**直接相连**的全部线（流入 + 流出，不递归）。
+      // 方向只改线的颜色（逆流看转入方、顺流看转出方），不参与选线。
+      return new Set(traceByAccount(data.txs, f.id));
     }
     if (f.kind === 'tx') {
       // 模式 2（点单线）：**只点亮这一根**。
@@ -347,11 +347,7 @@ export function mountPath(section, ctx) {
     // 方向放在最前面：它现在只表示「这条链按哪一端着色 / 取线宽」。
     const dirText = dir === 'down' ? '顺流' : '逆流';
     const focusName = focus && focus.kind === 'acc' ? ' · ' + nameOf(focus.id) : '';
-    const emptyHint = emptyChain
-      ? (focus && focus.kind === 'acc'
-        ? (dir === 'down' ? ' · 没有从它流出的线' : ' · 没有流入它的线')
-        : ' · 没有上游流水')
-      : '';
+    const emptyHint = emptyChain ? ' · 没有相连的线' : '';
     ctx.setFooter(`路径追踪 · ${dirText}${focusName}${emptyHint}`
       + ` · ${data.txs.length} 笔 · ${data.blocks.length} 块`
       + ` · ${data.unitDeg.toFixed(3)}°/单位 · ${data.unitArcLen.toFixed(2)}px/弧长`
