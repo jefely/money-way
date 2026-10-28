@@ -8248,7 +8248,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.78';
+const APP_VER = 'v13.79';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -9205,6 +9205,7 @@ var mwLastInfo = null;      // 上一次渲染的统计（命中几根线 / 焦�
 // 否则每次重渲染（点方向键、点行、换焦点）都会把用户刚收起的栏弹回来。
 var mwSideCollapsed = true;   // 默认收起（用户指定）；展开后点右边图区会自动再收起
 var mwRenderSeq = 0;          // 渲染序号：判断「刚才那一下点击有没有连带重渲染」
+var mwLastRowTap = { idx: -1, at: 0 };   // 上一次点行的时间，用来吃掉重复的 click
 /* 焦点模型（复刻 NT v1.40 的语义）：
      kind='acc'   点弧块 → 只看**当前方向的一侧**：逆流=流入它的线，顺流=从它流出的线（不递归）
      kind='tx'    点线   → 只点亮这一根
@@ -9956,11 +9957,9 @@ function mwDrawSvg(nodes, edges) {
   blocks.forEach(function (b) {
     var lb = b.acc;
     if (!lb) return;
-    /* 标签 = 账户名 + 金额（取整、无千分位）。
-       手机上不挂金额：屏幕只有 390px，图占满整宽，`账户名 ¥1234` 这种长度会伸出
-       环外被裁掉一半；桌面（≥760px）才带金额。 */
-    var withAmt = (window.innerWidth || 1200) >= 760;
-    var label = withAmt ? (lb + ' ¥' + Math.round(amtOf[lb] || 0)) : lb;
+    /* 标签 = 账户名 + 金额：金额**取整、不带小数点、不带千分位**（¥9046 而不是 ¥9,046.00）。
+       桌面和手机都挂金额（用户要求，照 nt/ 的图）；放不下时下面会先缩字号。 */
+    var label = lb + ' ¥' + Math.trunc(amtOf[lb] || 0);
     var span = b.a2 - b.a1;
     var mid = (b.a1 + b.a2) / 2;
     var arcLen = span * R_OUT;
@@ -9983,6 +9982,19 @@ function mwDrawSvg(nodes, edges) {
       rText = R_OUT + CONE_LEN;
     } else {
       prevCrowded = false;
+    }
+
+    /* 带上金额后标签更长：文字末端半径 = rText + textW，viewBox 半宽只有 900，
+       超出就会被 SVG 边缘裁掉。这里逐个 0.4px 缩字号（下限 9），缩到装得下为止。
+       手机上标签更长，也能靠这一步自动变小，而不是被裁一半。 */
+    var LABEL_MAX_R = 884;
+    var guardFs = 0;
+    while (guardFs++ < 60 && (rText + textW) > LABEL_MAX_R && fs > 9) {
+      fs -= 0.4;
+      textW = 0;
+      for (var cj = 0; cj < label.length; cj++) {
+        textW += (label.charCodeAt(cj) > 255 ? 1.0 : 0.55) * fs;
+      }
     }
 
     if (crowded) {
@@ -10255,6 +10267,12 @@ function mwDrawSvg(nodes, edges) {
   sideBox.querySelectorAll('.mw-flow-row').forEach(function (row) {
     row.onclick = function () {
       var idx = Number(row.getAttribute('data-tx'));
+      /* 一次触摸可能被浏览器补发第二个 click（合成 click / 重渲染后重放），
+         第二次会命中刚建好的同一行 → 走「再点取消」把高亮灭掉，看起来就是「闪一下」。
+         500ms 内同一行只认第一次。 */
+      var nowTs = Date.now();
+      if (idx === mwLastRowTap.idx && nowTs - mwLastRowTap.at < 500) return;
+      mwLastRowTap = { idx: idx, at: nowTs };
       // 左栏点一条 = **支出倒推链**（这一笔 + 谁给它转过钱），方向不改链、只改画法
       var same = (mwFocusKind === 'trace' && mwChainRoot === idx);
       if (same) {
