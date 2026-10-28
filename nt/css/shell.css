@@ -144,10 +144,18 @@ body {
   color: var(--nt-text-muted);
 }
 
+/* 所有工具条的按钮统一尺寸（用户 2026-10-29：按钮边框高度降低、大小统一）。
+   只作用于工具条里的按钮；弹窗 / 表单的 32px 按钮不受影响。
+   高度 26 是「贴着 30px 工具条也不顶边」的上限，字号仍走 --nt-vbar-font。 */
+.nt-vbar .nt-btn {
+  height: 26px;
+  padding: 0 8px;
+}
+
 /* 设置页工具条：标题 + 6 个按钮 = 7 个元素，390px 下默认会折成两行，
    「布局」孤零零掉到第二行（用户 2026-10-29：「图标会自动换行」）。
-   这里把按钮收紧、禁止折行；万一面板把字号调大放不下，改成横向滑动，
-   而不是再掉一行。 */
+   按钮尺寸已经在上面统一了，这里只禁止折行；万一面板把字号调大放不下，
+   改成横向滑动，而不是再掉一行。 */
 .nt-view[data-view="settings"] .nt-vbar {
   flex-wrap: nowrap;
   gap: 4px;
@@ -162,13 +170,10 @@ body {
 
 .nt-view[data-view="settings"] .nt-vbar-title {
   flex: 0 0 auto;
-  font-size: 11px;
 }
 
 .nt-view[data-view="settings"] .nt-vbar .nt-btn {
   flex: 0 0 auto;
-  height: 26px;
-  padding: 0 6px;
 }
 
 /* ---------- 胶囊子 tab ---------- */

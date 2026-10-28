@@ -3,10 +3,34 @@
  * 锁屏 / 设置密码（UI 层）
  *
  * 只做三件事：拿模板、读输入、把结果交给调用方。
- * **不派生密钥、不碰存储** —— 那是 core/auth-manager 与 browser/db 的事。
+ * **不派生密钥、不碰账本存储** —— 那是 core/auth-manager 与 browser/db 的事。
+ *
+ * 密码提示词是个例外：它必须在**解锁前**就能读到，所以只能放在
+ * localStorage（明文，`nt_pw_hint`）。提示词本来就是给忘了密码的人看的，
+ * 不加密；清缓存会丢，但丢了不影响解锁。
  */
 
 import { tpl } from './render-transactions.js';
+
+const HINT_KEY = 'nt_pw_hint';
+
+/** 读提示词（没有 / 读不到都返回空串） */
+export function readPwHint() {
+  try {
+    return localStorage.getItem(HINT_KEY) || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+/** 写提示词；空串等于清掉 */
+function savePwHint(v) {
+  try {
+    const text = String(v == null ? '' : v).trim();
+    if (text) localStorage.setItem(HINT_KEY, text);
+    else localStorage.removeItem(HINT_KEY);
+  } catch (e) { /* 隐私模式写不进，不影响解锁 */ }
+}
 
 /**
  * 显示门禁。
@@ -41,6 +65,15 @@ function mountLock(host, handlers) {
   const form = box.querySelector('#nt-lock-form');
   const pw = box.querySelector('#nt-lock-pw');
   const msg = box.querySelector('#nt-lock-msg');
+  const hintEl = box.querySelector('#nt-lock-hint');
+
+  // 提示词：紧贴密码框下面一行。有内容才显示，没填就整行不出现
+  // （不写「提示词：」前缀 —— 用户 2026-10-29 指定）。
+  if (hintEl) {
+    const hint = readPwHint().trim();
+    hintEl.textContent = hint;
+    hintEl.hidden = !hint;
+  }
 
   setTimeout(() => { try { pw.focus(); } catch (e) {} }, 80);
 
@@ -66,6 +99,7 @@ function mountSetup(host, handlers) {
   const form = box.querySelector('#nt-setup-form');
   const pw = box.querySelector('#nt-setup-pw');
   const pw2 = box.querySelector('#nt-setup-pw2');
+  const hint = box.querySelector('#nt-setup-hint');
   const ack = box.querySelector('#nt-setup-ack');
   const go = box.querySelector('#nt-setup-go');
   const msg = box.querySelector('#nt-setup-msg');
@@ -85,6 +119,8 @@ function mountSetup(host, handlers) {
 
     msg.textContent = '正在加密…';
     go.disabled = true;
+    // 提示词先落盘：加密失败也不影响下次解锁时能看到它
+    savePwHint(hint ? hint.value : '');
     const res = await handlers.onSetup(pw.value);
     if (!res.ok) {
       msg.textContent = res.error || '设置失败';

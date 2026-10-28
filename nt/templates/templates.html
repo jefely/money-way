@@ -130,6 +130,8 @@
       <label class="nt-visually-hidden" for="nt-lock-pw">密码</label>
       <input class="nt-input nt-gate-input" id="nt-lock-pw" type="password"
              autocomplete="current-password" placeholder="密码" required>
+      <!-- 提示词：紧贴在密码框下面一行，有内容才显示（不写「提示词：」前缀） -->
+      <p class="nt-gate-pw-hint" id="nt-lock-hint" hidden></p>
       <button class="nt-btn nt-btn-primary nt-gate-btn" type="submit">解锁</button>
     </form>
     <p class="nt-gate-msg" id="nt-lock-msg" role="status"></p>
@@ -148,6 +150,10 @@
       <label class="nt-visually-hidden" for="nt-setup-pw2">再输一次</label>
       <input class="nt-input nt-gate-input" id="nt-setup-pw2" type="password"
              autocomplete="new-password" placeholder="再输一次" required>
+      <!-- 提示词（可选）：解锁时显示在密码框下面，忘了密码时给自己看 -->
+      <label class="nt-visually-hidden" for="nt-setup-hint">提示词</label>
+      <input class="nt-input nt-gate-input nt-gate-hint-input" id="nt-setup-hint" type="text"
+             autocomplete="off" placeholder="提示词（可选）：忘了密码时给自己看">
       <label class="nt-gate-confirm">
         <input type="checkbox" id="nt-setup-ack">
         <span>我知道：忘记密码将永久丢失全部数据，没有任何找回途径</span>

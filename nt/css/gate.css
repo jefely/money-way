@@ -64,6 +64,26 @@
   letter-spacing: 0;
 }
 
+/* 解锁界面的提示词：紧贴密码框下面一行，有内容才出现（hidden 时整行消失）。
+   不写「提示词：」前缀 —— 内容本身就是提示；左对齐，与输入框同一条边。 */
+.nt-gate-pw-hint {
+  margin: -4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(244, 241, 255, 0.62);
+  text-align: left;
+  word-break: break-word;
+}
+
+.nt-gate-pw-hint[hidden] {
+  display: none;
+}
+
+/* 设置密码时那格「提示词（可选）」：中文提示词不需要密码框的字距 */
+.nt-gate-hint-input {
+  letter-spacing: 0;
+}
+
 .nt-gate-btn {
   height: 44px;
   font-size: 15px;

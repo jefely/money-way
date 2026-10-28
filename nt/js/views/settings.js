@@ -13,13 +13,17 @@ import { balanceOf } from '../core/balance-calculator.js';
 import { money } from '../core/format.js';
 import { mountAccountTable } from '../ui/account-table.js';
 import * as NtModal from '../ui/modal.js';
-import { applyTheme, saveTheme } from '../ui/theme-manager.js';
+import { applyTheme, saveTheme, currentTheme } from '../ui/theme-manager.js';
 import { applySettings } from '../ui/apply-settings.js';
 import { loadMergedSettings } from '../ui/debug-themes.js';
 import { mountDebugPanel } from '../ui/debug-panel.js';
 import { openAccountConfig } from '../ui/account-config.js';
 
 const ACT_LABEL = { password: '修改密码', config: '配置', layout: '布局' };
+
+/** 主题循环的顺序：与调试面板的 1/2/3/4 一致 */
+const THEME_CYCLE = ['light', 'dark', 'alt1', 'alt2'];
+const THEME_LABEL = { light: '浅色', dark: '深色', alt1: '备选1', alt2: '备选2' };
 
 export function mountSettings(section, ctx) {
   const body = section.querySelector('#nt-accounts-body');
@@ -46,7 +50,7 @@ export function mountSettings(section, ctx) {
 
   function onAction(act) {
     if (act === 'balance') { showBalance(); return; }
-    if (act === 'theme') { showTheme(); return; }
+    if (act === 'theme') { cycleTheme(); return; }
     if (act === 'reset') { showReset(); return; }
     if (act === 'layout') { showLayout(); return; }
     if (act === 'config') { openAccountConfig(ctx); return; }
@@ -95,30 +99,16 @@ export function mountSettings(section, ctx) {
     });
   }
 
-  function showTheme() {
-    NtModal.open({
-      title: '主题',
-      build: (b) => {
-        const p = document.createElement('p');
-        p.textContent = '选择一个主题，立即生效并记住。';
-        b.appendChild(p);
-      },
-      actions: [
-        {
-          label: '浅色',
-          kind: 'ghost',
-          close: false,
-          onClick: ({ close }) => { switchTheme('light'); close(); },
-        },
-        {
-          label: '深色',
-          kind: 'ghost',
-          close: false,
-          onClick: ({ close }) => { switchTheme('dark'); close(); },
-        },
-        { label: '关闭', kind: 'ghost', close: true },
-      ],
-    });
+  /**
+   * 主题按钮：点一下换下一个，四个主题循环（用户 2026-10-29 指定）。
+   * 顺序与调试面板的 1/2/3/4 一致：浅色 → 深色 → 备选1 → 备选2 → 浅色。
+   */
+  function cycleTheme() {
+    const cur = currentTheme();
+    const i = THEME_CYCLE.indexOf(cur);
+    const next = THEME_CYCLE[(i + 1) % THEME_CYCLE.length];
+    switchTheme(next);
+    if (ctx.setFooter) ctx.setFooter('主题：' + THEME_LABEL[next]);
   }
 
   /**
@@ -134,7 +124,7 @@ export function mountSettings(section, ctx) {
     saveTheme(theme);
     try {
       applySettings(loadMergedSettings(ctx, theme), theme);
-    } catch (e) { /* 主题已经切过去，参数失败不应阻止关闭弹窗 */ }
+    } catch (e) { /* 主题已经切过去，参数失败不应阻止切换 */ }
   }
 
   function showReset() {
