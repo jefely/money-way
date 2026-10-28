@@ -20,7 +20,7 @@ import { SVG } from '../ui/mw-svg-renderer.js';
 import { paintChart, paintEmpty } from '../ui/path-view.js';
 import {
   bindFlowFilters, paintFlowRows, bindSideToggle, mountPathColResize, mountSideResizer,
-  setSideCollapsed,
+  setSideCollapsed, syncToolsTop,
 } from '../ui/path-flow-table.js';
 import { mountChartGestures } from '../ui/chart-gestures.js';
 import { saveTableColWidth } from '../ui/col-save.js';
@@ -53,6 +53,15 @@ export function mountPath(section, ctx) {
     dirBox.setAttribute('aria-pressed', dir === 'down' ? 'true' : 'false');
     dirBox.title = tip;
   }
+
+  // 工具条贴在左栏标题行上（左起、上下居中）：函数在 path-flow-table.js 里，
+  // 它要在「切 tab / 收展侧栏 / 改窗口大小」后重新量一次标题行的实际位置。
+  syncToolsTop();
+  window.addEventListener('resize', syncToolsTop);
+
+  // 展开 / 收起后标题行出现或消失，隔一拍再量一次
+  const toggleBtn = section.querySelector('#pw-toggle');
+  if (toggleBtn) toggleBtn.addEventListener('click', () => setTimeout(syncToolsTop, 0));
 
   /** 换方向：**只换画法**（颜色取哪一端、第 4 模式线宽取哪一端），链不动 */
   function setDir(next) {
@@ -255,10 +264,12 @@ export function mountPath(section, ctx) {
     if (Math.hypot(ev.clientX - t.x, ev.clientY - t.y) > 8) return;   // 平移 / 旋转
     if (Date.now() - t.t > 700) return;                              // 长按起手
     setSideCollapsed(true);
+    setTimeout(syncToolsTop, 0);   // 标题行收起来了 → 用估算值重新贴齐
   });
   chartBox.addEventListener('pointercancel', () => { tap = null; });
 
   function render() {
+    syncToolsTop();
     // 先按左栏筛选框过滤，再拿结果去画图 —— 图的统计范围就是筛选结果
     const st0 = ctx.getState();
     const allTx = (st0.transactions || []).filter((t) => t && !t.opening);

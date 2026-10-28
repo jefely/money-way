@@ -70,7 +70,8 @@
 | 侧栏 | `z-index: 2`、背景 `color-mix(--nt-bg-soft 15%, transparent)`（几乎全透） |
 | 侧栏宽度 | `--nt-pw-side-w`，默认 320，上限 `min(窗口宽×0.92, …)`；收起 = `0` |
 | 窄屏侧栏上限 | `92vw`（宽于 820px 时不生效） |
-| 左上工具条 `.pw-tools` | `position: fixed`、`left: 10px`、`top: 50px`、`z-index: 7`、间距 8px；**不随侧栏收展隐藏** |
+| 左上工具条 `.pw-tools` | `position: fixed`、`left: 10px`、`top: var(--nt-pw-tools-top, 50px)`、`z-index: 7`、间距 8px；**不随侧栏收展隐藏** |
+| 工具条垂直位置 | `syncToolsTop()` 量 `.pw-side-head` 的实际中心写进变量（手机 tab 栏变高也跟得上）；侧栏收起时按「tab 栏底 + 20px」估算 |
 | 工具条内容 | 三角（22×22，收起态 ▶ / 展开态 ◀）+ 顺逆切换 + `Money Way`（13px/800） |
 | 顺逆切换 `.pw-dir` | **单个字**的按钮：显示「逆」（逆流）或「顺」（顺流），点一下换向；高 22、最小宽 22、字号 12/700、主色 |
 | 左栏标题行 | 只剩「清空」（右对齐）；原「路径追踪」标题已由工具条取代 |

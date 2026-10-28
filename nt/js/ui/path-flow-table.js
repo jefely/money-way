@@ -284,7 +284,34 @@ export function setSideCollapsed(collapsed) {
   }
 }
 
-/** 绑定收起 / 展开（标题行不再放「收起」，只留三角与左栏右缘的拖条） */
+/**
+ * 工具条（三角 + 方向 + Money Way）贴在左栏标题行上：**左起、上下居中**。
+ *
+ * 不能写死 `top` —— 手机上 tab 栏会因安全区 / 系统字号变高，固定值会比标题行低一截
+ * （用户截图里工具条就比「清空」低了一行）。所以量 `.pw-side-head` 的实际位置；
+ * 左栏收起时那一行是 display:none（高度 0），退回到「tab 栏底 + 标题行内边距」的估算。
+ */
+export function syncToolsTop() {
+  const tools = document.querySelector('.pw-tools');
+  const view = document.querySelector('.nt-view[data-view="path"]');
+  if (!tools || !view || view.hidden) return;   // 路径页没显示时量不到，等 render 再量
+  const h = tools.getBoundingClientRect().height || 22;
+  const head = document.querySelector('.pw-side-head');
+  const hr = head ? head.getBoundingClientRect() : null;
+  let top = null;
+  if (hr && hr.height > 0) {
+    top = hr.top + (hr.height - h) / 2;
+  } else {
+    const tabs = document.querySelector('.nt-tabs');
+    const tr = tabs ? tabs.getBoundingClientRect() : null;
+    // 标题行 = 上内边距 8 + 按钮 24（它的中点离行顶 20）
+    if (tr) top = tr.bottom + 20 - h / 2;
+  }
+  if (top != null && Number.isFinite(top)) {
+    document.documentElement.style.setProperty('--nt-pw-tools-top', Math.round(top) + 'px');
+  }
+}
+
 export function bindSideToggle() {
   const side = document.getElementById('pw-side');
   if (!side) return;

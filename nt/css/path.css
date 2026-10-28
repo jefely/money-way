@@ -521,9 +521,9 @@
   position: fixed;
   /* 与左栏内容左缘（10px）对齐；侧栏收起时它就是视口左边 10px 处 */
   left: 10px;
-  /* 与左栏标题行的「清空」同一水平线（居中）：tab 栏 41px + 上内边距 8px = 49px，
-     按钮高 24px、中心 61px；这一条高 22px，所以 top = 61 − 11 = 50px */
-  top: 50px;
+  /* 与左栏标题行的「清空」同一水平线：由 JS 量出标题行中心写进这个变量
+     （手机上 tab 栏会因安全区 / 字号变高，写死 50px 会低一截） */
+  top: var(--nt-pw-tools-top, 50px);
   z-index: 7;
   display: flex;
   align-items: center;
