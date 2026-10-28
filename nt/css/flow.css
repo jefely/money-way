@@ -482,9 +482,16 @@ body.nt-col-resizing {
   outline: none;
 }
 
+/* 编辑态照单文件版（td:focus-within #262626）：**整格**提亮，
+   输入框本身透明、不要 outline —— 原来只给输入框上底色加描边，
+   一格正在编辑时看不出它的边界落在哪。 */
+.nt-cell:focus-within {
+  background: var(--nt-cell-active, var(--nt-bg-cell));
+}
+
 .nt-cell-input:focus {
-  background: var(--nt-bg-cell);
-  outline: 1px solid var(--nt-primary);
+  background: transparent;
+  outline: 0;
 }
 
 .nt-cell-input-num {
