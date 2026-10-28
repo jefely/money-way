@@ -15,9 +15,10 @@ import {
 import {
   calcLinkStyle, categoryColor, WEIGHT_MAP, UNIT_WIDTH_RATIO, MAX_STROKE_WIDTH, MIN_STROKE_WIDTH,
   unitDegree as unitDegreeFromPath, chordGeometry, OPACITY, linkOpacity,
+  traceWidthOf, TRACE_FLOOR, STYLE_UP, STYLE_DOWN, styleOf,
 } from '../js/graph/mw-path-calculator.js';
 import {
-  traceUpstream, traceDownstream, traceFromTx, traceByAccount,
+  traceUpstream, traceFromTx, traceByAccount,
   extractLeverageLinks, hasCycle,
 } from '../js/graph/path-tracer.js';
 
@@ -273,72 +274,75 @@ test('按账户取往来（点弧块）', () => {
   assert.deepEqual(traceByAccount(links, 'a_bank'), [0, 1]);
 });
 
-/* ---------- 顺流追踪（和反向溯源同一套规则的镜像） ---------- */
+/* ---------- 追踪链：逆流 / 顺流是画法，链不变 ---------- */
 
-test('★ 顺流追踪：从资产追到它花掉的地方', () => {
-  const links = [
-    tx('a_salary', 'a_bank'),   // 0 上游，不该被顺流带上
-    tx('a_bank', 'a_food'),     // 1
-    tx('a_bank', 'a_traffic'),  // 2
-    tx('a_salary', 'a_cash'),   // 3 无关分支
-  ];
-  const r = traceDownstream(links, 'a_bank');
-  assert.deepEqual(r.linkIndices, [1, 2]);
-  assert.equal(r.accountIds.includes('a_food'), true);
-  assert.equal(r.accountIds.includes('a_salary'), false);
-});
-
-test('顺流追踪：多跳，钱经中转账户再花出去', () => {
-  const links = [
-    tx('a_salary', 'a_bank'),   // 0
-    tx('a_bank', 'a_cash'),     // 1
-    tx('a_cash', 'a_food'),     // 2
-    tx('a_card', 'a_traffic'),  // 3
-  ];
-  const r = traceDownstream(links, 'a_bank');
-  assert.deepEqual(r.linkIndices, [1, 2]);
-  assert.equal(r.depths.get('a_bank'), 0);
-  assert.equal(r.depths.get('a_cash'), 1);
-  assert.equal(r.depths.get('a_food'), 2);
-});
-
-test('顺流追踪：环路（倒卡）不会死循环', () => {
-  const links = [tx('a_bank', 'a_card'), tx('a_card', 'a_bank'), tx('a_card', 'a_food')];
-  const r = traceDownstream(links, 'a_bank');
-  assert.deepEqual(r.linkIndices, [0, 1, 2]);
-});
-
-test('顺流追踪：单边流水（没有转入）到这儿就断，不再往下', () => {
-  const links = [{ from_id: 'a_bank', to_id: '', amount: 1, date: '2026-08-01' }];
-  assert.deepEqual(traceDownstream(links, 'a_bank').linkIndices, [0]);
-  assert.deepEqual(traceDownstream(links, '').linkIndices, []);
-});
-
-test('★ 侧栏条目逆流：链含这笔本身，能追到源头', () => {
+test('★ 侧栏条目：链含这笔本身，能追到源头（方向不参与选链）', () => {
   const links = [tx('a_salary', 'a_bank'), tx('a_bank', 'a_food'), tx('a_card', 'a_food')];
-  assert.deepEqual(traceFromTx(links, 1, 'up').linkIndices, [0, 1, 2]);
+  assert.deepEqual(traceFromTx(links, 1).linkIndices, [0, 1, 2]);
 });
 
-test('★ 侧栏条目顺流：这笔本身是链头，再接它的下游', () => {
-  const links = [
-    tx('a_salary', 'a_bank'),    // 0 上游
-    tx('a_bank', 'a_food'),      // 1 这一笔
-    tx('a_food', 'a_traffic'),   // 2 下游
-  ];
-  assert.deepEqual(traceFromTx(links, 1, 'down').linkIndices, [1, 2]);
-});
-
-test('侧栏条目：哪一头空就只剩这笔自己（单边流水）', () => {
+test('侧栏条目：单边流水只剩这笔自己', () => {
   const links = [{ from_id: '', to_id: 'a_bank', amount: 1, date: '2026-08-01' }];
-  assert.deepEqual(traceFromTx(links, 0, 'up').linkIndices, [0]);
-  assert.deepEqual(traceFromTx(links, 0, 'down').linkIndices, [0]);
+  assert.deepEqual(traceFromTx(links, 0).linkIndices, [0]);
 });
 
 test('侧栏条目：下标越界 / 非法时返回空链（不抛错）', () => {
   const links = [tx('a_salary', 'a_bank')];
-  assert.deepEqual(traceFromTx(links, 9, 'down').linkIndices, []);
-  assert.deepEqual(traceFromTx(links, -1, 'down').linkIndices, []);
-  assert.deepEqual(traceFromTx(links, 'x', 'up').linkIndices, []);
+  assert.deepEqual(traceFromTx(links, 9).linkIndices, []);
+  assert.deepEqual(traceFromTx(links, -1).linkIndices, []);
+  assert.deepEqual(traceFromTx(links, 'x').linkIndices, []);
+});
+
+/* ---------- 方向 = 画法：两套完全独立的样式规则 ---------- */
+
+test('★ 两套样式规则各自独立：颜色取哪一端 + 自己的线宽表', () => {
+  assert.equal(STYLE_UP.colorBy, 'to', '逆流看转入方');
+  assert.equal(STYLE_DOWN.colorBy, 'from', '顺流看转出方');
+  assert.equal(styleOf('up'), STYLE_UP);
+  assert.equal(styleOf('down'), STYLE_DOWN);
+
+  // 两张表不是同一个对象，也不是同一张表换顺序 —— 各写各的
+  assert.notEqual(STYLE_UP.traceWidth, STYLE_DOWN.traceWidth);
+  assert.equal(STYLE_UP.traceWidth.费用, 6);
+  assert.equal(STYLE_DOWN.traceWidth.费用, 1.2);
+  assert.equal(STYLE_UP.traceWidth.收入, 1.2);
+  assert.equal(STYLE_DOWN.traceWidth.收入, 6);
+});
+
+test('★ 逆流颜色取转入方、顺流颜色取转出方', () => {
+  const colorKeyOf = (id) => (byId.get(id) || {}).category || '';
+  const colorIndex = new Map([['储蓄', 0], ['日常', 2], ['薪金', 4]]);
+  const ctx = { byId, colorKeyOf, colorIndex };
+  const link = tx('a_salary', 'a_bank');   // 工资（薪金）→ 招行储（储蓄）
+
+  const up = calcLinkStyle(link, ctx, 10);
+  const down = calcLinkStyle(link, ctx, 10, { colorBy: 'from' });
+  assert.equal(up.colorKey, '储蓄', '逆流看转入方');
+  assert.equal(down.colorKey, '薪金', '顺流看转出方');
+  assert.notEqual(up.strokeColor, down.strokeColor, '两条规则必须给出不同颜色');
+});
+
+/* ---------- 方向 = 画法：第 4 模式的线宽取哪一端 ---------- */
+
+test('★ 追踪线宽·逆流：看转入方，费用 6 / 资产 3.6 / 负债 2.4 / 收入·权益 1.2', () => {
+  assert.equal(traceWidthOf('费用类', 'up'), 6);
+  assert.equal(traceWidthOf('资产类', 'up'), 3.6);
+  assert.equal(traceWidthOf('负债类', 'up'), 2.4);
+  assert.equal(traceWidthOf('收入类', 'up'), 1.2);
+  assert.equal(traceWidthOf('权益类', 'up'), 1.2);
+});
+
+test('★ 追踪线宽·顺流：看转出方，收入·权益 6 / 负债 4 / 储蓄(资产) 2.4 / 费用 1.2', () => {
+  assert.equal(traceWidthOf('收入类', 'down'), 6);
+  assert.equal(traceWidthOf('权益类', 'down'), 6);
+  assert.equal(traceWidthOf('负债类', 'down'), 4);
+  assert.equal(traceWidthOf('资产类', 'down'), 2.4);
+  assert.equal(traceWidthOf('费用类', 'down'), 1.2);
+});
+
+test('追踪线宽：认不出的类型落到兜底，不返回 undefined', () => {
+  assert.equal(traceWidthOf('其它', 'down'), TRACE_FLOOR);
+  assert.equal(traceWidthOf('', 'up'), TRACE_FLOOR);
 });
 
 /* ---------- 功能二：资产负债腾挪 ---------- */

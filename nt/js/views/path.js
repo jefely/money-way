@@ -14,8 +14,8 @@ import { computeSlots } from '../graph/mw-slot-calculator.js';
 import { matchAccount } from '../core/query-engine.js';
 import { dateInRange } from '../core/date-query.js';
 import { money } from '../core/format.js';
-import { buildChord } from '../graph/mw-path-calculator.js';
-import { traceUpstream, traceDownstream, traceFromTx } from '../graph/path-tracer.js';
+import { buildChord, styleOf } from '../graph/mw-path-calculator.js';
+import { traceUpstream, traceFromTx } from '../graph/path-tracer.js';
 import { SVG } from '../ui/mw-svg-renderer.js';
 import { paintChart, paintEmpty } from '../ui/path-view.js';
 import {
@@ -56,12 +56,10 @@ export function mountPath(section, ctx) {
     dirBox.title = tip;
   }
 
-  /** 换方向：同一个根重新算链，焦点不丢 */
+  /** 换方向：**只换画法**（颜色取哪一端、第 4 模式线宽取哪一端），链不动 */
   function setDir(next) {
     dir = next === 'down' ? 'down' : 'up';
     paintDir();
-    // 单线模式没有方向。按方向按钮说明想看这条线的来路 / 去路，于是升成追踪链。
-    if (focus && focus.kind === 'tx') focus = { kind: 'trace', txId: focus.txId };
     render();
   }
 
@@ -139,6 +137,8 @@ export function mountPath(section, ctx) {
     }
 
     const chords = [];
+    // 颜色取哪一端由「那套样式规则」决定：逆流看转入方，顺流看转出方
+    const colorBy = styleOf(dir).colorBy;
     for (const [txIdx, pair] of byTx) {
       if (!pair.f || !pair.t || pair.f.empty || pair.t.empty) continue;
       chords.push(buildChord({
@@ -152,6 +152,7 @@ export function mountPath(section, ctx) {
         rIn: SVG.rIn,
         ctx: gctx,
         unitArcLen,
+        colorBy,
       }));
     }
 
@@ -194,11 +195,8 @@ export function mountPath(section, ctx) {
     const idxOf = (id) => data.txs.findIndex((t) => t && t.id === id);
 
     if (f.kind === 'acc') {
-      // 点弧块：按当前方向只看一头。逆流 = 谁给它钱，顺流 = 它的钱去了哪。
-      const r = dir === 'down'
-        ? traceDownstream(data.txs, f.id)
-        : traceUpstream(data.txs, f.id);
-      return new Set(r.linkIndices);
+      // 点弧块：支出倒推（谁给它钱）。方向只改画法，不改这条链。
+      return new Set(traceUpstream(data.txs, f.id).linkIndices);
     }
     if (f.kind === 'tx') {
       // 模式 2（点单线）：**只点亮这一根**。
@@ -207,9 +205,9 @@ export function mountPath(section, ctx) {
       return i < 0 ? null : new Set([i]);
     }
     if (f.kind === 'trace') {
-      // 模式 4（点侧栏条目）：按方向追踪，整条链都点亮
+      // 模式 4（点侧栏条目）：支出倒推链，**两个方向看到的是同一批线**
       const i = idxOf(f.txId);
-      return i < 0 ? null : new Set(traceFromTx(data.txs, i, dir).linkIndices);
+      return i < 0 ? null : new Set(traceFromTx(data.txs, i).linkIndices);
     }
     return null;
   }
@@ -288,7 +286,7 @@ export function mountPath(section, ctx) {
 
     const hits = hitsFor(focus);
 
-    // 链是空的（顺流没找到下游 / 逆流追不到上游）时**不压暗整张图**：
+    // 链是空的（收入类账户没有上游）时**不压暗整张图**：
     // 一进页面全图变暗会像「图坏了」，改用页脚说明。
     const emptyChain = !!hits && hits.size === 0;
 
@@ -301,6 +299,7 @@ export function mountPath(section, ctx) {
 
     // 四种模式的线宽在 paintChart 里各自独立：
     //   mode=null 基本模式 / 'acc' 点色块 / 'tx' 点单线 / 'trace' 侧栏追踪
+    // dir 只影响颜色（取哪一端）与 trace 模式的线宽（取哪一端）
     paintChart(chartBox, data, emptyChain ? null : hits, (kind, value) => {
       if (kind === 'acc') {
         const same = focus && focus.kind === 'acc' && focus.id === value;
@@ -313,7 +312,7 @@ export function mountPath(section, ctx) {
         focus = same ? null : { kind: 'tx', txId: tx.id };
       }
       render();
-    }, focus ? focus.kind : null);
+    }, { mode: focus ? focus.kind : null, dir });
 
     // 手势要在 paintChart **之后**挂：svg 是 paintChart 里才创建的。
     //
@@ -344,12 +343,10 @@ export function mountPath(section, ctx) {
     });
 
     // 图的参数压成一行放页脚（和其它页一样在屏幕底部），左栏不再占一块高度给统计。
-    // 方向放在最前面：它是「现在这一屏看的是来路还是去路」的状态。
+    // 方向放在最前面：它现在只表示「这条链按哪一端着色 / 取线宽」。
     const dirText = dir === 'down' ? '顺流' : '逆流';
     const focusName = focus && focus.kind === 'acc' ? ' · ' + nameOf(focus.id) : '';
-    const emptyHint = emptyChain
-      ? (dir === 'down' ? ' · 没有下游流水' : ' · 没有上游流水')
-      : '';
+    const emptyHint = emptyChain ? ' · 没有上游流水' : '';
     ctx.setFooter(`路径追踪 · ${dirText}${focusName}${emptyHint}`
       + ` · ${data.txs.length} 笔 · ${data.blocks.length} 块`
       + ` · ${data.unitDeg.toFixed(3)}°/单位 · ${data.unitArcLen.toFixed(2)}px/弧长`

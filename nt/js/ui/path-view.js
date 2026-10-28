@@ -8,13 +8,26 @@
 import { renderChart, RATIO } from './mw-svg-renderer.js';
 import {
   categoryColor, pointAt, OPACITY, DEPTH_WIDTHS, W_MID, PICK_BOOST, PICK_SHRINK,
+  traceWidthOf, TRACE_FLOOR,
 } from '../graph/mw-path-calculator.js';
 
 const el = (id) => document.getElementById(id);
 
-/** 画图 + 绑事件 */
-export function paintChart(host, data, hits, onPick, mode) {
+/**
+ * 画图 + 绑事件。
+ *
+ * @param {HTMLElement} host #pw-chart
+ * @param {object} data build() 的结果
+ * @param {Set<number>|null} hits 命中连线（data.txs 下标）
+ * @param {(kind:string, value:any)=>void} onPick
+ * @param {{mode?:string|null, dir?:'up'|'down'}} view
+ *   mode：null 基本 / 'acc' 色块 / 'tx' 单线 / 'trace' 追踪
+ *   dir ：逆流（up）看转入方、顺流（down）看转出方 —— **只影响颜色与第 4 模式线宽**
+ */
+export function paintChart(host, data, hits, onPick, view) {
   const colorOf = (key) => categoryColor(data.colorIndex, key);
+  const mode = (view && view.mode) || null;
+  const dir = view && view.dir === 'down' ? 'down' : 'up';
 
   // 线宽照单文件版：
   //   没追踪 → 全部统一 W_MID(2.4)
@@ -23,22 +36,6 @@ export function paintChart(host, data, hits, onPick, mode) {
   // 注意：这里**没有**按笔数做密度补偿。曾经加过一版（250 笔时把线调细 0.6 倍），
   // 但在 v0.50 把「图尺寸只由高度决定」修好之后，250 笔在侧栏收起时已经不糊了 ——
   // 线宽恢复成单文件版的 2.4 才是一致的样子。
-  /**
-   * 追踪模式的四档线宽 —— **固定参数**（基准单位，×RATIO 后生效）。
-   *
-   * 定标依据：250 笔真实数据时 unitArcLen ≈ 27.74 画布，
-   *   费用 6 / 资产 3.6 / 负债 2.4 / 收入·权益 1.2（用户定稿值）。
-   *
-   * 改成固定值的原因：按 unitArcLen 标定的话，笔数少的时候
-   * 单位角变大会把线撑到比环还厚（2 笔时算出来是 183 显示像素），
-   * 笔数多又细成发丝。固定之后任何数据量都是这四档。
-   */
-  const TRACE_WIDTH = { 费用: 6, 资产: 3.6, 负债: 2.4, 收入: 1.2, 权益: 1.2 };
-  const traceWidth = (type) => {
-    const s = String(type || '');
-    for (const k of Object.keys(TRACE_WIDTH)) if (s.includes(k)) return TRACE_WIDTH[k];
-    return TRACE_WIDTH.收入;
-  };
 
   const chords = data.chords.map((c) => {
     const hit = hits ? hits.has(c.txIdx) : false;
@@ -47,15 +44,16 @@ export function paintChart(host, data, hits, onPick, mode) {
     //   基本  → W_MID × 0.75（细一级），不画遮罩
     //   单线  → 命中 W_MID × 1.0（粗一级），其它同级但被遮罩盖住
     //   色块  → 沿用层级档位（不动）
-    //   追踪  → 固定四档 6 / 3.6 / 2.4 / 1.2
+    //   追踪  → 按方向取那一端的四个类型档（见 mw-path-calculator 的 STYLE_UP / STYLE_DOWN）
     let strokeWidth = W_MID * RATIO * 0.75;
     if (mode === 'tx') {
       strokeWidth = W_MID * RATIO * (hit ? 1.0 : 0.75);
     } else if (mode === 'trace') {
-      // 模式 4：追踪 —— 单位 1 = 0.9 个单位角对应的弧长，
-      // 再按「转入方类型」乘倍率（费用 1 / 储蓄 0.5 / 负债 0.25 / 收入·权益 0.12）。
-      // 这样线宽和「一笔流水在环上占多宽」是同一个量纲，笔数越多线越细。
-      strokeWidth = (hit ? traceWidth(c.toType) : TRACE_WIDTH.收入) * RATIO;
+      // 第 4 模式：逆流看**转入方**的类型（费用最粗 → 收入最细），
+      // 顺流看**转出方**的类型（收入·权益最粗 → 费用最细）。
+      // 非命中线压到最细一档，链才浮出来。
+      const endType = dir === 'down' ? c.fromType : c.toType;
+      strokeWidth = (hit ? traceWidthOf(endType, dir) : TRACE_FLOOR) * RATIO;
     } else if (hits) {
       if (hit) {
         const dep = Number.isFinite(c.depth) ? c.depth : DEPTH_WIDTHS.length - 1;
