@@ -8129,7 +8129,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.66';
+const APP_VER = 'v13.67';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -15133,16 +15133,21 @@ const SUMMARY_FOLD_COLS = [1, 2];   // 1=类型、2=分类（简码不再收起�
 // 于是「把三列调窄 → 折叠 → 再展开」宽度又弹回 76/59/73，怎么调都存不住。
 // 若前三列被写成 0（老版本折叠时落盘的脏值），用快照 / 默认值补回来。
 function summaryBaseWidths() {
-  const base = (Array.isArray(colWidths.summary) && colWidths.summary.length === 14)
-    ? colWidths.summary.slice() : DEFAULT_COL_WIDTHS.summary.slice();
-  const broken = SUMMARY_FOLD_COLS.some(ci => !base[ci]);
-  if (broken) {
-    const fb = summaryRealW || DEFAULT_COL_WIDTHS.summary;
-    SUMMARY_FOLD_COLS.forEach(ci => {
-      if (!base[ci]) base[ci] = fb[ci] || DEFAULT_COL_WIDTHS.summary[ci];
-    });
+  const dft = DEFAULT_COL_WIDTHS.summary;
+  const saved = Array.isArray(colWidths.summary) ? colWidths.summary : [];
+  const snap = Array.isArray(summaryRealW) ? summaryRealW : [];
+  // **逐列兜底**，不再「长度不是 14 就整表用默认」。
+  // 以前只要有一列没值（比如折叠时被写成 0、或老版本留下的短数组），
+  // 整张表的用户列宽都会被丢掉 —— 表现就是「折叠一下展开，全都弹回默认」。
+  const out = [];
+  for (let i = 0; i < dft.length; i += 1) {
+    const v = Number(saved[i]);
+    if (Number.isFinite(v) && v > 0) { out.push(v); continue; }
+    const s = Number(snap[i]);
+    if (Number.isFinite(s) && s > 0) { out.push(s); continue; }
+    out.push(dft[i]);
   }
-  return base;
+  return out;
 }
 
 function applySummaryFold() {
