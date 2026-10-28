@@ -44,15 +44,24 @@ export function mountAccountTable(ctx, tbody, opts) {
     for (const zone of ZONES) {
       const inZone = visible.filter((a) => zone.types.indexOf(a.type) >= 0);
 
-      // 区域标题：跨整行，左边区域名、右边极性说明
-      // （原来克隆 group 模板塞在类型列里，会被列宽截断成「A 我的资...」）
+      // 区域标题行拆成两格（v1.73）：
+      //   ① 第 1 格住在**冻结的简码列**里，只放区号 A / B ——
+      //      横滚时它跟着首列不动，永远知道自己在哪个区（用户 2026-10-29 指定）；
+      //   ② 第 2 格吃剩下的 9 列，放长标题和极性说明。
+      // 64px 只够一个区号，所以长标题不能塞进第 1 格 ——
+      // 拆开之前整行是 colspan=10，跨列格不能 sticky（TABLE-INTERACTION §5.7），
+      // 一横滚标题就整行滑走。
       {
         const head = document.createElement('tr');
         head.className = 'nt-zone-head ' + (zone.key === 'A' ? 'nt-zone-a' : 'nt-zone-b');
 
+        const tag = document.createElement('td');
+        tag.className = 'nt-cell nt-zone-cell nt-zone-tag';
+        tag.textContent = zone.key;
+
         const td = document.createElement('td');
         td.className = 'nt-cell nt-zone-cell';
-        td.colSpan = 10;
+        td.colSpan = 9;
 
         // flex 必须放在内层 div 上：直接设在 <td> 上会让它脱离表格布局，
         // colspan 就不生效了（标题会被压成第一列的宽度）。
@@ -60,7 +69,8 @@ export function mountAccountTable(ctx, tbody, opts) {
         inner.className = 'nt-zone-label';
 
         const name = document.createElement('b');
-        name.textContent = zone.label;
+        // 「A 我的资产/日常支出」→「我的资产/日常支出」：区号已经在第 1 格里了
+        name.textContent = zone.label.replace(new RegExp('^' + zone.key + '\\s*'), '');
 
         const hint = document.createElement('span');
         hint.className = 'nt-zone-hint';
@@ -69,6 +79,7 @@ export function mountAccountTable(ctx, tbody, opts) {
         inner.appendChild(name);
         inner.appendChild(hint);
         td.appendChild(inner);
+        head.appendChild(tag);
         head.appendChild(td);
         frag.appendChild(head);
       }

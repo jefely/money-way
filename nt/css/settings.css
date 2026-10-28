@@ -116,29 +116,64 @@
 }
 
 /* ============ A / B 两大区域标题 ============
-   整行 colspan=10 的标题：左边区域名，右边极性说明。
+   标题行拆成两格（v1.73）：
+     ① 第 1 格（.nt-zone-tag）住在冻结的简码列里，只放区号 A / B；
+     ② 第 2 格 colspan=9，放长标题和极性说明。
+   拆分的原因：整行 colspan=10 时是跨列格，不能 sticky（一加就整行跟着横滚），
+   横滚后连「这是哪个区」都看不到。现在区号跟着首列走。
+
+   底色必须**不透明** —— 首格是 sticky 的，半透明底会让滑过的字透出来。
+   做法是「表格实底 + 一层 16% 色膜」，观感和原来的半透明绿/红一致。
+   选择器用 tr.nt-zone-head > td 抬特异性，压过斑马纹（tbody tr:nth-child(even)），
+   否则账户数量一变、区域行落到偶数行，底色就被斑马纹吃掉。
    flex 必须放在内层 div 上 —— 直接设在 <td> 上会让它脱离表格布局，
    colspan 就不生效了（标题会被压成第一列的宽度）。 */
 
-.nt-zone-head .nt-cell {
+.nt-table-accounts tbody tr.nt-zone-head > td.nt-cell {
+  background-color: var(--nt-unit-bg, var(--nt-bg));
   font-weight: 800;
   font-size: 12px;
   letter-spacing: 0.02em;
 }
 
-.nt-zone-a .nt-cell {
-  background: rgba(60, 160, 100, 0.16);
+.nt-table-accounts tbody tr.nt-zone-a > td.nt-cell {
+  background-image: linear-gradient(rgba(60, 160, 100, 0.16), rgba(60, 160, 100, 0.16));
   color: var(--nt-ok);
 }
 
-.nt-zone-b .nt-cell {
-  background: rgba(200, 90, 90, 0.16);
+.nt-table-accounts tbody tr.nt-zone-b > td.nt-cell {
+  background-image: linear-gradient(rgba(200, 90, 90, 0.16), rgba(200, 90, 90, 0.16));
   color: var(--nt-bad);
+}
+
+/* 首格是 sticky 的，上面那条会被冻结列的 `background: var(--nt-row-bg…)`
+   （特异性 0,4,0）压掉 —— 简写会把 background-image 一起重置成 none。
+   所以这里用「底色 + 色膜」的简写再写一遍，并把选择器抬到 (0,4,3)：
+   区号格必须是不透明的，否则横滚时下一格的字会从它下面透出来。 */
+.nt-table-accounts tbody tr.nt-zone-a > td.nt-cell.nt-zone-tag {
+  background: linear-gradient(rgba(60, 160, 100, 0.16), rgba(60, 160, 100, 0.16))
+    var(--nt-unit-bg, var(--nt-bg));
+  color: var(--nt-ok);
+}
+
+.nt-table-accounts tbody tr.nt-zone-b > td.nt-cell.nt-zone-tag {
+  background: linear-gradient(rgba(200, 90, 90, 0.16), rgba(200, 90, 90, 0.16))
+    var(--nt-unit-bg, var(--nt-bg));
+  color: var(--nt-bad);
+}
+
+/* 区号格：64px 的简码列里放一个字母，居中、比正文重一档 */
+.nt-table-accounts tbody tr.nt-zone-head > td.nt-zone-tag {
+  padding: 0;
+  text-align: center;
+  font-size: 13px;
 }
 
 .nt-zone-empty .nt-cell {
   color: var(--nt-text-light);
   font-size: 12px;
+  /* 这条是 colspan 的整行格，别继承数据区的居中 —— 它是一句说明，靠左读 */
+  text-align: left;
   padding-left: 12px;
 }
 
