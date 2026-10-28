@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Money Way 环网图测试：单位角公式 / 线宽权重 / 颜色绑定 / 反向溯源 / 环路安全。
  *
  * 用户给的验收例子：
@@ -17,7 +17,8 @@ import {
   unitDegree as unitDegreeFromPath, chordGeometry, OPACITY, linkOpacity,
 } from '../js/graph/mw-path-calculator.js';
 import {
-  traceUpstream, traceByAccount, extractLeverageLinks, hasCycle,
+  traceUpstream, traceDownstream, traceFromTx, traceByAccount,
+  extractLeverageLinks, hasCycle,
 } from '../js/graph/path-tracer.js';
 
 /* ---------- 造数据 ---------- */
@@ -270,6 +271,74 @@ test('反向溯源：环路不会死循环', () => {
 test('按账户取往来（点弧块）', () => {
   const links = [tx('a_bank', 'a_food'), tx('a_food', 'a_bank'), tx('a_cash', 'a_traffic')];
   assert.deepEqual(traceByAccount(links, 'a_bank'), [0, 1]);
+});
+
+/* ---------- 顺流追踪（和反向溯源同一套规则的镜像） ---------- */
+
+test('★ 顺流追踪：从资产追到它花掉的地方', () => {
+  const links = [
+    tx('a_salary', 'a_bank'),   // 0 上游，不该被顺流带上
+    tx('a_bank', 'a_food'),     // 1
+    tx('a_bank', 'a_traffic'),  // 2
+    tx('a_salary', 'a_cash'),   // 3 无关分支
+  ];
+  const r = traceDownstream(links, 'a_bank');
+  assert.deepEqual(r.linkIndices, [1, 2]);
+  assert.equal(r.accountIds.includes('a_food'), true);
+  assert.equal(r.accountIds.includes('a_salary'), false);
+});
+
+test('顺流追踪：多跳，钱经中转账户再花出去', () => {
+  const links = [
+    tx('a_salary', 'a_bank'),   // 0
+    tx('a_bank', 'a_cash'),     // 1
+    tx('a_cash', 'a_food'),     // 2
+    tx('a_card', 'a_traffic'),  // 3
+  ];
+  const r = traceDownstream(links, 'a_bank');
+  assert.deepEqual(r.linkIndices, [1, 2]);
+  assert.equal(r.depths.get('a_bank'), 0);
+  assert.equal(r.depths.get('a_cash'), 1);
+  assert.equal(r.depths.get('a_food'), 2);
+});
+
+test('顺流追踪：环路（倒卡）不会死循环', () => {
+  const links = [tx('a_bank', 'a_card'), tx('a_card', 'a_bank'), tx('a_card', 'a_food')];
+  const r = traceDownstream(links, 'a_bank');
+  assert.deepEqual(r.linkIndices, [0, 1, 2]);
+});
+
+test('顺流追踪：单边流水（没有转入）到这儿就断，不再往下', () => {
+  const links = [{ from_id: 'a_bank', to_id: '', amount: 1, date: '2026-08-01' }];
+  assert.deepEqual(traceDownstream(links, 'a_bank').linkIndices, [0]);
+  assert.deepEqual(traceDownstream(links, '').linkIndices, []);
+});
+
+test('★ 侧栏条目逆流：链含这笔本身，能追到源头', () => {
+  const links = [tx('a_salary', 'a_bank'), tx('a_bank', 'a_food'), tx('a_card', 'a_food')];
+  assert.deepEqual(traceFromTx(links, 1, 'up').linkIndices, [0, 1, 2]);
+});
+
+test('★ 侧栏条目顺流：这笔本身是链头，再接它的下游', () => {
+  const links = [
+    tx('a_salary', 'a_bank'),    // 0 上游
+    tx('a_bank', 'a_food'),      // 1 这一笔
+    tx('a_food', 'a_traffic'),   // 2 下游
+  ];
+  assert.deepEqual(traceFromTx(links, 1, 'down').linkIndices, [1, 2]);
+});
+
+test('侧栏条目：哪一头空就只剩这笔自己（单边流水）', () => {
+  const links = [{ from_id: '', to_id: 'a_bank', amount: 1, date: '2026-08-01' }];
+  assert.deepEqual(traceFromTx(links, 0, 'up').linkIndices, [0]);
+  assert.deepEqual(traceFromTx(links, 0, 'down').linkIndices, [0]);
+});
+
+test('侧栏条目：下标越界 / 非法时返回空链（不抛错）', () => {
+  const links = [tx('a_salary', 'a_bank')];
+  assert.deepEqual(traceFromTx(links, 9, 'down').linkIndices, []);
+  assert.deepEqual(traceFromTx(links, -1, 'down').linkIndices, []);
+  assert.deepEqual(traceFromTx(links, 'x', 'up').linkIndices, []);
 });
 
 /* ---------- 功能二：资产负债腾挪 ---------- */

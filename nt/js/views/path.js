@@ -15,11 +15,12 @@ import { matchAccount } from '../core/query-engine.js';
 import { dateInRange } from '../core/date-query.js';
 import { money } from '../core/format.js';
 import { buildChord } from '../graph/mw-path-calculator.js';
-import { traceUpstream, traceByAccount } from '../graph/path-tracer.js';
+import { traceUpstream, traceDownstream, traceFromTx } from '../graph/path-tracer.js';
 import { SVG } from '../ui/mw-svg-renderer.js';
-import { paintChart, paintList, paintEmpty } from '../ui/path-view.js';
+import { paintChart, paintEmpty } from '../ui/path-view.js';
 import {
   bindFlowFilters, paintFlowRows, bindSideToggle, mountPathColResize, mountSideResizer,
+  setSideCollapsed,
 } from '../ui/path-flow-table.js';
 import { mountChartGestures } from '../ui/chart-gestures.js';
 import { saveTableColWidth } from '../ui/col-save.js';
@@ -27,11 +28,45 @@ import { saveTableColWidth } from '../ui/col-save.js';
 export function mountPath(section, ctx) {
   const chartBox = section.querySelector('#pw-chart');
   const flowBody = section.querySelector('#pw-flow-body');
-  const titleBox = section.querySelector('#pw-side-title');
   const clearBtn = section.querySelector('#pw-clear');
+  const dirBox = section.querySelector('#pw-dir');
 
-  let focus = null;      // { kind:'acc'|'tx', id }
+  // 焦点只存「根」，不存算出来的链 —— 换方向 / 改筛选后重新算，两边永远一致。
+  //   { kind:'acc',   id }    点弧块：这个账户的来路 / 去路
+  //   { kind:'tx',    txId }  点线：只看这一根
+  //   { kind:'trace', txId }  点侧栏条目：这一笔的整条链
+  let focus = null;
+
+  // 追踪方向：up = 逆流（谁把钱给它），down = 顺流（钱又流去哪）
+  let dir = 'up';
+
   let data = null;
+
+  /** 把方向状态画到那颗按钮上（两个标签 + 换向符，当前方向高亮） */
+  function paintDir() {
+    if (!dirBox) return;
+    dirBox.querySelectorAll('.pw-dir-tag').forEach((tag) => {
+      tag.classList.toggle('is-on', tag.dataset.dir === dir);
+    });
+    const now = dir === 'down' ? '顺流' : '逆流';
+    const next = dir === 'down' ? '逆流' : '顺流';
+    const tip = `追踪方向：${now}，点一下切到${next}`;
+    dirBox.setAttribute('aria-label', tip);
+    dirBox.setAttribute('aria-pressed', dir === 'down' ? 'true' : 'false');
+    dirBox.title = tip;
+  }
+
+  /** 换方向：同一个根重新算链，焦点不丢 */
+  function setDir(next) {
+    dir = next === 'down' ? 'down' : 'up';
+    paintDir();
+    // 单线模式没有方向。按方向按钮说明想看这条线的来路 / 去路，于是升成追踪链。
+    if (focus && focus.kind === 'tx') focus = { kind: 'trace', txId: focus.txId };
+    render();
+  }
+
+  if (dirBox) dirBox.addEventListener('click', () => setDir(dir === 'up' ? 'down' : 'up'));
+  paintDir();
 
   if (clearBtn) {
     clearBtn.addEventListener('click', () => { focus = null; render(); });
@@ -153,20 +188,28 @@ export function mountPath(section, ctx) {
     return out;
   }
 
+  /** 当前焦点在图上命中的连线下标（data.txs 下标集）；null = 没有焦点 */
   function hitsFor(f) {
     if (!f || !data || data.empty) return null;
-    if (f.kind === 'acc') return new Set(traceByAccount(data.txs, f.id));
+    const idxOf = (id) => data.txs.findIndex((t) => t && t.id === id);
+
+    if (f.kind === 'acc') {
+      // 点弧块：按当前方向只看一头。逆流 = 谁给它钱，顺流 = 它的钱去了哪。
+      const r = dir === 'down'
+        ? traceDownstream(data.txs, f.id)
+        : traceUpstream(data.txs, f.id);
+      return new Set(r.linkIndices);
+    }
     if (f.kind === 'tx') {
       // 模式 2（点单线）：**只点亮这一根**。
       // 早先这里用了 traceUpstream（整条上游链），所以一点就亮一片。
-      const idx = Number(f.txIdx);
-      return Number.isFinite(idx) && idx >= 0 ? new Set([idx]) : null;
+      const i = idxOf(f.txId);
+      return i < 0 ? null : new Set([i]);
     }
     if (f.kind === 'trace') {
-      // 模式 4（点侧栏条目）：倒序追踪，整条上游链都点亮
-      const toId = f.to_id;
-      if (!toId) return null;
-      return new Set(traceUpstream(data.txs, toId).linkIndices);
+      // 模式 4（点侧栏条目）：按方向追踪，整条链都点亮
+      const i = idxOf(f.txId);
+      return i < 0 ? null : new Set(traceFromTx(data.txs, i, dir).linkIndices);
     }
     return null;
   }
@@ -193,6 +236,30 @@ export function mountPath(section, ctx) {
     saveTableColWidth: (table, col, w) => saveTableColWidth(ctx, table, col, w),
   });
 
+  /* ---------- 点绘图区 → 左栏自动收回 ---------- */
+  // 用 pointerdown/up 判「点」而不是 click：线/弧块上的 click 会 stopPropagation，
+  // 挂在容器的 click 上收不到；而且拖动、双指、长按都不该算点击。
+  //
+  // 只记「最后一次按下的那一指」，不维护活动指针集合 ——
+  // 手指移出绘图区再松开时这里收不到 pointerup，集合会漏项，
+  // 之后每一次点击都被判成「多指」而失效。单变量下次按下自然覆盖，不会漏。
+  let tap = null;
+  chartBox.addEventListener('pointerdown', (ev) => {
+    const leftButton = ev.pointerType !== 'mouse' || ev.button === 0;
+    tap = leftButton
+      ? { x: ev.clientX, y: ev.clientY, t: Date.now(), id: ev.pointerId }
+      : null;
+  });
+  chartBox.addEventListener('pointerup', (ev) => {
+    const t = tap;
+    tap = null;
+    if (!t || t.id !== ev.pointerId) return;
+    if (Math.hypot(ev.clientX - t.x, ev.clientY - t.y) > 8) return;   // 平移 / 旋转
+    if (Date.now() - t.t > 700) return;                              // 长按起手
+    setSideCollapsed(true);
+  });
+  chartBox.addEventListener('pointercancel', () => { tap = null; });
+
   function render() {
     // 先按左栏筛选框过滤，再拿结果去画图 —— 图的统计范围就是筛选结果
     const st0 = ctx.getState();
@@ -214,29 +281,36 @@ export function mountPath(section, ctx) {
       return;
     }
 
+    // 根流水被筛掉了：焦点跟着消失（否则会留下「高亮 0 条」的假状态）
+    if (focus && focus.txId && !data.txs.some((t) => t && t.id === focus.txId)) {
+      focus = null;
+    }
+
     const hits = hitsFor(focus);
 
+    // 链是空的（顺流没找到下游 / 逆流追不到上游）时**不压暗整张图**：
+    // 一进页面全图变暗会像「图坏了」，改用页脚说明。
+    const emptyChain = !!hits && hits.size === 0;
+
     // 图吃「下标集」，左栏吃「流水 id 集」——这是两套不同的索引：
-    // hits 是 data.txs（图的那批）的下标，左栏列的是全量流水。
-    // 之前把下标直接喂给左栏，高亮永远是错行，看起来就是「数据表和图形链接不上」。
-    const hitIds = hits
+    // hits 是 data.txs（图的那批）的下标，左栏列的是筛选后的流水。
+    // 混着用会让高亮永远错行，看起来就是「数据表和图形链接不上」。
+    const hitIds = hits && !emptyChain
       ? new Set([...hits].map((i) => (data.txs[i] || {}).id).filter(Boolean))
       : null;
 
     // 四种模式的线宽在 paintChart 里各自独立：
     //   mode=null 基本模式 / 'acc' 点色块 / 'tx' 点单线 / 'trace' 侧栏追踪
-    paintChart(chartBox, data, hits, (kind, value) => {
+    paintChart(chartBox, data, emptyChain ? null : hits, (kind, value) => {
       if (kind === 'acc') {
         const same = focus && focus.kind === 'acc' && focus.id === value;
         focus = same ? null : { kind: 'acc', id: value };
       } else {
-        // 点线：value 是 data.txs 的下标，换回「全部流水」的下标再记
+        // 点线：value 是 data.txs 的下标，焦点只记这笔的 id
         const tx = data.txs[value] || {};
-        const realIdx = allTx.findIndex((t) => t && t.id === tx.id);
-        const same = focus && focus.kind === 'tx' && focus.id === realIdx;
-        focus = same ? null : {
-          kind: 'tx', id: realIdx, txIdx: value, to_id: tx.to_id,
-        };
+        if (!tx.id) return;
+        const same = focus && focus.kind === 'tx' && focus.txId === tx.id;
+        focus = same ? null : { kind: 'tx', txId: tx.id };
       }
       render();
     }, focus ? focus.kind : null);
@@ -257,30 +331,30 @@ export function mountPath(section, ctx) {
     paintFlowRows(flowBody, {
       txs: shownTxs,
       hits: hitIds,
-      focusIndex: focus && focus.kind === 'tx' ? idxList.indexOf(focus.id) : null,
+      focusId: focus && focus.txId ? focus.txId : null,
       nameOf,
       onPick: (shownIdx) => {
-        const realIdx = idxList[shownIdx];
-        const tx = allTx[realIdx];
-        // 图上按「转出账户」的上游追踪；这里把 to_id 交给 hitsFor 一致处理
-        const same = focus && (focus.kind === 'tx' || focus.kind === 'trace')
-        && focus.id === realIdx;
-        // 侧栏条目 → 追踪模式（第 4 种）：它和其它三种的线宽配置完全独立
-        focus = same ? null : { kind: 'trace', id: realIdx, to_id: tx && tx.to_id };
+        const tx = shownTxs[shownIdx];
+        if (!tx || !tx.id) return;
+        // 侧栏条目 → 追踪模式（第 4 种）：方向由左上角那颗按钮决定
+        const same = focus && focus.kind === 'trace' && focus.txId === tx.id;
+        focus = same ? null : { kind: 'trace', txId: tx.id };
         render();
       },
     });
 
-    titleBox.textContent = focus && focus.kind === 'acc' ? nameOf(focus.id) : '路径追踪';
-
-    // 图上那行提示（「点弧块看它的来路与去向」）已按用户要求删掉：
-    // 它压在图中间，太抢眼。高亮条数改由页脚给出。
-
-    // 图的参数压成一行放页脚（和其它页一样在屏幕底部），左栏不再占一块高度给统计
-    ctx.setFooter(`路径追踪 · ${data.txs.length} 笔 · ${data.blocks.length} 块`
+    // 图的参数压成一行放页脚（和其它页一样在屏幕底部），左栏不再占一块高度给统计。
+    // 方向放在最前面：它是「现在这一屏看的是来路还是去路」的状态。
+    const dirText = dir === 'down' ? '顺流' : '逆流';
+    const focusName = focus && focus.kind === 'acc' ? ' · ' + nameOf(focus.id) : '';
+    const emptyHint = emptyChain
+      ? (dir === 'down' ? ' · 没有下游流水' : ' · 没有上游流水')
+      : '';
+    ctx.setFooter(`路径追踪 · ${dirText}${focusName}${emptyHint}`
+      + ` · ${data.txs.length} 笔 · ${data.blocks.length} 块`
       + ` · ${data.unitDeg.toFixed(3)}°/单位 · ${data.unitArcLen.toFixed(2)}px/弧长`
-      + ` · 折叠 ${data.sliced.folded}`
-      + (hits ? ` · 已高亮 ${hits.size}` : ''));
+      + (data.sliced.folded ? ` · 折叠 ${data.sliced.folded}` : '')
+      + (hitIds ? ` · 已高亮 ${hitIds.size}` : ''));
   }
 
   return { render };

@@ -110,9 +110,9 @@
             <button class="pw-rail" type="button" id="pw-rail" aria-label="展开流水表">流水表</button>
 
             <div class="pw-side-body" id="pw-side-body">
+              <!-- 标题行只剩「清空」：标题「路径追踪」已由左上角常驻工具条
+                   （三角 + 顺逆切换 + Money Way）取代，那一条不随侧栏收展隐藏 -->
               <div class="pw-side-head">
-                <span class="pw-side-title" id="pw-side-title">路径追踪</span>
-                <button class="pw-mini-btn pw-collapse-btn" type="button" id="pw-collapse" aria-label="收起">收起</button>
                 <button class="pw-mini-btn" type="button" id="pw-clear">清空</button>
               </div>
 
@@ -146,12 +146,23 @@
           </section>
         </div>
 
-        <!-- 收起 / 展开左栏的三角 + 「Money Way」标识。
+        <!-- 左上角常驻工具条：三角（收展左栏）+ 顺 / 逆一体切换 + Money Way。
+             侧栏收展只改左栏宽度，这一条**不隐藏**（持续显示）——
+             原「路径追踪」标题由它取代。点绘图区会自动收起左栏。
              必须放在 .pw-chart **外面**：那个容器带 transform，
              会给 fixed 定位重新造一个包含块，按钮就会跟着图跑到图中间去。 -->
-        <button class="pw-toggle" type="button" id="pw-toggle"
-                aria-label="收起或展开左侧信息栏">◀</button>
-        <span class="pw-brand" id="pw-brand">Money Way</span>
+        <div class="pw-tools">
+          <button class="pw-toggle" type="button" id="pw-toggle"
+                  aria-label="收起左侧信息栏">◀</button>
+          <button class="pw-dir" type="button" id="pw-dir"
+                  aria-label="追踪方向：逆流，点一下切到顺流"
+                  title="追踪方向：逆流，点一下切到顺流">
+            <span class="pw-dir-tag is-on" data-dir="up">逆流</span>
+            <span class="pw-dir-swap" aria-hidden="true">⇄</span>
+            <span class="pw-dir-tag" data-dir="down">顺流</span>
+          </button>
+          <span class="pw-brand" id="pw-brand">Money Way</span>
+        </div>
       </section>
 
       <!-- ============ 固定：固定收支 + 分期 ============ -->

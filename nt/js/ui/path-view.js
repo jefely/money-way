@@ -9,7 +9,6 @@ import { renderChart, RATIO } from './mw-svg-renderer.js';
 import {
   categoryColor, pointAt, OPACITY, DEPTH_WIDTHS, W_MID, PICK_BOOST, PICK_SHRINK,
 } from '../graph/mw-path-calculator.js';
-import { money, shortDate } from '../core/format.js';
 
 const el = (id) => document.getElementById(id);
 
@@ -25,10 +24,6 @@ export function paintChart(host, data, hits, onPick, mode) {
   // 但在 v0.50 把「图尺寸只由高度决定」修好之后，250 笔在侧栏收起时已经不糊了 ——
   // 线宽恢复成单文件版的 2.4 才是一致的样子。
   /**
-   * 追踪模式的线宽倍率：看这条线的**转入方**是什么类型的账户。
-   * 费用类 4 倍、资产类 3 倍、负债类 2 倍、收入/权益 1 倍（基准 = W_MID）。
-   */
-  /**
    * 追踪模式的四档线宽 —— **固定参数**（基准单位，×RATIO 后生效）。
    *
    * 定标依据：250 笔真实数据时 unitArcLen ≈ 27.74 画布，
@@ -43,11 +38,6 @@ export function paintChart(host, data, hits, onPick, mode) {
     const s = String(type || '');
     for (const k of Object.keys(TRACE_WIDTH)) if (s.includes(k)) return TRACE_WIDTH[k];
     return TRACE_WIDTH.收入;
-  };
-  const traceMult = (type) => {
-    const s = String(type || '');
-    for (const [re, m] of TRACE_MULT) if (re.test(s)) return m;
-    return 1;
   };
 
   const chords = data.chords.map((c) => {
@@ -114,45 +104,6 @@ export function paintChart(host, data, hits, onPick, mode) {
   });
 }
 
-/** 追踪列表 */
-export function paintList(host, data, hits, nameOf, onPickTx) {
-  host.textContent = '';
-  const tpl = document.getElementById('tpl-pw-row');
-  if (!tpl) return;
-
-  const rows = data.txs
-    .map((t, i) => ({ t, i }))
-    .filter(({ i }) => !hits || hits.has(i))
-    .sort((a, b) => (String(b.t.date) < String(a.t.date) ? -1 : 1));
-
-  if (!rows.length) {
-    const li = document.createElement('li');
-    li.className = 'pw-empty-row';
-    li.textContent = '没有命中的流水';
-    host.appendChild(li);
-    return;
-  }
-
-  const frag = document.createDocumentFragment();
-  for (const { t, i } of rows.slice(0, 400)) {
-    const node = tpl.content.firstElementChild.cloneNode(true);
-    node.dataset.tx = String(i);
-    node.querySelector('.pw-cell-date').textContent = shortDate(t.date);
-    node.querySelector('.pw-cell-from').textContent = nameOf(t.from_id);
-    node.querySelector('.pw-cell-to').textContent = nameOf(t.to_id);
-    node.querySelector('.pw-cell-amount').textContent = money(t.amount);
-    frag.appendChild(node);
-  }
-  host.appendChild(frag);
-
-  host.onclick = (ev) => {
-    const row = ev.target.closest('.pw-row[data-tx]');
-    if (!row) return;
-    const i = Number(row.dataset.tx);
-    if (!Number.isNaN(i)) onPickTx(i);
-  };
-}
-
 /** 安全写文本：元素不存在就跳过（渲染不该因为一个可选元素中断） */
 function setText(id, text) {
   const node = el(id);
@@ -171,7 +122,6 @@ export function paintEmpty(info) {
     '<div class="pw-empty">这段时间没有可画的流水<br>先在「流水」页记几笔'
     + '<br><small>' + detail + '</small></div>';
   // 左栏现在是流水查询表（#pw-flow-body），原来的 #pw-list 已删；
-  // 图的参数已经合并进页脚，没有 #pw-stats 这个元素了。
+  // 标题「路径追踪」已由左上角常驻工具条取代，也没有 #pw-stats 这个元素了。
   setText('pw-flow-body', '');
-  setText('pw-side-title', '暂无数据');
 }

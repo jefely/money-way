@@ -76,7 +76,106 @@ export function traceUpstream(links, startAccountId, opts) {
 }
 
 /**
- * 某账户的全部往来（点弧块时用，双向）。
+ * 正向 BFS：从一个账户出发，沿「从它流出去」的边一直往下游走。
+ * 和 traceUpstream 完全镜像（索引方向相反，depth 含义相同）。
+ *
+ * 用途：顺流追踪 —— 这笔钱后来被花到哪 / 转给了谁。
+ *
+ * @param {Array<{from_id:string,to_id:string}>} links 单笔连线
+ * @param {string} startAccountId 起点（通常是资产 / 负债账户）
+ * @param {{maxDepth?:number}} opts
+ * @returns {{linkIndices:number[], accountIds:string[], depths:Map<string,number>}}
+ */
+export function traceDownstream(links, startAccountId, opts) {
+  const maxDepth = Number(opts && opts.maxDepth) || 12;
+  const list = links || [];
+  const start = String(startAccountId || '');
+
+  const linkIndices = [];
+  const accountIds = new Set();
+  const depths = new Map();
+
+  if (!start) return { linkIndices, accountIds: [], depths };
+
+  // 正向索引：from_id → [linkIndex]
+  const byFrom = new Map();
+  for (let i = 0; i < list.length; i++) {
+    const from = list[i] && list[i].from_id;
+    if (!from) continue;
+    if (!byFrom.has(from)) byFrom.set(from, []);
+    byFrom.get(from).push(i);
+  }
+
+  const visitedLinks = new Set();
+  const visitedAcc = new Set([start]);
+  depths.set(start, 0);
+  accountIds.add(start);
+
+  const queue = [{ acc: start, depth: 0 }];
+
+  while (queue.length) {
+    const cur = queue.shift();
+    if (cur.depth >= maxDepth) continue;
+
+    for (const li of byFrom.get(cur.acc) || []) {
+      if (visitedLinks.has(li)) continue;   // 同一条边只走一次（防环）
+      visitedLinks.add(li);
+      linkIndices.push(li);
+
+      const to = list[li] && list[li].to_id;
+      if (!to) continue;                    // 单边流水：到这儿就断了
+      accountIds.add(to);
+
+      const nd = cur.depth + 1;
+      if (!depths.has(to) || depths.get(to) > nd) depths.set(to, nd);
+
+      if (!visitedAcc.has(to)) {            // 账户只入队一次（防死循环）
+        visitedAcc.add(to);
+        queue.push({ acc: to, depth: nd });
+      }
+    }
+  }
+
+  linkIndices.sort((a, b) => a - b);
+  return { linkIndices, accountIds: [...accountIds], depths };
+}
+
+/**
+ * 侧栏某一笔流水的追踪链，按方向取：
+ *   逆流 up   = 谁把钱给了它的收款账户（**含这笔本身**）
+ *   顺流 down = 收款账户又把钱给了谁（这笔本身是链头）
+ *
+ * 两个方向都以「转入方」为锚，这样同一笔流水换方向时看到的是同一条链的来路 / 去路。
+ *
+ * @param {Array} links 图的流水列表
+ * @param {number} txIndex 这笔流水在 links 里的下标
+ * @param {'up'|'down'} direction
+ */
+export function traceFromTx(links, txIndex, direction) {
+  const list = links || [];
+  const i = Math.floor(Number(txIndex));
+  const link = Number.isFinite(i) ? list[i] : null;
+  const empty = { linkIndices: [], accountIds: [], depths: new Map() };
+  if (!link) return empty;
+
+  const anchor = String(link.to_id || '');
+  if (!anchor) return { ...empty, linkIndices: [i] };
+
+  const base = direction === 'down'
+    ? traceDownstream(list, anchor)
+    : traceUpstream(list, anchor);
+
+  // 这笔自己一定要在链上：逆流时它本来就在（它指向锚点），
+  // 顺流时它不在（它不来自锚点），少了它链头就断了。
+  const set = new Set(base.linkIndices);
+  set.add(i);
+  return { ...base, linkIndices: [...set].sort((a, b) => a - b) };
+}
+
+/**
+ * 某账户的全部往来（双向，不区分方向）。
+ * 追踪模式改用 traceUpstream / traceDownstream 之后这里不再被视图调用，
+ * 保留给「看这个账户的全部往来」这类只读用途与测试。
  */
 export function traceByAccount(links, accountId) {
   const id = String(accountId || '');

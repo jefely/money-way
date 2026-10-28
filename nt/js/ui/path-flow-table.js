@@ -7,7 +7,7 @@
  *   冻结区（标题/统计/筛选行/列标行）+ 可滚动的流水行，用 grid 对齐。
  *
  * 这一栏是**流水记录表的查询模板**：五个条件框各自过滤，
- * 点任意一行 = 聚焦这一笔，图上点亮「它 + 它的上游」。
+ * 点任意一行 = 聚焦这一笔，图上按当前方向点亮它的来路（逆流）/ 去路（顺流）。
  */
 
 /** 列宽（与 path.css 的 .pw-flow-grid 必须一致）：序 · 日期 · 转出 · 转入 · 金额 · 备注 */
@@ -100,12 +100,14 @@ export function bindFlowFilters(h) {
 /**
  * 渲染流水行。
  * @param {HTMLElement} host #pw-flow-body
- * @param {{txs:Array, hits:Set<number>|null, focusIndex:number|null,
+ * @param {{txs:Array, hits:Set<string>|null, focusId:string|null,
  *          nameOf:(id:string)=>string, onPick:(i:number)=>void}} o
+ *   hits / focusId 都按**流水 id** 传（不是下标）：
+ *   图里的那批流水是筛选结果的一个子集，下标两边对不上。
  */
 export function paintFlowRows(host, o) {
   if (!host) return 0;
-  const { txs, hits, focusIndex, nameOf, onPick } = o;
+  const { txs, hits, focusId, nameOf, onPick } = o;
 
   host.textContent = '';
 
@@ -122,12 +124,13 @@ export function paintFlowRows(host, o) {
 
   for (let i = 0; i < txs.length; i += 1) {
     const t = txs[i];
+    const id = String((t && t.id) || '');
     seq += 1;
 
     const row = document.createElement('div');
     row.className = 'pw-flow-row';
-    if (hits && hits.has(i)) row.classList.add('on');
-    if (focusIndex === i) row.classList.add('root');
+    if (id && hits && hits.has(id)) row.classList.add('on');
+    if (id && focusId && id === String(focusId)) row.classList.add('root');
     row.dataset.idx = String(i);
     row.setAttribute('role', 'button');
     row.tabIndex = 0;
@@ -224,11 +227,7 @@ export function mountSideResizer() {
    * 于是第一次进路径页时：侧栏本身宽 0（看不见），栅格却仍占 320px，
    * 左边留一大块黑、图被挤到右下角变小。这里按 class 把列宽一起定下来。
    */
-  if (side.classList.contains('collapsed')) {
-    document.documentElement.style.setProperty('--nt-pw-side-w', '0px');
-  } else {
-    applySideWidth(savedSideWidth());
-  }
+  setSideCollapsed(side.classList.contains('collapsed'));
 
   const bar = document.createElement('button');
   bar.type = 'button';
@@ -261,8 +260,11 @@ export function mountSideResizer() {
 
 /**
  * 把左栏在「收起 / 展开」之间切换。
- * 收起时把 grid 第一列也压到 22px —— 只给 .pw-side 设 width 是没用的，
+ * 收起时把 grid 第一列压到 0 —— 只给 .pw-side 设 width 是没用的，
  * 宽度由 grid 轨道决定，否则会留一条 320px 的空白。
+ *
+ * 三角的朝向与 aria 也在这里统一写：收起 = ▶（点了展开），展开 = ◀。
+ * 点绘图区自动收起走的是同一个函数，所以两处状态不会分家。
  */
 export function setSideCollapsed(collapsed) {
   const side = document.getElementById('pw-side');
@@ -274,9 +276,15 @@ export function setSideCollapsed(collapsed) {
       '--nt-pw-side-w', collapsed ? '0px' : savedSideWidth() + 'px',
     );
   } catch (e) { /* 忽略 */ }
+
+  const tg = document.getElementById('pw-toggle');
+  if (tg) {
+    tg.textContent = collapsed ? '▶' : '◀';
+    tg.setAttribute('aria-label', collapsed ? '展开左侧信息栏' : '收起左侧信息栏');
+  }
 }
 
-/** 绑定收起 / 展开（「收起」按钮已删，只留把手与三角） */
+/** 绑定收起 / 展开（标题行不再放「收起」，只留三角与左栏右缘的拖条） */
 export function bindSideToggle() {
   const side = document.getElementById('pw-side');
   if (!side) return;
@@ -284,21 +292,11 @@ export function bindSideToggle() {
   const rail = document.getElementById('pw-rail');
   if (rail) rail.addEventListener('click', () => setSideCollapsed(false));
 
-  // 窄屏才显示的那个「收起」——三角按钮在左上角、手机上是唯一入口，
-  // 用户反馈找不到/点不到，所以标题行也放一个
-  const colBtn = document.getElementById('pw-collapse');
-  if (colBtn) colBtn.addEventListener('click', () => setSideCollapsed(true));
-
   // 图区左上角的三角：展开 / 收起同一个动作
   const tg = document.getElementById('pw-toggle');
-  const brand = document.getElementById('pw-brand');
   if (tg) {
     tg.addEventListener('click', () => {
-      const collapsed = !side.classList.contains('collapsed');
-      setSideCollapsed(collapsed);
-      tg.textContent = collapsed ? '▶' : '◀';
-      tg.classList.toggle('shifted', collapsed);
-      if (brand) brand.classList.toggle('shifted', collapsed);
+      setSideCollapsed(!side.classList.contains('collapsed'));
     });
   }
 }
