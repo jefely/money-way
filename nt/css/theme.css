@@ -19,21 +19,25 @@
   --nt-primary-light: #8b6cff;
   --nt-accent: #8b6cff;
 
-  /* 背景层次：页面 → 面板 → 单元格 */
+  /* 背景层次：页面 → 面板 → 单元格
+     —— 取自单文件版（personal/index.html）的 :root：
+        --bg-main #ffffff / --bg-gray #f1f5f9 / --bg-gray-light #f8fafc */
   --nt-bg: #ffffff;
-  --nt-bg-soft: #f8f7fd;
+  --nt-bg-soft: #f1f5f9;
   --nt-bg-cell: #ffffff;
-  --nt-bg-zebra: #faf9ff;
+  --nt-bg-zebra: #f8fafc;
   --nt-cell-active: #f3f1fb;
+  /* 行悬停整行同色（单文件版 tr:hover #f3f1fb） */
+  --nt-row-hover: #f3f1fb;
 
-  /* 线条 */
-  --nt-bg-line: #e6e2f5;
-  --nt-line-strong: #cfc7ea;
+  /* 线条（单文件版 --border #cbd5e1 / --border-light #e2e8f0） */
+  --nt-bg-line: #e2e8f0;
+  --nt-line-strong: #cbd5e1;
 
-  /* 文字 */
-  --nt-text: #1b1430;
-  --nt-text-muted: #5f5878;
-  --nt-text-light: #8b85a6;
+  /* 文字（单文件版 --text-main / --text-muted / --text-light） */
+  --nt-text: #0f172a;
+  --nt-text-muted: #64748b;
+  --nt-text-light: #94a3b8;
   --nt-text-on-primary: #ffffff;
 
   /* 表头（深紫底白字，这是"紫玉顶带"） */
@@ -41,26 +45,26 @@
   --nt-head-text: #ffffff;
   --nt-head-line: #7d6ed0;
 
-  /* 顶部页头：两主题统一深色窄条（不跟主色走，避免深色主题下亮紫刺眼） */
-  --nt-header-bg: #14101f;
-  --nt-header-text: #f2eeff;
+  /* 顶部页头（单文件版 --bar-bg #1e293b / --bar-text #ffffff） */
+  --nt-header-bg: #1e293b;
+  --nt-header-text: #ffffff;
 
   /* 界面参数 · 浅色 */
-  --nt-tabs-color: #5f5878;
-  --nt-tabs-bg: #f8f7fd;
-  --nt-vbar-color: #1b1430;
-  --nt-vbar-bg: #f8f7fd;
-  --nt-th-color: #5f5878;
-  --nt-th-bg: #f8f7fd;
-  --nt-cell-color: #1b1430;
+  --nt-tabs-color: #64748b;
+  --nt-tabs-bg: #f1f5f9;
+  --nt-vbar-color: #0f172a;
+  --nt-vbar-bg: #f1f5f9;
+  --nt-th-color: #64748b;
+  --nt-th-bg: #f1f5f9;
+  --nt-cell-color: #0f172a;
   --nt-cell-bg: #ffffff;
-  --nt-footer-color: #5f5878;
-  --nt-footer-bg: #f8f7fd;
+  --nt-footer-color: #64748b;
+  --nt-footer-bg: #f1f5f9;
 
-  /* 语义色 */
-  --nt-ok: #15803d;
+  /* 语义色（单文件版 --success #10b981 / --danger #ef4444） */
+  --nt-ok: #10b981;
   --nt-ok-bg: #e9f7ef;
-  --nt-bad: #dc2626;
+  --nt-bad: #ef4444;
   --nt-bad-bg: #fdecec;
   --nt-warn: #b45309;
 
@@ -97,35 +101,40 @@
 /* ---------- 深色（暗黑 + 紫霓虹） ---------- */
 [data-theme="dark"] {
   color-scheme: dark;
-  --nt-primary: #9b8cff;
+  /* 单文件版 [data-theme="dark"]：
+     --bg-main #000000 / --bg-gray #0d0d0d / --bg-gray-light #1c1c1c
+     斑马纹就是靠 #1c1c1c 与 #000 的对比才看得出来 —— v1.62 用的 #0b0912
+     只差 11 个灰阶，等于没有条纹。 */
+  --nt-primary: #5b4ea8;
   --nt-primary-dark: #6b5bc4;
   --nt-primary-light: #b6a9ff;
   --nt-accent: #b6a9ff;
 
   --nt-bg: #000000;
-  --nt-bg-soft: #0e0b16;
+  --nt-bg-soft: #0d0d0d;
   --nt-bg-cell: #000000;
-  --nt-bg-zebra: #0b0912;
-  /* 每格获得焦点时整格提亮（单文件版 td:focus-within 的 #262626） */
+  --nt-bg-zebra: #1c1c1c;
   --nt-cell-active: #262626;
+  /* 行悬停（单文件版 #22223a） */
+  --nt-row-hover: #22223a;
 
-  --nt-bg-line: #2a2438;
-  --nt-line-strong: #3d3552;
+  --nt-bg-line: #343434;
+  --nt-line-strong: #3a3a3a;
 
-  --nt-text: #f2eeff;
-  --nt-text-muted: #b9b2d0;
-  --nt-text-light: #8a83a3;
+  --nt-text: #ffffff;
+  --nt-text-muted: #e0e0e0;
+  --nt-text-light: #b4b4b4;
   --nt-text-on-primary: #14101f;
 
-  /* 深色表头：深底亮字 + 一条紫线 */
-  --nt-head-bg: #1a1526;
-  --nt-head-text: #d8ceff;
-  --nt-head-line: #3d3552;
+  /* 表头（单文件版 #141414，中性灰，不带色相） */
+  --nt-head-bg: #232323;
+  --nt-head-text: #ffffff;
+  --nt-head-line: #343434;
 
-  --nt-ok: #6ee7b7;
-  --nt-ok-bg: rgba(110, 231, 183, 0.12);
-  --nt-bad: #ff9b9b;
-  --nt-bad-bg: rgba(255, 155, 155, 0.12);
+  --nt-ok: #5ee9a4;
+  --nt-ok-bg: rgba(94, 233, 164, 0.12);
+  --nt-bad: #ff9d9d;
+  --nt-bad-bg: rgba(255, 157, 157, 0.12);
   --nt-warn: #fdba74;
 
   --nt-backdrop: rgba(0, 0, 0, 0.62);
@@ -137,17 +146,17 @@
   --nt-modal-glow: 0 0 48px rgba(139, 108, 255, 0.22);
   --nt-modal-logo: rgba(155, 140, 255, 0.12);
 
-  /* 界面参数 · 深色 */
-  --nt-tabs-color: #b9b2d0;
-  --nt-tabs-bg: #0e0b16;
-  --nt-vbar-color: #f2eeff;
-  --nt-vbar-bg: #0e0b16;
-  --nt-th-color: #b9b2d0;
-  --nt-th-bg: #241d33;
-  --nt-cell-color: #f2eeff;
+  /* 界面参数 · 深色（单文件版 --text-muted / --bg-gray / --bar-bg） */
+  --nt-tabs-color: #e0e0e0;
+  --nt-tabs-bg: #0d0d0d;
+  --nt-vbar-color: #ffffff;
+  --nt-vbar-bg: #0d0d0d;
+  --nt-th-color: #e0e0e0;
+  --nt-th-bg: #141414;
+  --nt-cell-color: #ffffff;
   --nt-cell-bg: #000000;
-  --nt-footer-color: #b9b2d0;
-  --nt-footer-bg: #0e0b16;
+  --nt-footer-color: #c8c8c8;
+  --nt-footer-bg: #232323;
 }
 
 /* ---------- 备选1：暖色（浅） ---------- */
@@ -163,6 +172,7 @@
   --nt-bg-cell: #fffdf8;
   --nt-bg-zebra: #f7f1e6;
   --nt-cell-active: #efe6d5;
+  --nt-row-hover: #efe6d5;
 
   --nt-bg-line: #e5dcc9;
   --nt-line-strong: #cfc2a5;
@@ -211,6 +221,7 @@
   --nt-bg-cell: #0a1410;
   --nt-bg-zebra: #0d1a14;
   --nt-cell-active: #1c3327;
+  --nt-row-hover: #1c3327;
 
   --nt-bg-line: #1e3328;
   --nt-line-strong: #2c4a3a;
