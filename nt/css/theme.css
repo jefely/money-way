@@ -105,7 +105,7 @@
   --nt-bg: #000000;
   --nt-bg-soft: #0e0b16;
   --nt-bg-cell: #000000;
-  --nt-bg-zebra: #1a1a1a;
+  --nt-bg-zebra: #0b0912;
   /* 每格获得焦点时整格提亮（单文件版 td:focus-within 的 #262626） */
   --nt-cell-active: #262626;
 
@@ -143,7 +143,7 @@
   --nt-vbar-color: #f2eeff;
   --nt-vbar-bg: #0e0b16;
   --nt-th-color: #b9b2d0;
-  --nt-th-bg: #141414;
+  --nt-th-bg: #241d33;
   --nt-cell-color: #f2eeff;
   --nt-cell-bg: #000000;
   --nt-footer-color: #b9b2d0;

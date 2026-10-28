@@ -512,6 +512,12 @@ body.nt-col-resizing {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* 金额列用强调色（用户截图里 ¥2.00 / ¥5.50 都是紫色）。
+   正负号仍由数据决定，这里只管颜色。 */
+.nt-table-flow .nt-cell-amount {
+  color: var(--nt-accent, var(--nt-primary));
+}
 /* 同步弹窗 */
 .nt-sync-hint {
   margin: 0 0 8px;
