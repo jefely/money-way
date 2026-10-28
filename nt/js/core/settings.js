@@ -94,10 +94,14 @@ export const COL_KEYS = [
 // 顺序与 COL_KEYS 一一对应（末尾 5 项是 2026-10 第二次追加的列）
 export const DEFAULT_COL_WIDTHS = '44,84,72,76,64,100,96,40,64,64,64,110,100,96,90,90,64,96,'
   + '112,112,116,84,84,48,96,40,56,56,84,64,84';
-// 列标题对齐：来自用户 2026-10 核对后导出的实际值
-// （balance 与 histOut 两列是「右」，其余「中」）
-export const DEFAULT_COL_ALIGN = '中,中,中,中,中,中,中,中,中,中,中,中,右,中,右,中,中,中,'
+// 列标题对齐：**所有表头一律居中**（用户 2026-10-29 指定）。
+// 以前 balance / histOut 两列是「右」；这里作为新默认全给「中」。
+// 顺序与 COL_KEYS 一一对应（末尾 5 项是 2026-10 第二次追加的列）。
+export const DEFAULT_COL_ALIGN = '中,中,中,中,中,中,中,中,中,中,中,中,中,中,中,中,中,中,'
   + '中,中,中,中,中,中,中,中,中,中,中,中,中';
+
+// 旧默认（balance 与 histOut 两列右对齐）—— 只用于下面的迁移判断
+const OLD_COL_ALIGN = DEFAULT_COL_ALIGN.split(',').map((x, i) => ((i === 12 || i === 14) ? '右' : x)).join(',');
 
 /* ============================================================
    每张表各自的列与默认列宽
@@ -257,8 +261,7 @@ export const DEFAULTS = THEME_DEFAULTS.dark;
  * @returns {object} 完整设置
  */
 export function normalize(raw, theme) {
-  const base = THEME_DEFAULTS[theme] || THEME_DEFAULTS.dark;
-  const out = { ...base };
+  const out = { ...(THEME_DEFAULTS[theme] || THEME_DEFAULTS.dark) };
   for (const s of SCHEMA) {
     const v = raw ? raw[s.key] : undefined;
 
@@ -298,6 +301,12 @@ export function normalize(raw, theme) {
       // 表现就是「升级后流水表的转出/转入/备注变窄、新列表头不居中」。
       // 所以缺位要补**该主题的默认值**，不是常量兜底。
       out[s.key] = padColList(String(v).trim(), s.type);
+
+      // 2026-10-29 用户指定「所有表的表头全部居中」。
+      // 旧默认里 balance / histOut 两列是「右」；老存档如果原封不动还是那份默认，
+      // 这里迁移成全中 —— 否则改默认对已经存过设置的用户不生效。
+      // 自己改过对齐的（不等于旧默认）原样保留，不覆盖他的选择。
+      if (s.type === 'align' && out[s.key] === OLD_COL_ALIGN) out[s.key] = DEFAULT_COL_ALIGN;
     } else {
       out[s.key] = String(v).trim();
     }
