@@ -169,7 +169,10 @@ export const SCHEMA = [
   { key: '信息栏背景颜色', group: '信息栏', def: '#0e0b16', cssVar: '--nt-footer-bg' },
 
   /* ---------- 按钮尺寸（独立） ---------- */
+  // 按钮区高度：工具条 min-height（各页共用这一个键）
   { key: '按钮尺寸行高', group: '按钮尺寸', def: 30, unit: 'px', cssVar: '--nt-vbar-h' },
+  // 按钮本身的高度：工具条 / 查询面板头的按钮共用（2026-10-29 用户指定）
+  { key: '按钮尺寸按钮高', group: '按钮尺寸', def: 26, min: 18, max: 60, unit: 'px', cssVar: '--nt-btn-h' },
   { key: '按钮尺寸字号', group: '按钮尺寸', def: 12, unit: 'px', cssVar: '--nt-vbar-font' },
 
   /* ---------- 列标行（全局只剩两件事） ----------
@@ -250,9 +253,6 @@ export const THEME_DEFAULTS = THEME_IDS.reduce((acc, id) => {
   acc[id] = { ...BASE, ...THEME_COLORS[id] };
   return acc;
 }, {});
-
-/** 兼容旧代码：无主题时的默认（深色） */
-export const DEFAULTS = THEME_DEFAULTS.dark;
 
 /**
  * 归一化：px 项转数字，数组/对齐项保留逗号串，颜色项保留字符串；非法值落回该主题默认。

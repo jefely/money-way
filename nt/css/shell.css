@@ -121,7 +121,9 @@ body {
   gap: var(--nt-btn-gap, 6px);
   flex-wrap: wrap;
   padding: 2px 10px;
-  min-height: var(--nt-vbar-h);
+  /* 工具条高度：按钮区行高 与 按钮高 + 上下 padding 取大者。
+     这样面板只调「按钮高」时工具条自动跟着长，不会把按钮顶出边界。 */
+  min-height: max(var(--nt-vbar-h, 30px), calc(var(--nt-btn-h, 26px) + 4px));
   max-width: 960px;
   background: var(--nt-vbar-bg, var(--nt-unit-bg, var(--nt-bg-soft)));
   color: var(--nt-btn-text, var(--nt-unit-text, var(--nt-text)));
@@ -144,22 +146,22 @@ body {
   color: var(--nt-text-muted);
 }
 
-/* 所有工具条的按钮统一尺寸（用户 2026-10-29：按钮边框高度降低、大小统一）。
-   只作用于工具条里的按钮；弹窗 / 表单的 32px 按钮不受影响。
-   高度 26 是「贴着 30px 工具条也不顶边」的上限，字号仍走 --nt-vbar-font。 */
+/* 所有工具条的按钮统一尺寸（用户 2026-10-29：按钮边框高度降低、大小统一，
+   并在布局面板里一处设置多处生效）。
+   高度读 --nt-btn-h（面板「按钮尺寸/按钮高」）、间距读 --nt-btn-gap、
+   样式读 data-btn-style —— 三者都是全局参数。
+   只作用于工具条里的按钮；弹窗 / 表单的 32px 按钮不受影响。 */
 .nt-vbar .nt-btn {
-  height: 26px;
+  height: var(--nt-btn-h, 26px);
   padding: 0 8px;
 }
 
 /* 设置页工具条：标题 + 6 个按钮 = 7 个元素，390px 下默认会折成两行，
    「布局」孤零零掉到第二行（用户 2026-10-29：「图标会自动换行」）。
-   按钮尺寸已经在上面统一了，这里只禁止折行；万一面板把字号调大放不下，
-   改成横向滑动，而不是再掉一行。 */
+   间距与按钮尺寸都用全局参数（--nt-btn-gap / --nt-btn-h），这里只禁止折行；
+   万一面板把字号调大放不下，改成横向滑动，而不是再掉一行。 */
 .nt-view[data-view="settings"] .nt-vbar {
   flex-wrap: nowrap;
-  gap: 4px;
-  padding: 2px 8px;
   overflow-x: auto;
   scrollbar-width: none;
 }

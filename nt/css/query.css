@@ -22,13 +22,25 @@
   border-right: 0;
 }
 
+/* 查询面板头：一个横条 = 标题 + 清空按钮 + 合计。
+   它和工具条共用同一套参数（用户 2026-10-29）：
+     · 高度  → --nt-vbar-h 与「按钮高 + 4」取大者（与 .nt-vbar 同一算法）
+     · 间距  → --nt-btn-gap
+     · 按钮  → --nt-btn-h / 按钮样式
+   以前这里 padding 6px + 32px 按钮 = 44px，比工具条高一截，看着就是「太厚」。 */
 .nt-query-head {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
+  gap: var(--nt-btn-gap, 6px);
+  padding: 2px 8px;
+  min-height: max(var(--nt-vbar-h, 30px), calc(var(--nt-btn-h, 26px) + 4px));
   background: var(--nt-bg-soft);
   border-bottom: 1px solid var(--nt-bg-line);
+}
+
+.nt-query-head .nt-btn {
+  height: var(--nt-btn-h, 26px);
+  padding: 0 8px;
 }
 
 .nt-query-title {
