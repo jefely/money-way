@@ -49,23 +49,22 @@
   -webkit-appearance: none;
 }
 
-/* 类型下拉：去掉原生箭头（它固定占 14px，66px 的列放不下三个字），
-   改用两个 3×3 的斜向渐变拼一个小三角；文字仍居中。 */
+/* 类型下拉：**不画任何箭头**（原生箭头占 14px，66px 的列放不下三个字；
+   自绘小三角也去掉 —— 用户 2026-10-29 指定「隐藏下拉三角形」）。
+   appearance:none 只是把「看起来像下拉」去掉，select 还是 select：
+   点格子任意位置照样弹出选择器，键盘也能选。 */
 .nt-table-accounts select.nt-cell-input {
-  padding-right: 9px;
+  padding-right: 0;
   text-align-last: center;
-  background-image:
-    linear-gradient(45deg, transparent 50%, var(--nt-text-muted) 50%),
-    linear-gradient(135deg, var(--nt-text-muted) 50%, transparent 50%);
-  background-position: right 5px top calc(50% + 1px), right 2px top calc(50% + 1px);
-  background-size: 3px 3px, 3px 3px;
-  background-repeat: no-repeat;
+  background-image: none;
 }
 
-/* 简码：冻结列，也是这张表的锚点 —— 加粗、主色、等宽字 */
+/* 简码：冻结列，也是这张表的锚点 —— 加粗、用主题的正文色。
+   不用主色紫：深色主题下白字、浅色主题下黑字才够显眼，
+   而且不会和「可点的链接」混淆（用户 2026-10-29 指定）。 */
 .nt-table-accounts td:nth-child(1) .nt-cell-input,
 .nt-table-accounts td.nt-cell-code {
-  color: var(--nt-primary);
+  color: var(--nt-unit-text, var(--nt-text));
   font-weight: 800;
   letter-spacing: 0.04em;
 }
