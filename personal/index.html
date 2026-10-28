@@ -5847,13 +5847,23 @@ th.col-range { text-align: left; }
   padding: 0 3px !important;
 }
 .mw-flow-row.mw-flow-grid > *:last-child { border-right: 0; }
-.mw-flow-row.mw-flow-grid:nth-child(even) { background: rgba(128, 128, 128, .10); }
-.mw-flow-row.mw-flow-grid:hover { background: #f3f1fb; }
-.mw-flow-row.mw-flow-grid.on { background: rgba(139,108,255,.14); }
-.mw-flow-row.mw-flow-grid.root { background: rgba(139,108,255,.3); font-weight: 700; box-shadow: inset 2px 0 0 var(--primary); }
+/* 路径侧栏不要斑马纹（用户指定）：所有行同一底色，靠边框和悬停区分 */
+.mw-flow-row.mw-flow-grid { background: transparent; }
+.mw-flow-row.mw-flow-grid:hover { background: rgba(139,108,255,.10) !important; }
+.mw-flow-row.mw-flow-grid.on {
+  background: rgba(139,108,255,.18) !important;
+  box-shadow: inset 2px 0 0 rgba(139,108,255,.75);
+}
+/* 被点中的那一笔（链路根）：底色更实、左侧 3px 紫条、加粗 —— 在一堆透明行里一眼能认出来 */
+.mw-flow-row.mw-flow-grid.root {
+  background: rgba(139,108,255,.34) !important;
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+.mw-flow-row.mw-flow-grid.root .mw-note { color: var(--text-main) !important; }
 
 /* 深色主题：斑马纹与边框跟流水表一致 */
-[data-theme="dark"] .mw-flow-row.mw-flow-grid:nth-child(even) { background-color: rgba(255, 255, 255, .05) !important; }
+[data-theme="dark"] .mw-flow-row.mw-flow-grid { background-color: transparent !important; }
 [data-theme="dark"] .mw-flow-cols.mw-flow-grid { background-color: transparent !important; }
 [data-theme="dark"] .mw-flow-row.mw-flow-grid > * { border-right-color: #2a2a2a; }
 [data-theme="dark"] .mw-flow-row.mw-flow-grid { border-bottom-color: #2a2a2a; }
@@ -8238,7 +8248,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.77';
+const APP_VER = 'v13.78';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -9193,7 +9203,8 @@ var mwRange = null;
 var mwLastInfo = null;      // 上一次渲染的统计（命中几根线 / 焦点类型），页脚用它说话
 // 左栏折叠状态：null = 按窗口宽度决定（手机上默认收起）；一旦手动收/展过就记住，
 // 否则每次重渲染（点方向键、点行、换焦点）都会把用户刚收起的栏弹回来。
-var mwSideCollapsed = null;
+var mwSideCollapsed = true;   // 默认收起（用户指定）；展开后点右边图区会自动再收起
+var mwRenderSeq = 0;          // 渲染序号：判断「刚才那一下点击有没有连带重渲染」
 /* 焦点模型（复刻 NT v1.40 的语义）：
      kind='acc'   点弧块 → 只看**当前方向的一侧**：逆流=流入它的线，顺流=从它流出的线（不递归）
      kind='tx'    点线   → 只点亮这一根
@@ -9351,6 +9362,7 @@ function mwEsc(v) {
 }
 
 function renderMoneyWay(main, footer) {
+  mwRenderSeq++;
   if (mwFilter.date === null) mwFilter.date = mwDefaultDateRange();
   main.innerHTML = '';
   main.style.padding = '0';
@@ -10364,7 +10376,9 @@ function mwDrawSvg(nodes, edges) {
      CSS rotate 正角就是顺时针，所以增量取 (dy − dx)：
        dy > 0（往下）→ 正；dx < 0（往左）→ 也是正。 */
   chartBox.addEventListener('contextmenu', function (ev) { ev.preventDefault(); });
+  var clickOrigin = null;
   chartBox.addEventListener('pointerdown', function (ev) {
+    clickOrigin = (ev.button === 0) ? { x: ev.clientX, y: ev.clientY } : null;
     var rotate = (ev.button === 2) || ev.shiftKey || ev.ctrlKey;
     // 左键落在线/弧块上是「选中」，不当拖动；右键一律旋转（哪怕落在线上面）
     if (!rotate && ev.target.classList &&
@@ -10434,6 +10448,23 @@ function mwDrawSvg(nodes, edges) {
     };
   });
   // 可见线与透明命中带都绑同一个回调：线只有 1–2px，靠命中带才点得中
+  /* 点右边图区 = 自动收起侧栏（用户指定）。只认「点击」，拖动平移/旋转不算。 */
+  chartBox.addEventListener('click', function (ev) {
+    if (mwSideCollapsed) return;
+    if (clickOrigin && (Math.abs(ev.clientX - clickOrigin.x) > 8 || Math.abs(ev.clientY - clickOrigin.y) > 8)) return;
+    mwSideCollapsed = true;
+    sideBox.classList.add('collapsed');
+    tg.textContent = '▶';
+    tg.classList.add('shifted');
+    dirTg.classList.add('shifted');
+    mwLabel.classList.add('shifted');
+    var seq = mwRenderSeq;
+    setTimeout(function () {
+      if (mwRenderSeq !== seq) return;   // 弧块/连线的点击已经重渲染过，不必再来一次
+      renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
+    }, 0);
+  }, true);
+
   chartBox.querySelectorAll('.mw-edge, .mw-hitarea').forEach(function (g2) {
     g2.onclick = function (ev) {
       if (ev) ev.stopPropagation();
