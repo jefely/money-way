@@ -456,6 +456,10 @@ body {
   /* 这条以前写死 0，而 flow.css 里读的是 var(--nt-cell-gap) ——
      shell.css 后加载，于是「单元格间隙」参数调了没反应。合并到这一处。 */
   border-spacing: var(--nt-cell-gap, 0);
+  /* 表格必须有**实底**：单元格是透明的，之前奇数行透出的是页面背景
+     --nt-bg（深色主题 #0e0b16，带紫），和偶数行的 --nt-bg-zebra 交替
+     就成了「紫灰条纹」。用户明确不要带颜色的条纹。 */
+  background: var(--nt-unit-bg, var(--nt-bg));
 }
 
 /* 拖动过的表：切成「按列固定」模式，不再参与 100% 分配 */
