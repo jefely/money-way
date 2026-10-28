@@ -125,6 +125,11 @@ function renderWindow() {
       const r = rows[i];
       const tr = rowTpl.cloneNode(true);
       tr.dataset.id = r.id;
+      // 斑马纹必须按**数据下标**打类，不能用 CSS 的 nth-child：
+      // 虚拟滚动每次只渲染一个窗口，上下还各有一个 spacer 行，
+      // 窗口起点一变、spacer 数量就变，nth-child 的奇偶相位整排翻转 ——
+      // 滚动时深色条纹会「往下滑一下」（用户实测到的跳动）。
+      if (i % 2 === 1) tr.classList.add('nt-row-even');
       if (r.isOpening) {
         // 期初行：日期显示长横线、不可编辑、不能删除；序号照常显示
         setText(tr, CLASS.seq, String(r.seq));

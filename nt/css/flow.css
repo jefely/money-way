@@ -169,8 +169,15 @@
 }
 
 /* 斑马纹：偶数行略深一档，长表看起来不糊成一片。
-   --nt-bg-zebra 四套主题都定义了，但这条规则一直没人写 —— 变量等于死的。 */
-.nt-table tbody tr:nth-child(even) .nt-cell {
+   两张表用两套写法：
+     · 普通表（统计/查询/固定/设置）没有虚拟滚动 —— nth-child 稳定，直接用
+     · 流水表是虚拟滚动，窗口起点一变 spacer 数量就变、nth-child 会整排翻转，
+       所以按数据下标打 .nt-row-even 类（见 ui/render-transactions.js） */
+.nt-table:not(.nt-table-flow) tbody tr:nth-child(even) .nt-cell {
+  background: var(--nt-bg-zebra);
+}
+
+.nt-table-flow tbody tr.nt-row-even .nt-cell {
   background: var(--nt-bg-zebra);
 }
 
