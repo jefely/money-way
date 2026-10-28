@@ -8057,15 +8057,20 @@ const defaultAccounts = ACC_RAW.map((r, i) => ({
 const THEME_KEY = 'flow_theme_v1';
 let theme = (() => { try { return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'; } catch (e) { return 'light'; } })();
 function applyTheme() {
-  try { syncSummaryDelBorder(); } catch (e) {}
+  // 顺序很重要（v13.72 修）：先把 data-theme 翻过来，再刷新依赖 --bg-main 的 inline 样式。
+  // 以前是先调 syncSummaryDelBorder() 再改属性 —— 那次同步取到的是「上一个主题」的底色，
+  // 写进三列的 inline !important 之后，深色下设置表右侧会留一块白（只有 toggleTheme 的
+  // setTimeout 会补一次，任何绕过 applyTheme 直接设 data-theme 的路径都会露白）。
   document.documentElement.dataset.theme = theme;
   document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
+  try { syncSummaryDelBorder(); } catch (e) {}
 }
 function toggleTheme() {
-  setTimeout(() => { try { syncSummaryDelBorder(); } catch (e) {} }, 0);
   theme = theme === 'dark' ? 'light' : 'dark';
   try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
   applyTheme();
+  // applyTheme 已按新主题刷过一次；下一帧再补一次，防止个别内核样式重算滞后
+  setTimeout(() => { try { syncSummaryDelBorder(); } catch (e) {} }, 0);
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
@@ -8164,7 +8169,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.71';
+const APP_VER = 'v13.72';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -8335,6 +8340,11 @@ const UNDO_MAX = 20;
 const _undoStack = [];
 let _lastSaved = null;      // 上一次写盘的数据快照
 let _undoLock = false;      // 撤销/恢复过程中不要继续压栈
+// 本标签页「最后已知的磁盘密文」：解锁/切账本时填入，每次写盘成功后再更新。
+// 写盘前拿它和磁盘现值比对 —— 不一致说明**别的标签页写过**，此时不能覆盖（见 flushDiskWrite）。
+let _lastDiskCipher = null;
+let _pendingKey = null;        // 本次排队写盘的 localStorage key（切账本时不能写错本子）
+let _conflictWarned = false;   // 冲突提示只弹一次，避免每 150ms 刷一条
 
 function save() {
   let json;
@@ -8354,17 +8364,42 @@ function scheduleDiskWrite() {
   if (!_sessionKey) return;             // 还没解锁，不写
   if (_saveTimer) clearTimeout(_saveTimer);
   _savePending = true;
+  // 写盘目标在「排队时」就定下来：切账本时若还有未落盘的改动，
+  // 它必须写回**原来那本**，不能因为 lsKey() 变了就写进新账本。
+  _pendingKey = lsKey();
   _saveTimer = setTimeout(flushDiskWrite, 150);
 }
 
 async function flushDiskWrite() {
   if (!_savePending || !_sessionKey || !_lastSaved) return;
   _savePending = false;
+  const key = _pendingKey || lsKey();
+  // ① 写前比对：磁盘上的密文和我们最后知道的不一样 → 另一个标签页写过。
+  //    宁可不写（保住对方的数据）也不能盲目覆盖 —— 否则两边各持旧 state，
+  //    后写的会把先写的整本抹掉（这是「整份 JSON 加密后覆盖」的固有风险）。
+  let current = null;
+  try { current = localStorage.getItem(key); } catch (e) { current = null; }
+  if (current && _lastDiskCipher && current !== _lastDiskCipher) {
+    if (!_conflictWarned) {
+      _conflictWarned = true;
+      toast('这个账本已在另一个标签页被修改，本次改动**没有保存**。请刷新页面后重新操作，避免互相覆盖。', {
+        type: 'error', duration: 15000,
+        action: { label: '刷新', onClick: () => location.reload() }
+      });
+    }
+    return;
+  }
   try {
     const enc = await encryptWithSession(_lastSaved);
-    localStorage.setItem(lsKey(), 'ENC1:' + enc);
+    const cipher = 'ENC1:' + enc;
+    localStorage.setItem(key, cipher);
+    _lastDiskCipher = cipher;
+    _pendingKey = null;
   } catch (e) {
-    try { console.warn('写盘失败', e); } catch (x) {}
+    // 以前这里只 console.warn：写盘失败（配额满、隐私模式、密钥丢失）用户完全不知道，
+    // 关掉页面才发现数据没存上。现在必须说出来。
+    toast('保存失败：' + (e && e.message ? e.message : e) + '（数据还在本页内存里，别关页面）',
+      { type: 'error', duration: 12000 });
   }
 }
 
@@ -9314,31 +9349,10 @@ function renderMoneyWay(main, footer) {
   footer.textContent = 'Money Way · ' + mwRange.start + ' ~ ' + mwRange.end + ' · 点账户看它的来路与去向';
 }
 
-/* 环状图：三层同心环
-   内环 = 收入类（钱从哪来）+ 收入汇总（沉淀下来的）
-   中环 = 资产类 / 负债类（钱在中转）
-   外环 = 费用类（钱花到哪去）+ 离开账本（花到账本外面的）
-   扇区之间留空隙，不靠颜色区分层次。 */
-function mwRingPath(cx, cy, r1, r2, a1, a2) {
-  // 角度用「从 12 点顺时针」的弧度
-  var large = (a2 - a1) > Math.PI ? 1 : 0;
-  var x1 = cx + r2 * Math.sin(a1), y1 = cy - r2 * Math.cos(a1);
-  var x2 = cx + r2 * Math.sin(a2), y2 = cy - r2 * Math.cos(a2);
-  var x3 = cx + r1 * Math.sin(a2), y3 = cy - r1 * Math.cos(a2);
-  var x4 = cx + r1 * Math.sin(a1), y4 = cy - r1 * Math.cos(a1);
-  return 'M ' + x1 + ' ' + y1
-    + ' A ' + r2 + ' ' + r2 + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2
-    + ' L ' + x3 + ' ' + y3
-    + ' A ' + r1 + ' ' + r1 + ' 0 ' + large + ' 0 ' + x4 + ' ' + y4
-    + ' Z';
-}
-
-/* 径向桑基：中心 4 层环 + 3 条很宽的布线带（按参考图比例）
-   第 1 层（最内）  总收入
-   第 2 层          收入类 / 负债类（来源）
-   第 3 层          资产类（中转）
-   第 4 层（最外）  费用类 + 离开账本（去向）
-   环与环之间留出接近一个环厚的空隙，专门用来走线。 */
+/* 环形扇区路径：内外半径 + 起止角（从 12 点顺时针）→ 一段 SVG arc。
+   单环和弦图、径向桑基都用它，只有半径/角度的来源不同。
+   注：v13.72 删掉了这里重复声明的另一份 mwRingPath（同名函数，后声明的覆盖前一个，
+   前一个从没被调用过 —— 留着只会让「改了一个以为改好了」再次发生）。 */
 function mwRingPath(cx, cy, rIn, rOut, a1, a2) {
   var large = (a2 - a1) > Math.PI ? 1 : 0;
   var x1 = cx + rOut * Math.sin(a1), y1 = cy - rOut * Math.cos(a1);
@@ -12629,12 +12643,14 @@ function openBillImportDialog(preFile) {
       + '<button type="button" class="ghost" id="bi-del-old" style="height:22px;padding:0 8px;font-size:11px;margin-left:6px">删掉它们</button>';
     const btn = oldWarnEl.querySelector('#bi-del-old');
     if (btn) btn.onclick = () => {
-      if (!confirm('删除账本里 ' + olds.length + ' 笔早于 ' + od + ' 的流水？\n（这些日子已经由期初余额代表，删掉不会影响余额的连续性之外的任何东西——但删除不可撤销）')) return;
-      const ids = new Set(olds.map(t => t.id));
-      state.transactions = state.transactions.filter(t => !ids.has(t.id));
-      reseq(); save(); render();
-      refreshOldWarn();
-      toast('已删除 ' + olds.length + ' 笔早于期初日期的流水', { duration: 5000 });
+      // 统一确认框（原生 confirm 在 PWA 里可能被禁用 → 点了像没反应）
+      askConfirm('删除账本里 ' + olds.length + ' 笔早于 ' + od + ' 的流水？\n（这些日子已经由期初余额代表，删掉不会影响余额的连续性之外的任何东西——但删除不可撤销）', () => {
+        const ids = new Set(olds.map(t => t.id));
+        state.transactions = state.transactions.filter(t => !ids.has(t.id));
+        reseq(); save(); render();
+        refreshOldWarn();
+        toast('已删除 ' + olds.length + ' 笔早于期初日期的流水', { duration: 5000 });
+      });
     };
   };
   refreshOldWarn();
@@ -13149,10 +13165,11 @@ function openImportXlsxDialog(preFile) {
               saveBooks(); render(); toast('已改名');
             } else if (op === 'del') {
               if (b.id === bookState.current) { toast('不能删除当前正在用的账本，先切到别的', { type: 'error' }); return; }
-              if (!confirm('删除账本「' + b.name + '」？\n\n它里面的账户和流水会一并删除，无法恢复。')) return;
-              try { localStorage.removeItem(LS_KEY_BASE + ':' + b.id); } catch (e) {}
-              bookState.list = bookState.list.filter(x => x.id !== b.id);
-              saveBooks(); render(); toast('已删除「' + b.name + '」');
+              askConfirm('删除账本「' + b.name + '」？\n\n它里面的账户和流水会一并删除，无法恢复。', () => {
+                try { localStorage.removeItem(LS_KEY_BASE + ':' + b.id); } catch (e) {}
+                bookState.list = bookState.list.filter(x => x.id !== b.id);
+                saveBooks(); render(); toast('已删除「' + b.name + '」');
+              });
             }
           };
         });
@@ -13244,9 +13261,19 @@ async function switchBook(id) {
   // 不关对话框：切换后原地刷新账本区
   const target = bookState.list.find(b => b.id === id);
   if (!target) return;
+  // 先把「上一个账本」没落盘的改动写完再切：否则 150ms 防抖窗口里的改动
+  // 可能带着旧账本的数据写进新账本的 key（P0-5 的一部分）。
+  try { await flushDiskWrite(); } catch (e) {}
   const key = (id === 'b1') ? LS_KEY_BASE : (LS_KEY_BASE + ':' + id);
   let stored = null;
   try { stored = localStorage.getItem(key); } catch (e) {}
+  // 切换后换一本账：冲突基线跟着换，否则下一次写盘会被误判成「别的标签页改过」
+  _lastDiskCipher = /^ENC1:/.test(stored || '') ? stored : null;
+  _savePending = false;
+  _conflictWarned = false;
+  // 账本换了，流水页的 DOM 缓存必须作废（否则切回「流水」会看到上一本的几百行）
+  _dataVersion++;
+  _flowCache = null;
 
   if (!stored) {
     // 空账本 → 立刻用当前密钥写一份空白
@@ -14819,6 +14846,24 @@ function deleteAccount(id) {
     (!t.toId && removed.name && t.to === removed.name)
   ).length;
   const refFixed = (state.fixed || []).filter(f => f.from === removed.name || f.to === removed.name).length;
+  // 真正删除的动作：确认框的 onOk 和「没有引用」两条路都走它。
+  // 删之前按 id 重新定位：对话框是异步的，这期间列表可能已经变了（idx 会失效）。
+  const doDelete = () => {
+    const i = state.accounts.findIndex(a => a.id === id);
+    if (i < 0) return;
+    state.accounts.splice(i, 1);
+    save(); render();
+    toast(`已删除账户「${removed.name || '(未命名)'}」`, {
+      action: {
+        label: '撤销',
+        onClick: () => {
+          state.accounts.splice(Math.min(i, state.accounts.length), 0, removed);
+          save(); render();
+          toast('已撤销删除');
+        }
+      }
+    });
+  };
   if (refTx || refFixed) {
     const parts = [];
     if (refTx) parts.push(refTx + ' 笔流水');
@@ -14826,20 +14871,12 @@ function deleteAccount(id) {
     const msg = '「' + (removed.name || '(未命名)') + '」还被 ' + parts.join('、') + ' 引用。\n\n'
       + '删掉账户后，这些流水会失去归属，金额将从汇总统计里消失（流水本身保留，可在查询页看到）。\n\n'
       + '确定删除？';
-    if (!confirm(msg)) return;
+    // 用统一确认框，不用原生 confirm()：PWA / 部分 WebView 里 confirm 被禁用时
+    // 它返回 false 且不弹窗 —— 表现为「点删除没反应」，用户找不到原因。
+    askConfirm(msg, doDelete);
+  } else {
+    doDelete();
   }
-  state.accounts.splice(idx, 1);
-  save(); render();
-  toast(`已删除账户「${removed.name || '(未命名)'}」`, {
-    action: {
-      label: '撤销',
-      onClick: () => {
-        state.accounts.splice(Math.min(idx, state.accounts.length), 0, removed);
-        save(); render();
-        toast('已撤销删除');
-      }
-    }
-  });
 }
 
 function updateFlowFooter(footer) {
@@ -17636,10 +17673,15 @@ function openImportMenu() {
     try {
       const text = (await f.text()).trim();
       if (!/^LZ[0-2][:：]/i.test(text)) throw new Error('这不是本程序的同步文件');
-      if (!confirm('用「' + f.name + '」的数据覆盖本机？\n\n本机当前的账户、流水、分期都会被替换。')) return;
-      const r = await applySyncCode(text, { merge: false });
-      toast('已导入：账户 ' + r.accounts + ' · 流水 ' + r.transactions
-        + ' · 分期 ' + r.installments + ' · 固定 ' + r.fixed, { duration: 6000 });
+      askConfirm('用「' + f.name + '」的数据覆盖本机？\n\n本机当前的账户、流水、分期都会被替换。', async () => {
+        try {
+          const r = await applySyncCode(text, { merge: false });
+          toast('已导入：账户 ' + r.accounts + ' · 流水 ' + r.transactions
+            + ' · 分期 ' + r.installments + ' · 固定 ' + r.fixed, { duration: 6000 });
+        } catch (e) {
+          toast('导入失败：' + (e && e.message ? e.message : e), { type: 'error', duration: 6000 });
+        }
+      });
     } catch (e) {
       toast('导入失败：' + (e && e.message ? e.message : e), { type: 'error', duration: 6000 });
     }
@@ -19125,7 +19167,11 @@ function qrEncode(text) {
    · 二维码里是 gzip+base64 的明文（不经过任何服务器，但别给外人扫）
    · 合并端会再按 id / 指纹判一次重，重复的不会加第二遍
    ============================================================ */
-const SYNC_QR_BASE = 'https://jefely.github.io/nt-ledger/';
+// 扫码合并的落地页：必须是**本应用自己**的地址。
+// 以前写死成另一个仓库（`jefely.github.io/nt-ledger/`），扫开的页面不是这个账本，
+// 用户会以为「扫码没反应」；现在直接复用 SITE_URL（唯一地址来源，见 8155）。
+// 落地页靠 `location.hash` 的 `#m=…` 触发 mergeFromHash()（19337），本页已实现。
+const SYNC_QR_BASE = SITE_URL;
 // 二维码 L 级上限 2953 字节。这里压到 1800：模块越少、每模块越大，
 // 手机扫屏幕（反光、摩尔纹）时更容易识别。
 const SYNC_QR_MAX_URL = 2600;
@@ -19424,6 +19470,8 @@ function showLockScreen(mode, payload) {
           _sessionSalt = all.subarray(0, 16);
           _sessionKey = await deriveKey(v, _sessionSalt);
           _lastSaved = json;
+          // 记下磁盘现值：之后写盘前用它判断「别的标签页有没有改过」
+          _lastDiskCipher = 'ENC1:' + payload;
         }
         mask.remove();
         resolve();
