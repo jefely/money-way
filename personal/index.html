@@ -484,13 +484,13 @@ table#flow-table tbody td.col-note > input:not(.fixed-chk) { padding-right: 38px
 
 /* 空行：默认铺 100 行，整行高亮太吵，只把序号淡化以区分「还没落库的行」 */
 table.grid tbody tr[data-new="1"] td.col-seq { color: var(--text-light); font-weight: 400; }
-/* 冻结列：序 / 简码（用户指定这两列；账户名称不再冻结）。
-   序的 left 固定 0（127 行那条）；简码的 left 由 applySummarySticky()
-   按「前面所有列的实际渲染宽度」累加后写进 inline style —— 类型/分类收起时
-   它们宽度为 0，偏移自然跟着变小，不用另算。
+/* 冻结列：只有「简码」一列（用户指定）。它本来就在最左边，left 恒为 0，
+   写法照搬「统计 · 汇总表」冻结「序」的那一套：position: sticky + left: 0，纯 CSS。
+   JS 不再逐格算 left —— 只要有一格算错（列序、折叠、宽度换算都可能算错），
+   整列就会叠到别的列上，看起来像「两列挤在一起」。
    表头那格要压在所有列之上，否则滚动时相邻列的旧边框会从边上透出来。 */
 table#summary-table thead th.col-code,
-table#summary-table tbody td.col-code { position: sticky; z-index: 2; background-clip: padding-box; }
+table#summary-table tbody td.col-code { position: sticky; left: 0; z-index: 2; background-clip: padding-box; }
 table#summary-table thead th.col-code { z-index: 6; }
 /* 分类分组行那条跨四列的格子也一起固定 */
 /* 分类分组行那条格子不固定：它 colspan=4，宽度是前四列之和，而数据行的账户名称只占 序号+名称，固定后会多盖住后面一截，把「当前结余」遮掉。让它照常跟着滚走。 */
@@ -1412,14 +1412,11 @@ table#summary-table th, table#summary-table td { padding-left: 4px !important; p
 /* 表格：去掉账户数后不用那么宽 */
 table.subsum-table { min-width: 470px !important; }
 /* 汇总表金额列：给足宽度，避免 ¥1,234.56 被截成 ¥1,234.... */
-/* 对应的 colgroup 也要归零 —— 否则隐藏的列仍按默认宽度占位，可见列被挤窄 */
-table#summary-table colgroup col:nth-child(6),
-table#summary-table colgroup col:nth-child(7),
-table#summary-table colgroup col:nth-child(8),
-table#summary-table colgroup col:nth-child(9),
-table#summary-table colgroup col:nth-child(10) {
-  width: 0 !important; min-width: 0 !important; max-width: 0 !important;
-}
+/* 〔已删除〕隐藏列 colgroup 归零规则 `colgroup col:nth-child(6..10){width:0!important}`。
+   那是「设置页藏掉 5 个金额列」时代的补丁，但它正是列宽错乱的根：
+   5 列被压成 0 后，表格宽度（各列之和，含那 5 列）比实际列宽之和多出几百像素，
+   固定布局就把多出来的宽度**按比例摊给每一列** —— 存的 73px 在屏幕上成了 122px，
+   拖一下手柄所有列一起缩放。现在那 5 列在设置页根本不渲染，这条规则一并删掉。 */
 table#summary-table th.col-bal, table#summary-table td.col-bal,
 table#summary-table th.col-out, table#summary-table td.col-out,
 table#summary-table th.col-in, table#summary-table td.col-in,
@@ -4311,9 +4308,10 @@ table#fixed-table tbody td.col-amount input { text-align: right; }
 table#fixed-table tbody td.col-note input { text-align: left; }
 table#fixed-table tbody td select { text-align: center; text-align-last: center; }
 
-/* ⑭ 汇总表冻结列：序 / 类型 / 分类 / 简码 / 账户名称 五列的 left 全部由
-   applySummarySticky() 逐格写入（累加偏移）。这里不要再写 !important 的 left，
-   否则会把内联值压掉 —— 之前就是这条把「账户名称」锁死在序号列宽上。 */
+/* ⑭ 汇总（设置）表的冻结列：只有「简码」一列，left 恒为 0，由 CSS
+   （文件末尾那节 table#summary-table th/td.col-code { position: sticky; left: 0 }）负责。
+   JS 不再逐格写 left —— 内联 left 和 CSS left 两处并存时，谁生效取决于顺序和特异性，
+   这种「两份事实源」正是之前冻结列叠在一起的原因。这里不要再写 left。 */
 
 /* ⑬ 深色主题：序号列表头与其它表头同色。
    这条原先把 col-seq 表头钉成 #141414(20,20,20)，而其它表头已提到 #262626(38,38,38)，
@@ -6181,18 +6179,10 @@ table.set-table tbody td.col-del > .row-del:active {
 }
 
 
-/* 设置页：隐藏 5 个金额列（当前结余/转出/转入/转出历史/转入历史）
-   —— 只是不显示，computeStats 的计算与数据一律不动 */
-table#summary-table th.col-bal, table#summary-table td.col-bal,
-table#summary-table th.col-out, table#summary-table td.col-out,
-table#summary-table th.col-in, table#summary-table td.col-in,
-table#summary-table th.col-hout, table#summary-table td.col-hout,
-table#summary-table th.col-hin, table#summary-table td.col-hin {
-  width: 0 !important; min-width: 0 !important; max-width: 0 !important;
-  padding: 0 !important; border-right: 0 !important;
-  overflow: hidden !important; white-space: nowrap !important;
-  font-size: 0 !important; line-height: 0 !important;
-}
+/* 〔已删除〕设置页「把 5 个金额列压成 width:0」的规则。
+   现在这 5 列（当前结余/转出/转入/转出历史/转入历史）在设置页**不再渲染**：
+   零宽列在固定布局里会让相邻列一起重算，是列宽错乱的另一半原因。
+   computeStats 的计算与数据一律不动 —— 只是设置表不显示它们。 */
 
 /* ============================================================
    工具栏第二行（bar2）三种模式高度统一
@@ -7920,6 +7910,51 @@ html body .confirm-mask .dlg-x { z-index: 30 !important; }
 }
 .fixed-sub-btn:active { transform: scale(0.96); }
 
+/* ============================================================
+   设置表（#summary-table）：冻结首列 + 列宽 —— 照搬「统计 · 汇总表」的做法
+   ------------------------------------------------------------
+   统计页的「汇总」子表（#stats-sum-table）只在 CSS 里写
+   `th.col-seq { left: 0 }` + `td.col-seq { position: sticky; left: 0 }`，
+   就稳稳冻住第一列，列宽拖动也一一对应。设置表按同一套重建：
+
+   ① 只冻结第一列「简码」，left 恒为 0（纯 CSS）；「序 / 类型 / 分类 / 账户名称」
+      一律不写 left。之前 简码 和 序 都钉在 left:0，横滚时两列叠在一起，
+      序 整个被简码盖住 —— 这就是「冻结列错乱」看到的样子。
+   ② 表格宽度必须等于 colgroup 各列之和。一旦被 min-width 撑大，固定布局会把
+      多出来的宽度按比例摊给每一列：存的 73px 在屏幕上变 122px，
+      拖一列时所有列一起缩放 —— 这就是「列宽调整错乱」。
+   ③ 拖动手柄整段留在本列内。手柄跨到下一列的那半截会被下一列的 sticky 表头
+      盖住（各 th 都是 sticky，各自成层叠上下文，后一列压住前一列），
+      点下去命中的是隔壁列 → 表现就是「拖不动 / 拖错列」。
+   ============================================================ */
+table#summary-table { min-width: 0 !important; }
+
+/* ② 表格宽度由 JS 按列宽之和写死，这里只保证不会被 min-width 反向撑开 */
+table#summary-table.cols-custom { min-width: 0 !important; }
+
+/* ① 序：不冻结（跟在简码右边，正常横滚） */
+table#summary-table thead th.col-seq,
+table#summary-table tbody td.col-seq { left: auto; }
+/* ① 简码：冻结在 left 0 */
+table#summary-table thead th.col-code,
+table#summary-table tbody td.col-code {
+  position: sticky; left: 0;
+  background-clip: padding-box;
+}
+table#summary-table thead th.col-code { z-index: 6; }
+table#summary-table tbody td.col-code { z-index: 3; }
+
+/* ③ 手柄：热区完全落在本列内，中心压在列边线上 */
+table#summary-table thead th > .col-resizer {
+  right: 0 !important;
+  left: auto !important;
+  width: 12px !important;
+}
+table#summary-table thead th > .col-resizer::after {
+  left: auto !important;
+  right: 1px !important;
+}
+
 </style>
 </head><body>
 
@@ -8129,7 +8164,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.70';
+const APP_VER = 'v13.71';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -8621,7 +8656,7 @@ function pinAccountToTop(id, tableId) {
       const td = r.querySelector('td.col-seq');
       if (td && !r.classList.contains('cat-row')) td.textContent = String(n++);
     });
-    try { applySummarySticky(); } catch (e) {}
+    // 冻结列由 CSS 负责，换行序不需要再补算 left
   } else {
     render();
   }
@@ -11233,8 +11268,10 @@ function renderCat(main, footer) {
 // 列宽面板：恢复默认 / 复制当前 / 粘贴导入
 // 把「导出布局参数」生成的纯文本解析回来
 // 页面名 → 内部 key
+// '设置' 与 '账户汇总' 都指向 summary：设置页就是那张 #summary-table（旧名「账户汇总」），
+// 两种叫法的导出文本都能导入回来。
 const LAYOUT_SECTION_KEYS = {
-  '功能标签': 'tabs', '流水记录': 'flow', '账户汇总': 'summary',
+  '功能标签': 'tabs', '流水记录': 'flow', '设置': 'summary', '账户汇总': 'summary',
   '分类统计': 'cat', '查询': 'query', '分期': 'install', '固定收支': 'fixed'
 };
 
@@ -14996,18 +15033,19 @@ function renderSummary(main, footer) {
   wrap.className = 'grid-wrap';
   const table = document.createElement('table');
   table.className = 'grid'; table.id = 'summary-table';
+  // 列序 = 10 列，简码永远第一列（也是唯一冻结的那列）：
+  //   简码 / 序 / 类型 / 分类 / 账户名称 / 期初 / ▲上移 / ×删除 / 账单日 / 还款日
+  // 「当前结余 / 转出 / 转入 / 转出历史 / 转入历史」这 5 个金额列设置页不需要。
+  // 以前的做法是照样渲染、再用 width:0 !important 压成零宽 —— 零宽列在固定布局里
+  // 会让相邻列的边界一起重算，正是「拖一列好几列乱动」的根，现在干脆不渲染。
+  // 列宽默认值 DEFAULT_COL_WIDTHS.summary 的顺序必须与这里**逐位一致**。
   table.innerHTML = `
     <thead><tr>
+      <th class="col-code">简码</th>
       <th class="col-seq">序</th>
       <th class="col-cat">类型</th>
       <th class="col-sub">分类</th>
-      <th class="col-code"><button type="button" class="sum-fold-toggle" aria-label="展开或收起类型 / 分类"></button>简码</th>
       <th class="col-name">账户名称</th>
-      <th class="col-bal">当前结余</th>
-      <th class="col-out">转出</th>
-      <th class="col-in">转入</th>
-      <th class="col-hout">转出历史</th>
-      <th class="col-hin">转入历史</th>
       <th class="col-open">期初</th>
       <th class="col-move" title="点 ▲ 与上一行交换位置（同「类型」内）"></th>
       <th class="col-del"></th>
@@ -15034,17 +15072,10 @@ function renderSummary(main, footer) {
   let idx = 1;
   for (const cat of cats) {
     const list = byCat[cat];
-    // 分组行拆成真实单元格，而不是一个 colspan=12 的大格：
-    // 这样「当前结余/转出/转入/转出历史/转入历史/期初」六列的合计能各自落在对应列上，
-    // 账单日/还款日那两格的边框也能和下面数据行的线连起来。
-    const s = { bal: 0, out: 0, in: 0, hout: 0, hin: 0, open: 0 };
-    for (const a of list) {
-      const st = computeStats(a, range);
-      s.bal += st.balance; s.out += st.mOut; s.in += st.mIn;
-      s.hout += st.hOut; s.hin += st.hIn;
-      s.open += Number(a.opening) || 0;
-    }
-    const money = v => fmtMoney(v);
+    // 分组行拆成真实单元格（而不是一个 colspan 的大格）：列宽/边框才能和下面
+    // 数据行一一对齐。设置页只显示「期初」一列的合计，其余金额列不再渲染。
+    let openSum = 0;
+    for (const a of list) openSum += Number(a.opening) || 0;
     const dash = v => (v ? fmtMoney(v) : '—');
 
     const cr = document.createElement('tr');
@@ -15053,19 +15084,13 @@ function renderSummary(main, footer) {
     // 其它分类的分组行这两格连边框都不画（下面数据行本来也没有线）。
     const isDebt = cat === '负债类';
     cr.innerHTML =
+      // 简码格留在最前（冻结列），分组行里是空的
+      `<td class="col-code"></td>` +
       `<td class="col-seq cat-tag">${esc(shortCat(cat))}</td>` +
-      // 拆成独立格子（而不是 colspan=4）：这样「账户名称」那格也是真实单元格，
-      // 它会跟着 sticky，分组行滚过来时不会露出透明的空洞。
       `<td class="col-cat"></td>` +
       `<td class="col-sub"></td>` +
-      `<td class="col-code"></td>` +
       `<td class="col-name"></td>` +
-      `<td class="cat-sum col-bal">${money(s.bal)}</td>` +
-      `<td class="cat-sum col-out">${dash(s.out)}</td>` +
-      `<td class="cat-sum col-in">${dash(s.in)}</td>` +
-      `<td class="cat-sum col-hout">${dash(s.hout)}</td>` +
-      `<td class="cat-sum col-hin">${dash(s.hin)}</td>` +
-      `<td class="cat-sum col-open">${dash(s.open)}</td>` +
+      `<td class="cat-sum col-open">${dash(openSum)}</td>` +
       `<td class="col-move"></td>` +
       `<td class="col-del"></td>` +
       `<td class="col-bill">${isDebt ? '<span class="cat-col">账单日</span>' : ''}</td>` +
@@ -15097,161 +15122,27 @@ function renderSummary(main, footer) {
   });
 
   initColResize(table, 'summary');
-  // 账户名称列标题左边的小三角：点一下展开/收起类型、分类、简码三列
-  const foldBtn = table.querySelector('.sum-fold-toggle');
-  if (foldBtn) {
-    foldBtn.onclick = ev => {
-      ev.preventDefault(); ev.stopPropagation();
-      setSummaryFold(!summaryFold);
-      // 收起/展开会改表格总宽，工具栏右端对齐要跟着走
-      try { syncGridRight(); } catch (e) {}
-    };
-  }
   // 汇总页的可编辑单元格（类型/分类/简码/名称/期初/账单日/还款日）全靠这个绑定，
   // 之前漏了调用 → 手打的内容不进 state、切页就回滚、页脚永远空。
   bindSummaryEvents(tbody);
-  applySummaryFold();
   updateSummaryFooter(footer, range);
   syncSummaryDelBorder();
 }
 
-/* ---------- 账户汇总：类型 / 分类 / 简码 默认收起 ----------
-   打开汇总页时左侧只留「序号 + 账户名称」；点账户名称列标题左边那个小三角形
-   按钮展开/收起（收起时尖朝右、展开时尖朝左）。收起状态会记住。
-   账户名称列右缘的拖拽手柄只负责调列宽，不再兼做展开。 */
-const SUMMARY_FOLD_KEY = 'flow_summary_fold_v1';
-let summaryFold = (() => {
-  try { const v = localStorage.getItem(SUMMARY_FOLD_KEY); return v === null ? true : v === '1'; } catch (e) { return true; }
-})();
-// 展开状态下三列的真实宽度快照（折叠时 colWidths 里会临时出现 0）
-let summaryRealW = null;
-
-// 汇总表 colgroup 里 type/sub/code 三列的位置：0 是序号列，1=类型 2=分类 3=简码
-// 简码已提到第 1 列 → 序=1、类型=2、分类=3；折叠的是类型/分类
-const SUMMARY_FOLD_COLS = [2, 3];
-
-// 真实宽度只认 colWidths.summary。以前这里用一份单独记的 summaryFoldW 覆盖前三列，
-// 于是「把三列调窄 → 折叠 → 再展开」宽度又弹回 76/59/73，怎么调都存不住。
-// 若前三列被写成 0（老版本折叠时落盘的脏值），用快照 / 默认值补回来。
-function summaryBaseWidths() {
-  const dft = DEFAULT_COL_WIDTHS.summary;
-  const saved = Array.isArray(colWidths.summary) ? colWidths.summary : [];
-  const snap = Array.isArray(summaryRealW) ? summaryRealW : [];
-  // **逐列兜底**，不再「长度不是 14 就整表用默认」。
-  // 以前只要有一列没值（比如折叠时被写成 0、或老版本留下的短数组），
-  // 整张表的用户列宽都会被丢掉 —— 表现就是「折叠一下展开，全都弹回默认」。
-  const ths = document.querySelectorAll('#summary-table thead th');
-  const n = Math.max(dft.length, ths.length);
-  const out = [];
-  for (let i = 0; i < n; i += 1) {
-    const v = Number(saved[i]);
-    if (Number.isFinite(v) && v > 0) { out.push(v); continue; }
-    const s = Number(snap[i]);
-    if (Number.isFinite(s) && s > 0) { out.push(s); continue; }
-    const dv = Number(dft[i]);
-    out.push(Number.isFinite(dv) && dv > 0 ? dv : 80);
-  }
-  return out;
-}
-
-function hoistCodeColumn(table) {
-  const move = (tr) => {
-    const code = tr.querySelector('td.col-code, th.col-code');
-    if (code && tr.firstElementChild !== code) tr.insertBefore(code, tr.firstElementChild);
-  };
-  const head = table.querySelector('thead tr');
-  if (head) move(head);
-  table.querySelectorAll('tbody tr').forEach(move);
-  // 折叠功能已停用：把「收起类型 / 分类」那个三角摘掉
-  const foldBtn = table.querySelector('.sum-fold-toggle');
-  if (foldBtn) foldBtn.remove();
-}
-
-function applySummaryFold() {
-  const table = document.getElementById('summary-table');
-  if (!table) return;
-  // 列序：简码永远在最左（用户指定），其它列顺序不变
-  hoistCodeColumn(table);
-  // 折叠功能停用（用户明确不再使用）：始终按展开态渲染，
-  // 类型 / 分类不再被置 0，也就没有「折叠后左右滑动撕裂」那类问题。
-  summaryFold = false;
-  const real = summaryBaseWidths();
-  summaryRealW = real.slice();              // 记下真实宽度，折叠只改「视图」
-  const view = real.slice();
-  if (summaryFold) SUMMARY_FOLD_COLS.forEach(ci => { view[ci] = 0; });
-  applyWidths(table, 'summary', view);
-  // 落盘的永远是真实宽度（applyWidths 会用传进去的 view 覆盖 colWidths）
-  colWidths.summary = real;
-  table.classList.toggle('sum-cols-folded', summaryFold);
-  // 三角形按钮的方向由 .sum-cols-folded 控制，这里只同步提示文字
-  const btn = table.querySelector('.sum-fold-toggle');
-  if (btn) btn.title = summaryFold ? '展开类型 / 分类' : '收起类型 / 分类';
-  applySummarySticky();
-}
-
-function setSummaryFold(on) {
-  summaryFold = !!on;
-  try { localStorage.setItem(SUMMARY_FOLD_KEY, summaryFold ? '1' : '0'); } catch (e) {}
-  applySummaryFold();
-}
-
-// 汇总表「序号」「账户名称」两列横向滚动时固定在左侧。
-// 序号列的 left 由 CSS 变量控制：列宽直接取 colgroup 里记下的值，
-// 不再 getBoundingClientRect() —— 对上千个单元格的表做一次强制布局要 30ms 以上，
-// 这是切汇总页卡顿的大头。
-function applySummarySticky() {
-  const table = document.getElementById('summary-table');
-  if (!table) return;
-  const seqW = Math.round((Array.isArray(colWidths.summary) && colWidths.summary[0]) || 54);
-  table.style.setProperty('--summary-seq-w', seqW + 'px');
-
-  /* left 偏移必须用「表头实际渲染宽度」累加。
-     用 colWidths / summaryBaseWidths 算会在这些情况下错位：
-       · 浏览器把列压窄（表格要挤进容器）
-       · 收起时前三列是 0
-       · 用户拖过列宽分隔线
-     量 5 个 th 的开销可以忽略，但要在布局完成后再量 —— 否则拿到的是旧值。
-
-     注意区分「累加」和「冻结」：
-       · 累加要覆盖到冻结列左边的**每一列**（类型/分类收起时宽度是 0，
-         但展开后就非 0，简码的 left 得跟着变大）；
-       · 冻结只有 序 和 简码 两列。所有 thead th 本来就 position: sticky（吸顶），
-         只要再给它写 left 就等于同时横向冻结了 —— 所以 col-name 绝不能收到 left，
-         否则「账户名称」也会被一起冻住（这正是上一版冻结成三列的原因）。 */
-  // 简码现在是最左列，只冻结它；序/类型/分类都跟着横滚。
-  // 累加列表必须包含「在它左边」的每一列 —— 简码在最前，所以只有它自己。
-  const ACCUM_CLS = ['col-code'];
-  const FROZEN_CLS = ['col-code'];
-  const measureAndApply = () => {
-    const ths = table.querySelectorAll('thead th');
-    if (!ths.length) return;
-    const findTh = (cls) => {
-      for (const th of ths) if (th.classList.contains(cls)) return th;
-      return null;
-    };
-    const offs = {};
-    let acc = 0;
-    for (const cls of ACCUM_CLS) {
-      offs[cls] = acc;
-      const th = findTh(cls);
-      acc += th ? Math.round(th.getBoundingClientRect().width) : 0;
-    }
-    if (acc <= 0) return;
-    const apply = (cell) => {
-      for (const cls of FROZEN_CLS) {
-        if (cell.classList.contains(cls)) { cell.style.left = offs[cls] + 'px'; return; }
-      }
-      // 不冻结的列：清掉可能残留的旧 left，避免被上一条规则（吸顶 sticky）顺带横向冻住
-      cell.style.removeProperty('left');
-    };
-    table.querySelectorAll('thead th').forEach(apply);
-    table.querySelectorAll('tbody td').forEach(apply);
-  };
-
-  // 先同步试一次（多数情况下布局已经好了），下一帧再补一次防抖动
-  measureAndApply();
-  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(measureAndApply);
-}
+/* ---------- 设置表的列序 / 冻结 / 列宽：单一事实源 ----------
+   v13.71 重写。以前这里是一整套「折叠类型/分类 + 用 JS 逐格算 left 冻结」的机制
+   （hoistCodeColumn / summaryBaseWidths / applySummaryFold / applySummarySticky），
+   每加一个补丁就多一份「真实宽度」的副本，最后互相打架：
+     · colWidths 说 73px，屏幕上却是 122px（固定布局按比例放大了整张表）；
+     · 简码 和 序 都钉在 left:0，横滚时叠在一起，序 被整个盖住；
+     · 手柄一半压在隔壁列下面，点下去命中的是隔壁列。
+   现在照搬「统计 · 汇总表」（#stats-sum-table）那套，只有三件事：
+     ① 列序写在 renderSummary 的 thead 里：简码第一列，其它按原顺序；
+     ② 冻结只用 CSS（table#summary-table th/td.col-code { position: sticky; left: 0 }），
+        JS 不写任何 left；
+     ③ 列宽只有一处：DEFAULT_COL_WIDTHS.summary → initColResize(table, 'summary')
+        把 colgroup 各列写成像素、表格宽度 = 各列之和。
+   由此「存的宽度 = 屏幕上的宽度 = 屏幕上量到的宽度」，拖一列就只动一列。 */
 
 // 汇总页两条工具栏的右边界：都对齐表格「期初」列的右边框。
 // 这样右端的「导出/导入」和下面的统计区间落在同一条竖线上，也不会探到表格外面。
@@ -15392,8 +15283,6 @@ function makeSummaryRow(acc, idx, range) {
   if (isNew) { tr.dataset.id = '__new__'; tr.dataset.new = '1'; acc = { id: '', cat: '', code: '', name: '', opening: '', billDay: '', repayDay: '' }; }
   else { tr.dataset.id = acc.id; tr.dataset.new = '0'; }
 
-  const tdSeq = document.createElement('td'); tdSeq.className = 'col-seq'; tdSeq.textContent = idx; tr.appendChild(tdSeq);
-
   const mkInputCell = (field, type = 'text', cls = '') => {
     const td = document.createElement('td'); td.className = cls;
     const input = document.createElement('input'); input.dataset.field = field;
@@ -15411,27 +15300,23 @@ function makeSummaryRow(acc, idx, range) {
     td.appendChild(input); return td;
   };
 
+  // 列序必须与表头 / DEFAULT_COL_WIDTHS.summary 完全一致：
+  //   简码 / 序 / 类型 / 分类 / 账户名称 / 期初 / ▲上移 / ×删除 / 账单日 / 还款日
+  // 简码第一列（冻结列），其它列一律不冻结。
+  tr.appendChild(mkInputCell('code', 'text', 'col-code'));
+
+  const tdSeq = document.createElement('td'); tdSeq.className = 'col-seq'; tdSeq.textContent = idx; tr.appendChild(tdSeq);
+
   // 「类型」= cat（资产类/负债类/…，算账用）；「分类」= sub（储蓄/现金/生活…，统计用）
   tr.appendChild(mkInputCell('cat', 'text', 'col-cat'));
   tr.appendChild(mkInputCell('sub', 'text', 'col-sub'));
-  tr.appendChild(mkInputCell('code', 'text', 'col-code'));
   tr.appendChild(mkInputCell('name', 'text', 'col-name'));
 
-  const stats = isNew ? { balance: 0, mOut: 0, mIn: 0, hOut: 0, hIn: 0 } : computeStats(acc, range);
-  const mkReadCell = (field, text) => {
-    const td = document.createElement('td'); td.className = `readonly col-${field} ${field === 'bal' ? 'strong' : ''}`;
-    td.dataset.field = field; td.textContent = text; return td;
-  };
-  
-  tr.appendChild(mkReadCell('bal', fmtMoney(stats.balance)));
-  tr.appendChild(mkReadCell('out', stats.mOut ? fmtMoney(stats.mOut) : '—'));
-  tr.appendChild(mkReadCell('in', stats.mIn ? fmtMoney(stats.mIn) : '—'));
-  tr.appendChild(mkReadCell('hout', stats.hOut ? fmtMoney(stats.hOut) : '—'));
-  tr.appendChild(mkReadCell('hin', stats.hIn ? fmtMoney(stats.hIn) : '—'));
-
+  // 结余/转出/转入/历史四列设置页不显示（只在「统计」页看）。
+  // 不再建这 5 个单元格：以前它们靠 CSS 压成 0 宽，零宽列会让固定布局把
+  // 相邻列的边界一起重算 —— 少掉它们，列宽才是干净的一列对一列。
   const tdOpen = mkInputCell('opening', 'text', 'col-open');
   tdOpen.querySelector('input').style.textAlign = 'right'; tr.appendChild(tdOpen);
-
 
   // 「上移」：与上一个同类型的行交换位置，点一次挪一格
   const tdMove = document.createElement('td');
@@ -15756,7 +15641,8 @@ window.addEventListener('resize', () => {
   const nowNarrow = window.innerWidth < 768;
   if (nowNarrow !== _wasNarrow) { _wasNarrow = nowNarrow; render(); return; }
   if (currentTab === 'flow') syncFlowTitleWidth();
-  if (currentTab === 'settings') { syncGridRight(); applySummarySticky(); }
+  // 设置页只需把工具栏右端重新对齐「期初」列（冻结列是 CSS 的，不用重算）
+  if (currentTab === 'settings') { syncGridRight(); }
 });
 
 function bindQuerySection(sec, idx, footer) {
@@ -17983,17 +17869,17 @@ function openSyncDialog() {
 // 默认列宽（用户调好的，作为新用户 / 重置后的初始值）
 const DEFAULT_COL_WIDTHS = {
   flow:    [50, 77, 107, 117, 109, 179, 52],
-  // 简码 / 序 / 类型 / 分类 / 账户名称 / 结余 / 转出 / 转入 / 转出历史 / 转入历史 / 期初 / 移动 / 删除 / 账单日 / 还款日
-  // 简码/序/类型/分类/名称/结余/转出/转入/转出历史/转入历史/期初/移动/删除/账单日/还款日
-  // 曾经 5 个 0 是为「折叠类型/分类」留的占位；折叠已停用，0 宽列会让 fixed 布局抖动。
-  summary: [73, 52, 76, 59, 127, 110, 90, 90, 90, 90, 137, 34, 34, 64, 24],
+  // 设置表 10 列，顺序 = 表格里真实的列序：
+  //   简码 / 序 / 类型 / 分类 / 账户名称 / 期初 / ▲上移 / ×删除 / 账单日 / 还款日
+  // 简码永远第一列（也是唯一冻结的那列），所以它要窄：手机上它一冻就占掉屏幕一块。
+  // 列宽和屏幕上一比一 —— 存 84px 屏幕上就是 84px。（v13.70 之前这些值会被固定布局
+  // 按比例放大 1.59 倍：存 73px 显示 122px，所以拖起来怎么都对不上。）
+  summary: [84, 52, 84, 84, 168, 130, 46, 46, 64, 64],
   query:   [54, 65, 109, 116, 96, 184],
   fixed:   [56, 70, 70, 150, 150, 108, 150, 84, 64],   // 9 列（加了「频率」后从 8 变 9）
   // 分类表去掉「类型」列后是 5 列，用户给的 6 个值取前 2 个 + 后 3 个
   cat:     [62, 88, 122, 90, 99],
   installFixed: [113, 60, 99],   // 分期表前三列（账户名称/账单日/每月合计）
-  // 设置页 7 列：序 / 类型 / 分类 / 简码 / 账户名称 / 期初 / 删除
-  settings: [52, 96, 96, 84, 168, 110, 46, 44],
   statsSum: [52, 84, 84, 150, 120, 100, 100, 100, 100]
 };
 
@@ -18006,9 +17892,12 @@ const COLW_KEY_V2 = 'flow_col_widths_v2';
 
 // 布局参数：全局默认 + 每页覆盖（行高 / 正文字号 / 表头字号）
 const LAYOUT_KEY = 'flow_layout_v1';
-const LAYOUT_PAGES = ['flow', 'summary', 'cat', 'query', 'install', 'fixed', 'settings'];
+// 'summary' 就是「设置」页那张 #summary-table（名字是历史遗留，CSS 变量 --lh-summary
+// 也用它）。原来的 'settings' 是个没人用的重复项：导出布局参数时会印出一段
+// 名字为 undefined 的小节，这里去掉。
+const LAYOUT_PAGES = ['flow', 'summary', 'cat', 'query', 'install', 'fixed'];
 const LAYOUT_PAGE_NAMES = {
-  flow: '流水记录', summary: '账户汇总', cat: '分类统计',
+  flow: '流水记录', summary: '设置', cat: '分类统计',
   query: '查询', install: '分期', fixed: '固定收支'
 };
 // tableFont 是老字段（按表字号），保留以兼容旧存档；新代码统一读 pageFont。
@@ -18164,14 +18053,17 @@ function widthsOf(table) {
 }
 
 // 写入列宽。查询表把像素归一化成比例并让表格恒占 100%；
-// 流水/汇总直接用绝对像素，表格总宽 = 各列之和（可与窗口宽度不一致）。
+// 流水/汇总/设置直接用绝对像素：表格总宽 = 各列之和（可与窗口宽度不一致，
+// 窗口窄时靠 .grid-wrap 横滚，冻结列靠 CSS sticky 钉住）。
+// ⚠ 这里必须让「表格宽度」和「colgroup 各列之和」严格相等：
+//    固定布局下若表格被撑得比各列之和还宽，浏览器会把差额**按比例**摊给每一列，
+//    于是存进 localStorage 的宽度和屏幕上的宽度从此不是一回事（拖一列却动好几列）。
 function applyWidths(table, key, px) {
   const cg = ensureColgroup(table);
   if (!cg) return;
   const cols = cg.querySelectorAll('col');
-  // 0 = 明确折叠（账户汇总的「类型/分类/简码」会用到），不能按最小宽度抬回来
-  // 折叠功能已停用：0 不再代表「明确折叠」，一律抬到最小宽度，
-  // 否则 fixed 布局里会出现 0 宽列，拖动相邻列时边界跟着重算（看着像多列一起动）。
+  // 0 一律抬到最小宽度：fixed 布局里 0 宽列会让相邻列的边界一起重算
+  // （看起来像拖一列却带着好几列一起动）。
   const w = px.map(v => Math.max(COL_MIN, Math.round(v) || COL_MIN));
   if (key === 'query') {
     const sum = w.reduce((a, b) => a + b, 0) || 1;
@@ -18278,9 +18170,6 @@ function initColResize(table, key) {
       grip.classList.add('dragging');
       try { grip.setPointerCapture(e.pointerId); } catch (err) {}
 
-      // 开始拖之前先对齐一次，避免第一帧就错位
-      if (key === 'summary') { try { applySummarySticky(); } catch (e) {} }
-
       const onMove = me => {
         const delta = me.clientX - startX;
         const next = base.slice();
@@ -18312,8 +18201,6 @@ function initColResize(table, key) {
           _widthRaf = requestAnimationFrame(() => {
             _widthRaf = 0;
             if (_pendingWidths) { paintWidths(key, _pendingWidths); _pendingWidths = null; }
-            // 列宽一变，冻结列的 left 必须同一帧跟着重算，否则拖动时「撕裂」
-            if (key === 'summary') { try { applySummarySticky(); } catch (e) {} }
           });
         }
       };
@@ -18323,13 +18210,7 @@ function initColResize(table, key) {
         grip.removeEventListener('pointercancel', onUp);
         grip.classList.remove('dragging');
         if (moved) {
-          // 收起状态下拖任何一列，前三列的 0 宽都会被 paintWidths 写进 colWidths；
-          // 保存前换回真实宽度，别把 0 存进 localStorage（展开时要用它还原）
-          if (key === 'summary' && summaryFold) {
-            colWidths.summary = summaryBaseWidths();
-          }
           saveColWidths(); syncFlowTitleWidth(); syncGridRight();
-          try { applySummarySticky(); } catch (e) {}
         }
       };
       grip.addEventListener('pointermove', onMove);
