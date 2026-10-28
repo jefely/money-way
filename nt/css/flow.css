@@ -146,7 +146,13 @@
 }
 
 .nt-th {
-  position: relative;
+  /* sticky：纵向滚动时表头钉在顶部。
+     .nt-tablewrap 为了横向滚动设了 overflow-x:auto，按规范它纵向也成了滚动容器，
+     所以整张表的纵向滚动就发生在 wrap 里，sticky 的最近滚动祖先正好是它。
+     列宽手柄是 absolute 子元素，sticky 一样提供定位上下文，不用改。 */
+  position: sticky;
+  top: 0;
+  z-index: 3;
   /* 行高/字号已下放到每张表（见文件下半部分的 .nt-table-* 规则）；
      这里的 fallback 是「参数还没写进 :root」时的兜底（启动瞬间、未解锁）。 */
   height: var(--nt-th-h, 26px);

@@ -448,9 +448,11 @@ body {
   /* 宽度 = 各列 width 之和（值来自界面参数 / 拖动），**不是 width:100%**。
      table-layout:fixed 遇到 width:100% 时，会把「列宽之和」按比例放大到容器宽 ——
      面板里设的 44/84/112 全都作数不了，看起来就是「整张表在整体缩放」。
-     容器更宽 → 右侧留白；更窄 → .nt-tablewrap 横向滚动。
-     2026-10 用户反馈「表格都变成整体缩放模式了」就是这条 width:100%。 */
-  width: auto;
+     也不能用 width:auto：内容比容器宽时它会把整表压进容器（实测 390px 屏上
+     653 被压成 390，列宽 44→33、112→69），于是永远出不来横向滚动条。
+     max-content = 列宽之和，容器窄就溢出交给 .nt-tablewrap 横滚。
+     容器更宽 → 右侧留白（不拉伸）。 */
+  width: max-content;
   border-collapse: separate;
   /* 这条以前写死 0，而 flow.css 里读的是 var(--nt-cell-gap) ——
      shell.css 后加载，于是「单元格间隙」参数调了没反应。合并到这一处。 */
