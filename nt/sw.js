@@ -1,4 +1,4 @@
-/* NT账本 · 多文件版 Service Worker
+﻿/* NT账本 · 多文件版 Service Worker
  * 公约 4.4：CACHE_NAME 必须随静态资源更新自增
  *
  * ============================================================
@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.74';
+const CACHE_NAME = 'nt-v1.75';
 
 const ASSETS = [
   './index.html',
@@ -222,3 +222,4 @@ self.addEventListener('fetch', (e) => {
     }
   })());
 });
+

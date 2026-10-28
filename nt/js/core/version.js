@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 版本与更新判定（纯函数）
  * 层：第一层 · 数据基座
  *
@@ -13,7 +13,7 @@
  */
 
 /** 当前版本 —— **改版本号只改这一处**，然后同步 sw.js 的 CACHE_NAME */
-export const APP_VER = 'nt-v1.74';
+export const APP_VER = 'nt-v1.75';
 
 /** 版本号 → 可比较的数字；认不出返回 -1 */
 export function parseVer(v) {
@@ -71,3 +71,4 @@ export function decideUpdate(input) {
   }
   return { update: false, local, remote, reason: 'up-to-date' };
 }
+

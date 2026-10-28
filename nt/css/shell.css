@@ -144,6 +144,33 @@ body {
   color: var(--nt-text-muted);
 }
 
+/* 设置页工具条：标题 + 6 个按钮 = 7 个元素，390px 下默认会折成两行，
+   「布局」孤零零掉到第二行（用户 2026-10-29：「图标会自动换行」）。
+   这里把按钮收紧、禁止折行；万一面板把字号调大放不下，改成横向滑动，
+   而不是再掉一行。 */
+.nt-view[data-view="settings"] .nt-vbar {
+  flex-wrap: nowrap;
+  gap: 4px;
+  padding: 2px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nt-view[data-view="settings"] .nt-vbar::-webkit-scrollbar {
+  display: none;
+}
+
+.nt-view[data-view="settings"] .nt-vbar-title {
+  flex: 0 0 auto;
+  font-size: 11px;
+}
+
+.nt-view[data-view="settings"] .nt-vbar .nt-btn {
+  flex: 0 0 auto;
+  height: 26px;
+  padding: 0 6px;
+}
+
 /* ---------- 胶囊子 tab ---------- */
 
 .nt-caps {
@@ -177,14 +204,32 @@ body {
 /* ---------- 月份 / 年份 pills ---------- */
 
 .nt-pills {
-  /* 6 列网格：12 个月自动排成 2 行 × 6 列。
-     不能用 flex-wrap —— 那会按容器宽度随机换行（390px 下正好 11+1）。 */
+  /* 6 列网格：年份（个数不定）与区间（两个日期框）用这一套。
+     月份不用它 —— 见下面的 [data-scope="month"]。 */
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 4px;
   padding: 6px 10px;
   border-bottom: 1px solid var(--nt-bg-line);
   background: var(--nt-bg);
+}
+
+/* 月份：12 个数字排成**一行**（照单文件版在宽屏上的排法）。
+   `data-scope` 由 views/stats.js 写在容器上，只在 month 模式生效 ——
+   年份个数不定、区间是两个日期输入，都不能被切成 12 份。
+   手机上每格约 27px，所以字号收到 11、左右内边距 2px；390px 宽刚好放得下。
+   宽屏给容器一个上限，否则 12 个按钮会被拉成一排大块。 */
+.nt-pills[data-scope="month"] {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 3px;
+  padding: 6px 8px;
+  max-width: 640px;
+}
+
+.nt-pills[data-scope="month"] .nt-pill {
+  height: 24px;
+  padding: 0 2px;
+  font-size: 11px;
 }
 
 .nt-pills[hidden] {

@@ -178,6 +178,11 @@ export function mountStats(section, ctx) {
 
   function renderPills() {
     pills.hidden = sel.scope === 'all';
+    // 三种 scope 共用这个容器，但排法不同：
+    //   month → 12 个数字必须一行（CSS 按 [data-scope="month"] 排 12 列）
+    //   year  → 年份个数不定，保持默认的 6 列栅格
+    //   range → 两个日期输入，不能被 12 列切碎
+    pills.dataset.scope = sel.scope;
     pills.textContent = '';
     if (sel.scope === 'year') {
       for (const y of yearOptions()) {
