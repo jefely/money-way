@@ -16,7 +16,7 @@ import { tpl } from './render-transactions.js';
  * @param {HTMLElement} thead
  * @param {Array<{label:string, cls?:string}>} columns
  */
-import { paintHandles, syncFrozen } from './table-layout.js';
+import { applyColMirror, paintHandles, syncFrozen } from './table-layout.js';
 
 export function buildHead(thead, columns) {
   if (!thead) return;
@@ -37,6 +37,8 @@ export function buildHead(thead, columns) {
   const table = thead.closest('table');
   if (table) {
     paintHandles(table);
+    // 表头刚重建、内联宽度全丢：先把上次拖出来的宽度套回去，再算冻结列的 left
+    applyColMirror(table);
     syncFrozen(table);
   }
 }

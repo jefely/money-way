@@ -33,6 +33,7 @@ import { clearSelection } from './ui/cell-range.js';
 import { loadMergedSettings, loadUserSettings, saveThemeSettings } from './ui/debug-themes.js';
 import { TABLE_COLS } from './core/table-cols.js';
 import { saveTableColWidth } from './ui/col-save.js';
+import { saveColMirror } from './ui/table-layout.js';
 import { APP_VER } from './core/version.js';
 import { initVersion } from './ui/update-check.js';
 import { registerServiceWorker } from './ui/pwa.js';
@@ -208,6 +209,12 @@ function tableKeyOf(tableEl) {
  */
 function onColResize(tableEl, col, width) {
   saveTableColWidth({ getState, setState, saveNow: flushSave }, tableKeyOf(tableEl), col, width);
+  // 同时写一份 localStorage 镜像：列宽参数要解锁才拿得到，
+  // 而表头重绘（切 tab / 折叠）发生在渲染期，先用镜像顶上。
+  try {
+    const ths = [...tableEl.querySelectorAll('thead .nt-th')];
+    saveColMirror(tableEl, ths.map((th) => Math.round(th.getBoundingClientRect().width)));
+  } catch (e) { /* 忽略 */ }
 }
 
 function enterApp() {

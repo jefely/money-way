@@ -27,7 +27,7 @@ const FROZEN_COUNT = {
   'nt-table-stats': 2,      // 序 + 第二列
   'nt-table-plan': 1,       // 序
   'nt-table-inst': 1,       // 账户名称
-  'nt-table-accounts': 1,   // 简码
+  'nt-table-accounts': 2,   // 简码 + 序号
   'nt-table-query': 0,      // 不冻结
 };
 
@@ -247,6 +247,55 @@ export function bindAllTables(opts) {
     paintHandles(table);
     syncFrozen(table);
   }
+}
+
+/* ============================================================
+   三、列宽的「渲染缓存」
+   ------------------------------------------------------------
+   列宽的真身在账本参数里（加密、要等解锁），但表头每次重绘都会重建，
+   内联 width 随之丢失 —— 表现就是「调好列宽，一折叠一展开就回到默认」。
+   所以拖动时额外往 localStorage 写一份字符串镜像，buildHead 重建表头后
+   直接应用它。参数面板改动时也会同步镜像（见 app.js）。
+   ============================================================ */
+
+const MIRROR_PREFIX = 'nt-colw:';
+
+/** 表 → 镜像键（用表类名，够稳定） */
+function mirrorKey(tableEl) {
+  const cls = [...tableEl.classList].find((c) => c.startsWith('nt-table-'));
+  return cls ? MIRROR_PREFIX + cls : '';
+}
+
+/** 写镜像：widths 是「每列一个数字」的数组 */
+export function saveColMirror(tableEl, widths) {
+  try {
+    const k = mirrorKey(tableEl);
+    if (!k) return;
+    localStorage.setItem(k, (widths || []).join(','));
+  } catch (e) { /* 忽略 */ }
+}
+
+/** 从镜像里把宽度应用到表头上（没有镜像就什么都不做） */
+export function applyColMirror(tableEl) {
+  try {
+    const k = mirrorKey(tableEl);
+    const raw = k ? localStorage.getItem(k) : '';
+    if (!raw) return;
+    const widths = raw.split(',').map((x) => Number(x) || 0);
+    if (!widths.some((w) => w > 0)) return;
+
+    const ths = [...tableEl.querySelectorAll('thead .nt-th')];
+    if (!ths.length) return;
+    tableEl.classList.add('cols-custom');
+    ths.forEach((th, i) => {
+      const w = widths[i] || 0;
+      th.style.minWidth = '0';
+      th.style.maxWidth = 'none';
+      th.style.width = w > 0 ? w + 'px' : '';
+    });
+    applyCustomWidth(tableEl);
+    syncFrozen(tableEl);
+  } catch (e) { /* 忽略 */ }
 }
 
 /** 恢复默认列宽：回到 A 模式 */

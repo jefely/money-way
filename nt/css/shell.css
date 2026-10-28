@@ -264,6 +264,13 @@ body {
 .nt-table-accounts .nt-th:nth-child(1),
 .nt-table-accounts .nt-cell:nth-child(1) {
   position: sticky;
+  z-index: 4;
+}
+
+/* 账户表冻结两列：简码 + 序号（第二列压在第一列之下） */
+.nt-table-accounts .nt-th:nth-child(2),
+.nt-table-accounts .nt-cell:nth-child(2) {
+  position: sticky;
   z-index: 3;
 }
 
