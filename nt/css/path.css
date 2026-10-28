@@ -244,10 +244,11 @@
 .pw-flow-head {
   padding: 4px 0;
   border-top: 1px solid var(--nt-bg-line);
-  /* 路径表是 div + grid，不是 <table>，所以不吃 .nt-table-* 那套规则；
-     行高/字号单独取 --nt-*-path，缺参数时退回原来的写死值。 */
-  min-height: var(--nt-th-h-path, 0);
-  font-size: var(--nt-th-font-path, 11px);
+  /* 路径表是 div + grid，不是 <table>，不吃 .nt-table-* 那套「每表一套尺寸」规则。
+     行高与字号写死在这里 —— 2026-10 曾把它接到 --nt-th-h-path / --nt-row-h-path 上，
+     结果侧边栏每行从 ~24px 被撑到 32px，用户反馈「侧边栏坏了，1.44 才对」。
+     这张表本来就没有可调的尺寸参数，只有列宽（--nt-col-path-*）。 */
+  font-size: 11px;
   font-weight: 700;
   color: var(--nt-text-light);
 }
@@ -307,8 +308,7 @@
   align-items: center;
   padding: 3px 0;
   border-bottom: 1px dashed var(--nt-bg-line);
-  min-height: var(--nt-row-h-path, 0);
-  font-size: var(--nt-cell-font-path, 12px);
+  font-size: 12px;
   cursor: pointer;
 }
 

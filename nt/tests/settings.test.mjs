@@ -111,14 +111,20 @@ test('COL_KEYS 仍然是「只在末尾追加」的旧映射表（迁移依赖�
    每张表一套尺寸（界面参数面板「每个功能表一页」的骨架）
    ============================================================ */
 
-test('★ 每张表 5 项：列宽 + 列标行高/字号 + 数据行高/字号', () => {
-  assert.equal(TABLE_SIZE_SCHEMA.length, 28, '7 表 × 4 项');
+test('★ 每张表 5 项：列宽 + 列标行高/字号 + 数据行高/字号（路径表只有列宽）', () => {
+  // 6 张 <table> × 4 项尺寸；路径表是 div+grid，不参与
+  assert.equal(TABLE_SIZE_SCHEMA.length, 24, '6 表 × 4 项');
 
   for (const [table, t] of Object.entries(TABLE_COLS)) {
     const items = SCHEMA.filter((s) => s.group === t.label);
-    assert.equal(items.length, 5, `${t.label} 应有 5 项，实际 ${items.length}`);
+    const want = table === 'path' ? 1 : 5;
+    assert.equal(items.length, want, `${t.label} 应有 ${want} 项，实际 ${items.length}`);
 
     assert.ok(items.some((s) => s.type === 'cols' && s.table === table), `${t.label} 缺列宽`);
+    if (table === 'path') {
+      assert.ok(!items.some((s) => s.type === 'tableSize'), '路径表不该有尺寸参数');
+      continue;
+    }
     for (const f of TABLE_SIZE_FIELDS) {
       const item = items.find((s) => s.type === 'tableSize' && s.field === f.field);
       assert.ok(item, `${t.label} 缺 ${f.field}`);
@@ -141,12 +147,13 @@ test('★ 每个表组都有自己的屏：7 个 tab 一一对应，没有孤儿
   }
 });
 
-test('★ 旧存档的全局行高/字号迁移到 7 张表，而不是掉回默认', () => {
+test('★ 旧存档的全局行高/字号迁移到各表，而不是掉回默认（路径表不参与）', () => {
   const n = normalize({
     数据区行高: 40, 数据区字号: 16, 列标行行高: 30, 列标行字号: 13,
   }, 'dark');
 
-  for (const t of Object.values(TABLE_COLS)) {
+  for (const [table, t] of Object.entries(TABLE_COLS)) {
+    if (table === 'path') continue;
     assert.equal(n[t.label + '/数据行高'], 40, `${t.label} 数据行高没迁`);
     assert.equal(n[t.label + '/数据字号'], 16);
     assert.equal(n[t.label + '/列标行高'], 30);
@@ -162,7 +169,8 @@ test('每表明写的值优先于旧全局值', () => {
 
 test('没设过时用每表默认值（26 / 12 / 32 / 14）', () => {
   const n = normalize({}, 'dark');
-  for (const t of Object.values(TABLE_COLS)) {
+  for (const [table, t] of Object.entries(TABLE_COLS)) {
+    if (table === 'path') continue;
     assert.equal(n[t.label + '/列标行高'], 26);
     assert.equal(n[t.label + '/列标字号'], 12);
     assert.equal(n[t.label + '/数据行高'], 32);

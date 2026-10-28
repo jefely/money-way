@@ -129,18 +129,28 @@ export const TABLE_SIZE_FIELDS = [
  * group 用表名，于是面板上「每个功能表一页」是自动成立的 ——
  * 只要把表名登记进 GROUPS / GROUP_SCREEN 就够了。
  */
-export const TABLE_SIZE_SCHEMA = Object.entries(TABLE_COLS).flatMap(([table, t]) =>
+/**
+ * 参与「每表一套尺寸」的表。
+ *
+ * 路径追踪表被排除：它是 div + grid，行高/字号写死在 path.css 里，
+ * 侧边栏本来就没有这两个旋钮。2026-10 试过把它接进来 —— 默认 32px 的
+ * 数据行高把侧边栏每行从 ~24px 撑高，用户当场退回（「1.44 才对」）。
+ * 它只有列宽（--nt-col-path-*）。
+ */
+const SIZE_TABLES = Object.keys(TABLE_COLS).filter((t) => t !== 'path');
+
+export const TABLE_SIZE_SCHEMA = SIZE_TABLES.flatMap((table) =>
   TABLE_SIZE_FIELDS.map((f) => ({
-    key: t.label + '/' + f.suffix,
+    key: TABLE_COLS[table].label + '/' + f.suffix,
     type: 'tableSize',
     table,
     field: f.field,
-    group: t.label,
+    group: TABLE_COLS[table].label,
     def: f.def,
     min: f.min,
     max: f.max,
     cssVar: f.cssVar + table,
   })));
 
-/** 面板上的 7 个表组（顺序 = TABLE_COLS 的顺序） */
-export const TABLE_GROUPS = [...new Set(TABLE_SIZE_SCHEMA.map((s) => s.group))];
+/** 面板上的 7 个表组（顺序 = TABLE_COLS 的顺序；路径追踪那组只有列宽一项） */
+export const TABLE_GROUPS = Object.values(TABLE_COLS).map((t) => t.label);
