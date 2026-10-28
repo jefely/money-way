@@ -11,6 +11,7 @@ import {
   addTransaction, updateTransaction, removeTransaction, nextSeq,
   removeBatch, restoreBatch,
 } from '../core/state-store.js';
+import { createScheduled } from '../core/schema.js';
 import { buildFlowRows, buildFooterInfo } from '../ui/flow-model.js';
 import { renderRows } from '../ui/render-transactions.js';
 import { parseAccountInput, suggestAccounts as suggestByIndex, ensurePendingAccount } from '../core/account-resolver.js';
@@ -37,6 +38,53 @@ export function mountFlow(section, ctx) {
     parseAccount: (v) => parseAccountInput(ctx.getIndex(), v),
     suggestAccounts: (v) => suggestByIndex(ctx.getIndex(), v),
   });
+
+  /* ---------- 「固定」列复选框 ----------
+     勾上 = 按这笔流水生成一条固定收支规则（频率默认每月、日期取流水的日）；
+     取消 = 删掉由它生成的那条规则。关联字段是 scheduled.srcTxId。
+     事件挂在 tbody 上（每次 render 都会重建行，绑在行上会丢）。 */
+  body.addEventListener('change', (ev) => {
+    const box = ev.target && ev.target.closest && ev.target.closest('.nt-fixed-box');
+    if (!box) return;
+    const tr = box.closest('tr');
+    const id = tr && tr.dataset.id;
+    if (id) toggleFixed(id, box.checked);
+  });
+
+  /** 勾选框 → 固定收支规则。生成后到「固定」页可以改频率 / 日期。 */
+  function toggleFixed(txId, on) {
+    const st = ctx.getState();
+    const list = st.scheduled || [];
+
+    if (!on) {
+      ctx.setState({ ...st, scheduled: list.filter((s) => !s || s.srcTxId !== txId) });
+      ctx.save();
+      render();
+      return;
+    }
+
+    const tx = (st.transactions || []).find((t) => t && t.id === txId);
+    // 期初流水没有业务日期，不该变成规则
+    if (!tx || tx.opening) { render(); return; }
+    if (list.some((s) => s && s.srcTxId === txId)) return;   // 已经生成过
+
+    // 日期取「几号」：260801 → 1 号；260825 → 25 号
+    const day = Number(String(tx.date || '').slice(-2)) || 1;
+    const sched = createScheduled({
+      freq: 'monthly',
+      day,
+      from_id: tx.from_id,
+      to_id: tx.to_id,
+      amount: tx.amount,
+      note: tx.note,
+      srcTxId: txId,
+    });
+
+    ctx.setState({ ...st, scheduled: [...list, sched] });
+    ctx.save();
+    render();
+    ctx.setFooter(`已加入固定收支：每月 ${day} 号 · 可在「固定」页改频率或删除`);
+  }
 
   /**
    * 把导入解析结果写进 state。

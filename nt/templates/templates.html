@@ -40,8 +40,10 @@
     <td class="nt-cell nt-cell-note">
       <input class="nt-cell-input" type="text" data-field="note" aria-label="备注">
     </td>
-    <td class="nt-cell nt-cell-fixed" data-field="fixed"></td>
-    <td class="nt-cell nt-cell-action">
+    <td class="nt-cell nt-cell-fixed nt-cell-edge">
+      <input class="nt-fixed-box" type="checkbox" aria-label="设为固定收支">
+    </td>
+    <td class="nt-cell nt-cell-action nt-cell-edge">
       <button class="nt-btn nt-btn-icon" type="button" aria-label="删除这笔流水">×</button>
     </td>
   </tr>
@@ -67,7 +69,7 @@
       <input class="nt-cell-input" type="text" data-field="note" aria-label="备注" placeholder="备注">
     </td>
     <td class="nt-cell nt-cell-fixed"></td>
-    <td class="nt-cell nt-cell-action"></td>
+    <td class="nt-cell nt-cell-action nt-cell-edge"></td>
   </tr>
 </template>
 
@@ -245,10 +247,10 @@
     <td class="nt-cell">
       <input class="nt-cell-input" type="text" inputmode="numeric" data-field="repayDay" aria-label="还款日">
     </td>
-    <td class="nt-cell nt-cell-action">
+    <td class="nt-cell nt-cell-action nt-cell-edge">
       <button class="nt-btn nt-btn-icon" type="button" data-act="up" aria-label="上移">↑</button>
     </td>
-    <td class="nt-cell nt-cell-action">
+    <td class="nt-cell nt-cell-action nt-cell-edge">
       <button class="nt-btn nt-btn-icon" type="button" data-act="del" aria-label="删除账户">×</button>
     </td>
   </tr>
@@ -285,8 +287,8 @@
     <td class="nt-cell">
       <input class="nt-cell-input" type="text" inputmode="numeric" data-field="repayDay" aria-label="还款日" placeholder="还款日">
     </td>
-    <td class="nt-cell nt-cell-action"></td>
-    <td class="nt-cell nt-cell-action"></td>
+    <td class="nt-cell nt-cell-action nt-cell-edge"></td>
+    <td class="nt-cell nt-cell-action nt-cell-edge"></td>
   </tr>
 </template>
 
@@ -318,7 +320,7 @@
     <td class="nt-cell">
       <input class="nt-cell-input" type="text" data-field="note" aria-label="备注">
     </td>
-    <td class="nt-cell nt-cell-action">
+    <td class="nt-cell nt-cell-action nt-cell-edge">
       <button class="nt-btn nt-btn-icon" type="button" data-act="del" aria-label="删除">×</button>
     </td>
   </tr>
@@ -349,7 +351,7 @@
     <td class="nt-cell">
       <input class="nt-cell-input" type="text" data-field="note" aria-label="备注" placeholder="备注">
     </td>
-    <td class="nt-cell nt-cell-action"></td>
+    <td class="nt-cell nt-cell-action nt-cell-edge"></td>
   </tr>
 </template>
 
@@ -379,7 +381,7 @@
       <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="numeric" maxlength="2" data-field="day" aria-label="还款日">
     </td>
     <td class="nt-cell nt-cell-num" data-field="per"></td>
-    <td class="nt-cell nt-cell-action">
+    <td class="nt-cell nt-cell-action nt-cell-edge">
       <button class="nt-btn nt-btn-icon" type="button" data-act="del" aria-label="删除分期">×</button>
     </td>
   </tr>

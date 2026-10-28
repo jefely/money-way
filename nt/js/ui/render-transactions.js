@@ -141,9 +141,14 @@ function renderWindow() {
       setInput(tr, 'to', r.to);
       setInput(tr, 'amount', r.amountEdit != null ? r.amountEdit : r.amount);
       setInput(tr, 'note', r.note);
-      // 「固定」这一列还没有对应的数据字段（流水上没有 isFixed），先给一个占位符。
-      // 等列语义定下来再接 —— 空着会让人以为表格没渲染完。
-      setText(tr, CLASS.fixed, r.fixedText != null ? r.fixedText : '—');
+      // 「固定」列：勾选框表示这笔流水是否已经生成过固定收支规则。
+      // 关联在 scheduled.srcTxId 上（见 core/schema.js）。
+      // 期初行不能变固定（它没有业务日期），直接禁用。
+      const box = tr.querySelector('.' + CLASS.fixed + ' .nt-fixed-box');
+      if (box) {
+        box.checked = !!r.fixed;
+        box.disabled = !!r.isOpening || !!r.isVirtual;
+      }
 
       if (r.isVirtual) {
         // 虚拟行（未来分期）：只读，样式标出「这是计划，不是已发生」

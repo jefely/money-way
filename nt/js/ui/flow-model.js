@@ -1,4 +1,4 @@
-﻿// 界面：（无界面）流水视图模型
+// 界面：（无界面）流水视图模型
 /**
  * 视图模型：state（ID 模型）→ 渲染行（名字）
  *
@@ -51,6 +51,12 @@ function buildRealRows(state) {
   const accMap = indexAccounts(state.accounts);
   const nameOf = (id) => (accMap.get(id) ? accMap.get(id).name : '');
 
+  // 「固定」列那个复选框的状态：这笔流水是否已经生成过固定收支规则。
+  // 关联靠 scheduled.srcTxId（见 core/schema.js 的 createScheduled）。
+  const fixedTx = new Set(
+    (state.scheduled || []).filter((s) => s && s.srcTxId).map((s) => String(s.srcTxId)),
+  );
+
   const rows = (state.transactions || []).slice()
     .sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0));
 
@@ -69,6 +75,8 @@ function buildRealRows(state) {
     dateText: t.opening ? '期初' : shortDate(t.date),
     amountText: money(t.amount),
     isOpening: !!t.opening,
+    // 期初流水不该变成固定收支规则（它没有业务日期）
+    fixed: !t.opening && fixedTx.has(String(t.id)),
     // 断链提示：有 ID 但映射不到名字（账户被删过）
     broken: (!!t.from_id && !accMap.has(t.from_id)) || (!!t.to_id && !accMap.has(t.to_id)),
   }));

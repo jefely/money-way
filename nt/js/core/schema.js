@@ -151,6 +151,10 @@ export function createScheduled(patch = {}) {
   // 不能用 clampDay 兜底 —— 它会把「没填」变成 1 号，那是在替用户编数据。
   if (isDayGiven(patch.billDay)) base.billDay = clampDay(patch.billDay);
 
+  // 这笔规则是从哪条流水勾出来的（流水表「固定」列那个复选框）。
+  // 有它就说明「这条规则有来源」，勾选框据此回显；取消勾选时按它删规则。
+  if (patch.srcTxId) base.srcTxId = String(patch.srcTxId);
+
   if (patch.inst) {
     base.inst = {
       periods: Math.max(0, Math.floor(Number(patch.inst.periods) || 0)),

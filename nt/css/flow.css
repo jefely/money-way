@@ -258,6 +258,38 @@ body.nt-col-resizing {
 .nt-table-accounts .nt-th { height: var(--nt-th-h-accounts); font-size: var(--nt-th-font-accounts); }
 .nt-table-accounts .nt-cell { height: var(--nt-row-h-accounts); font-size: var(--nt-cell-font-accounts); }
 
+/* ---------- 特殊功能区（固定 / 删除 / 上移） ----------
+   流水表最后两列、固定表与账户表的操作列共用这一套：
+   左侧一条竖线 + 淡紫底，一眼看出「这一列是操作，不是数据」。
+   宽度不参与列宽拖动（拖动会把这些小格子拖坏），见 shell.css 的 !important。 */
+.nt-table .nt-th-edge,
+.nt-table .nt-cell-edge {
+  background: rgba(139, 108, 255, 0.09);
+  box-shadow: inset 1px 0 0 var(--nt-bg-line);
+}
+
+/* 「固定」列里的勾选框 */
+.nt-table .nt-fixed-box {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--nt-primary);
+  vertical-align: middle;
+}
+
+.nt-table .nt-fixed-box:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* 操作列（删除 / 上移）保底宽度：「删除」两个字加内边距要 44px 以上，
+   旧存档里的 40px 会把第二个字裁掉。 */
+.nt-table .nt-th[data-col="action"],
+.nt-table .nt-th[data-col="up"] {
+  min-width: 56px;
+}
+
 /* 公共边框：横向 / 纵向（无 / 虚线 / 实线 + 线粗 + 颜色） */
 [data-border-h="solid"] .nt-th,
 [data-border-h="solid"] .nt-cell {
