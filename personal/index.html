@@ -8129,7 +8129,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.69';
+const APP_VER = 'v13.70';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -15148,7 +15148,8 @@ function summaryBaseWidths() {
     if (Number.isFinite(v) && v > 0) { out.push(v); continue; }
     const s = Number(snap[i]);
     if (Number.isFinite(s) && s > 0) { out.push(s); continue; }
-    out.push(dft[i] != null ? dft[i] : (dft[dft.length - 1] || 60));
+    const dv = Number(dft[i]);
+    out.push(Number.isFinite(dv) && dv > 0 ? dv : 80);
   }
   return out;
 }
@@ -17983,7 +17984,9 @@ function openSyncDialog() {
 const DEFAULT_COL_WIDTHS = {
   flow:    [50, 77, 107, 117, 109, 179, 52],
   // 简码 / 序 / 类型 / 分类 / 账户名称 / 结余 / 转出 / 转入 / 转出历史 / 转入历史 / 期初 / 移动 / 删除 / 账单日 / 还款日
-  summary: [73, 52, 76, 59, 127, 0, 0, 0, 0, 0, 137, 34, 34, 64, 24],
+  // 简码/序/类型/分类/名称/结余/转出/转入/转出历史/转入历史/期初/移动/删除/账单日/还款日
+  // 曾经 5 个 0 是为「折叠类型/分类」留的占位；折叠已停用，0 宽列会让 fixed 布局抖动。
+  summary: [73, 52, 76, 59, 127, 110, 90, 90, 90, 90, 137, 34, 34, 64, 24],
   query:   [54, 65, 109, 116, 96, 184],
   fixed:   [56, 70, 70, 150, 150, 108, 150, 84, 64],   // 9 列（加了「频率」后从 8 变 9）
   // 分类表去掉「类型」列后是 5 列，用户给的 6 个值取前 2 个 + 后 3 个
@@ -18167,7 +18170,9 @@ function applyWidths(table, key, px) {
   if (!cg) return;
   const cols = cg.querySelectorAll('col');
   // 0 = 明确折叠（账户汇总的「类型/分类/简码」会用到），不能按最小宽度抬回来
-  const w = px.map(v => (Math.round(v) === 0 ? 0 : Math.max(COL_MIN, Math.round(v))));
+  // 折叠功能已停用：0 不再代表「明确折叠」，一律抬到最小宽度，
+  // 否则 fixed 布局里会出现 0 宽列，拖动相邻列时边界跟着重算（看着像多列一起动）。
+  const w = px.map(v => Math.max(COL_MIN, Math.round(v) || COL_MIN));
   if (key === 'query') {
     const sum = w.reduce((a, b) => a + b, 0) || 1;
     w.forEach((v, i) => { if (cols[i]) cols[i].style.width = (v / sum * 100).toFixed(4) + '%'; });
