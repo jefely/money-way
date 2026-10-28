@@ -5562,7 +5562,10 @@ table#summary-table tbody td.col-name { z-index: auto !important; }
   width: max(var(--mw-cols-w, 0px), 100%);
   min-width: 100%;
   box-sizing: border-box;
-  background: var(--bg-main);
+  /* 与侧栏同底色 + 模糊：下面的数据行滚过去时不至于糊成一片 */
+  background: rgba(255, 255, 255, .2);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   padding: 0 0 3px;
   margin-top: 0;
   box-shadow: 0 6px 10px -8px rgba(0,0,0,.22);
@@ -5596,7 +5599,8 @@ table#summary-table tbody td.col-name { z-index: auto !important; }
   /* 表格内容可以左右拖动：两个方向都滚，竖向仍然是「表头钉住 + 数据行滚动」 */
   overflow: auto; overscroll-behavior: contain;
   padding: 0 12px 22px 8px;
-  background: var(--bg-main); border: 0 !important; outline: 0 !important;
+  /* 侧栏 20% 透明度（用户指定）：手机上抽屉盖在环图上时能看见后面的图 */
+  background: rgba(255, 255, 255, .2); border: 0 !important; outline: 0 !important;
   box-shadow: none;
   height: auto; min-height: 100%;
 }
@@ -5741,10 +5745,10 @@ table#summary-table tbody td.col-name { z-index: auto !important; }
 /* 路径页筛选行（照搬查询页的 q-filter-row 观感） */
 .mw-flow-filter { border-bottom: 1px solid rgba(128,128,128,.22); padding: 3px 0; }
 .mw-qf {
-  width: 100%; box-sizing: border-box; height: 22px;
-  font-size: 11px; padding: 0 4px; text-align: right;
-  border: 1px solid rgba(128,128,128,.22); border-radius: 3px;
-  background: transparent; color: inherit; outline: none;
+  width: 100%; box-sizing: border-box; height: 26px;
+  font-size: 13px; padding: 0 4px; text-align: center;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-main); color: var(--text-main); outline: none;
 }
 .mw-qf:focus { border-color: var(--primary); background: rgba(139,108,255,.08); }
 .mw-qf::placeholder { color: var(--text-muted); opacity: .6; }
@@ -5761,6 +5765,9 @@ th.col-range { text-align: left; }
 .mw-flow-title-txt { font-size: 14px; font-weight: 700; color: var(--text-main); }
 .mw-clear-btn {
   height: 26px; padding: 0 12px; border-radius: var(--radius);
+  /* 文字上下居中：按钮默认行高比 26px 高，字会往下掉半截 */
+  display: inline-flex; align-items: center; justify-content: center;
+  line-height: 1; vertical-align: middle;
   background: #fff; color: var(--text-muted);
   border: 1px solid var(--border);
   font-size: 14px; font-weight: 600; cursor: pointer;
@@ -5840,37 +5847,37 @@ th.col-range { text-align: left; }
   padding: 0 3px !important;
 }
 .mw-flow-row.mw-flow-grid > *:last-child { border-right: 0; }
-.mw-flow-row.mw-flow-grid:nth-child(even) { background: var(--bg-gray-light); }
+.mw-flow-row.mw-flow-grid:nth-child(even) { background: rgba(128, 128, 128, .10); }
 .mw-flow-row.mw-flow-grid:hover { background: #f3f1fb; }
 .mw-flow-row.mw-flow-grid.on { background: rgba(139,108,255,.14); }
 .mw-flow-row.mw-flow-grid.root { background: rgba(139,108,255,.3); font-weight: 700; box-shadow: inset 2px 0 0 var(--primary); }
 
 /* 深色主题：斑马纹与边框跟流水表一致 */
-[data-theme="dark"] .mw-flow-row.mw-flow-grid:nth-child(even) { background-color: #121212 !important; }
-[data-theme="dark"] .mw-flow-cols.mw-flow-grid { background-color: #141414 !important; }
+[data-theme="dark"] .mw-flow-row.mw-flow-grid:nth-child(even) { background-color: rgba(255, 255, 255, .05) !important; }
+[data-theme="dark"] .mw-flow-cols.mw-flow-grid { background-color: transparent !important; }
 [data-theme="dark"] .mw-flow-row.mw-flow-grid > * { border-right-color: #2a2a2a; }
 [data-theme="dark"] .mw-flow-row.mw-flow-grid { border-bottom-color: #2a2a2a; }
 [data-theme="dark"] .mw-flow-row.mw-flow-grid:hover { background-color: #1a1626 !important; }
 
 /* 筛选行：与表头列宽严格一致（同样的 padding / box-sizing） */
-.mw-flow-filter.mw-flow-grid { padding: 3px 0; background: var(--bg-gray-light); }
+.mw-flow-filter.mw-flow-grid { padding: 3px 0; background: transparent; }
 .mw-flow-filter.mw-flow-grid .mw-qf {
   justify-self: stretch;
-  width: 100%; box-sizing: border-box; height: 22px;
-  margin: 0; padding: 0 3px;
-  text-align: center; border-radius: 4px;
+  width: 100%; box-sizing: border-box; height: 26px;
+  margin: 0; padding: 0 4px;
+  text-align: center; border-radius: var(--radius);
   border-width: 1px !important; border-style: solid !important;
   border-color: var(--border) !important;
-  background: var(--bg-main); color: inherit; outline: none;
-  font-size: 11px; letter-spacing: -.2px;
+  background: var(--bg-main); color: var(--text-main); outline: none;
+  font-size: 13px;
 }
 .mw-flow-filter.mw-flow-grid .mw-qf:focus { border-color: var(--primary); background: #f3f1fb; }
 .mw-flow-filter.mw-flow-grid .mw-qf::placeholder { color: var(--text-muted); opacity: .55; }
 /* 日期框：内容靠右（与数据行日期列对齐） */
-#mw-qf-date { text-align: right !important; font-size: 9.5px !important; letter-spacing: -.4px; }
+#mw-qf-date { font-size: 10.5px !important; letter-spacing: -.3px; }
 #mw-qf-note { text-align: left !important; }
-[data-theme="dark"] .mw-flow-filter.mw-flow-grid { background-color: #141414 !important; }
-[data-theme="dark"] .mw-flow-filter.mw-flow-grid .mw-qf { background-color: #1e1a2e !important; border-color: #6b6580 !important; }
+[data-theme="dark"] .mw-flow-filter.mw-flow-grid { background-color: transparent !important; }
+[data-theme="dark"] .mw-flow-filter.mw-flow-grid .mw-qf { background-color: #1a1a1a !important; border-color: #333333 !important; color: #ffffff !important; border-radius: 4px !important; }
 
 /* 路径左栏滚动条：细、无边框，去掉左侧那条黑线 */
 /* 滚动条：滑块和轨道都用背景色融合，杜绝旁边那条深色竖线 */
@@ -7988,6 +7995,35 @@ table#summary-table thead th > .col-resizer::after {
   right: 1px !important;
 }
 
+/* ============================================================
+   路径左栏（v13.77）：清空按钮垂直居中 + 侧栏 20% 透明
+   ------------------------------------------------------------
+   前面 6900 行附近有 html body .mw-side-left/.mw-side-frozen 的
+   background-color: var(--bg-main) !important —— 同权重后来者胜，
+   所以透明底必须写在这一段（样式表末尾）才盖得住。
+   ============================================================ */
+html body .mw-clear-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  padding: 0 12px !important;
+  box-sizing: border-box !important;
+}
+html body .mw-side-left { background: rgba(255, 255, 255, .2) !important; }
+html body .mw-side-frozen { background: rgba(255, 255, 255, .2) !important; }
+/* 滚动条的「轨道」原来也被刷成实心底色，透明后右边缘才是一条真正的 20% 带 */
+html body .mw-side-left::-webkit-scrollbar,
+html body .mw-side-left::-webkit-scrollbar-track,
+html body .mw-side-left::-webkit-scrollbar-track-piece,
+html body .mw-side-left::-webkit-scrollbar-corner { background: transparent !important; }
+[data-theme="dark"] html body .mw-side-left,
+[data-theme="dark"] html body .mw-side-frozen { background: rgba(0, 0, 0, .2) !important; }
+[data-theme="dark"] html body .mw-side-left::-webkit-scrollbar,
+[data-theme="dark"] html body .mw-side-left::-webkit-scrollbar-track,
+[data-theme="dark"] html body .mw-side-left::-webkit-scrollbar-track-piece,
+[data-theme="dark"] html body .mw-side-left::-webkit-scrollbar-corner { background: transparent !important; }
+
 </style>
 </head><body>
 
@@ -8202,7 +8238,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.76';
+const APP_VER = 'v13.77';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -9965,10 +10001,18 @@ function mwDrawSvg(nodes, edges) {
       + ' style="pointer-events:none">' + mwEsc(label) + '</text>');
   });
 
-  /* 圆心的拖动把手：直径 = 环直径的 25%，**完全透明**，只当命中区。
-     放在最上层，所以这一带的指针事件全被它吃掉 —— 不会误触到下面的线，按住拖动就是平移。 */
-  parts.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + Math.round(R_OUT * 0.25) + '"'
+  /* 圆心的拖动把手：**直径 = 内圆直径的 27%**（用户指定），完全透明，只当命中区。
+     放在最上层，所以这一带的指针事件全被它吃掉 —— 不会误触到下面的线，按住拖动就是平移/旋转。 */
+  parts.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + (R_IN * 0.27).toFixed(1) + '"'
     + ' fill="transparent" stroke="none" style="pointer-events:all;cursor:grab"/>');
+
+  /* 环外的一圈拖动遮罩：环与环外之间常有空白，落在那里时既点不到线也拖不动。
+     用一个 **透明的粗描边圆** 覆盖 R_OUT 往外 BAND 宽的一圈（fill:none + stroke），
+     pointer-events="stroke" 表示只有这一圈的描边区吃指针事件，弧块/连线都不受影响。 */
+  var OUT_BAND = 130;
+  parts.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + Math.round(R_OUT + OUT_BAND / 2) + '"'
+    + ' fill="none" stroke="transparent" stroke-width="' + OUT_BAND + '"'
+    + ' pointer-events="stroke" style="cursor:grab"/>');
   parts.push('</svg>');
 
   /* ---------- 外壳：左侧信息栏 + 右侧开放图区 ---------- */
@@ -10314,16 +10358,28 @@ function mwDrawSvg(nodes, edges) {
   }, { passive: false });
 
   var drag = null, pinch = null;
+
+  /* 电脑端：左键拖 = 平移；**右键拖**（或 Shift/Ctrl + 左键）拖 = 旋转。
+     旋转方向按用户定义：**往下搓、往左搓都是顺时针**。
+     CSS rotate 正角就是顺时针，所以增量取 (dy − dx)：
+       dy > 0（往下）→ 正；dx < 0（往左）→ 也是正。 */
+  chartBox.addEventListener('contextmenu', function (ev) { ev.preventDefault(); });
   chartBox.addEventListener('pointerdown', function (ev) {
-    if (ev.target.classList && (ev.target.classList.contains('mw-ring') || ev.target.classList.contains('mw-edge'))) return;
-    drag = { x: ev.clientX, y: ev.clientY, tx: tx0, ty: ty0, shift: ev.shiftKey };
+    var rotate = (ev.button === 2) || ev.shiftKey || ev.ctrlKey;
+    // 左键落在线/弧块上是「选中」，不当拖动；右键一律旋转（哪怕落在线上面）
+    if (!rotate && ev.target.classList &&
+        (ev.target.classList.contains('mw-ring') || ev.target.classList.contains('mw-edge'))) return;
+    drag = {
+      x: ev.clientX, y: ev.clientY, tx: tx0, ty: ty0, rot: rot,
+      mode: rotate ? 'rot' : 'pan'
+    };
     try { chartBox.setPointerCapture(ev.pointerId); } catch (e) {}
   });
   chartBox.addEventListener('pointermove', function (ev) {
     if (!drag) return;
-    if (ev.shiftKey) {
-      rot = rot + (ev.clientX - drag.x) * 0.3;
-      drag.x = ev.clientX;
+    if (drag.mode === 'rot') {
+      var dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+      rot = drag.rot + (dy - dx) * 0.35;
     } else {
       tx0 = drag.tx + (ev.clientX - drag.x);
       ty0 = drag.ty + (ev.clientY - drag.y);
@@ -10333,18 +10389,32 @@ function mwDrawSvg(nodes, edges) {
   chartBox.addEventListener('pointerup', function () { drag = null; });
   chartBox.addEventListener('pointercancel', function () { drag = null; });
 
+  /* 手机端：双指 —— 距离变化 = 缩放，**扭动角度 = 旋转**（顺时针扭 = 顺时针转）。
+     两个手指的连线的角度用 atan2 取，增量换算成度数；跨 ±180° 时取最短路径。 */
   chartBox.addEventListener('touchstart', function (ev) {
     if (ev.touches.length === 2) {
       drag = null;
-      pinch = { d: Math.hypot(ev.touches[0].clientX - ev.touches[1].clientX, ev.touches[0].clientY - ev.touches[1].clientY), z: zoom };
+      var t0 = ev.touches[0], t1 = ev.touches[1];
+      pinch = {
+        d: Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY),
+        ang: Math.atan2(t1.clientY - t0.clientY, t1.clientX - t0.clientX),
+        z: zoom,
+        r: rot
+      };
     }
   }, { passive: true });
   chartBox.addEventListener('touchmove', function (ev) {
     if (ev.touches.length === 2 && pinch) {
       ev.preventDefault();
       mwView.userZoom = true;
-      var d2 = Math.hypot(ev.touches[0].clientX - ev.touches[1].clientX, ev.touches[0].clientY - ev.touches[1].clientY);
+      var t0 = ev.touches[0], t1 = ev.touches[1];
+      var d2 = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+      var ang2 = Math.atan2(t1.clientY - t0.clientY, t1.clientX - t0.clientX);
       zoom = Math.min(6, Math.max(0.3, pinch.z * (d2 / Math.max(1, pinch.d))));
+      var da = ang2 - pinch.ang;
+      while (da > Math.PI) da -= Math.PI * 2;
+      while (da < -Math.PI) da += Math.PI * 2;
+      rot = pinch.r + da * 180 / Math.PI;
       applyT();
     }
   }, { passive: false });
