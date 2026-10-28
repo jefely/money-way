@@ -251,30 +251,35 @@ export function mountPath(section, ctx) {
     saveTableColWidth: (table, col, w) => saveTableColWidth(ctx, table, col, w),
   });
 
-  /* ---------- 点绘图区 → 左栏自动收回 ---------- */
-  // 用 pointerdown/up 判「点」而不是 click：线/弧块上的 click 会 stopPropagation，
+  /* ---------- 点侧栏以外 → 左栏自动收回 ---------- */
+  // 用 pointerdown/up 判「点」而不是 click：图上的线/弧块会 stopPropagation click，
   // 挂在容器的 click 上收不到；而且拖动、双指、长按都不该算点击。
   //
+  // 监听挂在**整个路径视图**上（用户 2026-10-29：点侧栏以外的任何地方都收），
+  // 但排除侧栏内部和左上角的收展按钮 —— 点「展开」时不能被这里立刻又收起。
+  //
   // 只记「最后一次按下的那一指」，不维护活动指针集合 ——
-  // 手指移出绘图区再松开时这里收不到 pointerup，集合会漏项，
+  // 手指移出视图再松开时这里收不到 pointerup，集合会漏项，
   // 之后每一次点击都被判成「多指」而失效。单变量下次按下自然覆盖，不会漏。
   let tap = null;
-  chartBox.addEventListener('pointerdown', (ev) => {
+  section.addEventListener('pointerdown', (ev) => {
     const leftButton = ev.pointerType !== 'mouse' || ev.button === 0;
     tap = leftButton
       ? { x: ev.clientX, y: ev.clientY, t: Date.now(), id: ev.pointerId }
       : null;
   });
-  chartBox.addEventListener('pointerup', (ev) => {
+  section.addEventListener('pointerup', (ev) => {
     const t = tap;
     tap = null;
     if (!t || t.id !== ev.pointerId) return;
     if (Math.hypot(ev.clientX - t.x, ev.clientY - t.y) > 8) return;   // 平移 / 旋转
     if (Date.now() - t.t > 700) return;                              // 长按起手
+    const el = ev.target;
+    if (el && el.closest && (el.closest('#pw-side') || el.closest('#pw-toggle'))) return;
     setSideCollapsed(true);
     setTimeout(syncToolsTop, 0);   // 标题行收起来了 → 用估算值重新贴齐
   });
-  chartBox.addEventListener('pointercancel', () => { tap = null; });
+  section.addEventListener('pointercancel', () => { tap = null; });
 
   function render() {
     syncToolsTop();
