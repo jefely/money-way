@@ -162,8 +162,16 @@
   font-size: var(--nt-th-font, 12px);
   font-weight: 700;
   color: var(--nt-unit-text, var(--nt-text));
-  background: var(--nt-unit-bg, var(--nt-bg-soft));
+  /* 表头底色：用主题自己的 --nt-th-bg，比行背景高一档。
+     以前它和单元格共用 --nt-unit-bg，于是表头和表体糊成一片。 */
+  background: var(--nt-th-bg, var(--nt-unit-bg, var(--nt-bg-soft)));
   border-bottom: 0;
+}
+
+/* 斑马纹：偶数行略深一档，长表看起来不糊成一片。
+   --nt-bg-zebra 四套主题都定义了，但这条规则一直没人写 —— 变量等于死的。 */
+.nt-table tbody tr:nth-child(even) .nt-cell {
+  background: var(--nt-bg-zebra);
 }
 
 /* ---------- 列宽拖动手柄 ----------
