@@ -513,8 +513,8 @@ body.nt-col-resizing .nt-tablewrap {
    宽度写死并用 !important 压过 inline style（拖动写的是 th.style.width），
    手柄也藏掉 —— 拖了没反应比拖不动更让人困惑。
    列宽数组里这两项仍原样保存，只是视觉上不再生效。 */
-.nt-table-flow .nt-th:nth-child(7) { width: 44px !important; }
-.nt-table-flow .nt-th:nth-child(8) { width: 56px !important; }
+.nt-table-flow .nt-th:nth-child(7) { width: 40px !important; }
+.nt-table-flow .nt-th:nth-child(8) { width: 40px !important; }
 .nt-table-flow .nt-th:nth-child(7) .nt-col-handle,
 .nt-table-flow .nt-th:nth-child(8) .nt-col-handle { display: none; }
 
