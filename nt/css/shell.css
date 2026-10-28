@@ -253,6 +253,24 @@ body {
        （写死 left 变量的话，前列一变宽就错位）
    ============================================================ */
 
+/* 冻结列必须有**实底**，而且 background-clip 要收在 padding-box：
+   · 没有实底 → 横向滚动时后面列的字会从它下面透出来
+   · 默认的 border-box 会把背景画到纵向边框底下 → 边框是半透明/虚线时
+     那里透出一小截色块，正好压住简码最后一个字的右缘
+     （单文件版为此改了很久，注释写在 personal/index.html 487-494 行）
+   · 背景还要跟随斑马纹，否则冻结列会成为一条独立竖带 */
+.nt-table:not(.nt-table-query) tbody .nt-cell:nth-child(-n+2) {
+  background: var(--nt-unit-bg, var(--nt-bg));
+  /* 必须 !important：任何地方的 `background:` 简写都会把 background-clip
+     重置回 border-box（简写包含 clip），斑马纹、hover、focus 三条都用了简写。 */
+  background-clip: padding-box !important;
+}
+
+.nt-table:not(.nt-table-query) tbody tr.nt-row-even .nt-cell:nth-child(-n+2) {
+  background: var(--nt-bg-zebra);
+  background-clip: padding-box !important;
+}
+
 /* 冻结几列必须和 table-layout.js 的 FROZEN_COUNT 一致。
    z-index 分六层：
      普通 td 0 · 冻结 td 3/4 · 普通表头 th 5 · 冻结表头 th 6
