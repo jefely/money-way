@@ -253,24 +253,6 @@ body {
        （写死 left 变量的话，前列一变宽就错位）
    ============================================================ */
 
-/* 冻结列必须有**实底**，而且 background-clip 要收在 padding-box：
-   · 没有实底 → 横向滚动时后面列的字会从它下面透出来
-   · 默认的 border-box 会把背景画到纵向边框底下 → 边框是半透明/虚线时
-     那里透出一小截色块，正好压住简码最后一个字的右缘
-     （单文件版为此改了很久，注释写在 personal/index.html 487-494 行）
-   · 背景还要跟随斑马纹，否则冻结列会成为一条独立竖带 */
-.nt-table:not(.nt-table-query) tbody .nt-cell:nth-child(-n+2) {
-  background: var(--nt-unit-bg, var(--nt-bg));
-  /* 必须 !important：任何地方的 `background:` 简写都会把 background-clip
-     重置回 border-box（简写包含 clip），斑马纹、hover、focus 三条都用了简写。 */
-  background-clip: padding-box !important;
-}
-
-.nt-table:not(.nt-table-query) tbody tr.nt-row-even .nt-cell:nth-child(-n+2) {
-  background: var(--nt-bg-zebra);
-  background-clip: padding-box !important;
-}
-
 /* 冻结几列必须和 table-layout.js 的 FROZEN_COUNT 一致。
    z-index 分六层：
      普通 td 0 · 冻结 td 3/4 · 普通表头 th 5 · 冻结表头 th 6
@@ -281,6 +263,7 @@ body {
 .nt-table-plan .nt-th:nth-child(1),
 .nt-table-inst .nt-th:nth-child(1),
 .nt-table-accounts .nt-th:nth-child(1),
+.nt-table-accounts .nt-th:nth-child(2),
 .nt-table-stats .nt-th:nth-child(1),
 .nt-table-stats .nt-th:nth-child(2) {
   position: sticky;
@@ -296,20 +279,11 @@ body {
   z-index: 4;
 }
 
-/* 统计表冻两列：第二列压在第一列之下 */
+/* 冻结两列的表：第二列压在第一列之下 */
+.nt-table-accounts .nt-cell:nth-child(2),
 .nt-table-stats .nt-cell:nth-child(2) {
   position: sticky;
   z-index: 3;
-}
-
-/* 冻结列里的输入框（简码 / 账户名）再抬一层：
-   它们要压在 sticky 背景之上，否则文字的右缘会被隔壁列的背景吃掉。 */
-.nt-table-accounts .nt-cell:nth-child(1) .nt-cell-input,
-.nt-table-flow .nt-cell:nth-child(1) .nt-cell-input,
-.nt-table-plan .nt-cell:nth-child(1) .nt-cell-input,
-.nt-table-stats .nt-cell:nth-child(1) .nt-cell-input {
-  position: relative;
-  z-index: 1;
 }
 
 /* 冻结列必须不透明：否则横向滚动时后面的内容会透出来 */

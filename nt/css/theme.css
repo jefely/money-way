@@ -25,7 +25,6 @@
   --nt-bg-cell: #ffffff;
   --nt-bg-zebra: #faf9ff;
   --nt-cell-active: #f3f1fb;
-  --nt-row-hover: #f3f1fb;
 
   /* 线条 */
   --nt-bg-line: #e6e2f5;
@@ -107,10 +106,8 @@
   --nt-bg-soft: #0e0b16;
   --nt-bg-cell: #000000;
   --nt-bg-zebra: #0b0912;
-  /* 每格获得焦点时整格提亮（单文件版 focus-within 的 #333333） */
-  --nt-cell-active: #333333;
-  /* 行悬停：整行同色，单文件版 #22223a */
-  --nt-row-hover: #22223a;
+  /* 每格获得焦点时整格提亮（单文件版 td:focus-within 的 #262626） */
+  --nt-cell-active: #262626;
 
   --nt-bg-line: #2a2438;
   --nt-line-strong: #3d3552;
@@ -166,7 +163,6 @@
   --nt-bg-cell: #fffdf8;
   --nt-bg-zebra: #f7f1e6;
   --nt-cell-active: #efe6d5;
-  --nt-row-hover: #efe6d5;
 
   --nt-bg-line: #e5dcc9;
   --nt-line-strong: #cfc2a5;
@@ -215,7 +211,6 @@
   --nt-bg-cell: #0a1410;
   --nt-bg-zebra: #0d1a14;
   --nt-cell-active: #1c3327;
-  --nt-row-hover: #1c3327;
 
   --nt-bg-line: #1e3328;
   --nt-line-strong: #2c4a3a;

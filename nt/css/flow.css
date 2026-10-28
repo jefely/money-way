@@ -496,25 +496,13 @@ body.nt-col-resizing {
   outline: none;
 }
 
-/* 交互态照单文件版（personal/index.html 1166 / 3953 那两组）：
-   · 行悬停：整行一个色（含冻结列），斑马纹与 hover 的深浅差被压平
-   · 编辑中：再亮一档 + 一圈内描边，正在编辑哪一格一眼能看到
-
-   两条都必须带 !important：斑马纹选择器是 (0,3,1)，
-   hover / focus-within 天然只有 (0,2,x)，不压就会被斑马纹吃掉 ——
-   单文件版当年也踩过（注释原话：「斑马纹带 !important，hover 被压掉」）。 */
-.nt-table tbody tr:hover .nt-cell {
-  background: var(--nt-row-hover) !important;
+/* 编辑态照单文件版（td:focus-within #262626）：**整格**提亮，
+   输入框本身透明、不要 outline —— 原来只给输入框上底色加描边，
+   一格正在编辑时看不出它的边界落在哪。 */
+.nt-cell:focus-within {
+  background: var(--nt-cell-active, var(--nt-bg-cell));
 }
 
-.nt-table tbody tr .nt-cell:focus-within {
-  background: var(--nt-cell-active) !important;
-  /* 用 inset 阴影而不是 outline：表格是 border-collapse:separate，
-     outline 画在盒外会压到相邻格上。 */
-  box-shadow: inset 0 0 0 1px var(--nt-primary);
-}
-
-/* 编辑中的输入框本身透明，底色由上面的 td 提供 */
 .nt-cell-input:focus {
   background: transparent;
   outline: 0;

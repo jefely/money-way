@@ -21,15 +21,13 @@
  * ============================================================
  */
 
-/** 每张表冻结几列（键 = 表类名）。必须和 CSS 里的 sticky 声明一致。
- *  账户表只冻「简码」一列 —— 单文件版注释原话：「冻结列：只有简码一列（用户指定）」。
- *  冻两列时第二列（序号）的 sticky 背景会压在第一列文字的右缘上，看起来像被遮挡。 */
+/** 每张表冻结几列（键 = 表类名）。必须和 CSS 里的 sticky 声明一致。 */
 const FROZEN_COUNT = {
   'nt-table-flow': 1,       // 序
   'nt-table-stats': 2,      // 序 + 第二列
   'nt-table-plan': 1,       // 序
   'nt-table-inst': 1,       // 账户名称
-  'nt-table-accounts': 1,   // 只冻简码（原来 2 = 简码 + 序号，序号不冻）
+  'nt-table-accounts': 2,   // 简码 + 序号
   'nt-table-query': 0,      // 不冻结
 };
 
@@ -50,9 +48,6 @@ const MAX_W = 600;
  */
 export function syncFrozen(tableEl) {
   if (!tableEl) return;
-  // 先按变量把表宽定死，再算冻结列 —— 否则下面的 getBoundingClientRect
-  // 量到的是「被内容摊宽后」的列宽，冻结 left 会一路错下去。
-  fitTableWidth(tableEl);
   const cls = [...tableEl.classList].find((c) => c in FROZEN_COUNT);
   if (!cls) return;
   const n = FROZEN_COUNT[cls];
@@ -80,45 +75,7 @@ export function syncFrozen(tableEl) {
 
 /** 所有表都同步一遍 */
 export function syncAllFrozen() {
-  for (const t of document.querySelectorAll('table.nt-table')) {
-    fitTableWidth(t);
-    syncFrozen(t);
-  }
-}
-
-/** 表元素 → 参数里的表 key（与 core/table-cols.js 的 TABLE_COLS 对应） */
-function tableKey(tableEl) {
-  const cls = tableEl.classList;
-  if (cls.contains('nt-table-flow')) return 'flow';
-  if (cls.contains('nt-table-stats')) return cls.contains('is-sum') ? 'sum' : 'cat';
-  if (cls.contains('nt-table-query')) return 'query';
-  if (cls.contains('nt-table-plan')) return 'plan';
-  if (cls.contains('nt-table-accounts')) return 'accounts';
-  return '';
-}
-
-/**
- * 表格宽度 = 各列 CSS 变量之和，**显式写死在 table.style.width 上**。
- *
- * 为什么非写不可：`table-layout: fixed` 只决定「怎么分宽度」，表格**本身**多宽
- * 由 width 决定。交给 max-content 时它由内容撑开 —— 内容比列宽之和大，
- * 差额就按比例摊给每一列：实测账户表 654 被摊成 1320，每列放大 2.02 倍
- * （简码 64→129、序 44→89…），于是「拖一列动一排」、冻结列也跟着错位。
- * 单文件版第 ② 条踩的是同一个坑，原话是「表格宽度必须等于 colgroup 各列之和」。
- */
-function fitTableWidth(tableEl) {
-  const key = tableKey(tableEl);
-  if (!key) return;
-  const cs = getComputedStyle(document.documentElement);
-  let total = 0;
-  let n = 0;
-  for (const th of tableEl.querySelectorAll('thead .nt-th')) {
-    const col = th.dataset && th.dataset.col;
-    if (!col) continue;
-    const v = parseFloat(cs.getPropertyValue('--nt-col-' + key + '-' + col));
-    if (Number.isFinite(v) && v > 0) { total += v; n += 1; }
-  }
-  if (n && total > 0) tableEl.style.width = total + 'px';
+  for (const t of document.querySelectorAll('table.nt-table')) syncFrozen(t);
 }
 
 /* ============================================================
@@ -351,8 +308,6 @@ export function resetColWidths(tableEl) {
     th.style.maxWidth = '';
     th.style.left = '';
   }
-  // 清掉 width 之后要按变量重新定宽，否则会回落到 max-content 被内容撑开
-  fitTableWidth(tableEl);
   syncFrozen(tableEl);
 }
 

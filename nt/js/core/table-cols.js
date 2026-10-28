@@ -56,10 +56,6 @@ export const TABLE_COLS = {
     label: '账户设置',
     screen: 'settings',
     cols: ['code', 'seq', 'type', 'cat', 'name', 'opening', 'billDay', 'repayDay', 'up', 'action'],
-    // 简码允许 2~5 个字（core/schema.js 的 CODE_MIN_LEN / CODE_MAX_LEN），
-    // 5 个字约 60px，再算上单元格与 input 的内边距，64px 的列怎么调都放不下 ——
-    // 表现就是最后一个字被裁掉，看着像被色块盖住。下限 84px。
-    minWidths: { code: 84 },
   },
 };
 
@@ -85,7 +81,7 @@ export const TABLE_DEFAULT_WIDTHS = {
   query: '44,0,0,0,0,0',
   path: '44,62,110,110,68,120',
   plan: '44,64,64,112,112,96,116,40',
-  accounts: '84,44,72,76,110,96,56,56,40,40',
+  accounts: '64,44,72,76,110,96,56,56,40,40',
 };
 
 /**
@@ -103,15 +99,13 @@ export function parseTableWidths(text, table) {
   return t.cols.map((_, i) => {
     const raw = String(arr[i] == null ? '' : arr[i]).trim();
     const fallback = Number.isFinite(def[i]) ? def[i] : 0;
-    const floor = (t.minWidths && t.minWidths[t.cols[i]]) || 0;
-    if (raw === '') return Math.max(floor, fallback);
+    if (raw === '') return fallback;
     const n = Number(raw);
-    if (!Number.isFinite(n) || n < 0) return Math.max(floor, fallback);
+    if (!Number.isFinite(n) || n < 0) return fallback;
     // noAuto 的表（路径追踪）不接受 0 = 自适应：grid 的自适应列算出来的
     // 列宽和与数据行实际宽度对不上，横滚时表头和数据行会各走各的。
-    if (n === 0 && t.noAuto) return Math.max(floor, fallback);
-    // 有下限的列（账户简码）不允许比下限更窄，否则内容会被裁
-    return Math.max(floor, n);
+    if (n === 0 && t.noAuto) return fallback;
+    return n;
   });
 }
 
