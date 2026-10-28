@@ -7944,6 +7944,15 @@ table#summary-table tbody td.col-code {
 table#summary-table thead th.col-code { z-index: 6; }
 table#summary-table tbody td.col-code { z-index: 3; }
 
+/* ④ 分组标签（资产/负债/收入/权益/费用）住在冻结的「简码」列里（v13.73）：
+   简码列本身内容居中，标签也居中，不然 84px 的格子会把它挤在左边沿、右边空一大截。
+   命名只认 `td.col-code.cat-tag`，不会碰到数据行里的简码输入框。 */
+table#summary-table tbody tr.cat-row > td.col-code.cat-tag {
+  text-align: center !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
 /* ③ 手柄：热区完全落在本列内，中心压在列边线上 */
 table#summary-table thead th > .col-resizer {
   right: 0 !important;
@@ -8169,7 +8178,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.72';
+const APP_VER = 'v13.73';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -15121,9 +15130,10 @@ function renderSummary(main, footer) {
     // 其它分类的分组行这两格连边框都不画（下面数据行本来也没有线）。
     const isDebt = cat === '负债类';
     cr.innerHTML =
-      // 简码格留在最前（冻结列），分组行里是空的
-      `<td class="col-code"></td>` +
-      `<td class="col-seq cat-tag">${esc(shortCat(cat))}</td>` +
+      // 分类标签（资产/负债/收入/权益/费用）放在**冻结的简码列**里 —— 用户 2026-10-29 指定：
+      // 简码列是唯一不横滚的列，标签放这里才不会一滑动就看不见。
+      `<td class="col-code cat-tag">${esc(shortCat(cat))}</td>` +
+      `<td class="col-seq"></td>` +
       `<td class="col-cat"></td>` +
       `<td class="col-sub"></td>` +
       `<td class="col-name"></td>` +
