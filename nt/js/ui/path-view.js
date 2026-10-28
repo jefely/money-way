@@ -109,12 +109,6 @@ export function paintChart(host, data, hits, onPick, view) {
   });
 }
 
-/** 安全写文本：元素不存在就跳过（渲染不该因为一个可选元素中断） */
-function setText(id, text) {
-  const node = el(id);
-  if (node) node.textContent = text;
-}
-
 /** 空状态（把内部数字也显示出来，便于定位是哪一步变空的） */
 export function paintEmpty(info) {
   const i = info || {};
@@ -126,7 +120,10 @@ export function paintEmpty(info) {
   el('pw-chart').innerHTML =
     '<div class="pw-empty">这段时间没有可画的流水<br>先在「流水」页记几笔'
     + '<br><small>' + detail + '</small></div>';
-  // 左栏现在是流水查询表（#pw-flow-body），原来的 #pw-list 已删；
-  // 标题「路径追踪」已由左上角常驻工具条取代，也没有 #pw-stats 这个元素了。
-  setText('pw-flow-body', '');
+  // 左栏现在把表头（.pw-frozen，含筛选行与列标行）也包在 #pw-flow-body 里，
+  // 只能清数据行 —— 清空整个容器会把表头一起删掉。
+  const body = el('pw-flow-body');
+  if (body) {
+    for (const n of [...body.querySelectorAll('.pw-flow-row, .pw-flow-empty')]) n.remove();
+  }
 }

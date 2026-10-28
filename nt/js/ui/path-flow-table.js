@@ -109,7 +109,9 @@ export function paintFlowRows(host, o) {
   if (!host) return 0;
   const { txs, hits, focusId, nameOf, onPick } = o;
 
-  host.textContent = '';
+  // 只清数据行：表头（.pw-frozen，含筛选行和列标行）现在住在 body 里，
+  // 用 textContent='' 会把它们一起清掉 —— 表现就是「侧栏表头没了」。
+  for (const n of [...host.querySelectorAll('.pw-flow-row, .pw-flow-empty')]) n.remove();
 
   if (!txs || !txs.length) {
     const p = document.createElement('div');

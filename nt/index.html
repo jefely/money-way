@@ -116,27 +116,35 @@
                 <button class="pw-mini-btn" type="button" id="pw-clear">清空</button>
               </div>
 
-              <!-- 冻结区：筛选行 + 列标行（滚动时钉住） -->
-              <div class="pw-frozen">
-                <div class="pw-flow-grid pw-flow-filter">
-                  <input class="pw-qf pw-qf-date" id="pw-qf-date" placeholder="日期" aria-label="日期筛选">
-                  <input class="pw-qf" id="pw-qf-from" placeholder="转出" aria-label="转出账户">
-                  <input class="pw-qf" id="pw-qf-to" placeholder="转入" aria-label="转入账户">
-                  <input class="pw-qf" id="pw-qf-amount" placeholder="金额" aria-label="金额">
-                  <input class="pw-qf" id="pw-qf-note" placeholder="备注" aria-label="备注">
-                </div>
-                <div class="pw-flow-grid pw-flow-head" id="pw-flow-head">
-                  <span>序</span>
-                  <span>日期</span>
-                  <span>转出账户</span>
-                  <span>转入账户</span>
-                  <b>金额</b>
-                  <span>备注</span>
-                </div>
+              <!-- 滚动区：每一笔流水一行。冻结区（筛选行 + 列标行）现在住在它**里面**：
+                   position:sticky;top:0 负责纵向钉住，横向跟随数据行一起滑。
+                   以前冻结区在外面，列宽总和超出侧栏宽度时只有数据行能横滑，
+                   表头钉在原地 —— 就是「列表行不随内容一起左右移动」。
+                   注意：清空这里只能删 .pw-flow-row，不能 textContent=''，
+                   否则表头会被一起清掉（见 ui/path-flow-table.js）。 -->
+              <div class="pw-flow-body" id="pw-flow-body">
+                <!-- 用 section 标签而不是 div：公约要求 div 嵌套 ≤ 5 层，
+                     这一层再包一层就顶到 6 了（nt-app → pw-main → side-body → flow-body → grid）。
+                     它本来也是一块区域，语义上更该是 section。
+                     注：注释里别写 div 的尖括号写法 —— 门禁的嵌套计数连注释一起数。 -->
+                <section class="pw-frozen">
+                  <div class="pw-flow-grid pw-flow-filter">
+                    <input class="pw-qf pw-qf-date" id="pw-qf-date" placeholder="日期" aria-label="日期筛选">
+                    <input class="pw-qf" id="pw-qf-from" placeholder="转出" aria-label="转出账户">
+                    <input class="pw-qf" id="pw-qf-to" placeholder="转入" aria-label="转入账户">
+                    <input class="pw-qf" id="pw-qf-amount" placeholder="金额" aria-label="金额">
+                    <input class="pw-qf" id="pw-qf-note" placeholder="备注" aria-label="备注">
+                  </div>
+                  <div class="pw-flow-grid pw-flow-head" id="pw-flow-head">
+                    <span>序</span>
+                    <span>日期</span>
+                    <span>转出账户</span>
+                    <span>转入账户</span>
+                    <b>金额</b>
+                    <span>备注</span>
+                  </div>
+                </section>
               </div>
-
-              <!-- 滚动区：每一笔流水一行 -->
-              <div class="pw-flow-body" id="pw-flow-body"></div>
             </div>
           </aside>
 
