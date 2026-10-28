@@ -81,7 +81,10 @@ test('CSS 变量名是 --nt-col-<表>-<列>，0 变自适应', () => {
   const byVar = new Map(list.map((x) => [x.cssVar, x.value]));
   assert.equal(byVar.get('--nt-col-flow-amount'), '96px');
   assert.equal(byVar.get('--nt-col-query-note'), 'auto');
-  assert.equal(byVar.get('--nt-col-path-from'), '1fr');
+  // 路径表的自适应列是 minmax 而不是裸 1fr：1fr 在容器不够宽时会被压到 0，
+  // 最后一列（备注）就永远滚不出来（2026-10 用户实测「备注滑不出来」）。
+  assert.equal(byVar.get('--nt-col-path-from'), 'minmax(80px, 1fr)');
+  assert.equal(byVar.get('--nt-col-path-note'), 'minmax(80px, 1fr)');
   assert.equal(byVar.get('--nt-col-sum-histBalance'), '96px');
 });
 
