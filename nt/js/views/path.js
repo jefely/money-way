@@ -16,7 +16,9 @@ import { dateInRange } from '../core/date-query.js';
 import { money } from '../core/format.js';
 import { buildChord, styleOf } from '../graph/mw-path-calculator.js';
 import { traceFromTx, traceByAccount } from '../graph/path-tracer.js';
-import { SVG } from '../ui/mw-svg-renderer.js';
+import { computeDepths } from '../graph/mw-depth.js';
+import { chartSize } from '../ui/mw-svg-renderer.js';
+import { readMwParams, onLayoutChange } from '../ui/mw-params.js';
 import { paintChart, paintEmpty } from '../ui/path-view.js';
 import {
   bindFlowFilters, paintFlowRows, bindSideToggle, mountPathColResize, mountSideResizer,
@@ -88,14 +90,15 @@ export function mountPath(section, ctx) {
    * 取数 + 算图。
    * @param {Array} list 要画的流水 —— **就是左栏筛选后的结果**，
    *   不是全账本。用户要求「图的统计范围完全由左边筛选框决定」。
+   * @param {object} p 环图参数（基准单位，见 ui/mw-params.js）
    */
-  function build(list) {
+  function build(list, p) {
     const state = ctx.getState();
     const index = ctx.getIndex();
     const txsIn = list || [];
 
     if (!txsIn.length) {
-      return { empty: true, range: { start: '', end: '' }, picked: 0, sliced: { folded: 0 } };
+      return { empty: true, range: { start: '', end: '' }, picked: 0, sliced: { folded: 0 }, params: p };
     }
 
     const range = rangeOf(txsIn);
@@ -107,10 +110,12 @@ export function mountPath(section, ctx) {
     });
 
     const txs = sliced.txs;
-    if (!txs.length) return { empty: true, range, picked: 0, sliced };
+    if (!txs.length) return { empty: true, range, picked: 0, sliced, params: p };
 
     const accOf = (id) => index.byId.get(id) || null;
-    const res = computeSlots(txs, { accOf, outerRadius: SVG.rOut });
+    // 半径与环厚都来自面板：computeSlots 只要外半径，内半径给渲染器用
+    const box = chartSize(p);
+    const res = computeSlots(txs, { accOf, outerRadius: box.rOut, gapDeg: p.gapDeg });
     const { slots, blocks, sectors, unitArcLen, colorIndex, colorKeyOf, unitDeg } = res;
 
     const byTx = new Map();
@@ -119,8 +124,8 @@ export function mountPath(section, ctx) {
       byTx.get(sl.txIdx)[sl.side] = sl;
     }
 
-    const cx = SVG.size / 2;
-    const cy = SVG.size / 2;
+    const cx = box.size / 2;
+    const cy = box.size / 2;
     // 线宽要按「离费用端几跳」分层（单文件版的做法）
     const depthOf = computeDepths(txs, accOf);
     const gctx = { byId: index.byId, colorKeyOf, colorIndex, depthOf };
@@ -156,7 +161,7 @@ export function mountPath(section, ctx) {
         aTo: pair.t.mid,
         cx,
         cy,
-        rIn: SVG.rIn,
+        rIn: box.rIn,
         ctx: gctx,
         unitArcLen,
         colorBy,
@@ -165,7 +170,7 @@ export function mountPath(section, ctx) {
 
     return {
       empty: false, txs, range, sliced, blocks, sectors, chords,
-      colorIndex, unitArcLen, unitDeg,
+      colorIndex, unitArcLen, unitDeg, params: p,
     };
   }
 
@@ -214,9 +219,12 @@ export function mountPath(section, ctx) {
       return i < 0 ? null : new Set([i]);
     }
     if (f.kind === 'trace') {
-      // 模式 4（点侧栏条目）：支出倒推链，**两个方向看到的是同一批线**
+      // 模式 4（点侧栏条目）：支出倒推链，**两个方向看到的是同一批线**。
+      // 深度上限来自面板（默认 12 跳）：倒卡成环时靠 visited 切断，
+      // 这个值只决定「多远的上游还算这条链」。
       const i = idxOf(f.txId);
-      return i < 0 ? null : new Set(traceFromTx(data.txs, i).linkIndices);
+      const maxDepth = data.params ? data.params.traceDepth : undefined;
+      return i < 0 ? null : new Set(traceFromTx(data.txs, i, { maxDepth }).linkIndices);
     }
     return null;
   }
@@ -270,13 +278,15 @@ export function mountPath(section, ctx) {
 
   function render() {
     syncToolsTop();
+    // 环图参数：半径/环厚/字号/线宽/透明度都在这里，改一项面板就重排一次
+    const p = readMwParams();
     // 先按左栏筛选框过滤，再拿结果去画图 —— 图的统计范围就是筛选结果
     const st0 = ctx.getState();
     const allTx = (st0.transactions || []).filter((t) => t && !t.opening);
     const idxList = visibleIdx(allTx);
     const shownTxs = idxList.map((i) => allTx[i]);
 
-    data = build(shownTxs);
+    data = build(shownTxs, p);
 
     if (data.empty) {
       paintEmpty({
@@ -323,7 +333,7 @@ export function mountPath(section, ctx) {
         focus = same ? null : { kind: 'tx', txId: tx.id };
       }
       render();
-    }, { mode: focus ? focus.kind : null, dir });
+    }, { mode: focus ? focus.kind : null, dir, params: p });
 
     // 手势要在 paintChart **之后**挂：svg 是 paintChart 里才创建的。
     //
@@ -369,6 +379,13 @@ export function mountPath(section, ctx) {
       + (hitIds ? ` · 已高亮 ${hitIds.size}` : ''));
   }
 
+  // 界面参数面板改了环图参数 → 立刻重排这张图（订阅里已先让参数缓存失效）。
+  // 7 个视图都是常驻的，隐藏时不重画：不可见时 syncToolsTop 也量不到标题行位置。
+  onLayoutChange(() => {
+    if (section.hidden) return;
+    render();
+  });
+
   return { render };
 }
 
@@ -381,47 +398,4 @@ function rangeOf(list) {
   return dates.length
     ? { start: dates[0], end: dates[dates.length - 1] }
     : { start: '', end: '' };
-}
-
-/**
- * 链路层级：费用类账户 = 0 级，反向沿「谁给它转过钱」逐级上溯。
- * 照单文件版的 computeDepth —— 线宽按这个层级取档（越靠近支出越粗）。
- * 一条路都通不到费用端的（孤立账户 / 纯收入）给最深层级 + 1。
- */
-function computeDepths(txs, accOf) {
-  const byTo = new Map();
-  for (const x of txs) {
-    if (!x.from_id || !x.to_id) continue;
-    if (!byTo.has(x.to_id)) byTo.set(x.to_id, []);
-    byTo.get(x.to_id).push(x.from_id);
-  }
-
-  const depth = new Map();
-  const queue = [];
-
-  for (const x of txs) {
-    for (const id of [x.from_id, x.to_id]) {
-      if (!id || depth.has(id)) continue;
-      const a = accOf(id);
-      if (a && a.type === '费用类') { depth.set(id, 0); queue.push(id); }
-    }
-  }
-
-  let guard = 0;
-  while (queue.length && guard < 5000) {
-    guard += 1;
-    const cur = queue.shift();
-    for (const up of byTo.get(cur) || []) {
-      if (up && !depth.has(up)) { depth.set(up, depth.get(cur) + 1); queue.push(up); }
-    }
-  }
-
-  let maxD = 0;
-  for (const v of depth.values()) if (v > maxD) maxD = v;
-  for (const x of txs) {
-    for (const id of [x.from_id, x.to_id]) {
-      if (id && !depth.has(id)) depth.set(id, maxD + 1);
-    }
-  }
-  return depth;
 }

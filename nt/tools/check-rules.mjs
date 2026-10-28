@@ -84,7 +84,12 @@ for (const file of files) {
       const tmp = join(tmpdir(), 'nt-syntax-' + randomUUID() + '.mjs');
       try {
         writeFileSync(tmp, text, 'utf8');
-        execFileSync(process.execPath, ['--check', tmp], { stdio: 'pipe' });
+        // 用 `stdio: 'inherit'` 而不是默认的 'pipe'。
+        // 2026-10 实测：Windows 沙箱里子进程拿不到命名管道，spawn 直接 EPERM，
+        // 于是 144 个文件全被报成「语法错误」——门禁看起来彻底坏了，其实是采集方式的问题。
+        // 这里只需要判定成败（退出码），错误详情让 node 自己打到终端；
+        // 下面 catch 里仍然会记一条「语法错误」，所以判定能力没有降低。
+        execFileSync(process.execPath, ['--check', tmp], { stdio: 'inherit' });
       } catch (e) {
         const raw = String((e && (e.stderr || e.stdout || e.message)) || '');
         const msg = raw.split('\n').filter((l) => l.trim()).slice(0, 2).join(' ');

@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.43';
+const CACHE_NAME = 'nt-v1.44';
 
 const ASSETS = [
   './index.html',
@@ -68,6 +68,7 @@ const ASSETS = [
   './js/core/ledgers.js',
   './js/core/meta.js',
   './js/core/migrate.js',
+  './js/core/mw-settings.js',
   './js/core/opening-migrator.js',
   './js/core/qr-encode.js',
   './js/core/qr-matrix.js',
@@ -84,6 +85,7 @@ const ASSETS = [
   './js/core/validate.js',
   './js/core/validator.js',
   './js/core/version.js',
+  './js/graph/mw-depth.js',
   './js/graph/mw-data-fetcher.js',
   './js/graph/mw-path-calculator.js',
   './js/graph/mw-slot-calculator.js',
@@ -109,6 +111,7 @@ const ASSETS = [
   './js/ui/inst-table.js',
   './js/ui/layout-text.js',
   './js/ui/modal.js',
+  './js/ui/mw-params.js',
   './js/ui/mw-svg-renderer.js',
   './js/ui/path-flow-table.js',
   './js/ui/path-view.js',

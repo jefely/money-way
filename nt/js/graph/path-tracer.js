@@ -84,8 +84,9 @@ export function traceUpstream(links, startAccountId, opts) {
  *
  * @param {Array} links 图的流水列表
  * @param {number} txIndex 这笔流水在 links 里的下标
+ * @param {{maxDepth?:number}} [opts] 上游深度上限（面板「追踪深度」，默认 12）
  */
-export function traceFromTx(links, txIndex) {
+export function traceFromTx(links, txIndex, opts) {
   const list = links || [];
   const i = Math.floor(Number(txIndex));
   const link = Number.isFinite(i) ? list[i] : null;
@@ -95,7 +96,7 @@ export function traceFromTx(links, txIndex) {
   const anchor = String(link.to_id || '');
   if (!anchor) return { ...empty, linkIndices: [i] };
 
-  const base = traceUpstream(list, anchor);
+  const base = traceUpstream(list, anchor, opts);
 
   // 这笔自己一定要在链上：它指向锚点，正常情况下已经包含；
   // 但单边流水（转出或转入缺一）时上游是空的，链头不能丢。

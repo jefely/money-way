@@ -1,5 +1,5 @@
 // 界面：路径 tab / path.html → SVG 渲染
-﻿/**
+/**
  * Money Way · 纯 SVG 渲染器
  * 层：第五层 · UI（只拼字符串）
  *
@@ -11,18 +11,24 @@
  *   blocks[]  { acc, a1, a2, type, category }
  *   chords[]  { txIdx, from_id, to_id, path:{from,c1,c2,to}, strokeWidth, strokeColor, opacity }
  *   sectors[] { a1, a2, key, type }
+ *
+ * 尺寸：`params` 里的值都是**基准单位**（单文件版 1800 画布下的像素），
+ * 这里统一 × RATIO 换成 6000 画布的单位。面板上写 44，画出来是 147。
+ * 早先这些数是写死的常量，改一次要改代码 + 升版本 + 等部署；
+ * 现在它们全部来自 core/mw-settings.js 的 SCHEMA，运行时的值由
+ * ui/mw-params.js 从 --nt-mw-* 读出来 —— 面板改一项，图立刻重排。
  */
 
+import { MW_DEFAULTS, MW_SIZE } from '../core/mw-settings.js';
+
 /**
- * 画布与环的尺寸。
- *
- * 单文件版的基准：`SIZE = 1800`、`R_OUT = 640`、`THICK = 44`（mwDrawSvg 里写死）。
+ * 单文件版的基准画布是 1800（`SIZE = 1800`、`R_OUT = 640`、`THICK = 44`），
  * 我们按用户要求把画布提到 6000（= 基准的 3.33 倍），所有像素量
  * （环半径、环厚、线宽、字号、描边、文字外移距离）等比放大 ——
  * 只放大画布而线宽字号不变，放大后的图会显得线更细、字更小。
  */
 export const BASE_SIZE = 1800;
-export const RATIO = 6000 / BASE_SIZE;
+export const RATIO = MW_SIZE / BASE_SIZE;
 
 /** 当前是否浅色主题（决定弧块边框的颜色） */
 function isLightTheme() {
@@ -31,12 +37,24 @@ function isLightTheme() {
   return !t || t === 'light';
 }
 
-export const SVG = {
-  size: 6000,
-  rOut: Math.round(640 * RATIO),
-  thick: Math.round(44 * RATIO),
-  get rIn() { return this.rOut - this.thick; },
-};
+/**
+ * 参数 → 画布尺寸。
+ * @param {object} [params] ui/mw-params 的读数（基准单位）
+ * @returns {{size:number, rOut:number, rIn:number}}
+ */
+export function chartSize(params) {
+  const p = params || {};
+  // 坏值（NaN / undefined / 字符串）落回默认，而不是把整张图打成 0 半径
+  const num = (v, dflt) => (Number.isFinite(Number(v)) ? Number(v) : dflt);
+  const size = MW_SIZE;
+  const rOut = Math.round(num(p.rOut, MW_DEFAULTS.rOut) * RATIO);
+  const thick = Math.round(num(p.thick, MW_DEFAULTS.thick) * RATIO);
+  // 环厚 ≥ 环半径时 rIn 会变负 —— 内弧反向缠绕，图看着像散架。
+  // 参数层（core/settings 的 min/max）已经钳过，这里再兜一次底，
+  // 因为 params 也可能由调用方直接构造（测试、外部脚本）。
+  const rIn = Math.max(1, rOut - thick);
+  return { size, rOut, rIn };
+}
 
 /** 环形扇区：只用四个点，不做三角函数 */
 export function arcPath(rOut, rIn, a1, a2, pointAt, cx, cy) {
@@ -62,7 +80,9 @@ export function chordPath(p) {
  *   pointAt:(cx:number,cy:number,r:number,a:number)=>number[],
  *   colorOf:(colorKey:string)=>string,
  *   opacityOf?:(chord:object)=>number,
- *   highlight?:Set<number>|null
+ *   highlight?:Set<number>|null,
+ *   params?:object,          // ui/mw-params 的读数；缺省用 MW_DEFAULTS
+ *   maskOpacity?:number
  * }} data
  * @returns {string} SVG 字符串
  */
@@ -73,8 +93,10 @@ export function renderChart(data) {
   const sectors = d.sectors || [];
   const pointAt = d.pointAt;
   const colorOf = d.colorOf || (() => '#888');
+  const p = d.params || MW_DEFAULTS;
 
-  const { size, rOut, rIn } = SVG;
+  const { size, rOut, rIn } = chartSize(p);
+  const U = RATIO;
   const cx = size / 2;
   const cy = size / 2;
   const parts = [];
@@ -92,7 +114,7 @@ export function renderChart(data) {
   for (const s of sectors) {
     parts.push(`<path class="mw-sector-line"`
       + ` d="${arcPath(rOut, rIn, s.a1, s.a2, pointAt, cx, cy)}"`
-      + ` fill="none" stroke="currentColor" stroke-width="${f(0.6 * RATIO)}" stroke-opacity="0.28"/>`);
+      + ` fill="none" stroke="currentColor" stroke-width="${f(p.sectorW * U)}" stroke-opacity="${p.sectorOp}"/>`);
   }
 
   // ② 连线分两趟：先画「背景线」，再按需要压一层遮罩，最后画「命中线」。
@@ -114,7 +136,7 @@ export function renderChart(data) {
     // 一条透明的粗线盖在上面：线只有 1-2px，直接点很难点中。
     // pointer-events="stroke" 让它的整条描边都成为命中区。
     out += `<path class="mw-hitarea" d="${dd}" fill="none" stroke="transparent"`
-      + ` stroke-width="${Math.max(c.strokeWidth, 14 * RATIO)}"`
+      + ` stroke-width="${f(Math.max(c.strokeWidth, p.hitBand * U))}"`
       + ` stroke-linecap="round" pointer-events="stroke" data-tx="${c.txIdx}"/>`;
     return out;
   };
@@ -137,7 +159,7 @@ export function renderChart(data) {
     parts.push(`<path class="mw-ring" d="${arcPath(rOut, rIn, b.a1, b.a2, pointAt, cx, cy)}"`
       + ` fill="${colorOf(b.colorKey)}" fill-opacity="1"`
       + ` stroke="${isLightTheme() ? '#ffffff' : '#000000'}"`
-      + ` stroke-width="${f(2.4 * RATIO)}" stroke-opacity="0.75"`
+      + ` stroke-width="${f(p.ringW * U)}" stroke-opacity="${p.ringOp}"`
       + ` data-node="${esc(b.acc)}"/>`);
   }
 
@@ -160,9 +182,9 @@ export function renderChart(data) {
     const midA = (b.a1 + b.a2) / 2;
     const arcLen = span * rOut;
 
-    // 字号：下限抬到 13×RATIO —— 侧栏展开时图区只有 400 多 px，
-    // 画布 3000 缩下来字号会小到看不清；太窄的块干脆不标字，避免糊成一片
-    let fs = Math.max(12 * RATIO, Math.min(27 * RATIO,
+    // 字号：下限抬到 12×RATIO —— 侧栏展开时图区只有 400 多 px，
+    // 画布 6000 缩下来字号会小到看不清；太窄的块干脆不标字，避免糊成一片
+    let fs = Math.max(p.fsMin * U, Math.min(p.fsMax * U,
       (arcLen / Math.max(1, label.length)) * 1.05,
       (rOut - rIn) * 0.58));
 
@@ -172,14 +194,14 @@ export function renderChart(data) {
 
     // 不再「太窄就跳过」—— 单文件版每个弧块都有标签，
     // 窄块是靠锥形引线把它们错开，而不是干脆不显示。
-    const crowded = arcLen < textW * 1.5;
+    const crowded = arcLen < textW * p.crowdedK;
     // 走锥形的标签被推到环外、周围没有别的元件，字号可以给得更足
-    if (crowded) fs = Math.max(18 * RATIO, fs * 1.0);
-    let rText = rOut + 8 * RATIO;
+    if (crowded) fs = Math.max(p.fsCrowd * U, fs * 1.0);
+    let rText = rOut + p.labelGap * U;
     if (crowded) {
       // 连续需要锥形时交替：第一个 46、第二个 115（2.5 倍）、第三个又回 46…
       // 这样一串极窄块的标签会分两层排开，不会全挤在同一圈上。
-      const coneLen = prevCrowded ? 115 * RATIO : 46 * RATIO;
+      const coneLen = prevCrowded ? p.coneB * U : p.coneA * U;
       prevCrowded = !prevCrowded;
       rText = rOut + coneLen;
     } else {
@@ -190,28 +212,28 @@ export function renderChart(data) {
     //（照 mwDrawSvg：锥尖贴 rOut 的中点，锥底在文字所在半径上、以 mid 对称，
     //  半宽 5px 换算成角度 = 5 / rText）
     if (crowded) {
-      const halfAngle = (5 * RATIO) / Math.max(1, rText);
+      const halfAngle = (p.coneHalfW * U) / Math.max(1, rText);
       const tip = pointAt(cx, cy, rOut, midA);
       const base1 = pointAt(cx, cy, rText, midA - halfAngle);
       const base2 = pointAt(cx, cy, rText, midA + halfAngle);
       parts.push(`<path d="M ${tip[0].toFixed(1)} ${tip[1].toFixed(1)}`
         + ` L ${base1[0].toFixed(1)} ${base1[1].toFixed(1)}`
         + ` L ${base2[0].toFixed(1)} ${base2[1].toFixed(1)} Z"`
-        + ` fill="${colorOf(b.colorKey)}" fill-opacity="0.5"`
+        + ` fill="${colorOf(b.colorKey)}" fill-opacity="${p.coneOp}"`
         + ` stroke="none" pointer-events="none"/>`);
     }
 
     // 锥形底部在 rText；文字再往外让 10px，避免贴着锥底「压着」
-    const rLabel = crowded ? rText + 10 * RATIO : rText;
-    const p = pointAt(cx, cy, rLabel, midA);
+    const rLabel = crowded ? rText + p.coneTextGap * U : rText;
+    const pt = pointAt(cx, cy, rLabel, midA);
     let theta = (midA * 180) / Math.PI - 90;
     const upside = theta > 90 || theta < -90;
     if (upside) theta += 180;
 
-    parts.push(`<text x="${p[0].toFixed(1)}" y="${p[1].toFixed(1)}"`
+    parts.push(`<text x="${pt[0].toFixed(1)}" y="${pt[1].toFixed(1)}"`
       + ` text-anchor="${upside ? 'end' : 'start'}" dominant-baseline="middle"`
       + ` font-size="${fs.toFixed(1)}" font-weight="600" fill="currentColor" fill-opacity="0.9"`
-      + ` transform="rotate(${theta.toFixed(1)} ${p[0].toFixed(1)} ${p[1].toFixed(1)})"`
+      + ` transform="rotate(${theta.toFixed(1)} ${pt[0].toFixed(1)} ${pt[1].toFixed(1)})"`
       + ` style="pointer-events:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none"`
       + `>${esc(label)}</text>`);
   }
@@ -222,7 +244,7 @@ export function renderChart(data) {
   //    用 fill="transparent" 而不是 "none"：前者有填充（整面命中），
   //    后者没有填充，只有描边能命中，圆内部会漏到线上去。
   parts.push(`<circle class="mw-grab" cx="${cx}" cy="${cy}"`
-    + ` r="${Math.round(rOut * 0.25)}"`
+    + ` r="${Math.round(rOut * p.grabRatio)}"`
     + ` fill="transparent" pointer-events="all"/>`);
 
   parts.push('</g></svg>');

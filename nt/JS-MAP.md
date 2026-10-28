@@ -32,6 +32,7 @@
 | `core/lz-file.js` | .lz 快照文件（跨设备同步码）的解析与还原（纯函数，Node 可跑） |
 | `core/meta.js` | （未标注界面）项目地址（常量） |
 | `core/migrate.js` | （无界面）旧数据迁移 |
+| `core/mw-settings.js` | （无界面）环图参数 SCHEMA + 默认值 |
 | `core/opening-migrator.js` | （无界面）期初迁移 |
 | `core/qr-encode.js` | （未标注界面）QR 编码入口（纯函数） |
 | `core/qr-matrix.js` | （未标注界面）QR 矩阵构造（纯函数） |
@@ -53,6 +54,7 @@
 | `core/xlsx-write.js` | xlsx 的 XML 生成（纯函数，Node 可跑） |
 | `core/xlsx-xml.js` | xlsx 的 XML 解析（纯函数，Node 可跑） |
 | `graph/mw-data-fetcher.js` | （无界面）路径图数据抓取 |
+| `graph/mw-depth.js` | （无界面）环图的链路层级 |
 | `graph/mw-path-calculator.js` | （无界面）路径计算 |
 | `graph/mw-slot-calculator.js` | （无界面）槽位计算 |
 | `graph/path-tracer.js` | （无界面）路径追踪 |
@@ -83,6 +85,7 @@
 | `ui/inst-table.js` | 分期表（表格内直接交互） |
 | `ui/layout-text.js` | 布局文本导出/导入 |
 | `ui/modal.js` | 全局 → 统一弹窗（<dialog>） |
+| `ui/mw-params.js` | 全局：环图参数（CSS 变量 → 数字） |
 | `ui/mw-svg-renderer.js` | 路径 tab / path.html → SVG 渲染 |
 | `ui/path-flow-table.js` | 路径页左栏的流水查询表 |
 | `ui/path-view.js` | 路径 tab |

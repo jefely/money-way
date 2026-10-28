@@ -43,14 +43,16 @@ export const START_ANG = -Math.PI / 2;   // 9 点钟
 export const UNCATEGORIZED = '未分类';
 
 /**
- * 细粒度单位角（度）：(360 − 分类数 × 0.8) ÷ (笔数 × 2)
+ * 细粒度单位角（度）：(360 − 分类数 × 间隙) ÷ (笔数 × 2)
  * 这是用户给的公式，单独导出便于测试。
+ * `gapDeg` 来自环图参数（面板「分类间隙角」，默认 0.8°）；不传就用常量。
  */
-export function unitDegree(groupCount, txCount) {
+export function unitDegree(groupCount, txCount, gapDeg) {
+  const gap = Number.isFinite(Number(gapDeg)) && gapDeg !== '' ? Number(gapDeg) : GAP_DEG;
   const groups = Math.max(0, Math.floor(Number(groupCount) || 0));
   const units = Math.max(0, Math.floor(Number(txCount) || 0)) * 2;
   if (!units) return 0;
-  return Math.max(60, 360 - groups * GAP_DEG) / units;
+  return Math.max(60, 360 - groups * gap) / units;
 }
 
 /**
@@ -63,6 +65,12 @@ export function computeSlots(txs, opts) {
   const o = opts || {};
   const accOf = o.accOf || (() => null);
   const R = Number(o.outerRadius) || 640;
+  // 分类之间的缝：面板「分类间隙角」。0 是合法的（分类贴在一起），
+  // 但 null / '' / NaN 要走默认，否则一次误传就把缝隙清成 0。
+  const gapDeg = o.gapDeg == null || o.gapDeg === ''
+    ? GAP_DEG
+    : (Number.isFinite(Number(o.gapDeg)) ? Number(o.gapDeg) : GAP_DEG);
+  const gapRad = (gapDeg * Math.PI) / 180;
 
   /* ---------- ① 两个键 ---------- */
 
@@ -110,7 +118,7 @@ export function computeSlots(txs, opts) {
 
   /* ---------- ② 单位角 / 单位弧长 ---------- */
   const units = list.length * 2;
-  const uDeg = unitDegree(groupList.length, list.length);
+  const uDeg = unitDegree(groupList.length, list.length, gapDeg);
   const unit = (uDeg * Math.PI) / 180;
   const unitArcLen = unit * R;
 
@@ -134,7 +142,7 @@ export function computeSlots(txs, opts) {
   let ang = START_ANG;
   let prevKey = null;
   for (const sl of slots) {
-    if (prevKey !== null && sl.sortKey !== prevKey) ang += GAP_RAD;
+    if (prevKey !== null && sl.sortKey !== prevKey) ang += gapRad;
     sl.a1 = ang;
     sl.a2 = ang + unit;
     sl.mid = ang + unit / 2;
@@ -192,7 +200,8 @@ export function computeSlots(txs, opts) {
     unitDeg: uDeg,
     unitArcLen,
     units,
-    gapRad: GAP_RAD,
+    gapRad,
+    gapDeg,
     outerRadius: R,
   };
 }

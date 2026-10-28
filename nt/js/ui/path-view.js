@@ -1,14 +1,18 @@
 // 界面：路径 tab
-﻿/**
+/**
  * 路径页视图（UI 层）
  *
  * 只做「把算好的数据摆到 DOM 上」，不含任何几何/金额计算。
+ *
+ * 线宽与透明度的**数值**全部来自环图参数（core/mw-settings.js 的 SCHEMA，
+ * 运行时由 ui/mw-params.js 从 --nt-mw-* 读出）—— 这里只负责「哪一档乘哪个系数」。
+ * 早先这些数是写死的常量，面板调不到，改一次要改代码 + 升版本。
  */
 
 import { renderChart, RATIO } from './mw-svg-renderer.js';
+import { MW_DEFAULTS } from '../core/mw-settings.js';
 import {
-  categoryColor, pointAt, OPACITY, DEPTH_WIDTHS, W_MID, PICK_BOOST, PICK_SHRINK,
-  traceWidthOf, TRACE_FLOOR,
+  categoryColor, pointAt, DEPTH_WIDTHS, traceWidthOf,
 } from '../graph/mw-path-calculator.js';
 
 const el = (id) => document.getElementById(id);
@@ -20,18 +24,20 @@ const el = (id) => document.getElementById(id);
  * @param {object} data build() 的结果
  * @param {Set<number>|null} hits 命中连线（data.txs 下标）
  * @param {(kind:string, value:any)=>void} onPick
- * @param {{mode?:string|null, dir?:'up'|'down'}} view
+ * @param {{mode?:string|null, dir?:'up'|'down', params?:object}} view
  *   mode：null 基本 / 'acc' 色块 / 'tx' 单线 / 'trace' 追踪
  *   dir ：逆流（up）看转入方、顺流（down）看转出方 —— **只影响颜色与第 4 模式线宽**
+ *   params：环图参数（基准单位）；缺省用 MW_DEFAULTS
  */
 export function paintChart(host, data, hits, onPick, view) {
+  const p = (view && view.params) || MW_DEFAULTS;
   const colorOf = (key) => categoryColor(data.colorIndex, key);
   const mode = (view && view.mode) || null;
   const dir = view && view.dir === 'down' ? 'down' : 'up';
 
   // 线宽照单文件版：
-  //   没追踪 → 全部统一 W_MID(2.4)
-  //   追踪中 → 命中线用「离费用端几跳」的档位 × PICK_BOOST，其它线收细
+  //   没追踪 → 全部统一 W_MID，基本模式再乘 baseK 细一级
+  //   追踪中 → 命中线用「离费用端几跳」的档位 × 命中加权 × 额外系数，其它线收细
   //
   // 注意：这里**没有**按笔数做密度补偿。曾经加过一版（250 笔时把线调细 0.6 倍），
   // 但在 v0.50 把「图尺寸只由高度决定」修好之后，250 笔在侧栏收起时已经不糊了 ——
@@ -41,27 +47,27 @@ export function paintChart(host, data, hits, onPick, view) {
     const hit = hits ? hits.has(c.txIdx) : false;
     // 线宽按 RATIO 等比放大：画布从 1800 提到 6000，线还是 2.4px 就显得更细
     // 四种模式的线宽互不干扰：
-    //   基本  → W_MID × 0.75（细一级），不画遮罩
+    //   基本  → W_MID × baseK（细一级），不画遮罩
     //   单线  → 命中 W_MID × 1.0（粗一级），其它同级但被遮罩盖住
     //   色块  → 沿用层级档位（不动）
     //   追踪  → 按方向取那一端的四个类型档（见 mw-path-calculator 的 STYLE_UP / STYLE_DOWN）
-    let strokeWidth = W_MID * RATIO * 0.75;
+    let strokeWidth = p.wMid * RATIO * p.baseK;
     if (mode === 'tx') {
-      strokeWidth = W_MID * RATIO * (hit ? 1.0 : 0.75);
+      strokeWidth = p.wMid * RATIO * (hit ? 1 : p.baseK);
     } else if (mode === 'trace') {
       // 第 4 模式：逆流看**转入方**的类型（费用最粗 → 收入最细），
       // 顺流看**转出方**的类型（收入·权益最粗 → 费用最细）。
       // 非命中线压到最细一档，链才浮出来。
       const endType = dir === 'down' ? c.fromType : c.toType;
-      strokeWidth = (hit ? traceWidthOf(endType, dir) : TRACE_FLOOR) * RATIO;
+      strokeWidth = (hit ? traceWidthOf(endType, dir) : p.traceFloor) * RATIO;
     } else if (hits) {
       if (hit) {
         const dep = Number.isFinite(c.depth) ? c.depth : DEPTH_WIDTHS.length - 1;
-        // 再 ×0.35：用户反馈选中线还是偏粗，继续收细
+        // 再 × 额外系数：用户反馈选中线还是偏粗，继续收细（默认 0.35）
         strokeWidth = DEPTH_WIDTHS[Math.min(dep, DEPTH_WIDTHS.length - 1)]
-          * PICK_BOOST * RATIO * 0.35;
+          * p.pickBoost * RATIO * p.pickExtra;
       } else {
-        strokeWidth = W_MID * PICK_SHRINK * RATIO;
+        strokeWidth = p.wMid * p.pickShrink * RATIO;
       }
     }
     return {
@@ -69,7 +75,7 @@ export function paintChart(host, data, hits, onPick, view) {
       // 命中线要在遮罩**之上**（单线模式用它浮出来）
       above: mode === 'tx' && hit,
       strokeWidth,
-      opacity: !hits ? OPACITY.GLOBAL : (hit ? OPACITY.HIT : OPACITY.DIM),
+      opacity: !hits ? p.opGlobal : (hit ? p.opHit : p.opDim),
     };
   });
 
@@ -79,8 +85,9 @@ export function paintChart(host, data, hits, onPick, view) {
     sectors: data.sectors,
     pointAt,
     colorOf,
-    // 遮罩只在单线模式出现：基本模式 0（不要黑遮罩），色块/追踪维持原来的 0.48
-    maskOpacity: mode === 'tx' ? 0.55 : 0,
+    params: p,
+    // 遮罩只在单线模式出现：基本模式 0（不要黑遮罩），色块/追踪维持 0（不再全图压暗）
+    maskOpacity: mode === 'tx' ? p.maskOp : 0,
   });
 
   host.classList.toggle('has-focus', !!hits);

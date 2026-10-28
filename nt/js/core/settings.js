@@ -11,12 +11,20 @@
  * 每项：key、group、def、unit、cssVar / type / attr / options / values。
  */
 
-export const GROUPS = ['标签栏', '按钮区', '表格', '信息栏', '按钮尺寸', '列标行', '数据区'];
+import { MW_GROUPS, MW_SCHEMA } from './mw-settings.js';
+
+export const GROUPS = [
+  '标签栏', '按钮区', '表格', '信息栏', '按钮尺寸', '列标行', '数据区',
+  // 环图那 30 项（路径页）单独四组：它们是「基准单位」，由 SVG 渲染器消费，
+  // 和上面这些 --nt-col-* 的 CSS 消费方不是一回事。见 core/mw-settings.js。
+  ...MW_GROUPS,
+];
 
 /** 调试面板的界面标签 */
 export const SCREENS = [
   { id: 'main', label: '主界面' },
   { id: 'flow', label: '流水' },
+  { id: 'path', label: '路径' },
 ];
 
 /** 分组归属的界面标签：main=公共参数，flow=流水页参数 */
@@ -30,6 +38,8 @@ export const GROUP_SCREEN = {
   按钮尺寸: 'main',
   列标行: 'main',
   数据区: 'main',
+  // 环图参数只在路径页看得见效果，所以归「路径」屏，不和主界面挤在一起
+  ...Object.fromEntries(MW_GROUPS.map((g) => [g, 'path'])),
 };
 
 /** 参数作用域：global=写全局(:root)；其余=写到对应标签页容器 [data-view] */
@@ -44,6 +54,9 @@ export const GROUP_SCOPE = {
   按钮尺寸: 'global',
   列标行: 'global',
   数据区: 'global',
+  // 环图参数写在 :root 上：渲染器从 getComputedStyle(documentElement) 读，
+  // 不依赖路径页容器是否存在（切 tab / 未解锁时读到的也是同一份值）。
+  ...Object.fromEntries(MW_GROUPS.map((g) => [g, 'global'])),
 };
 
 /**
@@ -154,6 +167,11 @@ export const SCHEMA = [
   { key: '路径追踪/列宽', group: '数据区', type: 'cols', table: 'path', def: TABLE_DEFAULT_WIDTHS.path },
   { key: '固定开支/列宽', group: '数据区', type: 'cols', table: 'plan', def: TABLE_DEFAULT_WIDTHS.plan },
   { key: '账户设置/列宽', group: '数据区', type: 'cols', table: 'accounts', def: TABLE_DEFAULT_WIDTHS.accounts },
+
+  /* ---------- 环图（路径页，四组） ----------
+     30 项的声明在 core/mw-settings.js：面板、导出文本、存档都走同一份 SCHEMA，
+     消费方是 ui/mw-params.js（读 --nt-mw-* → 数字），不是 CSS 规则。 */
+  ...MW_SCHEMA,
 ];
 
 /** 尺寸/枚举类共用的默认值（四主题一致） */
@@ -221,9 +239,17 @@ export function normalize(raw, theme) {
     }
 
     if (v == null || v === '') continue;
-    if (s.unit === 'px') {
-      const n = Number(String(v).replace(/[^0-9.-]/g, ''));
-      if (Number.isFinite(n)) out[s.key] = n;
+    if (s.unit === 'px' || s.type === 'num') {
+      const digits = String(v).replace(/[^0-9.-]/g, '');
+      // 'abc' 剥掉非数字字符后是空串，而 Number('') === 0 ——
+      // 直接转换会把「填错了」变成「填了 0」，环图上线宽会突然消失。
+      // 空 / 只有符号 / 只有小数点，一律当作没填，保留该主题默认值。
+      if (!digits || digits === '-' || digits === '.') continue;
+      const n = Number(digits);
+      if (!Number.isFinite(n)) continue;
+      // 钳制：只有声明了 min/max 的项才生效（表格那 43 项都没声明，行为不变）。
+      // 环图参数必须有界 —— 环半径调过头会把标签切到画布外面，环厚超过半径会让 rIn 变负。
+      out[s.key] = clampNum(n, s.min, s.max);
     } else if (s.type === 'array' || s.type === 'align') {
       // 列宽/对齐是「按 COL_KEYS 的下标」存的逗号数组。
       // 旧存档里只有 18 项（COL_KEYS 后来追加了 8 个新列），
@@ -236,6 +262,14 @@ export function normalize(raw, theme) {
     }
   }
   return out;
+}
+
+/** 数值钳制：没声明 min/max 就是恒等函数 */
+function clampNum(n, lo, hi) {
+  let v = n;
+  if (typeof lo === 'number' && v < lo) v = lo;
+  if (typeof hi === 'number' && v > hi) v = hi;
+  return v;
 }
 
 /** 把列宽/对齐数组补到 COL_KEYS.length：缺的位用默认值，多的截掉 */

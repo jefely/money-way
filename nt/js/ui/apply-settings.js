@@ -1,4 +1,4 @@
-﻿// 界面：全局：把界面参数写成 CSS 变量（主题/列宽）
+// 界面：全局：把界面参数写成 CSS 变量（主题/列宽）
 /**
  * 把界面参数写到对应作用域的 CSS 变量上（UI 层）
  *
@@ -32,4 +32,11 @@ export function applySettings(settings, theme) {
 
   // 列宽变量变了，冻结列的 left 要跟着重算
   syncAllFrozen();
+
+  // 参数变了 → 通知消费方重画。环图（路径页）靠这个做到「面板一改，图立刻变」：
+  // 它的半径、字号、线宽都不是 CSS 能表达的，只能在 JS 里重排一次 SVG。
+  // 没有订阅者时 dispatch 是空操作（启动时 applySettings 早于 mountViews）。
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new CustomEvent('nt-layout'));
+  }
 }
