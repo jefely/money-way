@@ -139,9 +139,8 @@
 /* ---------- 表格 ---------- */
 
 .nt-table {
-  border-collapse: separate;
-  border-spacing: var(--nt-cell-gap, 0);
-  table-layout: fixed;
+  /* table-layout / border-spacing / width 都在 shell.css 的 .nt-table 里定义
+     （那里后加载）。这里只留表格自己的排版属性，避免两份规则互相覆盖。 */
   font-variant-numeric: tabular-nums;
   color: var(--nt-unit-text, var(--nt-text));
 }

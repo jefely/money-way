@@ -445,9 +445,16 @@ body {
 
 .nt-table {
   table-layout: fixed;
-  width: 100%;
+  /* 宽度 = 各列 width 之和（值来自界面参数 / 拖动），**不是 width:100%**。
+     table-layout:fixed 遇到 width:100% 时，会把「列宽之和」按比例放大到容器宽 ——
+     面板里设的 44/84/112 全都作数不了，看起来就是「整张表在整体缩放」。
+     容器更宽 → 右侧留白；更窄 → .nt-tablewrap 横向滚动。
+     2026-10 用户反馈「表格都变成整体缩放模式了」就是这条 width:100%。 */
+  width: auto;
   border-collapse: separate;
-  border-spacing: 0;
+  /* 这条以前写死 0，而 flow.css 里读的是 var(--nt-cell-gap) ——
+     shell.css 后加载，于是「单元格间隙」参数调了没反应。合并到这一处。 */
+  border-spacing: var(--nt-cell-gap, 0);
 }
 
 /* 拖动过的表：切成「按列固定」模式，不再参与 100% 分配 */
@@ -490,8 +497,9 @@ body.nt-col-resizing .nt-tablewrap {
 
 /* ---------- 流水记录（8 列：序 · 日期 · 转出 · 转入 · 金额 · 备注 · 固定 · 删除） ---------- */
 
-.nt-table-flow { min-width: 660px; }
-.nt-table-flow .nt-th:nth-child(1) { width: var(--nt-col-flow-seq, 54px);  min-width: 54px;  max-width: 54px; }
+/* 表宽由各列之和决定（见 .nt-table 的 width:auto），不再给表级 min-width ——
+   表级 min-width 大于列宽之和时会把整表按比例拉大，每列调好的 px 全被放大。 */
+.nt-table-flow .nt-th:nth-child(1) { width: var(--nt-col-flow-seq, 54px); }
 .nt-table-flow .nt-th:nth-child(2) { width: var(--nt-col-flow-date, 84px); }
 .nt-table-flow .nt-th:nth-child(3) { width: var(--nt-col-flow-from, 112px); }
 .nt-table-flow .nt-th:nth-child(4) { width: var(--nt-col-flow-to, 112px); }
@@ -502,10 +510,10 @@ body.nt-col-resizing .nt-tablewrap {
 
 /* ---------- 统计（分类 8 列 / 汇总 10 列，两张视图列宽各自独立） ---------- */
 
-.nt-table-stats { min-width: 820px; }
+/* 同上：不再给表级 min-width */
 
 /* 分类：序 · 分类 · 转出金额 · 转入金额 · 当前余额 · 历史转出 · 历史转入 · 历史结余 */
-.nt-table-stats.is-cat .nt-th:nth-child(1) { width: var(--nt-col-cat-seq, 54px);  min-width: 54px;  max-width: 54px; }
+.nt-table-stats.is-cat .nt-th:nth-child(1) { width: var(--nt-col-cat-seq, 54px); }
 .nt-table-stats.is-cat .nt-th:nth-child(2) { width: var(--nt-col-cat-cat, 96px); }
 .nt-table-stats.is-cat .nt-th:nth-child(3) { width: var(--nt-col-cat-out, 84px); }
 .nt-table-stats.is-cat .nt-th:nth-child(4) { width: var(--nt-col-cat-iin, 84px); }
@@ -516,7 +524,7 @@ body.nt-col-resizing .nt-tablewrap {
 
 /* 汇总：账户名称 · 序号 · 类型 · 分类 · 转出金额 · 转入金额 · 当前余额 · 历史转出 · 历史转入 · 历史结余 */
 .nt-table-stats.is-sum .nt-th:nth-child(1)  { width: var(--nt-col-sum-name, 120px); }
-.nt-table-stats.is-sum .nt-th:nth-child(2)  { width: var(--nt-col-sum-seq, 54px);  min-width: 54px;  max-width: 54px; }
+.nt-table-stats.is-sum .nt-th:nth-child(2)  { width: var(--nt-col-sum-seq, 54px); }
 .nt-table-stats.is-sum .nt-th:nth-child(3)  { width: var(--nt-col-sum-type, 66px); }
 .nt-table-stats.is-sum .nt-th:nth-child(4)  { width: var(--nt-col-sum-cat, 70px); }
 .nt-table-stats.is-sum .nt-th:nth-child(5)  { width: var(--nt-col-sum-out, 84px); }
@@ -528,8 +536,8 @@ body.nt-col-resizing .nt-tablewrap {
 
 /* ---------- 固定开支（8 列） ---------- */
 
-.nt-table-plan { min-width: 660px; }
-.nt-table-plan .nt-th:nth-child(1) { width: var(--nt-col-plan-seq, 54px);  min-width: 54px;  max-width: 54px; }
+/* 同上：不再给表级 min-width */
+.nt-table-plan .nt-th:nth-child(1) { width: var(--nt-col-plan-seq, 54px); }
 .nt-table-plan .nt-th:nth-child(2) { width: var(--nt-col-plan-freq, 64px); }
 .nt-table-plan .nt-th:nth-child(3) { width: var(--nt-col-plan-day, 84px); }
 .nt-table-plan .nt-th:nth-child(4) { width: var(--nt-col-plan-from, 110px); }
@@ -550,9 +558,9 @@ body.nt-col-resizing .nt-tablewrap {
 
 /* ---------- 账户设置（10 列：简码 · 序 · 类型 · 分类 · 名称 · 期初 · 账单日 · 还款日 · 上移 · 删除） ---------- */
 
-.nt-table-accounts { min-width: 660px; }
-.nt-table-accounts .nt-th:nth-child(1) { width: var(--nt-col-accounts-code, 64px);  min-width: 64px;  max-width: 64px; }
-.nt-table-accounts .nt-th:nth-child(2) { width: var(--nt-col-accounts-seq, 44px);  min-width: 44px;  max-width: 44px; }
+/* 同上：不再给表级 min-width */
+.nt-table-accounts .nt-th:nth-child(1) { width: var(--nt-col-accounts-code, 64px); }
+.nt-table-accounts .nt-th:nth-child(2) { width: var(--nt-col-accounts-seq, 44px); }
 .nt-table-accounts .nt-th:nth-child(3) { width: var(--nt-col-accounts-type, 66px); }
 .nt-table-accounts .nt-th:nth-child(4) { width: var(--nt-col-accounts-cat, 70px); }
 .nt-table-accounts .nt-th:nth-child(5) { width: var(--nt-col-accounts-name, 110px); }
