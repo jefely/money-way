@@ -270,12 +270,19 @@ body.nt-col-resizing {
    极简符号：一个空心方块、一个叉，无底色、无边框、无阴影，
    就是两个浮在行里的字符（参考用户给的那张图）。
    勾选框用 CSS 画空心方块（1px 描边），选中变主色实心。 */
-.nt-table .nt-th-edge,
+/* 表头那两格：只收内边距，**不要覆盖底色** ——
+   它们必须沿用 .nt-th 的 --nt-th-bg，否则表头最后两格会露出表格底，
+   和左边断开（2026-10 用户截图里就是这个）。 */
+.nt-table .nt-th-edge {
+  padding: 0 2px;
+  text-align: center;
+}
+
+/* 数据格：透明底，让斑马纹能透出来 */
 .nt-table .nt-cell-edge {
   padding: 0 2px;
   text-align: center;
   background: transparent;
-  border-left: 0;
 }
 
 .nt-table .nt-fixed-box {
