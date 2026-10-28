@@ -8129,7 +8129,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.68';
+const APP_VER = 'v13.69';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -15161,6 +15161,9 @@ function hoistCodeColumn(table) {
   const head = table.querySelector('thead tr');
   if (head) move(head);
   table.querySelectorAll('tbody tr').forEach(move);
+  // 折叠功能已停用：把「收起类型 / 分类」那个三角摘掉
+  const foldBtn = table.querySelector('.sum-fold-toggle');
+  if (foldBtn) foldBtn.remove();
 }
 
 function applySummaryFold() {
@@ -15168,6 +15171,9 @@ function applySummaryFold() {
   if (!table) return;
   // 列序：简码永远在最左（用户指定），其它列顺序不变
   hoistCodeColumn(table);
+  // 折叠功能停用（用户明确不再使用）：始终按展开态渲染，
+  // 类型 / 分类不再被置 0，也就没有「折叠后左右滑动撕裂」那类问题。
+  summaryFold = false;
   const real = summaryBaseWidths();
   summaryRealW = real.slice();              // 记下真实宽度，折叠只改「视图」
   const view = real.slice();
