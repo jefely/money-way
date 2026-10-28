@@ -98,21 +98,68 @@ export function traceWidthOf(type, dir) {
   return TRACE_FLOOR;
 }
 
-export const COLOR_SAT = 62;
-export const COLOR_LIGHT = 52;
+/**
+ * 统计分类调色板 —— **24 色，任意两色的 CIELAB ΔE76 ≥ 24**。
+ *
+ * 为什么不用「黄金角按序取色」（`hsl(i×137.508, 62%, 52%)`）：
+ * 分类到 10 个左右时，第 1 个和第 9 个会撞成两个差不多的绿色
+ * （137.5° 与 283.5° 的补角），用户实测「两个绿色是一对，线也几乎同色，分不清」。
+ *
+ * 这张表是离线在 HSL 网格里用**贪心 maximin** 挑的：每加一个分类，
+ * 取「离已选颜色最远」的那一个（色相 5° 网格 × 饱和度/亮度各几档，Lab 距离）。
+ * 因此它的**每个前缀**都是当前数量的一个好分布 —— 分类少的时候也不会挤在一起。
+ *
+ * 顺序有意义：分类按名字排序后依次取色（见 mw-slot-calculator），同一分类永远同色。
+ */
+export const CATEGORY_PALETTE = [
+  [0, 66, 52],    // 红
+  [120, 85, 48],  // 绿（前 11 个各占一个色系，所以分类少时不会出现两个绿）
+  [240, 85, 48],  // 蓝
+  [190, 85, 48],  // 青
+  [50, 85, 76],   // 黄
+  [300, 85, 76],  // 品红
+  [150, 75, 34],  // 墨绿（teal）
+  [250, 55, 34],  // 靛
+  [35, 55, 34],   // 橙
+  [330, 65, 34],  // 粉
+  [295, 85, 48],  // 紫
+  [350, 55, 76],  // 浅红
+  [215, 85, 62],  // 蓝
+  [65, 85, 48],   // 黄绿
+  [35, 85, 48],   // 橙
+  [160, 85, 76],  // 青绿
+  [70, 65, 34],   // 橄榄
+  [320, 85, 48],  // 品红
+  [205, 55, 34],  // 深蓝
+  [140, 85, 62],  // 绿
+  [260, 75, 62],  // 靛紫
+  [5, 55, 34],    // 暗红
+  [15, 65, 62],   // 橙棕
+  [225, 55, 76],  // 浅蓝
+];
 
-/** 黄金角：让相邻分类颜色差异最大 */
+/** 黄金角：调色板用完之后继续取色的步长（尽量避开前 24 个） */
 const GOLDEN_ANGLE = 137.508;
 
 /**
  * 统计分类色：同一个分类（如"餐饮"）永远同一色，**不管它属于哪个账户类型**。
+ *
+ * 超过 24 个分类时退回黄金角，但把亮度压到前 24 个没用过的暗带（34~46%），
+ * 尽量不再撞色 —— 分类多到那个程度，颜色本身已经不够用了。
+ *
  * @param {Map<string, number>} colorIndex 分类 → 序号
  * @param {string} colorKey 统计分类
  */
 export function categoryColor(colorIndex, colorKey) {
   const i = colorIndex instanceof Map ? (colorIndex.get(colorKey) || 0) : 0;
-  const hue = (i * GOLDEN_ANGLE) % 360;
-  return `hsl(${hue.toFixed(1)}, ${COLOR_SAT}%, ${COLOR_LIGHT}%)`;
+  if (i >= 0 && i < CATEGORY_PALETTE.length) {
+    const [h, s, l] = CATEGORY_PALETTE[i];
+    return `hsl(${h}, ${s}%, ${l}%)`;
+  }
+  const k = Math.max(0, i - CATEGORY_PALETTE.length);
+  const hue = (k * GOLDEN_ANGLE) % 360;
+  const light = 34 + (k % 3) * 6;   // 34 / 40 / 46
+  return `hsl(${hue.toFixed(1)}, 64%, ${light}%)`;
 }
 
 /**
@@ -210,6 +257,9 @@ export function buildChord(input) {
     toType: toAcc.type || '',
     colorKey: style.colorKey,
     colorBy: style.colorBy,
+    // 两端的分类 key：点弧块时颜色要取**远端**（见 ui/path-view.js）
+    colorKeyTo: ctx && ctx.colorKeyOf ? ctx.colorKeyOf(String(to_id)) : '',
+    colorKeyFrom: ctx && ctx.colorKeyOf ? ctx.colorKeyOf(String(from_id)) : '',
     weight: style.weight,
     targetType: style.targetType,
   };

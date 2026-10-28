@@ -39,6 +39,11 @@ export function paintChart(host, data, hits, onPick, view) {
 
   const chords = data.chords.map((c) => {
     const hit = hits ? hits.has(c.txIdx) : false;
+    // 点弧块：颜色取**远端** —— 逆流看流入（远端=转出方），顺流看流出（远端=转入方）。
+    // 弧块自己的颜色当锚点没有信息量（整组线同色，看不出是谁给的钱 / 钱去了哪类）。
+    const strokeColor = (mode === 'acc' && hit)
+      ? categoryColor(data.colorIndex, dir === 'down' ? c.colorKeyTo : c.colorKeyFrom)
+      : c.strokeColor;
     // 线宽按 RATIO 等比放大：画布从 1800 提到 6000，线还是 2.4px 就显得更细
     // 四种模式的线宽互不干扰：
     //   基本  → W_MID × 0.75（细一级），不画遮罩
@@ -66,6 +71,7 @@ export function paintChart(host, data, hits, onPick, view) {
     }
     return {
       ...c,
+      strokeColor,
       // 命中线要在遮罩**之上**（单线模式用它浮出来）
       above: mode === 'tx' && hit,
       strokeWidth,

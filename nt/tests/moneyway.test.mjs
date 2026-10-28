@@ -269,9 +269,20 @@ test('反向溯源：环路不会死循环', () => {
   assert.ok(r.linkIndices.length <= links.length, '不能重复计入同一条边');
 });
 
-test('按账户取往来（点弧块）', () => {
-  const links = [tx('a_bank', 'a_food'), tx('a_food', 'a_bank'), tx('a_cash', 'a_traffic')];
-  assert.deepEqual(traceByAccount(links, 'a_bank'), [0, 1]);
+test('★ 点弧块：逆流只取流入的线、顺流只取流出的线（不递归）', () => {
+  const links = [
+    tx('a_salary', 'a_bank'),   // 0 流入 a_bank
+    tx('a_bank', 'a_food'),     // 1 流出 a_bank
+    tx('a_cash', 'a_food'),     // 2 与 a_bank 无关
+    tx('a_bank', 'a_card'),     // 3 流出 a_bank
+  ];
+  assert.deepEqual(traceByAccount(links, 'a_bank', 'up'), [0]);
+  assert.deepEqual(traceByAccount(links, 'a_bank', 'down'), [1, 3]);
+  // 不传方向 = 双向（「看这个账户的全部往来」的旧用途）
+  assert.deepEqual(traceByAccount(links, 'a_bank'), [0, 1, 3]);
+  // 不递归：a_salary 的上游不该进来
+  const deep = [tx('a_boss', 'a_salary'), tx('a_salary', 'a_bank')];
+  assert.deepEqual(traceByAccount(deep, 'a_bank', 'up'), [1]);
 });
 
 /* ---------- 追踪链：逆流 / 顺流是画法，链不变 ---------- */

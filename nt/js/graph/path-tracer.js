@@ -105,19 +105,30 @@ export function traceFromTx(links, txIndex) {
 }
 
 /**
- * 某账户的全部往来（双向，不区分方向）。
- * 追踪模式改用 traceUpstream 之后这里不再被视图调用，
- * 保留给「看这个账户的全部往来」这类只读用途与测试。
+ * 某个账户**直接相连**的线（点弧块用，**不递归**）。
+ *
+ *   dir='up'   流入它的线（to_id === id）—— 逆流
+ *   dir='down' 从它流出的线（from_id === id）—— 顺流
+ *   不传 dir   双向（「看这个账户的全部往来」）
+ *
+ * 注意：它不是 traceUpstream —— 弧块模式只看这一个账户的一圈线，
+ * 递归上游链是「点左栏某一笔」才做的事。
  */
-export function traceByAccount(links, accountId) {
+export function traceByAccount(links, accountId, dir) {
   const id = String(accountId || '');
-  const linkIndices = [];
+  const out = [];
   for (let i = 0; i < (links || []).length; i++) {
     const l = links[i];
     if (!l) continue;
-    if (l.from_id === id || l.to_id === id) linkIndices.push(i);
+    if (dir === 'up') {
+      if (l.to_id === id) out.push(i);
+    } else if (dir === 'down') {
+      if (l.from_id === id) out.push(i);
+    } else if (l.from_id === id || l.to_id === id) {
+      out.push(i);
+    }
   }
-  return linkIndices;
+  return out;
 }
 
 /**
