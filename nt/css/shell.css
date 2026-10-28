@@ -281,7 +281,6 @@ body {
 .nt-table-plan .nt-th:nth-child(1),
 .nt-table-inst .nt-th:nth-child(1),
 .nt-table-accounts .nt-th:nth-child(1),
-.nt-table-accounts .nt-th:nth-child(2),
 .nt-table-stats .nt-th:nth-child(1),
 .nt-table-stats .nt-th:nth-child(2) {
   position: sticky;
@@ -297,11 +296,20 @@ body {
   z-index: 4;
 }
 
-/* 冻结两列的表：第二列压在第一列之下 */
-.nt-table-accounts .nt-cell:nth-child(2),
+/* 统计表冻两列：第二列压在第一列之下 */
 .nt-table-stats .nt-cell:nth-child(2) {
   position: sticky;
   z-index: 3;
+}
+
+/* 冻结列里的输入框（简码 / 账户名）再抬一层：
+   它们要压在 sticky 背景之上，否则文字的右缘会被隔壁列的背景吃掉。 */
+.nt-table-accounts .nt-cell:nth-child(1) .nt-cell-input,
+.nt-table-flow .nt-cell:nth-child(1) .nt-cell-input,
+.nt-table-plan .nt-cell:nth-child(1) .nt-cell-input,
+.nt-table-stats .nt-cell:nth-child(1) .nt-cell-input {
+  position: relative;
+  z-index: 1;
 }
 
 /* 冻结列必须不透明：否则横向滚动时后面的内容会透出来 */
