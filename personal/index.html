@@ -5850,20 +5850,26 @@ th.col-range { text-align: left; }
 /* 路径侧栏不要斑马纹（用户指定）：所有行同一底色，靠边框和悬停区分 */
 .mw-flow-row.mw-flow-grid { background: transparent; }
 .mw-flow-row.mw-flow-grid:hover { background: rgba(139,108,255,.10) !important; }
+/* 链路里的行：整行淡紫底 + 加粗（照 nt/ 的 .pw-flow-row.on） */
 .mw-flow-row.mw-flow-grid.on {
-  background: rgba(139,108,255,.18) !important;
-  box-shadow: inset 2px 0 0 rgba(139,108,255,.75);
-}
-/* 被点中的那一笔（链路根）：底色更实、左侧 3px 紫条、加粗 —— 在一堆透明行里一眼能认出来 */
-.mw-flow-row.mw-flow-grid.root {
-  background: rgba(139,108,255,.34) !important;
+  background: rgba(139,108,255,.22) !important;
   font-weight: 700;
-  box-shadow: inset 3px 0 0 var(--primary);
+}
+/* 被点中的那一笔（链路根）：整行更实的紫底 + 一圈紫描边（照 nt/ 的 .pw-flow-row.root）。
+   outline 不占布局、outline-offset 负值让它压在行内，横滚时也不会把行撑宽。 */
+.mw-flow-row.mw-flow-grid.root {
+  background: rgba(139,108,255,.38) !important;
+  font-weight: 700;
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  border-radius: 4px;
 }
 .mw-flow-row.mw-flow-grid.root .mw-note { color: var(--text-main) !important; }
 
 /* 深色主题：斑马纹与边框跟流水表一致 */
 [data-theme="dark"] .mw-flow-row.mw-flow-grid { background-color: transparent !important; }
+[data-theme="dark"] .mw-flow-row.mw-flow-grid.on { background-color: rgba(139,108,255,.30) !important; }
+[data-theme="dark"] .mw-flow-row.mw-flow-grid.root { background-color: rgba(139,108,255,.44) !important; }
 [data-theme="dark"] .mw-flow-cols.mw-flow-grid { background-color: transparent !important; }
 [data-theme="dark"] .mw-flow-row.mw-flow-grid > * { border-right-color: #2a2a2a; }
 [data-theme="dark"] .mw-flow-row.mw-flow-grid { border-bottom-color: #2a2a2a; }
@@ -8027,12 +8033,14 @@ html body .mw-side-left::-webkit-scrollbar,
 html body .mw-side-left::-webkit-scrollbar-track,
 html body .mw-side-left::-webkit-scrollbar-track-piece,
 html body .mw-side-left::-webkit-scrollbar-corner { background: transparent !important; }
-[data-theme="dark"] html body .mw-side-left,
-[data-theme="dark"] html body .mw-side-frozen { background: rgba(0, 0, 0, .2) !important; }
-[data-theme="dark"] html body .mw-side-left::-webkit-scrollbar,
-[data-theme="dark"] html body .mw-side-left::-webkit-scrollbar-track,
-[data-theme="dark"] html body .mw-side-left::-webkit-scrollbar-track-piece,
-[data-theme="dark"] html body .mw-side-left::-webkit-scrollbar-corner { background: transparent !important; }
+/* 注意选择器写法：data-theme 挂在 <html> 上，写成 [data-theme="dark"] html body … 永远不匹配
+   （html 不可能是自己的后代）—— 之前那条深色 20% 透明就是这么失效的。 */
+html[data-theme="dark"] .mw-side-left,
+html[data-theme="dark"] .mw-side-frozen { background: rgba(0, 0, 0, .2) !important; }
+html[data-theme="dark"] .mw-side-left::-webkit-scrollbar,
+html[data-theme="dark"] .mw-side-left::-webkit-scrollbar-track,
+html[data-theme="dark"] .mw-side-left::-webkit-scrollbar-track-piece,
+html[data-theme="dark"] .mw-side-left::-webkit-scrollbar-corner { background: transparent !important; }
 
 </style>
 </head><body>
@@ -8248,7 +8256,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.79';
+const APP_VER = 'v13.80';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
