@@ -1,8 +1,24 @@
 # 表格引擎重构计划
 
-> 状态：**未开工**。当前线上是 v13.64，表格部分回退自 v13.41（可用的老版本）。
+> 状态：**设置表已在 v13.71 单独重建并验收**；整体 `TableLayout` 化仍未开工。
+> 当前线上是 v13.71，表格部分回退自 v13.41（可用的老版本）。
 > 这份文件记录「为什么要重写」「重写成什么样」「怎么验证」，避免下次又从对话里重新推一遍。
 > 2026-10 用户已确认：**只重写表格引擎，账务/加密/导入导出/弹窗/锁屏一律不动**。
+
+> **v13.71 现状（先看这段，再看下面的旧计划）**
+> 设置页（`#summary-table`，v13.71 起就是「设置」页）按用户要求照搬了「统计 · 汇总表」
+> （`#stats-sum-table`）的做法 —— 那张表本来就只有 `left:0` 一条 CSS + 一套 colgroup 像素宽度：
+> 1. 设置表只渲染真正用到的 **10 列**（简码/序/类型/分类/账户名称/期初/▲/×/账单日/还款日），
+>    5 个金额列不再渲染（以前是用 `width:0 !important` 压掉的，零宽列正是「拖一列乱一片」的根）。
+> 2. 冻结只有 **简码** 一列，纯 CSS `position: sticky; left: 0`；序 显式 `left: auto`。
+> 3. 删掉整套折叠 / 逐格算 left 的机制：`summaryFold` `summaryRealW` `SUMMARY_FOLD_COLS`
+>    `summaryBaseWidths` `hoistCodeColumn` `applySummaryFold` `setSummaryFold` `applySummarySticky`，
+>    以及 `initColResize` 里 3 处 `key === 'summary'` 分支。本文档下面提到的
+>    `colWByClass` / `syncStatsFreezeLeft` 在代码里早已不存在。
+> 4. 结论：设置表的「列宽 / 冻结」已经是**单一事实来源**（`DEFAULT_COL_WIDTHS.summary` →
+>    `initColResize` → colgroup，表格宽度 = 各列之和）。
+> **还没做的**：把同一套收敛成 `TableLayout`（按列名存宽度、所有表共用）。其余表（流水/分类/
+> 分期/查询/固定）仍各自沿用老参数，只是目前没有已知的列宽错乱。
 
 ---
 
