@@ -167,8 +167,10 @@
 }
 
 /* ---------- 列宽拖动手柄 ----------
-   放在列标右边缘，宽 7px（手指也能按住），中线 1px 常显。
-   旧版这里 ::after 写了两遍、颜色默认 transparent，所以「手柄看不见」。 */
+   放在列标右边缘，宽 14px（手指也能按住）。
+   默认**不显示**：未激活时整条线透明，列标看起来是干净的。
+   悬停 / 拖动时才浮出一条淡紫竖线 —— 高度固定 70%，不随激活变长
+   （以前 hover 时 top/bottom 从 15% 变 0，看着像「一激活就长出来一截」）。 */
 
 .nt-col-handle {
   position: absolute;
@@ -194,22 +196,19 @@
   width: 1px;
   margin-left: -0.5px;
   border-radius: 1px;
-  background: var(--nt-handle-color, rgba(140, 130, 190, 0.55));
+  background: transparent;
+  transition: background-color 0.12s ease;
 }
 
-/* 悬停时整条竖线变亮，提示这里可以拖 */
+/* 悬停：显示淡紫，高度**不变** */
 .nt-th:hover > .nt-col-handle::after {
-  top: 0;
-  bottom: 0;
-  background: var(--nt-primary);
+  background: var(--nt-handle-color, #8c82be);
 }
 
 /* 拖动期间：压掉其它列的 hover 高亮。
    手指扫过时 :hover 会在每一列上同时成立，看起来像「全都亮了」。 */
 body.nt-col-resizing .nt-th:hover > .nt-col-handle::after {
-  top: 15%;
-  bottom: 15%;
-  background: var(--nt-handle-color, rgba(140, 130, 190, 0.55));
+  background: transparent;
 }
 
 /* 正在拖的时候禁止选中文字 */
@@ -502,11 +501,11 @@ body.nt-col-resizing {
   color: var(--nt-text-muted);
 }
 
-/* 拖动期间：只留目标列那条线，其它淡出。
-   拖一列时右侧各列必然一起右移，六条线同时动视觉上很吵。 */
+/* 拖动期间：只留目标列那条线，其它已在上面的规则里压成透明。
+   目标列用主色 + 2px，但**高度仍固定 70%**，和 hover 时同一个长度。 */
 body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
-  top: 0;
-  bottom: 0;
+  top: 15%;
+  bottom: 15%;
   background: var(--nt-primary);
   width: 2px;
   margin-left: -1px;

@@ -153,7 +153,7 @@ export const SCHEMA = [
   { key: '纵向边框颜色', group: '表格', def: '#2a2438', cssVar: '--nt-border-v-color' },
   // border-spacing：0 = 单元格紧贴（默认）。调大能看出「缝隙」，也方便排查边框错位。
   { key: '单元格间隙', group: '表格', def: 0, min: 0, max: 20, unit: 'px', cssVar: '--nt-cell-gap' },
-  { key: '手柄颜色', group: '表格', def: '#5f5878', cssVar: '--nt-handle-color' },
+  { key: '手柄颜色', group: '表格', def: '#8c82be', cssVar: '--nt-handle-color' },
   // 注：原「手柄位置」(--nt-handle-offset) 已删 —— 它没有任何 CSS 消费方。
   // 手柄必须完全落在列内（right:0），跨出去会让 closest('.nt-th') 拿到右边那列，
   // 表现就是「手柄时灵时不灵」（见 TABLE-INTERACTION.md）。这个值不该可调。
