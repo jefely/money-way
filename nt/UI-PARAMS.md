@@ -77,20 +77,24 @@
 
 ## 表格宽度：按列宽，不按容器
 
-**`.nt-table { width: auto }`，表格宽度 = 各列 `width` 之和。**
+**`.nt-table { width: max-content }`，表格宽度 = 各列 `width` 之和。**
 
 不是 `width:100%`。`table-layout:fixed` 遇到 `width:100%` 时，会把「列宽之和」按比例放大到容器宽 ——
 面板里设的 44 / 84 / 112 全都不作数，看到的就是「整张表在整体缩放」。
 容器更宽 → 右侧留白；更窄 → `.nt-tablewrap` 横向滚动。
 
+拖动过列宽之后 `.cols-custom` 仍然是 `max-content`，所以**拖动时 JS 只改
+`th.style.width`，不写 `table.style.width`**（表宽自动跟着列宽走）。
+
 同理，表级 `min-width`（原来 flow/plan/accounts 是 660、stats 是 820）也一并删了：
 它大于列宽之和时同样会把整表拉大。
 
-**首列只锁宽度，不锁区间**：`.nt-th:nth-child(1)` 只写 `width: var(--nt-col-…-seq)`。
+**首列只锁宽度，不锁区间**：`[data-col="code"]` 只写 `width: var(--nt-col-accounts-code)`。
 以前还叠了 `min-width: 54px; max-width: 54px`，而参数默认是 44px —— `max-width` 赢，
 所以首列宽度**永远调不动**。`table-layout: fixed` 下 `width` 本身就锁定列宽，不需要那两条。
 
 冻结（滚动时首列不动）是 `position: sticky` 的事，和宽度无关。
+设置页账户表只冻结首列「简码」+ 首行表头，`left` 恒为 0，直接写在 CSS 里。
 
 
 

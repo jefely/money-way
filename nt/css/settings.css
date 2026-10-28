@@ -1,67 +1,125 @@
-﻿/* ============================================================
-   设置页：账户列表（简码当冻结列，大号醒目）
+/* ============================================================
+   设置页：账户表（只冻结首列「简码」+ 首行表头）
+   ------------------------------------------------------------
+   这张表是「CSS 模式」的样板：布局全部由 CSS 决定，JS 不写 left、
+   不写 table.style.width、不建 <col>。
+
+     · 列宽   = shell.css 的 `.nt-table-accounts .nt-th[data-col=…]`
+                + `--nt-col-accounts-*`（唯一来源，和面板参数同一份）
+     · 冻结   = `position: sticky`：首列 left:0，表头 top:0
+     · 控件   = 填满格子的「裸」控件（无边框/无底色），聚焦时由 td 提亮
+
+   以前这里写死 `width: 1320px`（14 列时代的遗留）。`table-layout: fixed`
+   会把「列宽之和」按比例摊到 1320 —— 面板里设 64px 实际渲染 129px，
+   整张表放大 2.1 倍，首列宽度和冻结偏移全跟着错。表宽现在交给
+   `.nt-table { width: max-content }`：等于各列之和，容器窄就横向滚动。
    ============================================================ */
 
-.nt-cell-code {
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: var(--nt-primary);
-}
-
-.nt-accounts-tools {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-/* ===== 账户表列宽 =====
-   7 列在手机上会把「账户名称」压成竖排单字。
-*/
-.nt-table-accounts {
-  table-layout: fixed;
-  width: 1320px;          /* 14 列，窄屏靠 .nt-tablewrap 横向滚动；首列简码冻结 */
-}
-
+/* 单元格：十列挤在一起，左右内边距收到 4px；文字一律不换行。
+   表宽/列宽/table-layout 全部由 shell.css 的 .nt-table 与 data-col 规则决定。 */
 .nt-table-accounts th,
 .nt-table-accounts td {
+  padding-left: 4px;
+  padding-right: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.nt-table-accounts th:nth-child(1) { width: 34px; }   /* 序 */
-.nt-table-accounts th:nth-child(2) { width: 86px; }   /* 类型 */
-.nt-table-accounts th:nth-child(3) { width: 72px; }   /* 分类 */
-.nt-table-accounts th:nth-child(4) { width: 72px; }   /* 简码 */
-.nt-table-accounts th:nth-child(5) { width: 110px; }  /* 名称 */
-.nt-table-accounts th:nth-child(6) { width: 84px; }   /* 期初 */
-.nt-table-accounts th:nth-child(7) { width: 34px; }   /* 操作 */
+/* ============ 控件 ============
+   目标：看起来是「这一格的字」，不是「放在表格里的输入框」。
+   控件铺满整格，边框/底色/圆角全部去掉；编辑中的高亮由
+   flow.css 的 `.nt-table tbody tr .nt-cell:focus-within` 负责。 */
 
-.nt-table-accounts input.nt-cell-input,
-.nt-table-accounts select.nt-cell-input {
+.nt-table-accounts .nt-cell-input {
+  display: block;
   width: 100%;
-  box-sizing: border-box;
-  font-size: 12px;
-  padding-left: 4px;
-  padding-right: 4px;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  text-align: center;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
-/* 简码用等宽字重，竖排也能认 */
-.nt-table-accounts .nt-cell-input-code {
-  font-weight: 700;
+/* 类型下拉：去掉原生箭头（它固定占 14px，66px 的列放不下三个字），
+   改用两个 3×3 的斜向渐变拼一个小三角；文字仍居中。 */
+.nt-table-accounts select.nt-cell-input {
+  padding-right: 9px;
+  text-align-last: center;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--nt-text-muted) 50%),
+    linear-gradient(135deg, var(--nt-text-muted) 50%, transparent 50%);
+  background-position: right 5px top calc(50% + 1px), right 2px top calc(50% + 1px);
+  background-size: 3px 3px, 3px 3px;
+  background-repeat: no-repeat;
+}
+
+/* 简码：冻结列，也是这张表的锚点 —— 加粗、主色、等宽字 */
+.nt-table-accounts td:nth-child(1) .nt-cell-input,
+.nt-table-accounts td.nt-cell-code {
+  color: var(--nt-primary);
+  font-weight: 800;
   letter-spacing: 0.04em;
 }
 
-/* 设置页的表格容器要能横向滚 */
+/* 账户名称：最长的一列，左对齐才好扫读（其余列居中） */
+.nt-table-accounts td:nth-child(5) .nt-cell-input {
+  text-align: left;
+}
+
+/* 期初：金额，右对齐 + 等宽数字 */
+.nt-table-accounts td:nth-child(6) .nt-cell-input {
+  padding-right: 6px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 账单日 / 还款日：两位数字，居中就好 */
+.nt-table-accounts td:nth-child(7) .nt-cell-input,
+.nt-table-accounts td:nth-child(8) .nt-cell-input {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 新增行的「+」：跟序号同色，别抢眼 */
+.nt-table-accounts td.nt-cell-seq {
+  color: var(--nt-text-muted);
+  text-align: center;
+}
+
+/* 上移 / 删除：表格里的裸符号按钮（尺寸由 flow.css 的 .nt-btn-icon 定） */
+.nt-table-accounts .nt-cell-action .nt-btn-icon {
+  width: 100%;
+  height: 100%;
+  font-size: 14px;
+}
+
+.nt-table-accounts .nt-cell-action .nt-btn-icon:hover {
+  color: var(--nt-danger, var(--nt-bad));
+}
+
+/* ============ 横向滚动条 ============ */
 .nt-view[data-view="settings"] .nt-tablewrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
+
 .nt-view[data-view="settings"] .nt-tablewrap::-webkit-scrollbar {
   height: 6px;
 }
 
-/* 账户表的 A/B 两大区域标题：让用户一眼看出这个账户属于哪一边 */
+/* ============ A / B 两大区域标题 ============
+   整行 colspan=10 的标题：左边区域名，右边极性说明。
+   flex 必须放在内层 div 上 —— 直接设在 <td> 上会让它脱离表格布局，
+   colspan 就不生效了（标题会被压成第一列的宽度）。 */
+
 .nt-zone-head .nt-cell {
   font-weight: 800;
   font-size: 12px;
@@ -78,20 +136,12 @@
   color: var(--nt-bad);
 }
 
-/* 区域标题里第 6 格放的是「极性说明」，用轻一点的样式 */
-.nt-zone-head .nt-cell-num {
-  font-weight: 500;
-  font-size: 11px;
-  opacity: 0.9;
-}
-
 .nt-zone-empty .nt-cell {
   color: var(--nt-text-light);
   font-size: 12px;
   padding-left: 12px;
 }
 
-/* 区域标题整行：左边区域名，右边极性说明 */
 .nt-zone-cell {
   padding: 0;
 }

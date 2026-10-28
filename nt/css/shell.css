@@ -262,8 +262,6 @@ body {
 .nt-table-flow .nt-th:nth-child(1),
 .nt-table-plan .nt-th:nth-child(1),
 .nt-table-inst .nt-th:nth-child(1),
-.nt-table-accounts .nt-th:nth-child(1),
-.nt-table-accounts .nt-th:nth-child(2),
 .nt-table-stats .nt-th:nth-child(1),
 .nt-table-stats .nt-th:nth-child(2) {
   position: sticky;
@@ -273,14 +271,12 @@ body {
 .nt-table-flow .nt-cell:nth-child(1),
 .nt-table-plan .nt-cell:nth-child(1),
 .nt-table-inst .nt-cell:nth-child(1),
-.nt-table-accounts .nt-cell:nth-child(1),
 .nt-table-stats .nt-cell:nth-child(1) {
   position: sticky;
   z-index: 4;
 }
 
 /* 冻结两列的表：第二列压在第一列之下 */
-.nt-table-accounts .nt-cell:nth-child(2),
 .nt-table-stats .nt-cell:nth-child(2) {
   position: sticky;
   z-index: 3;
@@ -292,10 +288,35 @@ body {
   background-clip: padding-box;
 }
 
+/* 设置页账户表：只冻结首列「简码」，left 恒为 0 —— 直接写死在 CSS 里。
+   单列冻结没有「前一列宽度变了」的问题，不需要按实际宽度累加；
+   table-layout.js 的 syncFrozen 对这张表只清历史内联 left，不再写值。
+   这是 TABLE-INTERACTION.md 说的「CSS 产生值、JS 只消费」的样板。
+
+   :not([colspan]) 是必须的：区域标题行（A/B 区）与空状态行是 colspan=10
+   的整行格，它们也是各自 tr 的第 1 个 child，会命中 :nth-child(1)。
+   给跨列格加 sticky + left 会让整行跟着横滚 —— 单文件版踩过同样的坑
+   （见 AGENT 认知备份 §4.8「跨列单元格不能参与冻结」）。 */
+.nt-table-accounts .nt-th:nth-child(1) {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+}
+
+.nt-table-accounts .nt-cell:nth-child(1):not([colspan]) {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  /* 冻结列必须不透明，否则横滚时后面的字会透出来；斑马纹规则特异性更高，
+     偶数行会照常覆盖这一条（见 flow.css）。 */
+  background: var(--nt-row-bg, var(--nt-bg));
+  /* 右边界：内描边，不占布局、不溢出 */
+  box-shadow: inset -1px 0 0 0 var(--nt-bg-line);
+}
+
 .nt-table-flow .nt-cell:nth-child(1),
 .nt-table-plan .nt-cell:nth-child(1),
 .nt-table-inst .nt-cell:nth-child(1),
-.nt-table-accounts .nt-cell:nth-child(1),
 .nt-table-stats .nt-cell:nth-child(1),
 .nt-table-stats .nt-cell:nth-child(2) {
   background: var(--nt-row-bg, var(--nt-bg));
@@ -417,9 +438,9 @@ body {
 .nt-table-plan tbody td:nth-child(6) { text-align: right; }
 .nt-table-plan tbody td:nth-child(7) { text-align: left; }
 
-/* 账户设置：左 中 中 中 中 右 中 中 中 中 */
+/* 账户设置：中 中 中 中 中 右 中 中 中 中
+   简码列也居中 —— 它是冻结列，居中后横滚时一眼能对上（见 settings.css）。 */
 .nt-table-accounts tbody td { text-align: center; }
-.nt-table-accounts tbody td:nth-child(1) { text-align: left; }
 .nt-table-accounts tbody td:nth-child(6) { text-align: right; }
 
 /* 分期：名称左、金额右，其余中（这份表还没重新核对，先保持原样只补对齐） */
@@ -462,9 +483,11 @@ body {
   background: var(--nt-unit-bg, var(--nt-bg));
 }
 
-/* 拖动过的表：切成「按列固定」模式，不再参与 100% 分配 */
+/* 拖动过的表：列宽由各 th 的内联 width 决定。
+   `width: max-content` 让表宽继续等于各列之和 —— 所以拖动时 JS 只改
+   th.style.width，不需要再写 table.style.width（写了反而会和这里打架）。 */
 .nt-table.cols-custom {
-  width: auto;
+  width: max-content;
   min-width: 0 !important;
 }
 
@@ -572,15 +595,17 @@ body.nt-col-resizing .nt-tablewrap {
 
 /* ---------- 账户设置（10 列：简码 · 序 · 类型 · 分类 · 名称 · 期初 · 账单日 · 还款日 · 上移 · 删除） ---------- */
 
-/* 同上：不再给表级 min-width */
-.nt-table-accounts .nt-th:nth-child(1) { width: var(--nt-col-accounts-code, 64px); }
-.nt-table-accounts .nt-th:nth-child(2) { width: var(--nt-col-accounts-seq, 44px); }
-.nt-table-accounts .nt-th:nth-child(3) { width: var(--nt-col-accounts-type, 66px); }
-.nt-table-accounts .nt-th:nth-child(4) { width: var(--nt-col-accounts-cat, 70px); }
-.nt-table-accounts .nt-th:nth-child(5) { width: var(--nt-col-accounts-name, 110px); }
-.nt-table-accounts .nt-th:nth-child(6) { width: var(--nt-col-accounts-opening, 80px); }
-.nt-table-accounts .nt-th:nth-child(7) { width: var(--nt-col-accounts-billDay, 56px); }
-.nt-table-accounts .nt-th:nth-child(8) { width: var(--nt-col-accounts-repayDay, 56px); }
-.nt-table-accounts .nt-th:nth-child(9) { width: var(--nt-col-accounts-up, 40px); }
-.nt-table-accounts .nt-th:nth-child(10) { width: var(--nt-col-accounts-action, 40px); }
+/* 同上：不再给表级 min-width。
+   选择器认 data-col 而不是列序号：以后要在中间插一列，宽度不会整体错位。
+   （这也是「CSS 模式」的一部分 —— 列的身份写在标记里，不靠 nth-child 猜。） */
+.nt-table-accounts .nt-th[data-col="code"]     { width: var(--nt-col-accounts-code, 64px); }
+.nt-table-accounts .nt-th[data-col="seq"]      { width: var(--nt-col-accounts-seq, 44px); }
+.nt-table-accounts .nt-th[data-col="type"]     { width: var(--nt-col-accounts-type, 66px); }
+.nt-table-accounts .nt-th[data-col="cat"]      { width: var(--nt-col-accounts-cat, 70px); }
+.nt-table-accounts .nt-th[data-col="name"]     { width: var(--nt-col-accounts-name, 110px); }
+.nt-table-accounts .nt-th[data-col="opening"]  { width: var(--nt-col-accounts-opening, 80px); }
+.nt-table-accounts .nt-th[data-col="billDay"]  { width: var(--nt-col-accounts-billDay, 56px); }
+.nt-table-accounts .nt-th[data-col="repayDay"] { width: var(--nt-col-accounts-repayDay, 56px); }
+.nt-table-accounts .nt-th[data-col="up"]       { width: var(--nt-col-accounts-up, 40px); }
+.nt-table-accounts .nt-th[data-col="action"]   { width: var(--nt-col-accounts-action, 40px); }
 

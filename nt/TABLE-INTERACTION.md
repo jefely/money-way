@@ -206,6 +206,35 @@ th 上不许再写 width
 | 分期记录 | 账户名称 | 1 |
 | 账户设置 | 简码 | 1 |
 
+### 只冻结首列时：left 由 CSS 写死（设置页账户表）
+
+首列冻结的 `left` 恒为 0，没有「前一列变宽」的问题，不需要累加 ——
+直接写在 CSS 里，JS 一个字都不用写：
+
+```css
+.nt-table-accounts .nt-th:nth-child(1) {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+}
+
+.nt-table-accounts .nt-cell:nth-child(1):not([colspan]) {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+}
+```
+
+`ui/table-layout.js` 的 `CSS_FROZEN` 集合列出这类表；`syncFrozen` 对它们只清历史内联
+`left`，不写值。判据见 §零：**CSS 产生值，JS 只消费**。
+
+`:not([colspan])` 不能省：A/B 区域标题行与空状态行是 `colspan=10` 的整行格，
+它们也是所在 `tr` 的第 1 个 child。给跨列格加 `sticky + left` 会让整行跟着横滚，
+症状是「说不清的乱跳」—— 见本文 §5.7。
+
+**首行**：表头冻结与冻结列是两件事。表头由 `.nt-th { position: sticky; top: 0 }`
+负责（§二），和横向的 `left` 互不影响。设置页只冻结这两处：首列 + 首行。
+
 ---
 
 ## 三点五、冻结列的五条硬规则（来自单文件版的踩坑记录）
@@ -243,6 +272,9 @@ export function layoutFrozen(tableEl) {
 **症状**：不这么做就是「拖动时乱跳」—— 前一刻的 `left` 还指着旧宽度。
 
 单文件版原话（line 4314）：摘要表五列的 `left` 全部由累加算出。
+
+> **例外**：只冻结首列时 `left` 恒为 0，直接写死在 CSS 里，不需要累加 ——
+> 见 §三 末「只冻结首列时：left 由 CSS 写死」。设置页账户表就是这一种。
 
 ### ② `sticky` 不能加在 `<th>` 上
 
@@ -293,7 +325,7 @@ export function layoutFrozen(tableEl) {
 
 ---
 
-## 三点六、表宽必须显式设置（否则列宽全错）
+## 三点六、表宽必须等于列宽之和（否则列宽全错）
 
 `table-layout: fixed` 下，表格宽度**默认跟着容器**，列会按比例缩水：
 
@@ -306,19 +338,20 @@ col 写 44px  →  实际渲染 28px
 - 冻结列的 `left` 和前一列的实际宽度对不上 → 边界错位
 - 拖动时 `getBoundingClientRect().width` 拿到的也不是设定值 → 手感发飘
 
-**必须**：
+**现在的做法（nt-v1.72 起）：交给 CSS 的 `width: max-content`，JS 不写表宽。**
 
-```js
-// 表宽 = 各列之和
-let total = 0;
-for (const col of table.querySelectorAll('colgroup col')) {
-  const w = parseFloat(col.style.width);
-  if (Number.isFinite(w) && w > 0) total += w;
-}
-if (total > 0) table.style.width = total + 'px';
+```css
+.nt-table { width: max-content; }              /* = 各列 width 之和 */
+.nt-table.cols-custom { width: max-content; }  /* 拖动后仍然成立 */
 ```
 
-**时机**：每次渲染后（`syncTableWidth`）。不能只在解锁时跑一次 —— 那时统计页的表还没渲染（表头是 `buildHead` 动态建的）。
+容器更宽 → 右侧留白；更窄 → `.nt-tablewrap` 横向滚动。拖动只改
+`th.style.width`，表宽自动跟随 —— 没有「JS 求和写 `table.style.width`」这一步，
+也就没有「算出来的和与浏览器实际布局不一致」的机会。
+
+> **历史**：单文件版（`personal/index.html`）用的是 JS 读 `<col>` 求和再写
+> `table.style.width`。那条路要求 col 数量与表头严格对齐，本项目改成一列一
+> `--nt-col-*` 之后不再需要。这里保留结论（表宽 = 列宽之和），实现方式不同。
 
 ### 附带要求：每列都必须有明确宽度
 

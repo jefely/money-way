@@ -1,4 +1,4 @@
-﻿// 界面：设置 tab
+// 界面：设置 tab
 /**
  * 设置视图（账户结构 + 六个功能）
  * 层：第五层 · UI
@@ -14,6 +14,8 @@ import { money } from '../core/format.js';
 import { mountAccountTable } from '../ui/account-table.js';
 import * as NtModal from '../ui/modal.js';
 import { applyTheme, saveTheme } from '../ui/theme-manager.js';
+import { applySettings } from '../ui/apply-settings.js';
+import { loadMergedSettings } from '../ui/debug-themes.js';
 import { mountDebugPanel } from '../ui/debug-panel.js';
 import { openAccountConfig } from '../ui/account-config.js';
 
@@ -106,17 +108,33 @@ export function mountSettings(section, ctx) {
           label: '浅色',
           kind: 'ghost',
           close: false,
-          onClick: ({ close }) => { applyTheme('light'); saveTheme('light'); close(); },
+          onClick: ({ close }) => { switchTheme('light'); close(); },
         },
         {
           label: '深色',
           kind: 'ghost',
           close: false,
-          onClick: ({ close }) => { applyTheme('dark'); saveTheme('dark'); close(); },
+          onClick: ({ close }) => { switchTheme('dark'); close(); },
         },
         { label: '关闭', kind: 'ghost', close: true },
       ],
     });
+  }
+
+  /**
+   * 切主题 = 换一整套界面参数。
+   *
+   * 每个主题的 `--nt-*`（文字色、底色、边框、字体）是分开存的，
+   * 只改 data-theme 不重算变量的话，表格会拿着上一个主题的颜色渲染 ——
+   * 深色 → 浅色时最明显：单元格文字是白的，在白底上直接看不见。
+   * 调试面板切换时就是这么做的（ui/debug-panel.js line 46），这里补齐。
+   */
+  function switchTheme(theme) {
+    applyTheme(theme);
+    saveTheme(theme);
+    try {
+      applySettings(loadMergedSettings(ctx, theme), theme);
+    } catch (e) { /* 主题已经切过去，参数失败不应阻止关闭弹窗 */ }
   }
 
   function showReset() {

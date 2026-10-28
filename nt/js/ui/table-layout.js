@@ -7,13 +7,14 @@
  * 照单文件版（personal/index.html）的两套模式
  * ============================================================
  *
- *   模式 A · 自适应（默认）
- *     CSS 给表格 width:100% + min-width，各列宽度由 CSS 定
- *     JS 只负责算冻结列的 left
+ *   模式 A · CSS 定宽（默认）
+ *     表宽 width:max-content = 各列 `<th>` 上的 --nt-col-* 之和
+ *     冻结列：CSS 的 sticky（首列 left:0 / 表头 top:0）负责
  *
  *   模式 B · 自定义（拖过一次之后）
- *     整表切到 .cols-custom（width:auto + min-width:0），
- *     每列宽度固化到 th 的 style 上，之后只改目标列
+ *     整表切到 .cols-custom（width:max-content + min-width:0），
+ *     每列宽度固化到 th 的 style 上，之后只改目标列；
+ *     表宽由 max-content 自动跟随，**JS 不再写 table.style.width**
  *     —— 两种模式泾渭分明，不会「一边百分比一边固定 px」打架
  *
  * 上一版把「算列宽、算表宽、管 colgroup」全搬进 JS，
@@ -27,9 +28,22 @@ const FROZEN_COUNT = {
   'nt-table-stats': 2,      // 序 + 第二列
   'nt-table-plan': 1,       // 序
   'nt-table-inst': 1,       // 账户名称
-  'nt-table-accounts': 2,   // 简码 + 序号
+  'nt-table-accounts': 1,   // 简码（只此一列）
   'nt-table-query': 0,      // 不冻结
 };
+
+/**
+ * 冻结偏移由 CSS 写死的表（当前只有设置页账户表）。
+ *
+ * 只冻结首列时 left 恒为 0，累加没有意义，反而会多一个出错点
+ * （量到的宽度和 CSS 的 width 不一致 → 冻结列错位）。
+ * 这张表由 shell.css 的
+ *   `.nt-table-accounts .nt-th:nth-child(1) { left: 0 }`
+ * 负责；syncFrozen 只做一件事：清掉历史遗留的内联 left。
+ *
+ * 判据来自 TABLE-INTERACTION.md：CSS 产生值，JS 只消费。
+ */
+const CSS_FROZEN = new Set(['nt-table-accounts']);
 
 const MIN_W = 30;
 const MAX_W = 600;
@@ -55,6 +69,20 @@ export function syncFrozen(tableEl) {
 
   const ths = [...tableEl.querySelectorAll('thead .nt-th')];
   const rows = [...tableEl.querySelectorAll('tbody tr')];
+
+  // 只冻结首列、偏移由 CSS 写死：清一次内联 left 就够，不再逐帧量宽度。
+  // 这一步是「纯 CSS 冻结」的开关 —— 表头和数据行都必须清，
+  // 否则旧代码留下的 left（比如上一版写的 129px）会压在 CSS 的 left:0 上面。
+  if (CSS_FROZEN.has(cls)) {
+    for (const th of ths) {
+      if (th.style.left) th.style.left = '';
+    }
+    for (const tr of rows) {
+      const td = tr.children[0];
+      if (td && td.style.left) td.style.left = '';
+    }
+    return;
+  }
 
   let left = 0;
   for (let i = 0; i < Math.min(n, ths.length); i += 1) {
@@ -109,23 +137,8 @@ function enterCustomMode(tableEl) {
     if (w > 0) th.style.width = w + 'px';
   }
 
-  applyCustomWidth(tableEl);
-}
-
-/**
- * B 模式专用：表格宽度 = 各列 th 的固定宽度之和。
- *
- * 不设的话 table-layout:fixed + width:auto 会让表格跟随容器，
- * 每列设的 px 被按比例均分掉（整表压成容器宽）。
- * A 模式不需要这个 —— 那边宽度完全由 CSS 的 width:100% + min-width 决定。
- */
-function applyCustomWidth(tableEl) {
-  let total = 0;
-  for (const th of tableEl.querySelectorAll('thead .nt-th')) {
-    const w = parseFloat(th.style.width);
-    if (Number.isFinite(w) && w > 0) total += w;
-  }
-  if (total > 0) tableEl.style.width = total + 'px';
+  // 不再写 table.style.width：`.nt-table.cols-custom { width: max-content }`
+  // 让表宽始终等于各列之和（见 shell.css）。
 }
 
 /**
@@ -186,8 +199,8 @@ function startDrag(tableEl, grip, downEv, o) {
 
   const flush = () => {
     raf = 0;
+    // 只改这一列的宽度：表宽由 `.cols-custom { width: max-content }` 跟着走
     th.style.width = width + 'px';
-    applyCustomWidth(tableEl);
     syncFrozen(tableEl);
   };
 
@@ -293,7 +306,6 @@ export function applyColMirror(tableEl) {
       th.style.maxWidth = 'none';
       th.style.width = w > 0 ? w + 'px' : '';
     });
-    applyCustomWidth(tableEl);
     syncFrozen(tableEl);
   } catch (e) { /* 忽略 */ }
 }
@@ -301,6 +313,7 @@ export function applyColMirror(tableEl) {
 /** 恢复默认列宽：回到 A 模式 */
 export function resetColWidths(tableEl) {
   tableEl.classList.remove('cols-custom');
+  // 只清历史内联值，不写新值 —— 表宽回到 CSS 的 max-content
   tableEl.style.width = '';
   for (const th of tableEl.querySelectorAll('thead .nt-th')) {
     th.style.width = '';

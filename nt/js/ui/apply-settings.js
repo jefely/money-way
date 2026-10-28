@@ -2,13 +2,16 @@
 /**
  * 把界面参数写到对应作用域的 CSS 变量上（UI 层）
  *
- * **只写变量，不碰列宽、不碰表宽**。
- * 列宽/表宽/冻结列由 ui/table-layout.js 一个地方负责 ——
+ * **只写变量，不碰列宽、不碰表宽、不碰冻结偏移**。
+ * 列宽/表宽/冻结全部由 CSS 负责：
+ *   · 列宽   → shell.css 的 `[data-col]` 读 `--nt-col-*`
+ *   · 表宽   → `.nt-table { width: max-content }`（= 各列之和）
+ *   · 冻结   → `position: sticky`（设置页账户表 left:0，JS 不写）
  * 之前这里也写 <col> 宽度和 table.style.width，和 col-resize.js 打架，
  * 导致「拖一列动一排」「列宽乱跳」。现在职责切开：
  *
  *   applySettings  →  写 --nt-* 变量
- *   syncTable      →  按变量设置 <col> 宽度 + 表宽 + 冻结 left
+ *   table-layout    →  只管拖动（th.style.width）与多列冻结的 left 累加
  */
 
 import { toCssList, GROUP_SCOPE } from '../core/settings.js';
