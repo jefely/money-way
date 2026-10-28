@@ -270,9 +270,10 @@ export function mountDebugPanel(opts) {
   function currentColors() {
     const set = new Set();
     for (const s of SCHEMA) {
-      if (s.unit === 'px') continue;
       const v = current[s.key];
-      if (v) set.add(v);
+      // 只收真颜色。数字参数（行高、环半径、透明度、列宽）混进取色库会污染
+      // 取色器的色卡 —— 以「值是不是 #rrggbb」判定，不靠「有没有 px 单位」。
+      if (typeof v === 'string' && /^#[0-9a-f]{3,8}$/i.test(v)) set.add(v);
     }
     return Array.from(set);
   }

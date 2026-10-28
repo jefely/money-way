@@ -17,35 +17,51 @@
 export const TABLE_COLS = {
   flow: {
     label: '流水记录',
+    screen: 'flow',
     cols: ['seq', 'date', 'from', 'to', 'amount', 'note', 'fixed', 'action'],
   },
   cat: {
     label: '分类统计',
+    screen: 'stats',
     cols: ['seq', 'cat', 'out', 'iin', 'balance', 'histOut', 'histIn', 'histBalance'],
   },
   sum: {
     label: '汇总表',
+    screen: 'stats',
     cols: ['name', 'seq', 'type', 'cat', 'out', 'iin', 'balance', 'histOut', 'histIn', 'histBalance'],
   },
   query: {
     label: '流水查询',
+    screen: 'query',
     cols: ['seq', 'date', 'from', 'to', 'amount', 'note'],
     autoValue: 'auto',
   },
   path: {
     label: '路径追踪',
+    screen: 'path',
     cols: ['seq', 'date', 'from', 'to', 'amount', 'note'],
     autoValue: '1fr',
   },
   plan: {
     label: '固定开支',
+    screen: 'plan',
     cols: ['seq', 'freq', 'day', 'from', 'to', 'amount', 'note', 'action'],
   },
   accounts: {
     label: '账户设置',
+    screen: 'settings',
     cols: ['code', 'seq', 'type', 'cat', 'name', 'opening', 'billDay', 'repayDay', 'up', 'action'],
   },
 };
+
+/**
+ * 表名 → 界面屏。面板顶部 7 个 tab（主界面/流水/统计/查询/路径/固定/设置）
+ * 和这 7 张表一一对应 —— 「每个功能表一页」就是靠这张映射成立的。
+ * 表名与 screen 写在一起，改 label 时不会漏掉映射。
+ */
+export const TABLE_SCREENS = Object.fromEntries(
+  Object.values(TABLE_COLS).map((t) => [t.label, t.screen]),
+);
 
 /**
  * 每张表的默认列宽（下标与 TABLE_COLS 一一对应；0 = 自适应）
@@ -90,3 +106,41 @@ export function colWidthKey(table) {
   const t = TABLE_COLS[table];
   return (t ? t.label : table) + '/列宽';
 }
+
+/**
+ * 每张表一套的「尺寸」参数：列标行与数据区的行高 / 字号。
+ *
+ * 为什么从全局拆出来：行高 32 在流水表里刚好，在统计表（10 列、字更密）
+ * 和校验页（卡片）里就不合适。以前只有一份 `--nt-row-h`，调一张动七张。
+ * 拆开之后「这张表长什么样」是它自己的事，和列宽是同一个层级的概念。
+ *
+ * def 与面板上的 4 个全局默认一致（26 / 12 / 32 / 14）——
+ * 旧存档迁移靠这个对齐，见 core/settings.js 的 LEGACY_SIZE。
+ */
+export const TABLE_SIZE_FIELDS = [
+  { field: 'thH', suffix: '列标行高', cssVar: '--nt-th-h-', def: 26, min: 12, max: 80 },
+  { field: 'thFont', suffix: '列标字号', cssVar: '--nt-th-font-', def: 12, min: 6, max: 30 },
+  { field: 'rowH', suffix: '数据行高', cssVar: '--nt-row-h-', def: 32, min: 16, max: 120 },
+  { field: 'cellFont', suffix: '数据字号', cssVar: '--nt-cell-font-', def: 14, min: 6, max: 40 },
+];
+
+/**
+ * 展开成 28 条 SCHEMA（7 张表 × 4 项）。
+ * group 用表名，于是面板上「每个功能表一页」是自动成立的 ——
+ * 只要把表名登记进 GROUPS / GROUP_SCREEN 就够了。
+ */
+export const TABLE_SIZE_SCHEMA = Object.entries(TABLE_COLS).flatMap(([table, t]) =>
+  TABLE_SIZE_FIELDS.map((f) => ({
+    key: t.label + '/' + f.suffix,
+    type: 'tableSize',
+    table,
+    field: f.field,
+    group: t.label,
+    def: f.def,
+    min: f.min,
+    max: f.max,
+    cssVar: f.cssVar + table,
+  })));
+
+/** 面板上的 7 个表组（顺序 = TABLE_COLS 的顺序） */
+export const TABLE_GROUPS = [...new Set(TABLE_SIZE_SCHEMA.map((s) => s.group))];

@@ -12,8 +12,10 @@ import assert from 'node:assert/strict';
 
 import {
   normalize, toCssList, TABLE_COLS, TABLE_DEFAULT_WIDTHS, parseTableWidths,
-  colWidthKey, COL_KEYS, DEFAULT_COL_WIDTHS,
+  colWidthKey, COL_KEYS, DEFAULT_COL_WIDTHS, DEFAULT_COL_ALIGN,
+  GROUPS, SCREENS, GROUP_SCREEN, SCHEMA,
 } from '../js/core/settings.js';
+import { TABLE_SIZE_FIELDS, TABLE_SIZE_SCHEMA } from '../js/core/table-cols.js';
 
 const TABLES = Object.keys(TABLE_COLS);
 
@@ -96,7 +98,90 @@ test('同一个列名在不同表里互不影响', () => {
 });
 
 test('COL_KEYS 仍然是「只在末尾追加」的旧映射表（迁移依赖它）', () => {
-  assert.equal(COL_KEYS.length, 26);
+  // 2026-10 第二次追加了 5 个（billDay/repayDay/interest/per/firstMonth），
+  // 位置都在末尾 —— 前面 26 个的下标一个都没动。
+  assert.equal(COL_KEYS.length, 31);
   assert.equal(COL_KEYS.indexOf('from'), 18);
-  assert.equal(DEFAULT_COL_WIDTHS.split(',').length, 26);
+  assert.equal(COL_KEYS.indexOf('billDay'), 26);
+  assert.equal(DEFAULT_COL_WIDTHS.split(',').length, 31);
+  assert.equal(DEFAULT_COL_ALIGN.split(',').length, 31);
+});
+
+/* ============================================================
+   每张表一套尺寸（界面参数面板「每个功能表一页」的骨架）
+   ============================================================ */
+
+test('★ 每张表 5 项：列宽 + 列标行高/字号 + 数据行高/字号', () => {
+  assert.equal(TABLE_SIZE_SCHEMA.length, 28, '7 表 × 4 项');
+
+  for (const [table, t] of Object.entries(TABLE_COLS)) {
+    const items = SCHEMA.filter((s) => s.group === t.label);
+    assert.equal(items.length, 5, `${t.label} 应有 5 项，实际 ${items.length}`);
+
+    assert.ok(items.some((s) => s.type === 'cols' && s.table === table), `${t.label} 缺列宽`);
+    for (const f of TABLE_SIZE_FIELDS) {
+      const item = items.find((s) => s.type === 'tableSize' && s.field === f.field);
+      assert.ok(item, `${t.label} 缺 ${f.field}`);
+      assert.equal(item.cssVar, f.cssVar + table, `${t.label}/${f.field} 变量名串表了`);
+    }
+  }
+});
+
+test('★ 每个表组都有自己的屏：7 个 tab 一一对应，没有孤儿组', () => {
+  const ids = SCREENS.map((s) => s.id);
+  assert.deepEqual(ids, ['main', 'flow', 'stats', 'query', 'path', 'plan', 'settings']);
+
+  for (const t of Object.values(TABLE_COLS)) {
+    assert.ok(GROUPS.includes(t.label), `${t.label} 不在 GROUPS`);
+    assert.ok(ids.includes(GROUP_SCREEN[t.label]), `${t.label} 的屏幕不存在`);
+  }
+  // 每个组都必须有归属屏，否则面板里永远看不到它
+  for (const g of GROUPS) {
+    assert.ok(ids.includes(GROUP_SCREEN[g]), `${g} 没有归属屏`);
+  }
+});
+
+test('★ 旧存档的全局行高/字号迁移到 7 张表，而不是掉回默认', () => {
+  const n = normalize({
+    数据区行高: 40, 数据区字号: 16, 列标行行高: 30, 列标行字号: 13,
+  }, 'dark');
+
+  for (const t of Object.values(TABLE_COLS)) {
+    assert.equal(n[t.label + '/数据行高'], 40, `${t.label} 数据行高没迁`);
+    assert.equal(n[t.label + '/数据字号'], 16);
+    assert.equal(n[t.label + '/列标行高'], 30);
+    assert.equal(n[t.label + '/列标字号'], 13);
+  }
+});
+
+test('每表明写的值优先于旧全局值', () => {
+  const n = normalize({ 数据区行高: 40, '流水记录/数据行高': 36 }, 'dark');
+  assert.equal(n['流水记录/数据行高'], 36);
+  assert.equal(n['汇总表/数据行高'], 40, '表里没写的仍吃旧全局值');
+});
+
+test('没设过时用每表默认值（26 / 12 / 32 / 14）', () => {
+  const n = normalize({}, 'dark');
+  for (const t of Object.values(TABLE_COLS)) {
+    assert.equal(n[t.label + '/列标行高'], 26);
+    assert.equal(n[t.label + '/列标字号'], 12);
+    assert.equal(n[t.label + '/数据行高'], 32);
+    assert.equal(n[t.label + '/数据字号'], 14);
+  }
+});
+
+test('每表尺寸走自己的变量名，调一张不动别张', () => {
+  const n = normalize({ '流水记录/数据行高': 40, '汇总表/数据行高': 48 }, 'dark');
+  const byVar = new Map(
+    toCssList(n, 'dark').filter((x) => x.cssVar).map((x) => [x.cssVar, x.value]),
+  );
+  assert.equal(byVar.get('--nt-row-h-flow'), '40px');
+  assert.equal(byVar.get('--nt-row-h-sum'), '48px');
+  assert.equal(byVar.get('--nt-row-h-cat'), '32px', '分类统计不该被连带动');
+});
+
+test('每表尺寸也被钳制（行高 5 → 16，500 → 120）', () => {
+  const n = normalize({ '流水记录/数据行高': 5, '汇总表/数据行高': 500 }, 'dark');
+  assert.equal(n['流水记录/数据行高'], 16);
+  assert.equal(n['汇总表/数据行高'], 120);
 });

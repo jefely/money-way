@@ -12,19 +12,26 @@
  */
 
 import { MW_GROUPS, MW_SCHEMA } from './mw-settings.js';
+import { TABLE_GROUPS, TABLE_SCREENS, TABLE_SIZE_SCHEMA } from './table-cols.js';
 
 export const GROUPS = [
-  '标签栏', '按钮区', '表格', '信息栏', '按钮尺寸', '列标行', '数据区',
+  '标签栏', '按钮区', '表格', '信息栏', '按钮尺寸', '列标行',
+  // 7 张表各一组（列标行高/字号 + 数据行高/字号 + 列宽）
+  ...TABLE_GROUPS,
   // 环图那 30 项（路径页）单独四组：它们是「基准单位」，由 SVG 渲染器消费，
   // 和上面这些 --nt-col-* 的 CSS 消费方不是一回事。见 core/mw-settings.js。
   ...MW_GROUPS,
 ];
 
-/** 调试面板的界面标签 */
+/** 调试面板的界面标签：与顶部 7 个 tab 一一对应 */
 export const SCREENS = [
   { id: 'main', label: '主界面' },
   { id: 'flow', label: '流水' },
+  { id: 'stats', label: '统计' },
+  { id: 'query', label: '查询' },
   { id: 'path', label: '路径' },
+  { id: 'plan', label: '固定' },
+  { id: 'settings', label: '设置' },
 ];
 
 /** 分组归属的界面标签：main=公共参数，flow=流水页参数 */
@@ -37,7 +44,8 @@ export const GROUP_SCREEN = {
   // 用户以为「布局功能没了」。它们在主界面也要调，改归 main。
   按钮尺寸: 'main',
   列标行: 'main',
-  数据区: 'main',
+  // 7 张表各归自己的页：流水记录→流水、分类统计+汇总表→统计、…
+  ...TABLE_SCREENS,
   // 环图参数只在路径页看得见效果，所以归「路径」屏，不和主界面挤在一起
   ...Object.fromEntries(MW_GROUPS.map((g) => [g, 'path'])),
 };
@@ -53,7 +61,9 @@ export const GROUP_SCOPE = {
   // 面板上看着就是「怎么调都控制不到」。全部改 global。
   按钮尺寸: 'global',
   列标行: 'global',
-  数据区: 'global',
+  // 每表尺寸/列宽都是全局变量（--nt-row-h-flow 这种），靠 CSS 的
+  // `.nt-table-flow .nt-cell` 这类选择器落到具体表上，所以作用域写 :root。
+  ...Object.fromEntries(TABLE_GROUPS.map((g) => [g, 'global'])),
   // 环图参数写在 :root 上：渲染器从 getComputedStyle(documentElement) 读，
   // 不依赖路径页容器是否存在（切 tab / 未解锁时读到的也是同一份值）。
   ...Object.fromEntries(MW_GROUPS.map((g) => [g, 'global'])),
@@ -74,15 +84,20 @@ export const COL_KEYS = [
   'day', 'name', 'balance', 'opening', 'histOut', 'histIn', 'periods', 'principal',
   // ↓ 2026-10 追加（不要往上面插）
   'from', 'to', 'note', 'out', 'iin', 'fixed', 'histBalance', 'up',
+  // ↓ 2026-10 第二次追加：账户表的账单日/还款日 + 分期表的三列。
+  //   shell.css 早就写好了这 5 条对齐规则，但 COL_KEYS 里没有对应的键，
+  //   于是 toCssList 从不输出 --nt-th-align-billDay 这些变量 ——
+  //   「账单日那一列的对齐调不动」就是这么来的（调了没反应）。
+  'billDay', 'repayDay', 'interest', 'per', 'firstMonth',
 ];
 
-// 顺序与 COL_KEYS 一一对应
+// 顺序与 COL_KEYS 一一对应（末尾 5 项是 2026-10 第二次追加的列）
 export const DEFAULT_COL_WIDTHS = '44,84,72,76,64,100,96,40,64,64,64,110,100,96,90,90,64,96,'
-  + '112,112,116,84,84,48,96,40';
+  + '112,112,116,84,84,48,96,40,56,56,84,64,84';
 // 列标题对齐：来自用户 2026-10 核对后导出的实际值
-// （balance 与 histOut 两列是「右」，其余「中」；末尾 8 个是后追加的列，保持「中」）
+// （balance 与 histOut 两列是「右」，其余「中」）
 export const DEFAULT_COL_ALIGN = '中,中,中,中,中,中,中,中,中,中,中,中,右,中,右,中,中,中,'
-  + '中,中,中,中,中,中,中,中';
+  + '中,中,中,中,中,中,中,中,中,中,中,中,中';
 
 /* ============================================================
    每张表各自的列与默认列宽
@@ -121,6 +136,8 @@ export const SCHEMA = [
   { key: '按钮区文字颜色', group: '按钮区', def: '#f2eeff', cssVar: '--nt-btn-text' },
   { key: '按钮区按钮样式', group: '按钮区', type: 'enum', options: ['无', '圆角框', '直角框', '竖线'], values: ['plain', 'solid', 'sharp', 'line'], def: '圆角框', attr: 'data-btn-style' },
   { key: '按钮区间距', group: '按钮区', def: 6, unit: 'px', cssVar: '--nt-btn-gap' },
+  // 工具条按钮的最小宽度：0 = 按内容（默认）。调大能让「添加/导入/重载」对齐成等宽。
+  { key: '工具条按钮宽', group: '按钮区', def: 0, min: 0, max: 200, unit: 'px', cssVar: '--nt-btn-w' },
   { key: '按钮区背景颜色', group: '按钮区', def: '#0e0b16', cssVar: '--nt-vbar-bg' },
   { key: '按钮区行背景色', group: '按钮区', def: '#000000', cssVar: '--nt-btn-bg' },
 
@@ -134,8 +151,12 @@ export const SCHEMA = [
   { key: '纵向边框', group: '表格', type: 'enum', options: ['无', '虚线', '实线'], values: ['none', 'dashed', 'solid'], def: '实线', attr: 'data-border-v' },
   { key: '纵向边框线粗', group: '表格', def: 1, unit: 'px', cssVar: '--nt-border-v-width' },
   { key: '纵向边框颜色', group: '表格', def: '#2a2438', cssVar: '--nt-border-v-color' },
-  { key: '手柄位置', group: '表格', def: -3, unit: 'px', cssVar: '--nt-handle-offset' },
+  // border-spacing：0 = 单元格紧贴（默认）。调大能看出「缝隙」，也方便排查边框错位。
+  { key: '单元格间隙', group: '表格', def: 0, min: 0, max: 20, unit: 'px', cssVar: '--nt-cell-gap' },
   { key: '手柄颜色', group: '表格', def: '#5f5878', cssVar: '--nt-handle-color' },
+  // 注：原「手柄位置」(--nt-handle-offset) 已删 —— 它没有任何 CSS 消费方。
+  // 手柄必须完全落在列内（right:0），跨出去会让 closest('.nt-th') 拿到右边那列，
+  // 表现就是「手柄时灵时不灵」（见 TABLE-INTERACTION.md）。这个值不该可调。
 
   /* ---------- 信息栏（公共） ---------- */
   { key: '信息栏行高', group: '信息栏', def: 28, unit: 'px', cssVar: '--nt-footer-h' },
@@ -147,32 +168,44 @@ export const SCHEMA = [
   { key: '按钮尺寸行高', group: '按钮尺寸', def: 30, unit: 'px', cssVar: '--nt-vbar-h' },
   { key: '按钮尺寸字号', group: '按钮尺寸', def: 12, unit: 'px', cssVar: '--nt-vbar-font' },
 
-  /* ---------- 列标行（独立） ---------- */
-  { key: '列标行行高', group: '列标行', def: 26, unit: 'px', cssVar: '--nt-th-h' },
-  { key: '列标行字号', group: '列标行', def: 12, unit: 'px', cssVar: '--nt-th-font' },
+  /* ---------- 列标行（全局只剩两件事） ----------
+     行高与字号已经下放到每张表（见 TABLE_SIZE_SCHEMA）：
+     统计表 10 列、流水表 8 列，同一个 32px 行高在两处观感不同。
+     这里只留「对齐」和「手柄」—— 它们天生跨表一致。 */
   { key: '列标行对齐', group: '列标行', type: 'align', prefix: '--nt-th-align-', def: DEFAULT_COL_ALIGN },
   { key: '手柄宽度', group: '列标行', def: 14, unit: 'px', cssVar: '--nt-handle-w' },
 
-  /* ---------- 数据区（独立） ----------
-     列宽不在这里：表格 width:100% + min-width 由 CSS 决定，
+  /* ---------- 每张表一套（7 组，每组 5 项） ----------
+     列标行高/字号 + 数据行高/字号 + 列宽，全部由这张表自己决定。
+     列宽 0 = 自适应（query 用 auto，path 的 grid 用 1fr）；
      拖动后整表切 .cols-custom 模式，见 ui/table-layout.js。
      想恢复默认列宽用面板底部的「恢复默认」。 */
-  { key: '数据区行高', group: '数据区', def: 32, unit: 'px', cssVar: '--nt-row-h' },
-  { key: '数据区字号', group: '数据区', def: 14, unit: 'px', cssVar: '--nt-cell-font' },
-  // 每张表一套列宽（0 = 自适应；顺序见 TABLE_COLS）
-  { key: '流水记录/列宽', group: '数据区', type: 'cols', table: 'flow', def: TABLE_DEFAULT_WIDTHS.flow },
-  { key: '分类统计/列宽', group: '数据区', type: 'cols', table: 'cat', def: TABLE_DEFAULT_WIDTHS.cat },
-  { key: '汇总表/列宽', group: '数据区', type: 'cols', table: 'sum', def: TABLE_DEFAULT_WIDTHS.sum },
-  { key: '流水查询/列宽', group: '数据区', type: 'cols', table: 'query', def: TABLE_DEFAULT_WIDTHS.query },
-  { key: '路径追踪/列宽', group: '数据区', type: 'cols', table: 'path', def: TABLE_DEFAULT_WIDTHS.path },
-  { key: '固定开支/列宽', group: '数据区', type: 'cols', table: 'plan', def: TABLE_DEFAULT_WIDTHS.plan },
-  { key: '账户设置/列宽', group: '数据区', type: 'cols', table: 'accounts', def: TABLE_DEFAULT_WIDTHS.accounts },
+  { key: '流水记录/列宽', group: '流水记录', type: 'cols', table: 'flow', def: TABLE_DEFAULT_WIDTHS.flow },
+  { key: '分类统计/列宽', group: '分类统计', type: 'cols', table: 'cat', def: TABLE_DEFAULT_WIDTHS.cat },
+  { key: '汇总表/列宽', group: '汇总表', type: 'cols', table: 'sum', def: TABLE_DEFAULT_WIDTHS.sum },
+  { key: '流水查询/列宽', group: '流水查询', type: 'cols', table: 'query', def: TABLE_DEFAULT_WIDTHS.query },
+  { key: '路径追踪/列宽', group: '路径追踪', type: 'cols', table: 'path', def: TABLE_DEFAULT_WIDTHS.path },
+  { key: '固定开支/列宽', group: '固定开支', type: 'cols', table: 'plan', def: TABLE_DEFAULT_WIDTHS.plan },
+  { key: '账户设置/列宽', group: '账户设置', type: 'cols', table: 'accounts', def: TABLE_DEFAULT_WIDTHS.accounts },
+  // 28 项尺寸参数在 core/table-cols.js 里生成（7 表 × 4）
+  ...TABLE_SIZE_SCHEMA,
 
   /* ---------- 环图（路径页，四组） ----------
      30 项的声明在 core/mw-settings.js：面板、导出文本、存档都走同一份 SCHEMA，
      消费方是 ui/mw-params.js（读 --nt-mw-* → 数字），不是 CSS 规则。 */
   ...MW_SCHEMA,
 ];
+
+/**
+ * 每表尺寸的旧值来源：2026-10 之前这四个是**全局**参数。
+ * 用户调过的值（比如数据区行高 40）要能跟着迁移到 7 张表上。
+ */
+const LEGACY_SIZE = {
+  thH: '列标行行高',
+  thFont: '列标行字号',
+  rowH: '数据区行高',
+  cellFont: '数据区字号',
+};
 
 /** 尺寸/枚举类共用的默认值（四主题一致） */
 const BASE = SCHEMA.reduce((acc, s) => {
@@ -238,15 +271,23 @@ export function normalize(raw, theme) {
       continue;
     }
 
+    // 每表尺寸：旧存档只有一份全局值（数据区行高 / 列标行字号…），
+    // 升级后每表一份 —— 缺位时把旧值抄过来，而不是掉回默认，
+    // 否则用户调过的行高会一夜之间全变。
+    if (s.type === 'tableSize') {
+      const legacy = raw ? raw[LEGACY_SIZE[s.field]] : undefined;
+      const n = toNum((v == null || v === '') ? legacy : v);
+      out[s.key] = n == null ? s.def : clampNum(n, s.min, s.max);
+      continue;
+    }
+
     if (v == null || v === '') continue;
     if (s.unit === 'px' || s.type === 'num') {
-      const digits = String(v).replace(/[^0-9.-]/g, '');
       // 'abc' 剥掉非数字字符后是空串，而 Number('') === 0 ——
       // 直接转换会把「填错了」变成「填了 0」，环图上线宽会突然消失。
       // 空 / 只有符号 / 只有小数点，一律当作没填，保留该主题默认值。
-      if (!digits || digits === '-' || digits === '.') continue;
-      const n = Number(digits);
-      if (!Number.isFinite(n)) continue;
+      const n = toNum(v);
+      if (n == null) continue;
       // 钳制：只有声明了 min/max 的项才生效（表格那 43 项都没声明，行为不变）。
       // 环图参数必须有界 —— 环半径调过头会把标签切到画布外面，环厚超过半径会让 rIn 变负。
       out[s.key] = clampNum(n, s.min, s.max);
@@ -270,6 +311,18 @@ function clampNum(n, lo, hi) {
   if (typeof lo === 'number' && v < lo) v = lo;
   if (typeof hi === 'number' && v > hi) v = hi;
   return v;
+}
+
+/**
+ * '12' / '12px' / ' 12 ' → 12；空 / '-' / 'abc' → null。
+ * 关键：null 与 0 是两件事 —— 填错不能变成「填了 0」。
+ */
+function toNum(v) {
+  if (v == null || v === '') return null;
+  const digits = String(v).replace(/[^0-9.-]/g, '');
+  if (!digits || digits === '-' || digits === '.') return null;
+  const n = Number(digits);
+  return Number.isFinite(n) ? n : null;
 }
 
 /** 把列宽/对齐数组补到 COL_KEYS.length：缺的位用默认值，多的截掉 */
@@ -350,6 +403,9 @@ export function toCssList(settings, theme) {
       COL_KEYS.forEach((c, i) => {
         out.push({ group: item.group, cssVar: '--nt-col-' + c, value: widths[i] + 'px' });
       });
+    } else if (item.type === 'tableSize') {
+      // 每表尺寸：变量名自带表名（--nt-row-h-flow），CSS 用表类名消费
+      out.push({ group: item.group, cssVar: item.cssVar, value: v + 'px' });
     } else if (item.type === 'align') {
       const aligns = parseAligns(v);
       const prefix = item.prefix || '--nt-align-';

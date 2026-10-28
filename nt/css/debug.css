@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    调试面板 / 拾色器 —— 全部沿用软件主题变量（与主界面同风格）
    ============================================================ */
 
@@ -82,6 +82,9 @@
 
 .nt-debug-tabs {
   display: flex;
+  /* 7 个界面屏（主界面 / 流水 / 统计 / 查询 / 路径 / 固定 / 设置）在 460px 面板里
+     刚好一行；手机 390px 视口下会自动折成两行，而不是把字挤没。 */
+  flex-wrap: wrap;
   align-items: center;
   gap: 2px;
   padding: 4px 6px;
@@ -90,13 +93,15 @@
 }
 
 .nt-debug-tab {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 52px;
   height: 24px;
   border: 0;
   border-radius: var(--nt-radius);
   background: transparent;
   color: var(--nt-text-muted);
   font: inherit;
+  white-space: nowrap;
   cursor: pointer;
 }
 

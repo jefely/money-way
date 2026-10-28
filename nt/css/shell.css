@@ -366,6 +366,10 @@ body {
 .nt-table .nt-th[data-col="code"] { text-align: var(--nt-th-align-code, center); }
 .nt-table .nt-th[data-col="num"] { text-align: var(--nt-th-align-num, center); }
 .nt-table .nt-th[data-col="amount"] { text-align: var(--nt-th-align-amount, center); }
+/* 统计表的「转出 / 转入」两列：COL_KEYS 里一直有，CSS 规则却漏了，
+   于是这两列的对齐调了没反应（变量生成了，没人读）。 */
+.nt-table .nt-th[data-col="out"] { text-align: var(--nt-th-align-out, center); }
+.nt-table .nt-th[data-col="iin"] { text-align: var(--nt-th-align-iin, center); }
 .nt-table .nt-th[data-col="action"] { text-align: var(--nt-th-align-action, center); }
 .nt-table .nt-th[data-col="state"] { text-align: var(--nt-th-align-state, center); }
 .nt-table .nt-th[data-col="freq"] { text-align: var(--nt-th-align-freq, center); }

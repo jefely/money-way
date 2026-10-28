@@ -244,7 +244,10 @@
 .pw-flow-head {
   padding: 4px 0;
   border-top: 1px solid var(--nt-bg-line);
-  font-size: 11px;
+  /* 路径表是 div + grid，不是 <table>，所以不吃 .nt-table-* 那套规则；
+     行高/字号单独取 --nt-*-path，缺参数时退回原来的写死值。 */
+  min-height: var(--nt-th-h-path, 0);
+  font-size: var(--nt-th-font-path, 11px);
   font-weight: 700;
   color: var(--nt-text-light);
 }
@@ -304,7 +307,8 @@
   align-items: center;
   padding: 3px 0;
   border-bottom: 1px dashed var(--nt-bg-line);
-  font-size: 12px;
+  min-height: var(--nt-row-h-path, 0);
+  font-size: var(--nt-cell-font-path, 12px);
   cursor: pointer;
 }
 

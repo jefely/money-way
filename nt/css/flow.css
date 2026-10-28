@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    NT账本 · 流水页组件（表单 / 表格 / 校验）
    公约 3.4：类名统一 nt- 前缀；不用 DOM 层级选择器。
    ============================================================ */
@@ -148,10 +148,12 @@
 
 .nt-th {
   position: relative;
-  height: var(--nt-th-h);
+  /* 行高/字号已下放到每张表（见文件下半部分的 .nt-table-* 规则）；
+     这里的 fallback 是「参数还没写进 :root」时的兜底（启动瞬间、未解锁）。 */
+  height: var(--nt-th-h, 26px);
   padding: 0 8px;
   text-align: left;
-  font-size: var(--nt-th-font);
+  font-size: var(--nt-th-font, 12px);
   font-weight: 700;
   color: var(--nt-unit-text, var(--nt-text));
   background: var(--nt-unit-bg, var(--nt-bg-soft));
@@ -222,15 +224,34 @@ body.nt-col-resizing {
 }
 
 .nt-cell {
-  height: var(--nt-row-h);
+  height: var(--nt-row-h, 32px);
   padding: 0 8px;
-  font-size: var(--nt-cell-font);
+  font-size: var(--nt-cell-font, 14px);
   color: var(--nt-unit-text, var(--nt-text));
   border-bottom: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ---------- 每张表一套尺寸（7 张表） ----------
+   全局的「数据区行高/字号」「列标行高/字号」四项已经拆到每张表：
+   统计表 10 列、流水表 8 列，同一个 32px 行高在两处观感不同。
+   变量由 core/table-cols.js 的 TABLE_SIZE_SCHEMA 生成（--nt-row-h-flow 这种），
+   ui/apply-settings 写到 :root，这里按表类名消费。
+   统计页两张表共用 .nt-table-stats，靠 .is-sum 区分「分类」与「汇总」。 */
+.nt-table-flow .nt-th { height: var(--nt-th-h-flow); font-size: var(--nt-th-font-flow); }
+.nt-table-flow .nt-cell { height: var(--nt-row-h-flow); font-size: var(--nt-cell-font-flow); }
+.nt-table-stats:not(.is-sum) .nt-th { height: var(--nt-th-h-cat); font-size: var(--nt-th-font-cat); }
+.nt-table-stats:not(.is-sum) .nt-cell { height: var(--nt-row-h-cat); font-size: var(--nt-cell-font-cat); }
+.nt-table-stats.is-sum .nt-th { height: var(--nt-th-h-sum); font-size: var(--nt-th-font-sum); }
+.nt-table-stats.is-sum .nt-cell { height: var(--nt-row-h-sum); font-size: var(--nt-cell-font-sum); }
+.nt-table-query .nt-th { height: var(--nt-th-h-query); font-size: var(--nt-th-font-query); }
+.nt-table-query .nt-cell { height: var(--nt-row-h-query); font-size: var(--nt-cell-font-query); }
+.nt-table-plan .nt-th { height: var(--nt-th-h-plan); font-size: var(--nt-th-font-plan); }
+.nt-table-plan .nt-cell { height: var(--nt-row-h-plan); font-size: var(--nt-cell-font-plan); }
+.nt-table-accounts .nt-th { height: var(--nt-th-h-accounts); font-size: var(--nt-th-font-accounts); }
+.nt-table-accounts .nt-cell { height: var(--nt-row-h-accounts); font-size: var(--nt-cell-font-accounts); }
 
 /* 公共边框：横向 / 纵向（无 / 虚线 / 实线 + 线粗 + 颜色） */
 [data-border-h="solid"] .nt-th,
