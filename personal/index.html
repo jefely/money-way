@@ -5758,6 +5758,33 @@ th.col-range { text-align: left; }
   border-color: #3d3159 !important;
 }
 [data-theme="dark"] .mw-clear-btn:hover { border-color: var(--primary) !important; }
+/* 追踪方向：只显示一个字（逆 / 顺），和「清空」同高同宽，不抢位置 */
+.mw-dir-btn {
+  height: 26px; min-width: 26px; padding: 0 6px; border-radius: var(--radius);
+  background: #fff; color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-size: 13px; font-weight: 700; line-height: 1; cursor: pointer;
+}
+.mw-dir-btn:hover { color: var(--primary); border-color: var(--primary); }
+[data-theme="dark"] .mw-dir-btn {
+  background: #241b3a !important; color: var(--text-main) !important;
+  border-color: #3d3159 !important;
+}
+[data-theme="dark"] .mw-dir-btn:hover { border-color: var(--primary) !important; }
+/* 手机上图区左上角的浮动方向键：和上面的按钮同款，但它不依赖左栏是否展开 */
+.mw-chart { position: relative; }
+.mw-dir-float {
+  position: absolute; right: 10px; top: 10px; left: auto; z-index: 6;
+  height: 26px; min-width: 26px; padding: 0 6px; border-radius: var(--radius);
+  background: #fff; color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-size: 13px; font-weight: 700; line-height: 1; cursor: pointer;
+}
+.mw-dir-float:hover { color: var(--primary); border-color: var(--primary); }
+[data-theme="dark"] .mw-dir-float {
+  background: #241b3a !important; color: var(--text-main) !important;
+  border-color: #3d3159 !important;
+}
 .mw-flow-grid .mw-dto, .mw-flow-grid .mw-note {
   font-weight: 400; text-align: right; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap; padding-right: 3px;
@@ -8178,7 +8205,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v13.73';
+const APP_VER = 'v13.74';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -9130,9 +9157,36 @@ var MW_COLOR = {
   '费用类': '#ef4444'
 };
 var mwRange = null;
-var mwSelected = null;
-var mwChain = [];
-var mwChainRoot = null;   // 点选链路的起点那笔（用于区分「根」和「上游」）
+var mwLastInfo = null;      // 上一次渲染的统计（命中几根线 / 焦点类型），页脚用它说话
+/* 焦点模型（复刻 NT v1.40 的语义）：
+     kind='acc'   点弧块 → 只看**当前方向的一侧**：逆流=流入它的线，顺流=从它流出的线（不递归）
+     kind='tx'    点线   → 只点亮这一根
+     kind='trace' 点左栏 → 支出倒推链（方向不改链，只改画法） */
+var mwSelected = null;      // kind='acc' 时：账户名
+var mwChain = [];           // kind='tx' 时 [那一笔]；kind='trace' 时整条链
+var mwChainRoot = null;     // 根（点中的那一笔）
+var mwFocusKind = null;     // null | 'acc' | 'tx' | 'trace'
+/* 追踪方向：up = 逆流（颜色取转入方、追踪线宽看转入方），down = 顺流（取转出方）。
+   方向**只改画法**，不改链 —— 与 NT 一致：换方向看到的是同一批线。 */
+var mwDir = 'up';
+var MW_STYLE = {
+  up:   { colorBy: 'to',   traceWidth: { '费用类': 6,   '资产类': 3.6, '负债类': 2.4, '收入类': 1.2, '权益类': 1.2 } },
+  down: { colorBy: 'from', traceWidth: { '收入类': 6,   '权益类': 6,   '负债类': 4,   '资产类': 2.4, '费用类': 1.2 } }
+};
+function mwStyle() { return MW_STYLE[mwDir === 'down' ? 'down' : 'up']; }
+function mwTraceWidthOf(type) {
+  var t = mwStyle().traceWidth;
+  return (t[type] != null) ? t[type] : 1.2;
+}
+/* 环图基准常量：照 NT 的默认参数（基准画布 1800，与这里的 SIZE 一致，1:1 直接用） */
+var MW_W_MID = 2.4;          // 默认线宽
+var MW_BASE_K = 0.75;        // 基本模式再细一级
+var MW_PICK_BOOST = 1.35;    // 点弧块：命中线加权
+var MW_PICK_EXTRA = 0.35;    // 点弧块：再乘一次（NT 实测选中线偏粗，收细）
+var MW_PICK_SHRINK = 0.45;   // 点弧块：非命中线收缩
+var MW_TRACE_FLOOR = 1.2;    // 追踪模式：非命中线压到这一档
+var MW_HIT_BAND = 14;        // 连线命中带宽度（透明粗线，只用来接点击）
+var MW_MASK_OP = 0.55;       // 单线模式的遮罩不透明度
 // 视图状态：点条目 / 点弧块都**不应该**重置缩放与滚动，
 // 只有「清空」按钮才把视图恢复到默认。
 var mwView = { zoom: null, rot: 0, tx: 0, ty: 0, scroll: 0 };
@@ -9345,6 +9399,7 @@ function renderMoneyWay(main, footer) {
     edges = newEdges;
 
     if (!nodes.length) {
+      mwLastInfo = { txs: 0, hits: 0, kind: mwFocusKind, dir: mwDir, acc: mwSelected, units: 0 };
       body.innerHTML = '<div class="mw-empty">这个区间里没有可画的流水</div>';
       return;
     }
@@ -9355,7 +9410,24 @@ function renderMoneyWay(main, footer) {
 
 
   draw();
-  footer.textContent = 'Money Way · ' + mwRange.start + ' ~ ' + mwRange.end + ' · 点账户看它的来路与去向';
+  /* 页脚说明当前方向 + 焦点状态（照 NT：空链不压暗整图，只在这里说一句） */
+  (function paintMwFooter() {
+    var info = mwLastInfo || {};
+    var dirTxt = (mwDir === 'down') ? '顺流' : '逆流';
+    var hint = '';
+    if (info.kind === 'acc' && info.acc) {
+      hint = ' · ' + info.acc + '：' + (info.hits
+        ? (info.hits + ' 根' + (mwDir === 'down' ? '流出' : '流入') + '的线')
+        : '没有相连的线');
+    } else if (info.kind === 'tx') {
+      hint = ' · 已选中 1 根线（再点取消）';
+    } else if (info.kind === 'trace') {
+      hint = ' · 链路 ' + (info.hits || 0) + ' 根（再点同一行取消）';
+    }
+    setFooterText('Money Way · ' + mwRange.start + ' ~ ' + mwRange.end
+      + ' · ' + dirTxt + hint
+      + ' · ' + (info.txs || 0) + ' 笔 · 点弧块/线/左栏条目看链路');
+  })();
 }
 
 /* 环形扇区路径：内外半径 + 起止角（从 12 点顺时针）→ 一段 SVG arc。
@@ -9520,6 +9592,13 @@ function mwDrawSvg(nodes, edges) {
     }
   });
 
+  /* 每个账户在当前区间里参与的金额合计（转出 + 转入）—— 标签上的金额就是它 */
+  var amtOf = {};
+  txs.forEach(function (x) {
+    if (x.f) amtOf[x.f] = (amtOf[x.f] || 0) + x.amt;
+    if (x.to) amtOf[x.to] = (amtOf[x.to] || 0) + x.amt;
+  });
+
   /* ---------- 分类聚合（颜色按统计分类） ---------- */
   // 9 点起顺时针：权益 → 负债 → 费用 → 资产 → 收入
   var CAT_ORDER = ['权益类', '负债类', '费用类', '资产类', '收入类', '其它'];
@@ -9540,17 +9619,39 @@ function mwDrawSvg(nodes, edges) {
     return 0;
   });
 
-  // 每个分类一个颜色（黄金角，保证相邻不同）
-  var groupColor = {};
-  groupList.forEach(function (g, i) {
-    groupColor[g.key] = 'hsl(' + ((i * 137.508) % 360).toFixed(0) + ', 60%, 56%)';
-  });
-  var colorOfAcc = function (nm) {
-    var a = accMeta[nm];
-    if (!a) return '#cbd5e1';
-    var cat = CAT_ORDER.indexOf(a.cat) >= 0 ? a.cat : '其它';
-    return groupColor[cat + '|' + a.sub] || '#cbd5e1';
+  /* ---------- 分类调色板（24 色 maximin，复刻 NT 的策略） ----------
+     颜色只由**统计分类**（sub）决定，与账户类型无关：同分类同色，全图颜色数 = 分类数。
+     不用黄金角 hsl(i×137.508)：那只在 i 很小时好看，到第 9、10 个分类会撞出两个
+     差不多的绿（137.5° 与 283.5° 的补角），线一细就分不清 —— 用户实测过。
+     这张表是离线在 HSL 网格里贪心 maximin 挑的（每加一个取离已选最远），
+     **前 11 个各占一个色系**，所以分类少时不可能出现两个绿；第 12 个起才复用色系。
+     分类按名字排序取色 → 同一分类永远同色；超过 24 个分类退回黄金角 + 更暗的亮度带。 */
+  var CAT_PALETTE = [
+    [0, 66, 52], [120, 85, 48], [240, 85, 48], [190, 85, 48],
+    [50, 85, 76], [300, 85, 76], [150, 75, 34], [250, 55, 34],
+    [35, 55, 34], [330, 65, 34], [295, 85, 48], [350, 55, 76],
+    [215, 85, 62], [65, 85, 48], [35, 85, 48], [160, 85, 76],
+    [70, 65, 34], [320, 85, 48], [205, 55, 34], [140, 85, 62],
+    [260, 75, 62], [5, 55, 34], [15, 65, 62], [225, 55, 76]
+  ];
+  var catKeys = (function () {
+    var s = {};
+    groupList.forEach(function (g) { s[g.sub] = 1; });
+    return Object.keys(s).sort();
+  })();
+  var catIndex = {};
+  catKeys.forEach(function (k, i) { catIndex[k] = i; });
+  var hslOf = function (h, s, l) { return 'hsl(' + h + ', ' + s + '%, ' + l + '%)'; };
+  var categoryColor = function (sub) {
+    var i = catIndex[sub];
+    if (i === undefined) return '#cbd5e1';
+    if (i < CAT_PALETTE.length) {
+      var c = CAT_PALETTE[i];
+      return hslOf(c[0], c[1], c[2]);
+    }
+    return hslOf(Math.round(((i - CAT_PALETTE.length) * 137.508 + 47) % 360), 68, 46);
   };
+  var colorOfAcc = function (nm) { return categoryColor(subOf(nm)); };
 
   /* ---------- 链路层级（离费用端有多远） ----------
      费用类账户本身 = 0 级
@@ -9666,19 +9767,35 @@ function mwDrawSvg(nodes, edges) {
     else blocks.push({ acc: sl.acc, cat: sl.cat, sub: sl.sub, a1: sl.a1, a2: sl.a2, n: 1 });
   });
 
+  /* 分组扇区：每个「类型|分类」组的起止角 —— 用来画组间分界线（复刻 NT 的 sectors） */
+  var sectors = (function () {
+    var byKey = {};
+    var order = [];
+    slots.forEach(function (sl) {
+      if (sl.empty) return;
+      var k = keyOf(sl);
+      if (!byKey[k]) { byKey[k] = { key: k, cat: sl.cat, sub: sl.sub, a1: sl.a1, a2: sl.a2 }; order.push(k); }
+      else byKey[k].a2 = sl.a2;
+    });
+    return order.map(function (k) { return byKey[k]; });
+  })();
+
   var pt = function (r, a) { return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; };
 
-  /* ---------- 链路高亮 ---------- */
+  /* ---------- 链路高亮（三种焦点，语义照 NT v1.40） ---------- */
   var hotTxs = null;
-  if (mwSelected) {
+  if (mwFocusKind === 'acc' && mwSelected) {
     hotTxs = {};
-    // 选中账户 → 点亮所有触及它的流水
     txs.forEach(function (x, i) {
-      if (x.f === mwSelected || x.to === mwSelected) hotTxs[i] = 1;
+      // 逆流 = 流入它的线（to）；顺流 = 从它流出的线（from）。**只看一侧、不递归。**
+      if (mwDir === 'down' ? x.f === mwSelected : x.to === mwSelected) hotTxs[i] = 1;
     });
-  }
-  if (mwChain && mwChain.length) {
-    hotTxs = hotTxs || {};
+    // 这一侧一根都没有（费用类在顺流下就是这样）：不压暗整图，只在页脚说明
+    if (!Object.keys(hotTxs).length) hotTxs = null;
+  } else if (mwFocusKind === 'tx' && mwChainRoot != null) {
+    hotTxs = {}; hotTxs[mwChainRoot] = 1;
+  } else if (mwFocusKind === 'trace' && mwChain && mwChain.length) {
+    hotTxs = {};
     mwChain.forEach(function (i) { hotTxs[i] = 1; });
   }
 
@@ -9686,17 +9803,18 @@ function mwDrawSvg(nodes, edges) {
   parts.push('<svg viewBox="0 0 ' + SIZE + ' ' + SIZE + '" width="100%" preserveAspectRatio="xMidYMid meet"'
     + ' shape-rendering="geometricPrecision" text-rendering="geometricPrecision">');
 
-  /* ---------- 连线（每笔一条，统一粗细） ---------- */
+  /* ---------- 连线（每笔一条） ----------
+     颜色：**逆流取转入方**的统计分类，**顺流取转出方** —— 整张图所有线都按当前方向。
+     线宽四种情形（照 NT）：
+       未选      → W_MID × 0.75（细一级，不压暗）
+       点弧块    → 命中：层级档 ×1.35×0.35；其它：W_MID×0.45
+       点线      → 命中：W_MID；其它：W_MID×0.75，再盖一层遮罩
+       点左栏链  → 命中：按方向取「那一端类型」的四档；其它：1.2
+     透明度：未选 0.52 / 命中 0.95 / 无关 0.25。 */
+  var dirDown = (mwDir === 'down');
   var txSlotIdx = {};
-  slots.forEach(function (sl, i) { txSlotIdx[sl.txIdx + '|' + sl.side] = sl; });
-
-  /* 线宽规则：
-       默认      → 按「转入账户的链路层级」：6 / 4.8 / 3.6 / 2.4 / 1.2
-       选中某一条 → 那一条 ×1.35（最粗），其余 ×0.45（瘦下来但不消失） */
-  var W_MID = 2.4;
-  var PICK_BOOST = 1.35;
-  var PICK_SHRINK = 0.45;
-
+  slots.forEach(function (sl) { txSlotIdx[sl.txIdx + '|' + sl.side] = sl; });
+  var chordList = [];
   txs.forEach(function (x, i) {
     var sf = txSlotIdx[i + '|f'];
     var st = txSlotIdx[i + '|t'];
@@ -9708,49 +9826,65 @@ function mwDrawSvg(nodes, edges) {
     var k = 0.34;
     var c1 = [cx + (p1[0] - cx) * k, cy + (p1[1] - cy) * k];
     var c2 = [cx + (p2[0] - cx) * k, cy + (p2[1] - cy) * k];
-
-    var col = colorOfAcc(x.to);       // ← 颜色由转入端决定
-    // 三层视觉：
-    //   根（用户点的那一笔）  最粗最亮
-    //   链路内的上游          中等
-    //   链路外                细而淡
-    // 没选中任何东西时，所有线统一基础粗细。
-    /* 三种状态，四个显示档：
-         ① 什么都没选                 → 全部 W_MID(2.4)
-         ② 选中了，且是「点中的那一条」  → W_HOT(4)    ← 只有一条
-         ③ 选中了，且与选中项相关        → W_MID(2.4)  ← 点弧块时=所有触及该账户的线
-         ④ 选中了，但无关               → W_THIN(1.2)
-       之前点弧块时 mwChainRoot 为 null，②永不成立、③又没实现，
-       结果全部掉到 ④，看起来「点了没反应」。 */
-    var layer = 0;
-    if (hotTxs) {
-      if (mwChainRoot === i) layer = 2;
-      else if (hotTxs[i]) layer = 1;
-      else layer = 0;
-    }
-
-    parts.push('<path d="M ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1)
+    var dd = 'M ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1)
       + ' C ' + c1[0].toFixed(1) + ' ' + c1[1].toFixed(1) + ', '
       + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1) + ', '
-      + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1) + '"'
-      + ' fill="none" stroke="' + col + '"'
-      + ' stroke-width="' + (function () {
-          // 默认：所有线统一 2.4（原有配置）
-          if (!hotTxs) return W_MID.toFixed(2);
-          // 激活线路追踪后，才临时按「离费用端的层级」调整
-          var base = widthByDepth(x.to);
-          if (layer === 2) return (base * PICK_BOOST).toFixed(2);
-          if (layer === 1) return (base * 0.8).toFixed(2);
-          return (base * PICK_SHRINK).toFixed(2);
-        })() + '"'
-      + ' stroke-opacity="' + (!hotTxs ? '0.52' : layer === 2 ? '0.95' : layer === 1 ? '0.55' : '0.25') + '"'
-      + ' stroke-linecap="round"'
-      + ' data-tx="' + i + '" class="mw-edge" style="cursor:pointer">'
-      + '<title>' + mwEsc(x.f || '（空）') + ' → ' + mwEsc(x.to || '（空）')
-      + '　¥' + x.amt.toFixed(2) + '　' + x.d + '</title></path>');
+      + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1);
+
+    // 颜色只认当前方向的「锚点端」：逆流看转入方、顺流看转出方
+    var col = colorOfAcc(dirDown ? x.f : x.to);
+
+    var hit = !!hotTxs && !!hotTxs[i];
+    var w;
+    if (!hotTxs) w = MW_W_MID * MW_BASE_K;
+    else if (mwFocusKind === 'trace') w = hit ? mwTraceWidthOf(dirDown ? x.cf : x.ct) : MW_TRACE_FLOOR;
+    else if (mwFocusKind === 'tx') w = hit ? MW_W_MID : MW_W_MID * MW_BASE_K;
+    else w = hit
+      ? widthByDepth(dirDown ? x.f : x.to) * MW_PICK_BOOST * MW_PICK_EXTRA
+      : MW_W_MID * MW_PICK_SHRINK;
+
+    chordList.push({
+      i: i, dd: dd, col: col, w: w,
+      op: !hotTxs ? '0.52' : (hit ? '0.95' : '0.25'),
+      above: (mwFocusKind === 'tx') && hit,
+      title: mwEsc(x.f || '（空）') + ' → ' + mwEsc(x.to || '（空）')
+        + '　¥' + x.amt.toFixed(2) + '　' + x.d
+    });
   });
 
-  /* ---------- 弧块 ---------- */
+  var chordSvg = function (c) {
+    return '<path d="' + c.dd + '" fill="none" stroke="' + c.col + '"'
+      + ' stroke-width="' + c.w.toFixed(2) + '" stroke-opacity="' + c.op + '"'
+      + ' stroke-linecap="round" class="mw-edge" data-tx="' + c.i + '" style="cursor:pointer">'
+      + '<title>' + c.title + '</title></path>'
+      // 命中带：线只有 1–2px，直接点几乎点不中；用一条透明粗线接管点击
+      + '<path d="' + c.dd + '" fill="none" stroke="transparent"'
+      + ' stroke-width="' + Math.max(c.w, MW_HIT_BAND).toFixed(1) + '" stroke-linecap="round"'
+      + ' pointer-events="stroke" class="mw-hitarea" data-tx="' + c.i + '"/>';
+  };
+  chordList.filter(function (c) { return !c.above; }).forEach(function (c) { parts.push(chordSvg(c)); });
+  // 单线模式：非命中线被一层遮罩盖住，命中的那根浮在遮罩之上（NT 的「单线」观感）
+  if (mwFocusKind === 'tx' && hotTxs) {
+    parts.push('<circle class="mw-mask" cx="' + cx + '" cy="' + cy + '" r="' + R_IN + '"'
+      + ' fill="#000000" fill-opacity="' + MW_MASK_OP + '" pointer-events="none"/>');
+  }
+  chordList.filter(function (c) { return c.above; }).forEach(function (c) { parts.push(chordSvg(c)); });
+
+  /* ---------- 分类扇区分界线（复刻 NT） ----------
+     每个「类型|分类」组画一段环形轮廓：半径与弧块相同、fill:none 只描边。
+     两条径向边正好落在组间 0.8° 的缝里 —— 视觉上就是「类型/分类的分界线」。
+     画在连线之前，所以被弧块盖住的部分不显形，只在缝里露出来。 */
+  var isDarkNow = document.documentElement.getAttribute('data-theme') === 'dark';
+  sectors.forEach(function (s2) {
+    parts.push('<path class="mw-sector-line" d="' + mwRingPath(cx, cy, R_IN, R_OUT, s2.a1, s2.a2) + '"'
+      + ' fill="none" stroke="' + (isDarkNow ? 'rgba(255,255,255,.6)' : 'rgba(0,0,0,.35)') + '"'
+      + ' stroke-width="0.6" stroke-opacity="0.28" pointer-events="none"/>');
+  });
+
+  /* ---------- 弧块 ----------
+     描边：浅色主题纯白 / 深色主题纯黑，2.4、75% 不透明 —— 同分类的两个**同色**弧块
+     挨在一起时，靠这条细线分开；以前用灰色 0.6，几乎看不见分界。 */
+  var ringStroke = isDarkNow ? '#000000' : '#ffffff';
   blocks.forEach(function (b) {
     var span = b.a2 - b.a1;
     var large = span > Math.PI ? 1 : 0;
@@ -9760,100 +9894,80 @@ function mwDrawSvg(nodes, edges) {
     var x4 = cx + R_IN * Math.sin(b.a1), y4 = cy - R_IN * Math.cos(b.a1);
     var dd = 'M ' + x1 + ' ' + y1 + ' A ' + R_OUT + ' ' + R_OUT + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2
       + ' L ' + x3 + ' ' + y3 + ' A ' + R_IN + ' ' + R_IN + ' 0 ' + large + ' 0 ' + x4 + ' ' + y4 + ' Z';
-    var sel = (mwSelected === b.acc);
-    // 只有「选中弧块」才压暗其它弧块；点线时不启用遮罩
-    var dim = mwSelected && !mwChainRoot && !sel;
-    parts.push('<path d="' + dd + '" fill="' + colorOfAcc(b.acc) + '"'
-      + ' fill-opacity="' + (dim ? '0.72' : '1') + '"'
-      + ' stroke="#6b7280" stroke-width="0.6" stroke-opacity="0.55"'
-      + ' class="mw-ring" data-node="' + mwEsc(b.acc) + '" style="cursor:pointer"/>');
+    parts.push('<path d="' + dd + '" fill="' + colorOfAcc(b.acc) + '" fill-opacity="1"'
+      + ' stroke="' + ringStroke + '" stroke-width="2.4" stroke-opacity="0.75"'
+      + ' class="mw-ring" data-node="' + mwEsc(b.acc) + '" style="cursor:pointer">'
+      + '<title>' + mwEsc(b.acc) + '</title></path>');
   });
 
-  /* ---------- 文字：向外辐射 ----------
-     弧块够宽 → 文字直接从弧块外沿沿半径排出去；
-     弧块太窄（放不下这串字）→ 画一个**尖锥形引线**把弧块和文字连起来，
-     锥尖贴着弧块、锥底托住文字，文字退到更外面，不再挤在弧块上。 */
-  var prevVeryNarrow = false;
+  /* ---------- 文字：向外辐射（复刻 NT） ----------
+     标签 = 账户名 + 金额（取整、无千分位，避免 ¥8,835 把标签撑长）。
+     放得下就贴外沿；放不下就画尖锥引线把文字推到环外，
+     连续需要锥形时在两档之间交替（46 / 115），一串窄块的标签会分两层排开。 */
+  var prevCrowded = false;
   blocks.forEach(function (b) {
+    var lb = b.acc;
+    if (!lb) return;
+    /* 标签 = 账户名 + 金额（取整、无千分位）。
+       手机上不挂金额：屏幕只有 390px，图占满整宽，`账户名 ¥1234` 这种长度会伸出
+       环外被裁掉一半；桌面（≥760px）才带金额。 */
+    var withAmt = (window.innerWidth || 1200) >= 760;
+    var label = withAmt ? (lb + ' ¥' + Math.round(amtOf[lb] || 0)) : lb;
     var span = b.a2 - b.a1;
     var mid = (b.a1 + b.a2) / 2;
-    var theta = mid * 180 / Math.PI - 90;
-    var upsideDown = (theta > 90 || theta < -90);
-    if (upsideDown) theta += 180;
-    var dim = mwSelected && !mwChainRoot && !(mwSelected === b.acc);
-    var lb = b.acc;
-    var color = colorOfAcc(b.acc);
-
-    /* 字号：
-       · 普通弧块 —— 受「环厚」和「弧块能放下多长的字」双重约束
-       · 走锥形引线的窄块 —— 文字已经被拉到环外，横向不受环厚限制，按线宽/层级给一个更大的下限 */
     var arcLen = span * R_OUT;
-    var byArc = arcLen / Math.max(1, lb.length) * 1.05;
-    var byThick = THICK * 0.58;
-    var baseFs = Math.max(14, Math.min(26, byArc, byThick));
-    // 窄块（会走锥形）额外放大：层级越靠近费用（线越粗）字越大
-    var depthBonus = Math.max(0, 3 - (depthOf[b.acc] || 0)) * 0.8;
-    var fs = baseFs;
 
-    // 这串字大概要多宽（中文按 1em 估，西文按 0.55em）
+    // 字号三个约束取小：弧长÷字数、环厚的 58%、[12, 27]
+    var fs = Math.max(12, Math.min(27, (arcLen / Math.max(1, label.length)) * 1.05, THICK * 0.58));
+
+    // 这串字大概多宽（中文按 1em、西文按 0.55em 估）
     var textW = 0;
-    for (var ci = 0; ci < lb.length; ci++) {
-      textW += (lb.charCodeAt(ci) > 255 ? 1.0 : 0.55) * fs;
+    for (var ci = 0; ci < label.length; ci++) {
+      textW += (label.charCodeAt(ci) > 255 ? 1.0 : 0.55) * fs;
     }
-    // 触发锥形的条件放宽：弧块外沿如果有明显的「挤压感」（弧长不足文字宽的 1.5 倍）， 就用锥形把文字推到更外面，形成一圈整齐的标签
     var crowded = (arcLen < textW * 1.5);
+    if (crowded) fs = Math.max(18, fs);   // 走锥形的标签周围没别的元件，字号给足
 
-    if (!crowded) {
-      // ① 放得下：文字直接贴弧块外沿
-      var rStart1 = R_OUT + 8;
-      var rp1 = pt(rStart1, mid);
-      parts.push('<text x="' + rp1[0].toFixed(1) + '" y="' + rp1[1].toFixed(1) + '"'
-        + ' text-anchor="' + (upsideDown ? 'end' : 'start') + '"'
-        + ' dominant-baseline="middle"'
-        + ' font-size="' + fs.toFixed(1) + '" font-weight="600"'
-        + ' fill="var(--mw-text)" fill-opacity="' + (dim ? '0.62' : '1') + '"'
-        + ' transform="rotate(' + theta.toFixed(1) + ' ' + rp1[0].toFixed(1) + ' ' + rp1[1].toFixed(1) + ')"'
-        + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
+    var rText = R_OUT + 8;
+    if (crowded) {
+      var CONE_LEN = prevCrowded ? 115 : 46;
+      prevCrowded = !prevCrowded;
+      rText = R_OUT + CONE_LEN;
     } else {
-      // ② 放不下：锥形引线 + 文字外移
-      /* 锥形默认长 50、宽 10。
-         若连续两个弧块都极窄（弧长 < 12），第二个加长到 120，把标签错开。 */
-      var veryNarrow = (arcLen < 12);
-      var CONE_LEN = (veryNarrow && prevVeryNarrow) ? 120 : 50;
-      prevVeryNarrow = veryNarrow;
-      var rText = R_OUT + CONE_LEN;
-      var halfAngle = 5 / Math.max(1, rText);   // 半宽 5px → 总宽 10px
+      prevCrowded = false;
+    }
 
-      // 锥尖：收敛到弧块中点，真正的「尖端」（不再用弧块两端，那样是钝口）
+    if (crowded) {
+      // 锥尖贴着弧块中点，锥底托住文字
+      var halfAngle = 5 / Math.max(1, rText);
       var tip = pt(R_OUT, mid);
-      // 锥底：文字所在半径上、以 mid 为中心对称的两点
       var baseA = pt(rText, mid - halfAngle);
       var baseB = pt(rText, mid + halfAngle);
-
-      // 三角形：尖 → 底左 → 底右
       parts.push('<path d="M ' + tip[0].toFixed(1) + ' ' + tip[1].toFixed(1)
         + ' L ' + baseA[0].toFixed(1) + ' ' + baseA[1].toFixed(1)
         + ' L ' + baseB[0].toFixed(1) + ' ' + baseB[1].toFixed(1) + ' Z"'
-        + ' fill="' + color + '" fill-opacity="' + (dim ? '0.14' : '0.3') + '"'
-        + ' stroke="none"'
-        + ' style="pointer-events:none"/>');
-
-      // 文字放在锥底外侧
-      var rp2 = pt(rText + 3, mid);
-      parts.push('<text x="' + rp2[0].toFixed(1) + '" y="' + rp2[1].toFixed(1) + '"'
-        + ' text-anchor="' + (upsideDown ? 'end' : 'start') + '"'
-        + ' dominant-baseline="middle"'
-        + ' font-size="' + fs.toFixed(1) + '" font-weight="600"'
-        + ' fill="var(--mw-text)" fill-opacity="' + (dim ? '0.62' : '1') + '"'
-        + ' transform="rotate(' + theta.toFixed(1) + ' ' + rp2[0].toFixed(1) + ' ' + rp2[1].toFixed(1) + ')"'
-        + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
+        + ' fill="' + colorOfAcc(lb) + '" fill-opacity="0.5" stroke="none"'
+        + ' pointer-events="none"/>');
     }
+
+    // 锥底与文字之间再让 10px，别压着锥底
+    var rLabel = crowded ? rText + 10 : rText;
+    var rp = pt(rLabel, mid);
+    var theta = mid * 180 / Math.PI - 90;
+    var upsideDown = (theta > 90 || theta < -90);
+    if (upsideDown) theta += 180;
+    parts.push('<text x="' + rp[0].toFixed(1) + '" y="' + rp[1].toFixed(1) + '"'
+      + ' text-anchor="' + (upsideDown ? 'end' : 'start') + '"'
+      + ' dominant-baseline="middle"'
+      + ' font-size="' + fs.toFixed(1) + '" font-weight="600"'
+      + ' fill="var(--mw-text)" fill-opacity="1"'
+      + ' transform="rotate(' + theta.toFixed(1) + ' ' + rp[0].toFixed(1) + ' ' + rp[1].toFixed(1) + ')"'
+      + ' style="pointer-events:none">' + mwEsc(label) + '</text>');
   });
 
-  /* 中心圆形遮罩：直径约为环直径的 1/3，盖住钻到圆心的那些线头，
-     点它就能直接拖动平移，不会误触到线或弧块。 */
-  var R_MASK = Math.round(R_OUT * 2 / 3 / 2);   // 半径 = (环直径/3)/2
-  parts.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + R_MASK + '"'
+  /* 圆心的拖动把手：直径 = 环直径的 25%，**完全透明**，只当命中区。
+     放在最上层，所以这一带的指针事件全被它吃掉 —— 不会误触到下面的线，按住拖动就是平移。 */
+  parts.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + Math.round(R_OUT * 0.25) + '"'
     + ' fill="transparent" stroke="none" style="pointer-events:all;cursor:grab"/>');
   parts.push('</svg>');
 
@@ -9872,6 +9986,17 @@ function mwDrawSvg(nodes, edges) {
   var chartBox = document.createElement('div');
   chartBox.className = 'mw-chart';
   chartBox.innerHTML = parts.join('');
+  /* 手机上左栏默认收起，「逆/顺」按钮会跟着藏进去 —— 图区左上角再放一颗，
+     保证任何时候都能换方向（桌面左栏常驻，不重复显示）。 */
+  if (isNarrow) {
+    var floatDir = document.createElement('button');
+    floatDir.type = 'button';
+    floatDir.className = 'mw-dir-float';
+    floatDir.id = 'mw-dir-float';
+    floatDir.textContent = (mwDir === 'down' ? '顺' : '逆');
+    floatDir.title = '追踪方向：' + (mwDir === 'down' ? '顺流' : '逆流') + '，点一下切换';
+    chartBox.appendChild(floatDir);
+  }
   wrap.appendChild(chartBox);
 
   /* ---------- 左栏内容 ---------- */
@@ -9892,6 +10017,7 @@ function mwDrawSvg(nodes, edges) {
     + '<div class="mw-side-frozen">'
     + '<div class="mw-flow-title">'
     + '  <span class="mw-flow-title-txt">路径追踪</span>'
+    + '  <button type="button" class="mw-dir-btn" id="mw-dir" title="追踪方向：' + (mwDir === 'down' ? '顺流' : '逆流') + '，点一下切换" aria-label="追踪方向：' + (mwDir === 'down' ? '顺流' : '逆流') + '">' + (mwDir === 'down' ? '顺' : '逆') + '</button>'
     + '  <button type="button" class="mw-clear-btn" id="mw-clear">清空</button>'
     + '</div>'
     + '<div class="mw-side-stat">' + txs.length + ' 笔 · ' + groupList.length + ' 类 · '
@@ -10010,7 +10136,7 @@ function mwDrawSvg(nodes, edges) {
   var clearB = sideBox.querySelector('#mw-clear');
 
   if (clearB) clearB.onclick = function () {
-    mwSelected = null; mwChain = []; mwChainRoot = null;
+    mwSelected = null; mwChain = []; mwChainRoot = null; mwFocusKind = null;
     // 清空 = 连日期区间也不保留（旧版会重置回"本月"）
     mwFilter = { date: '', from: '', to: '', amount: '', note: '' };
     // 清空 = 连视图一起复位（这是唯一会重置缩放/滚动的地方）
@@ -10018,10 +10144,25 @@ function mwDrawSvg(nodes, edges) {
     renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
   };
 
+  // 追踪方向：一颗字「逆 / 顺」，点一下换方向。**只改画法**，焦点保留。
+  var dirB = sideBox.querySelector('#mw-dir');
+  if (dirB) dirB.onclick = function () {
+    mwDir = (mwDir === 'down') ? 'up' : 'down';
+    renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
+  };
+  // 手机上那颗浮动方向键（左栏收起时也够得着）
+  var dirF = chartBox.querySelector('#mw-dir-float');
+  if (dirF) dirF.onclick = function () {
+    mwDir = (mwDir === 'down') ? 'up' : 'down';
+    renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
+  };
+
   sideBox.querySelectorAll('.mw-list-row[data-acc]').forEach(function (row) {
     row.onclick = function () {
       var nm = row.getAttribute('data-acc');
-      mwSelected = (mwSelected === nm) ? null : nm;
+      var same = (mwFocusKind === 'acc' && mwSelected === nm);
+      mwFocusKind = same ? null : 'acc';
+      mwSelected = same ? null : nm;
       mwChain = []; mwChainRoot = null;
       renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
     };
@@ -10065,9 +10206,16 @@ function mwDrawSvg(nodes, edges) {
   sideBox.querySelectorAll('.mw-flow-row').forEach(function (row) {
     row.onclick = function () {
       var idx = Number(row.getAttribute('data-tx'));
-      // 左栏点一条 = 只看这条 + 它的上游（支出倒推）
-      mwChain = mwTraceUpstream(txs, idx);
-      mwChainRoot = idx;
+      // 左栏点一条 = **支出倒推链**（这一笔 + 谁给它转过钱），方向不改链、只改画法
+      var same = (mwFocusKind === 'trace' && mwChainRoot === idx);
+      if (same) {
+        mwFocusKind = null; mwChain = []; mwChainRoot = null;
+      } else {
+        mwChain = mwTraceUpstream(txs, idx);
+        mwChainRoot = idx;
+        mwSelected = null;
+        mwFocusKind = 'trace';
+      }
       renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
     };
   });
@@ -10127,12 +10275,24 @@ function mwDrawSvg(nodes, edges) {
   /* ---------- 缩放 / 旋转 / 平移 ---------- */
   var svgEl = chartBox.querySelector('svg');
   var defZoom = 1;
+  /* 手机上不量 chartBox：首帧时 flex/aspect-ratio 还没稳定，clientWidth 会量到
+     700 这种假值，整张图被放大约 1.8 倍、两侧标签被裁掉。手机上图区就是整屏宽，
+     直接用 innerWidth 更可靠。
+     ⚠️ 缩放基准不是 SIZE(1800)：CSS 把 <svg> 固定成 1400×1400 再缩放，
+     所以「环直径在屏幕上占多少像素」= R_OUT*2 × 1400/1800。
+     要留出环外标签的位置，按 (R_OUT + 标签带宽) 算，否则两侧的字会被 chart 的
+     overflow:hidden 裁掉。 */
+  var narrow = (window.innerWidth || 1200) < 760;
+  var SVG_PX = 1400;                       // = .mw-chart svg 的 CSS width/height
+  var LABEL_BAND = narrow ? 100 : 130;     // 环外留给标签的宽度（viewBox 单位）
+  var fitPx = (R_OUT + LABEL_BAND) * 2 * SVG_PX / SIZE;
   try {
-    var cw = chartBox.clientWidth || 900;
+    var cw = narrow ? window.innerWidth : (chartBox.clientWidth || 900);
     var ch = chartBox.clientHeight || 700;
-    defZoom = Math.min(1, (cw * 0.96) / SIZE, (ch * 0.96) / SIZE);
+    defZoom = Math.min(1, (cw * 0.94) / fitPx, (ch * 0.94) / fitPx);
   } catch (zz) {}
-  // 首次进入用默认缩放；之后一直沿用用户调过的视图
+  // 用户没手动缩放过 → 每次渲染都按当前容器重新算
+  if (!mwView.userZoom) mwView.zoom = null;
   if (mwView.zoom == null) mwView.zoom = defZoom;
   var zoom = mwView.zoom, rot = mwView.rot, tx0 = mwView.tx, ty0 = mwView.ty;
 
@@ -10146,6 +10306,7 @@ function mwDrawSvg(nodes, edges) {
 
   chartBox.addEventListener('wheel', function (ev) {
     ev.preventDefault();
+    mwView.userZoom = true;      // 手动缩放过 → 之后不再自动适配容器
     zoom = Math.min(6, Math.max(0.3, zoom + (ev.deltaY > 0 ? -0.1 : 0.1)));
     applyT();
   }, { passive: false });
@@ -10179,6 +10340,7 @@ function mwDrawSvg(nodes, edges) {
   chartBox.addEventListener('touchmove', function (ev) {
     if (ev.touches.length === 2 && pinch) {
       ev.preventDefault();
+      mwView.userZoom = true;
       var d2 = Math.hypot(ev.touches[0].clientX - ev.touches[1].clientX, ev.touches[0].clientY - ev.touches[1].clientY);
       zoom = Math.min(6, Math.max(0.3, pinch.z * (d2 / Math.max(1, pinch.d))));
       applyT();
@@ -10186,28 +10348,44 @@ function mwDrawSvg(nodes, edges) {
   }, { passive: false });
   chartBox.addEventListener('touchend', function () { pinch = null; }, { passive: true });
 
-  /* ---------- 点弧块 / 点线 = 选中 ---------- */
+  /* ---------- 点弧块 / 点线 = 选中（语义照 NT） ----------
+     点弧块：只看**当前方向的一侧**（逆流=流入它的线、顺流=从它流出的线，不递归）；
+     点线  ：只点亮这一根；再点同一条 / 同一弧块 = 取消。 */
   chartBox.querySelectorAll('.mw-ring').forEach(function (g2) {
     g2.onclick = function () {
       var nm = g2.getAttribute('data-node');
-      mwSelected = (mwSelected === nm) ? null : nm;
+      var same = (mwFocusKind === 'acc' && mwSelected === nm);
+      mwFocusKind = same ? null : 'acc';
+      mwSelected = same ? null : nm;
       mwChain = []; mwChainRoot = null;
       renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
     };
   });
-  chartBox.querySelectorAll('.mw-edge').forEach(function (g2) {
-    g2.onclick = function () {
+  // 可见线与透明命中带都绑同一个回调：线只有 1–2px，靠命中带才点得中
+  chartBox.querySelectorAll('.mw-edge, .mw-hitarea').forEach(function (g2) {
+    g2.onclick = function (ev) {
+      if (ev) ev.stopPropagation();
       var idx = Number(g2.getAttribute('data-tx'));
-      // 点线 = 只点亮这一条；再点同一条 = 取消选择
-      if (mwChainRoot === idx && mwChain.length === 1) {
-        mwChain = []; mwChainRoot = null;
+      if (!isFinite(idx)) return;
+      var same = (mwFocusKind === 'tx' && mwChainRoot === idx);
+      if (same) {
+        mwFocusKind = null; mwChain = []; mwChainRoot = null;
       } else {
-        mwChain = [idx];
-        mwChainRoot = idx;
+        mwFocusKind = 'tx'; mwChainRoot = idx; mwChain = [idx]; mwSelected = null;
       }
       renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
     };
   });
+
+  /* 记下这一帧的统计，页脚据此说话（命中几根线 / 焦点类型） */
+  mwLastInfo = {
+    txs: txs.length,
+    hits: hotTxs ? Object.keys(hotTxs).length : 0,
+    kind: mwFocusKind,
+    dir: mwDir,
+    acc: mwSelected,
+    units: UNITS
+  };
 
   return wrap;
 }
