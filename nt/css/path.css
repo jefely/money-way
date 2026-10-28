@@ -194,7 +194,9 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  padding: 8px 10px 0;
+  /* padding-top 原来是 8px —— 实测「清空」那一行底边到筛选框顶边有 8px 空白，
+     用户看着就是「输入框和上面的元素之间有缝」。收缩到 0，紧接标题行。 */
+  padding: 0 10px 0;
   background: var(--nt-bg-soft);
   border-bottom: 1px solid var(--nt-bg-line);
 }

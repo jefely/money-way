@@ -287,11 +287,22 @@ export function setSideCollapsed(collapsed) {
 }
 
 /**
+ * 上一次量到的标题行高度。
+ *
+ * 收起时 `.pw-side-head` 是 display:none，getBoundingClientRect 全 0 ——
+ * 估算分支如果没有这个缓存，就只能用一个凭空的常数（原来是 20），
+ * 和展开分支的 `hr.top + (hr.height - h)/2` 差 2px。
+ * 用户看到的就是「三角按钮切换时上下跳」。
+ * 缓存之后两条分支用同一个高度，收展位置完全一致。
+ */
+let lastHeadH = 36;
+
+/**
  * 工具条（三角 + 方向 + Money Way）贴在左栏标题行上：**左起、上下居中**。
  *
  * 不能写死 `top` —— 手机上 tab 栏会因安全区 / 系统字号变高，固定值会比标题行低一截
  * （用户截图里工具条就比「清空」低了一行）。所以量 `.pw-side-head` 的实际位置；
- * 左栏收起时那一行是 display:none（高度 0），退回到「tab 栏底 + 标题行内边距」的估算。
+ * 左栏收起时那一行是 display:none（高度 0），退回用「tab 栏底 + 上次量到的高度」。
  */
 export function syncToolsTop() {
   const tools = document.querySelector('.pw-tools');
@@ -300,14 +311,16 @@ export function syncToolsTop() {
   const h = tools.getBoundingClientRect().height || 22;
   const head = document.querySelector('.pw-side-head');
   const hr = head ? head.getBoundingClientRect() : null;
+  const tabs = document.querySelector('.nt-tabs');
+  const tr = tabs ? tabs.getBoundingClientRect() : null;
+
   let top = null;
   if (hr && hr.height > 0) {
-    top = hr.top + (hr.height - h) / 2;
-  } else {
-    const tabs = document.querySelector('.nt-tabs');
-    const tr = tabs ? tabs.getBoundingClientRect() : null;
-    // 标题行 = 上内边距 8 + 按钮 24（它的中点离行顶 20）
-    if (tr) top = tr.bottom + 20 - h / 2;
+    lastHeadH = hr.height;
+    top = hr.top + (lastHeadH - h) / 2;
+  } else if (tr) {
+    // 收起：标题行不可见，用它应有的高度算中心 —— 和展开分支同一个公式
+    top = tr.bottom + (lastHeadH - h) / 2;
   }
   if (top != null && Number.isFinite(top)) {
     document.documentElement.style.setProperty('--nt-pw-tools-top', Math.round(top) + 'px');
