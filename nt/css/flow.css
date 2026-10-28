@@ -259,10 +259,9 @@ body.nt-col-resizing {
 .nt-table-accounts .nt-cell { height: var(--nt-row-h-accounts); font-size: var(--nt-cell-font-accounts); }
 
 /* ---------- 特殊功能区（固定 / 删除 / 上移） ----------
-   不要列标、不要底色、不要边框 —— 只留两个浮在行里的小按钮。
-   「质感」全部交给主题变量：--nt-tool-bg 是四套主题各自的竖向微渐变，
-   --nt-tool-line 是配套的描边色。浅色主题像一枚纸面按钮，
-   深色主题整体压暗、只靠一层极淡的渐变提亮，不抢眼。 */
+   极简符号：一个空心方块、一个叉，无底色、无边框、无阴影，
+   就是两个浮在行里的字符（参考用户给的那张图）。
+   勾选框用 CSS 画空心方块（1px 描边），选中变主色实心。 */
 .nt-table .nt-th-edge,
 .nt-table .nt-cell-edge {
   padding: 0 2px;
@@ -271,51 +270,23 @@ body.nt-col-resizing {
   border-left: 0;
 }
 
-/* 勾选框与删除按钮共用同一套按钮外观 */
-.nt-table .nt-fixed-box,
-.nt-table .nt-btn-icon {
-  width: 18px;
-  height: 18px;
-  margin: 0;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--nt-tool-line, var(--nt-bg-line));
-  border-radius: 5px;
-  background-color: transparent;
-  background-image: var(--nt-tool-bg, none);
-  color: var(--nt-text-light);
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
-  vertical-align: middle;
-  transition: border-color 0.12s ease, color 0.12s ease;
-}
-
-/* 勾选框：appearance:none 自绘，勾号用两条边框旋转 45° 画出来 */
 .nt-table .nt-fixed-box {
-  position: relative;
   -webkit-appearance: none;
   appearance: none;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  border: 1px solid var(--nt-text-light);
+  border-radius: 2px;
+  background: transparent;
+  vertical-align: middle;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
 }
 
 .nt-table .nt-fixed-box:checked {
-  background-image: none;
-  background-color: var(--nt-primary);
+  background: var(--nt-primary);
   border-color: var(--nt-primary);
-}
-
-.nt-table .nt-fixed-box:checked::after {
-  content: '';
-  position: absolute;
-  left: 5px;
-  top: 1px;
-  width: 5px;
-  height: 9px;
-  border: solid var(--nt-text-on-primary, #fff);
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
 }
 
 .nt-table .nt-fixed-box:disabled {
@@ -323,10 +294,30 @@ body.nt-col-resizing {
   cursor: default;
 }
 
-.nt-table .nt-btn-icon:hover,
+.nt-table .nt-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--nt-text-light);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.nt-table .nt-btn-icon:hover {
+  color: var(--nt-primary);
+}
+
 .nt-table .nt-fixed-box:hover:not(:disabled) {
   border-color: var(--nt-primary);
-  color: var(--nt-primary);
 }
 
 /* 操作列（删除 / 上移）保底宽度：和「固定」列同宽 40 */
