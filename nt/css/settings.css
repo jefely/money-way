@@ -229,6 +229,18 @@
   opacity: 0.85;
 }
 
+/* 区域内的列标题行：每个区域重复一次（用户 2026-10-29），A/B 同一份 */
+.nt-table-accounts tbody tr.nt-zone-cols > td.nt-cell {
+  background-color: var(--nt-unit-bg, var(--nt-bg));
+  color: var(--nt-text-light);
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--nt-bg-line);
+}
+
 /* 备注区标题：说明文字紧跟名称（A/B 的 space-between 会把它推到屏幕外） */
 .nt-zone-head.nt-zone-note .nt-zone-label {
   justify-content: flex-start;

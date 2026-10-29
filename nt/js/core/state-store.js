@@ -211,7 +211,9 @@ export function addNote(state, input) {
   const note = {
     id: noteId(),
     code: normalizeCode(o.code),
-    type: NOTE_TYPES.includes(o.type) ? o.type : NOTE_TYPES[0],
+    // 类型可以不填（用户 2026-10-29）；填了就只认预设四种
+    type: NOTE_TYPES.includes(o.type) ? o.type : '',
+    keyword: String(o.keyword || '').trim(),
     text: String(o.text || '').trim(),
   };
   return { ...state, notes: [...(state.notes || []), note] };
@@ -228,10 +230,17 @@ export function removeNote(state, id) {
   return { ...state, notes: (state.notes || []).filter((n) => n.id !== id) };
 }
 
-/** 按简码找备注文本（备注栏输入简码 → 自动代入） */
+/**
+ * 按简码找备注（备注栏输入简码 → 自动代入）。
+ * 代入文本 = 类型，关键字，内容（空的跳过，中文逗号隔开）——用户 2026-10-29。
+ */
 export function noteTextByCode(state, raw) {
   const code = normalizeCode(raw);
   if (!code) return '';
-  const hit = (state.notes || []).find((n) => n && normalizeCode(n.code) === code && n.text);
-  return hit ? hit.text : '';
+  const hit = (state.notes || []).find((n) => n && normalizeCode(n.code) === code);
+  if (!hit) return '';
+  return [hit.type, hit.keyword, hit.text]
+    .map((s) => String(s || '').trim())
+    .filter(Boolean)
+    .join('，');
 }

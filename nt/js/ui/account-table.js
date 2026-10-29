@@ -107,6 +107,8 @@ export function mountAccountTable(ctx, tbody, opts) {
         head.appendChild(tag);
         head.appendChild(td);
         frag.appendChild(head);
+        // 列标题行：每个区域都重复一次（用户 2026-10-29），A/B 内容相同
+        frag.appendChild(zoneCols());
       }
 
       if (!inZone.length) {
@@ -364,6 +366,21 @@ export function mountAccountTable(ctx, tbody, opts) {
   }
 
   return { render };
+}
+
+/** 区域内的列标题行：A/B 用同一份（用户 2026-10-29） */
+const ACCOUNT_COLS = ['简码', '序', '类型', '分类', '名称', '期初', '账单日', '还款日', '上移', '删除'];
+
+function zoneCols() {
+  const tr = document.createElement('tr');
+  tr.className = 'nt-zone-cols';
+  for (const label of ACCOUNT_COLS) {
+    const td = document.createElement('td');
+    td.className = 'nt-cell';
+    td.textContent = label;
+    tr.appendChild(td);
+  }
+  return tr;
 }
 
 /** 期初：实现在 core，这里转出以保持既有调用点不变 */
