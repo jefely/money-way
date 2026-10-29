@@ -12,6 +12,8 @@
  */
 
 import { addNote, updateNote, removeNote, noteTypesOf } from '../core/state-store.js';
+import { bindTypePicker } from './type-picker.js';
+import * as NtModal from './modal.js';
 import { normalizeCode, isValidCode } from '../core/schema.js';
 
 /**
@@ -112,7 +114,7 @@ function noteCells(note, seqText) {
   type.type = 'text';
   type.dataset.field = 'ntype';
   type.setAttribute('aria-label', '备注类型');
-  type.setAttribute('list', 'nt-note-type-list');
+
   type.value = note.type || '';
   typeTd.appendChild(type);
 
@@ -173,6 +175,23 @@ function noteRow(ctx, note, index, rerender) {
     ctx.saveNow();
   });
 
+  // 点一下类型格弹候选（和账户表同一套浮层；原生 datalist 在已录入行里调不出来）
+  bindTypePicker(c.type, () => noteTypesOf(ctx.getState()), (v) => {
+    if (v === '__custom__') {
+      NtModal.prompt('新的备注类型（会加进类型库）', '', (val) => {
+        const t = String(val || '').trim();
+        if (!t) return true;
+        c.type.value = t;
+        ctx.setState(updateNote(ctx.getState(), note.id, { type: t }));
+        ctx.saveNow();
+        return true;
+      });
+      return;
+    }
+    ctx.setState(updateNote(ctx.getState(), note.id, { type: v }));
+    ctx.saveNow();
+  });
+
   c.keyword.addEventListener('change', () => {
     ctx.setState(updateNote(ctx.getState(), note.id, {
       keyword: String(c.keyword.value || '').trim(),
@@ -208,27 +227,6 @@ function noteRow(ctx, note, index, rerender) {
   return tr;
 }
 
-/* ---------- 类型候选（datalist）：内置四种 + 现有备注里出现过的 ---------- */
-
-const TYPE_LIST_ID = 'nt-note-type-list';
-
-function ensureTypeList(state) {
-  let dl = document.getElementById(TYPE_LIST_ID);
-  if (!dl) {
-    dl = document.createElement('datalist');
-    dl.id = TYPE_LIST_ID;
-    document.body.appendChild(dl);
-  }
-  const types = noteTypesOf(state);
-  if ([...dl.options].map((o) => o.value).join('\u0000') === types.join('\u0000')) return;
-  dl.textContent = '';
-  for (const t of types) {
-    const o = document.createElement('option');
-    o.value = t;
-    dl.appendChild(o);
-  }
-}
-
 /* ---------- 新增行：内容填了就成 ---------- */
 
 function noteNewRow(ctx, rerender) {
@@ -236,7 +234,6 @@ function noteNewRow(ctx, rerender) {
   tr.className = 'nt-row nt-row-new';
   tr.dataset.new = '2';
 
-  ensureTypeList(ctx.getState());
   const c = noteCells({ __new: true, type: '', text: '' }, '+');
 
   const tryCreate = () => {
@@ -262,6 +259,20 @@ function noteNewRow(ctx, rerender) {
     // 延迟到本轮结束：一行里连填几格时，后面的不能落在已脱离 DOM 的旧行上
     el.addEventListener('change', () => setTimeout(tryCreate, 0));
   }
+
+  // 新增行的类型也点开候选：选中后回填并尝试建行
+  bindTypePicker(c.type, () => noteTypesOf(ctx.getState()), (v) => {
+    if (v === '__custom__') {
+      NtModal.prompt('新的备注类型（会加进类型库）', '', (val) => {
+        const t = String(val || '').trim();
+        if (t) { c.type.value = t; setTimeout(tryCreate, 0); }
+        return true;
+      });
+      return;
+    }
+    c.type.value = v;
+    setTimeout(tryCreate, 0);
+  });
 
   tr.appendChild(c.codeTd);
   tr.appendChild(c.seqTd);
