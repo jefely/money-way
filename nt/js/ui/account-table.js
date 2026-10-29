@@ -106,9 +106,9 @@ export function mountAccountTable(ctx, tbody, opts) {
         td.appendChild(inner);
         head.appendChild(tag);
         head.appendChild(td);
+        // 列标行放在区域标题上方；第一个区域（A）直接沿用顶部冻结的 thead，不再重复画
+        if (zone.key !== 'A') frag.appendChild(zoneCols());
         frag.appendChild(head);
-        // 列标题行：每个区域都重复一次（用户 2026-10-29），A/B 内容相同
-        frag.appendChild(zoneCols());
       }
 
       if (!inZone.length) {

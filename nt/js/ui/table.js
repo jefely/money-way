@@ -1,4 +1,4 @@
-﻿// 界面：统计 / 查询 / 固定 / 设置 → 通用表格渲染
+// 界面：统计 / 查询 / 固定 / 设置 → 通用表格渲染
 /**
  * 表格渲染助手（UI 层）
  * 层：第五层 · UI 渲染
@@ -140,7 +140,8 @@ export function setCell(tr, field, value) {
 export function moneyOrBlank(v) {
   const n = Number(v);
   if (!Number.isFinite(n) || n === 0) return '';
-  return String(n);
+  // 设置页的金额显示固定两位小数（只影响显示，存的值不变）——用户 2026-10-29
+  return n.toFixed(2);
 }
 
 /** 表头文字 → 列宽用的稳定 key（统计页的表头是 JS 生成的，没有手写 data-col） */

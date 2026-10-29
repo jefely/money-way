@@ -229,15 +229,16 @@
   opacity: 0.85;
 }
 
-/* 区域内的列标题行：每个区域重复一次（用户 2026-10-29），A/B 同一份 */
+/* 区域内的列标题行：B/备注各一份，A 沿用顶部冻结表头（用户 2026-10-29）。
+   样式与 thead 的 .nt-th 保持一致：同样的底色、字号、字重。 */
 .nt-table-accounts tbody tr.nt-zone-cols > td.nt-cell {
-  background-color: var(--nt-unit-bg, var(--nt-bg));
-  color: var(--nt-text-light);
-  font-size: 11px;
-  font-weight: 500;
+  background: var(--nt-th-bg, var(--nt-unit-bg, var(--nt-bg-soft)));
+  color: var(--nt-unit-text, var(--nt-text));
+  height: var(--nt-th-h, 26px);
+  font-size: var(--nt-th-font, 12px);
+  font-weight: 700;
   text-align: center;
-  padding-top: 2px;
-  padding-bottom: 2px;
+  padding: 0 4px;
   border-bottom: 1px solid var(--nt-bg-line);
 }
 

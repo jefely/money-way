@@ -23,8 +23,8 @@ export function renderNotes(ctx, rerender) {
   const frag = document.createDocumentFragment();
   const notes = ctx.getState().notes || [];
 
-  frag.appendChild(noteHead());
   frag.appendChild(noteCols());
+  frag.appendChild(noteHead());
   notes.forEach((note, i) => frag.appendChild(noteRow(ctx, note, i, rerender)));
   frag.appendChild(noteNewRow(ctx, rerender));
   return frag;
