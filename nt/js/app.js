@@ -258,6 +258,14 @@ function enterApp() {
     },
   });
 
+  // 从别的窗口 / 标签页切回来时，流水页也重新定位到最后 6 行（用户 2026-10-30）：
+  // 移动端后台恢复会把页面重置，光靠 tab 切换的 onShow 不够。
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    if (active !== 'flow') return;
+    if (views.flow && views.flow.focusEnd) views.flow.focusEnd();
+  });
+
   // 界面参数调试面板：只在 ?debug=1 时出现，不影响正常用户
   if (new URLSearchParams(location.search).has('debug')) {
     mountDebugPanel({ getState, setState, save: flushSave });

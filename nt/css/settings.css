@@ -196,7 +196,9 @@
   padding: 0 6px 0 0;
   text-align: right;
   font-size: 13px;
-  border-right: 0;
+  border-right: 0 !important;
+  /* 冻结首列的右边线是 inset 阴影画的，不是 border */
+  box-shadow: none !important;
 }
 
 /* 备注区（用户 2026-10-29）：独立于 A/B，标题用主题紫（和 A 绿 / B 红并列） */

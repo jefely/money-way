@@ -286,8 +286,11 @@ export function mountFlow(section, ctx) {
       return;
     }
 
-    const state = ctx.getState();
-    ctx.setState(addTransaction(state, {
+    // 建单要重建整表；先把滚动位置记下来，重建后放回去 ——
+    // 否则在末尾空行里敲金额，整页会跳回第一行（用户 2026-10-30）
+    const wrap = body.closest('.nt-tablewrap'); const keepTop = wrap ? wrap.scrollTop : 0;
+
+    const state = ctx.getState(); ctx.setState(addTransaction(state, {
       date: normalizeDateInput(fields.date || todayIso()),
       from_id: from.acc ? from.acc.id : null,
       to_id: to.acc ? to.acc.id : null,
@@ -296,7 +299,8 @@ export function mountFlow(section, ctx) {
       seq: nextSeq(state),
     }));
     render();
-    ctx.save();
+    if (wrap) wrap.scrollTop = keepTop;
+    return ctx.save();
   }
 
   function onDelete(id) {
@@ -307,8 +311,7 @@ export function mountFlow(section, ctx) {
 
   /** 切回流水页时用：把最后一条有内容的行放到视口第 6 行（用户 2026-10-30） */
   function focusEnd() {
-    const wrap = body.closest('.nt-tablewrap');
-    if (!wrap) return;
+    const wrap = body.closest('.nt-tablewrap'); if (!wrap) return;
     const first = body.querySelector('tr');
     const rowH = first ? first.getBoundingClientRect().height || 34 : 34;
     // 用总数据行数（不是 DOM 里窗口内渲染了几行），虚拟滚动下后者只是可视区
