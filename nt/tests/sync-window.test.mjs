@@ -86,6 +86,21 @@ test('fitWindow：一天都装不下时返回 tooDense（不会返回半天的�
   assert.equal(r.parts.length, 0);
 });
 
+test('fitWindow：默认 70 笔软上限 —— 装满 70 笔就停，不塞满整张码', async () => {
+  // 10 天 × 10 笔 = 100 笔；70 笔 = 7 天
+  const rows = [];
+  for (const d of days(1, 10)) {
+    const ds = '2026-09-' + String(d).padStart(2, '0');
+    for (let k = 0; k < 10; k += 1) rows.push({ date: ds, note: 'y' + d + '-' + k });
+  }
+  const s = seed(rows);
+  const r = await fitWindow(s, { base: BASE, until: '2026-09-10' });
+
+  assert.equal(r.count, 70);
+  assert.equal(r.from, '2026-09-04', '从截止日往前装满 7 天就停');
+  assert.equal(r.parts.length, 1);
+});
+
 test('fitWindow：装不下时按天截断（窗口内笔数是整天数 × 每天笔数）', async () => {
   const rows = [];
   for (const d of days(1, 20)) {

@@ -26,7 +26,7 @@ function spanDays(from, until) {
 
 /**
  * @param {object} state 账本 state
- * @param {{base?:string, until:string, per?:number}} opts
+ * @param {{base?:string, until:string, per?:number, maxCount?:number}} opts
  * @returns {Promise<{
  *   empty?:boolean, tooDense?:boolean,
  *   from:string, until:string, days:number,
@@ -38,6 +38,8 @@ export async function fitWindow(state, opts) {
   const base = String(o.base || '');
   const until = String(o.until || '');
   const per = Math.max(3, Math.min(200, Number(o.per) || 200));
+  // 用户 2026-10-29：一张码目标 70 笔就够，别塞满整张
+  const maxCount = Math.max(1, Number(o.maxCount) || 70);
 
   const txs = (state.transactions || []).filter(
     (t) => t && !t.opening && t.date && String(t.date) <= until,
@@ -64,8 +66,9 @@ export async function fitWindow(state, opts) {
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
     const r = await run(mid);
-    // 装不下有两种样子：URL 太长（tooDense），或者被切成多张（parts > 1）
-    if (r.tooDense || (r.parts || []).length > 1) {
+    const cnt = (r.parts || []).reduce((s, p) => s + (p.count || 0), 0);
+    // 装不下有三种样子：URL 太长、被切成多张、超过 70 笔的软上限
+    if (r.tooDense || (r.parts || []).length > 1 || cnt > maxCount) {
       hi = mid - 1;              // 从这天起就装不下了，只可能更近
     } else {
       best = mid;

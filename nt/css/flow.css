@@ -556,76 +556,53 @@ body.nt-col-resizing {
   resize: vertical;
 }
 /* 同步弹窗：二维码（固定 220，靠左）+ 右侧日期竖轮 + 年份（右缘对齐竖轮） */
-.nt-sync-main {
+/* 同步弹窗：年月水平滚轮（二维码上方居中） */
+.nt-sync-monthrow {
   display: flex;
-  align-items: flex-start;
+  justify-content: center;
+  margin: 6px 0 8px;
+}
+
+/* 二维码（240 固定）+ 右侧日竖轮（垂直居中） */
+.nt-sync-qrrow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   gap: 12px;
-  margin-top: 8px;
 }
 
 .nt-sync-qr {
-  flex: 0 0 220px;
-  width: 220px;
-  height: 220px;
+  flex: 0 0 240px;
+  width: 240px;
+  height: 240px;
   display: block;
   margin: 0;
   cursor: zoom-in;
   image-rendering: pixelated;
 }
 
-/* 窗口内没有流水时的占位：和二维码同尺寸，有码无码布局都不动 */
+/* 没有流水时的占位：绝对定位盖住二维码，不参与布局 → 滚轮位置不跳 */
 .nt-sync-qr-empty {
-  flex: 0 0 220px;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 220px;
-  height: 220px;
+  width: 240px;
+  height: 240px;
   padding: 14px;
   box-sizing: border-box;
   border: 1px dashed var(--nt-bg-line);
   border-radius: var(--nt-radius);
+  background: var(--nt-bg);
   font-size: 12px;
   line-height: 1.7;
   text-align: center;
   color: var(--nt-text-muted);
-}
-
-.nt-sync-picker {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  padding-top: 2px;
-}
-
-/* 年份：右缘和竖轮右缘对齐，宽度不外扩 */
-.nt-sync-year {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 2px;
-  margin-left: auto;
-  white-space: nowrap;
-}
-
-.nt-sync-year-label {
-  min-width: 52px;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--nt-text);
-  font-variant-numeric: tabular-nums;
-}
-
-/* 年份两侧的切月箭头：小巧一点，整行才放得下 */
-.nt-sync-year .nt-btn {
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  font-size: 12px;
-  line-height: 1;
 }
 
 .nt-sync-wheel {
@@ -659,6 +636,49 @@ body.nt-col-resizing {
 
 .nt-sync-qr-empty[hidden] {
   display: none;
+}
+
+/* 水平滚轮（年月）：和竖轮同一套玻璃/内阴影，方向改成左右 */
+.nt-sync-wheel.h {
+  width: auto;
+}
+
+.nt-sync-wheel.h .nt-sync-wheel-track {
+  display: flex;
+}
+
+.nt-sync-wheel.h .nt-sync-wheel-item {
+  flex: 0 0 auto;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.nt-sync-wheel.h .nt-sync-wheel-center {
+  left: auto;
+  right: auto;
+  border-top: 0;
+  border-bottom: 0;
+  border-left: 1px solid var(--nt-primary);
+  border-right: 1px solid var(--nt-primary);
+}
+
+.nt-sync-wheel.h::before,
+.nt-sync-wheel.h::after {
+  top: 0;
+  bottom: 0;
+  width: 34px;
+  height: auto;
+}
+
+.nt-sync-wheel.h::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--nt-bg), transparent);
+}
+
+.nt-sync-wheel.h::after {
+  left: auto;
+  right: 0;
+  background: linear-gradient(270deg, var(--nt-bg), transparent);
 }
 
 .nt-sync-wheel-track {

@@ -1,53 +1,78 @@
-// 界面：同步弹窗里的日期竖轮（手指上下拖，正中间那格生效）
+// 界面：同步弹窗里的滚轮（日 / 年月共用）
 /**
- * 竖轮（UI 层，无依赖）
+ * 滚轮（UI 层，无依赖）
  *
- * 只负责「1..maxDay 的数字列 + 拖动 + 吸附 + 回调」；
- * 选中哪一天、窗口怎么算，由调用方决定（见 ui/sync-dialog.js）。
+ * 只负责「一格一格的滑动 + 吸附 + 回调」：
+ *   · axis = 'y'：竖列，手指上下拖（日）
+ *   · axis = 'x'：横排，手指左右拖（年月）
+ * 正中间那一格才是生效值；松手吸附到最近一格；点按某一格也会把它转到中间。
  *
- * · pointerdown/move/up + setPointerCapture：手指移出也不断
- * · 松手吸附到最近一格；点按某一格也会把它转到中间
- * · 值变化才回调，拖回原位不重复触发
+ * labels 给了就用它当显示文本（年月），否则显示 1..maxDay（日）。
  */
 
 const ITEM_H = 32;
-const VISIBLE = 5;
+const ITEM_W = 70;
 
 /**
- * @param {{maxDay:number, value:number, onChange?:(day:number)=>void}} opts
- * @returns {{el:HTMLElement, setMaxDay:(max:number)=>void, setValue:(day:number)=>void, value:(...args:any[])=>number}}
+ * @param {{
+ *   maxDay?:number, value?:number, onChange?:(v:number)=>void,
+ *   axis?:'x'|'y', itemSize?:number, visible?:number, labels?:string[]
+ * }} opts
  */
 export function buildWheel(opts) {
   const o = opts || {};
-  let maxDay = Math.max(1, Math.min(31, Number(o.maxDay) || 31));
+  const axis = o.axis === 'x' ? 'x' : 'y';
+  const ITEM = Math.max(16, Number(o.itemSize) || (axis === 'x' ? ITEM_W : ITEM_H));
+  const VISIBLE = Math.max(3, Number(o.visible) || 5);
+  let labels = Array.isArray(o.labels) ? o.labels.slice() : null;
+  let maxDay = Math.max(1, Math.min(999, Number(o.maxDay) || (labels ? labels.length : 31)));
   let day = Math.max(1, Math.min(maxDay, Number(o.value) || 1));
   let index = day - 1;
   let offset = 0;
   let drag = null;
 
-  const H = ITEM_H * VISIBLE;
+  const SIZE = ITEM * VISIBLE;
+  const centerSize = Math.floor((VISIBLE - 1) / 2) * ITEM;
 
   const wrap = document.createElement('div');
-  wrap.className = 'nt-sync-wheel';
-  wrap.style.height = H + 'px';
+  wrap.className = 'nt-sync-wheel' + (axis === 'x' ? ' h' : '');
+  if (axis === 'x') {
+    wrap.style.width = SIZE + 'px';
+    wrap.style.height = '32px';
+  } else {
+    wrap.style.height = SIZE + 'px';
+  }
   wrap.setAttribute('role', 'spinbutton');
-  wrap.setAttribute('aria-label', '窗口结束日（上下拖动选择）');
+  wrap.setAttribute('aria-label', axis === 'x' ? '年月（左右拖动选择）' : '日（上下拖动选择）');
 
   const track = document.createElement('div');
   track.className = 'nt-sync-wheel-track';
+  if (axis === 'x') track.style.display = 'flex';
   wrap.appendChild(track);
 
   const center = document.createElement('div');
   center.className = 'nt-sync-wheel-center';
-  center.style.top = (H / 2 - ITEM_H / 2) + 'px';
-  center.style.height = ITEM_H + 'px';
+  if (axis === 'x') {
+    center.style.left = centerSize + 'px';
+    center.style.top = '0';
+    center.style.width = ITEM + 'px';
+    center.style.height = '100%';
+  } else {
+    center.style.top = centerSize + 'px';
+    center.style.left = '0';
+    center.style.right = '0';
+    center.style.height = ITEM + 'px';
+  }
   wrap.appendChild(center);
 
-  const target = (i) => H / 2 - ITEM_H / 2 - i * ITEM_H;
+  const target = (i) => SIZE / 2 - ITEM / 2 - i * ITEM;
+  const coord = (ev) => (axis === 'x' ? ev.clientX : ev.clientY);
 
   function paint(anim) {
     track.style.transition = anim ? 'transform .18s ease-out' : 'none';
-    track.style.transform = 'translateY(' + offset + 'px)';
+    track.style.transform = axis === 'x'
+      ? 'translateX(' + offset + 'px)'
+      : 'translateY(' + offset + 'px)';
   }
 
   function markActive() {
@@ -58,11 +83,12 @@ export function buildWheel(opts) {
 
   function fill() {
     track.textContent = '';
-    for (let d = 1; d <= maxDay; d += 1) {
+    for (let i = 1; i <= maxDay; i += 1) {
       const it = document.createElement('div');
       it.className = 'nt-sync-wheel-item';
-      it.style.height = ITEM_H + 'px';
-      it.textContent = String(d);
+      if (axis === 'x') it.style.width = ITEM + 'px';
+      else it.style.height = ITEM + 'px';
+      it.textContent = labels ? String(labels[i - 1] == null ? i : labels[i - 1]) : String(i);
       track.appendChild(it);
     }
   }
@@ -72,6 +98,13 @@ export function buildWheel(opts) {
     offset = target(index);
     paint(anim);
     markActive();
+  }
+
+  function emit() {
+    const next = index + 1;
+    if (next === day) return;
+    day = next;
+    if (typeof o.onChange === 'function') o.onChange(day);
   }
 
   function setValue(v, anim) {
@@ -85,16 +118,16 @@ export function buildWheel(opts) {
   wrap.addEventListener('pointerdown', (ev) => {
     if (ev.pointerType === 'mouse' && ev.button !== 0) return;
     ev.preventDefault();
-    drag = { y: ev.clientY, o: offset, moved: false, id: ev.pointerId };
+    drag = { p: coord(ev), o: offset, moved: false, id: ev.pointerId };
     try { wrap.setPointerCapture(ev.pointerId); } catch (e) { /* 合成事件 */ }
     track.style.transition = 'none';
   });
 
   wrap.addEventListener('pointermove', (ev) => {
     if (!drag || drag.id !== ev.pointerId) return;
-    const dy = ev.clientY - drag.y;
-    if (Math.abs(dy) > 4) drag.moved = true;
-    offset = drag.o + dy;
+    const d = coord(ev) - drag.p;
+    if (Math.abs(d) > 4) drag.moved = true;
+    offset = drag.o + d;
     paint(false);
   });
 
@@ -107,23 +140,14 @@ export function buildWheel(opts) {
     if (!d.moved && ev && ev.type === 'pointerup') {
       // 点按：点哪一格就把哪一格转到中间
       const r = wrap.getBoundingClientRect();
-      const rel = ev.clientY - (r.top + r.height / 2);
-      const i = Math.min(maxDay - 1, Math.max(0, index + Math.round(rel / ITEM_H)));
-      const next = i + 1;
-      const changed = next !== day;
-      day = next;
+      const rel = coord(ev) - (axis === 'x' ? r.left + r.width / 2 : r.top + r.height / 2);
+      const i = Math.min(maxDay - 1, Math.max(0, index + Math.round(rel / ITEM)));
       apply(i, true);
-      if (changed && typeof o.onChange === 'function') o.onChange(day);
+      emit();
       return;
     }
-    apply(Math.round((H / 2 - ITEM_H / 2 - offset) / ITEM_H), true);
-    if (day - 1 !== index) {
-      // 吸附后落点变了（拖到一半松手）
-      const next = index + 1;
-      const changed = next !== day;
-      day = next;
-      if (changed && typeof o.onChange === 'function') o.onChange(day);
-    }
+    apply(Math.round((SIZE / 2 - ITEM / 2 - offset) / ITEM), true);
+    emit();
   }
 
   wrap.addEventListener('pointerup', finish);
@@ -134,14 +158,22 @@ export function buildWheel(opts) {
 
   return {
     el: wrap,
-    /** 切月份时重新限制天数；当前值超界就钳到月末 */
+    value() { return day; },
+    setValue(v) { setValue(v, true); },
+    /** 切月份时重新限制天数（当前值超界就钳到月末） */
     setMaxDay(max) {
-      maxDay = Math.max(1, Math.min(31, Number(max) || 31));
+      maxDay = Math.max(1, Math.min(999, Number(max) || 1));
       day = Math.min(day, maxDay);
       fill();
       apply(day - 1, false);
     },
-    setValue(v) { setValue(v, true); },
-    value() { return day; },
+    /** 换一组显示文本（年月用），长度即格数 */
+    setLabels(list) {
+      labels = Array.isArray(list) ? list.slice() : null;
+      maxDay = Math.max(1, labels ? labels.length : maxDay);
+      day = Math.min(day, maxDay);
+      fill();
+      apply(day - 1, false);
+    },
   };
 }

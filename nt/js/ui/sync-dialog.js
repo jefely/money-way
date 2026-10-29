@@ -1,14 +1,13 @@
 /**
  * 同步弹窗（UI 层）
  *
- * 设计（用户 2026-10-29 重定）：
- *   ① 自适应窗口：选一个截止日，从这天往前按**天**装流水，装到一张码满为止
- *      （fitWindow 二分找最大的可行窗口；最后一天装不下就整天不要）。
- *      二维码固定 220×220 靠左；右侧竖轮选「日」，上面的年份右缘与竖轮右缘对齐；
- *      下方一行写明「包含 9/5 — 9/9 · N 笔」，再跟「保存二维码图片」。
- *   ② 一个文本框打通复制与接收：复制 / 清空 / 粘贴 / 同步 四个按钮。
+ * 设计（用户 2026-10-29 定稿）：
+ *   ① 年月滚轮在二维码上方居中（水平拖），日竖轮在二维码右侧居中（垂直拖）；
+ *      选截止日 → 从这天往前按天装流水，装满 70 笔为止（fitWindow 二分，整天截断）。
+ *      二维码固定 240×240，布局不因有码无码移动。
+ *   ② 一个文本框打通复制与接收：复制 / 清空 / 粘贴 / 同步。
  *
- * 编解码在 core/sync-code.js、窗口自适应在 core/sync-window.js，本文件只管界面。
+ * 编解码在 core/sync-code.js、窗口自适应在 core/sync-window.js。
  */
 
 import * as NtModal from './modal.js';
@@ -16,6 +15,9 @@ import { decodeSyncCode, unpackFromHash } from '../core/sync-code.js';
 import { fitWindow } from '../core/sync-window.js';
 import { paintText } from './qr-canvas.js';
 import { buildWheel } from './sync-wheel.js';
+
+/** 一张码的软上限（用户指定 70 笔就够，别塞满） */
+const MAX_COUNT = 70;
 
 /**
  * @param {{
@@ -35,14 +37,15 @@ export function openSyncDialog(ctx) {
   });
 }
 
-/* ---------- ① 二维码 + 日期竖轮 + ② 同步码 / 接收 ---------- */
+/* ---------- ① 二维码 + 年月/日滚轮 + ② 同步码 / 接收 ---------- */
 
 function sectionWindow(ctx, base) {
   const now = new Date();
+  const months = monthLabels(now);
   let year = now.getFullYear();
   let month = now.getMonth();          // 0-based
   let day = now.getDate();
-  let auto = true;                     // 文本框内容还是自动填的？
+  let auto = true;                     // 文本框还是自动填的？
   let seq = 0;
 
   const box = document.createElement('section');
@@ -50,51 +53,60 @@ function sectionWindow(ctx, base) {
 
   const h = document.createElement('div');
   h.className = 'nt-sync-title';
-  h.textContent = '① 扫码同步（自适应天数）';
+  h.textContent = '① 扫码同步';
   box.appendChild(h);
 
   const tip = document.createElement('p');
   tip.className = 'nt-sync-hint';
-  tip.textContent = '选一个截止日：从这天往前按天装流水，一张码装满为止（装不下的那天整天不要）。';
+  tip.textContent = '选截止日：一张码最多装 ' + MAX_COUNT + ' 笔。';
   box.appendChild(tip);
 
-  /* 二维码（固定 220，靠左）+ 日期竖轮（日）+ 年份（右缘对齐竖轮） */
-  const main = document.createElement('div');
-  main.className = 'nt-sync-main';
+  /* 年月：水平滚轮，在二维码上方居中 */
+  const monRow = document.createElement('div');
+  monRow.className = 'nt-sync-monthrow';
+  const monWheel = buildWheel({
+    axis: 'x',
+    itemSize: 70,
+    visible: 3,
+    labels: months,
+    value: months.length,
+    onChange: (v) => {
+      const parts = String(months[v - 1] || '').split('/');
+      const y = Number(parts[0]);
+      const m = Number(parts[1]);
+      if (!y || !m) return;
+      year = y;
+      month = m - 1;
+      day = Math.min(day, monthDays());
+      dayWheel.setMaxDay(monthDays());
+      rebuild();
+    },
+  });
+  monRow.appendChild(monWheel.el);
+  box.appendChild(monRow);
+
+  /* 二维码（240 固定）+ 右侧日竖轮（垂直居中） */
+  const qrRow = document.createElement('div');
+  qrRow.className = 'nt-sync-qrrow';
 
   const canvas = document.createElement('canvas');
   canvas.className = 'nt-sync-qr';
-  main.appendChild(canvas);
+  qrRow.appendChild(canvas);
 
-  // 没有流水时的占位：同尺寸，保证「有码无码都不动」
+  // 没有流水时的占位：绝对定位盖住二维码，不改变布局尺寸
   const empty = document.createElement('div');
   empty.className = 'nt-sync-qr-empty';
   empty.textContent = '还没有可同步的流水';
   empty.hidden = true;
-  main.appendChild(empty);
+  qrRow.appendChild(empty);
 
-  const picker = document.createElement('div');
-  picker.className = 'nt-sync-picker';
-
-  const yearRow = document.createElement('div');
-  yearRow.className = 'nt-sync-year';
-  const prevMon = iconBtn('‹', () => shiftMonth(-1));
-  const yearLabel = document.createElement('span');
-  yearLabel.className = 'nt-sync-year-label';
-  const nextMon = iconBtn('›', () => shiftMonth(1));
-  yearRow.appendChild(prevMon);
-  yearRow.appendChild(yearLabel);
-  yearRow.appendChild(nextMon);
-  picker.appendChild(yearRow);
-
-  const wheel = buildWheel({
+  const dayWheel = buildWheel({
     maxDay: monthDays(),
     value: day,
     onChange: (d) => { day = d; rebuild(); },
   });
-  picker.appendChild(wheel.el);
-  main.appendChild(picker);
-  box.appendChild(main);
+  qrRow.appendChild(dayWheel.el);
+  box.appendChild(qrRow);
 
   const range = document.createElement('div');
   range.className = 'nt-sync-range';
@@ -163,18 +175,6 @@ function sectionWindow(ctx, base) {
   function md(s) { return String(s).slice(5).replace('-', '/'); }
   function flash(t) { msg.textContent = t; }
 
-  function paintMon() { yearLabel.textContent = year + '/' + pad(month + 1); }
-
-  function shiftMonth(d) {
-    month += d;
-    if (month < 0) { month = 11; year -= 1; }
-    if (month > 11) { month = 0; year += 1; }
-    day = Math.min(day, monthDays());
-    wheel.setMaxDay(monthDays());
-    paintMon();
-    rebuild();
-  }
-
   function zoom() {
     if (!canvas.dataset.url) return;
     // 主弹窗是 showModal 的 top layer，普通遮罩盖不过，放大也用 dialog
@@ -206,16 +206,18 @@ function sectionWindow(ctx, base) {
     const my = ++seq;
     const until = untilText();
 
-    canvas.style.display = 'none';
+    // 只藏内容、不藏元素：二维码始终占着 240×240，滚轮位置才不跳
+    canvas.style.visibility = 'hidden';
     empty.hidden = true;
-    empty.textContent = '还没有可同步的流水';
     canvas.dataset.url = '';
     range.textContent = '正在装码…';
     range.dataset.from = '';
     range.dataset.until = until;
 
     try {
-      const r = await fitWindow(ctx.getState(), { base, until, per: 200 });
+      const r = await fitWindow(ctx.getState(), {
+        base, until, per: 200, maxCount: MAX_COUNT,
+      });
       if (my !== seq) return;
 
       if (r.empty) {
@@ -226,7 +228,7 @@ function sectionWindow(ctx, base) {
       }
       if (r.tooDense) {
         empty.hidden = false;
-        empty.textContent = '最近一天的流水一张码都装不下';
+        empty.textContent = '一天的量就超过一张码';
         range.textContent = '改用下面的同步码发送';
         return;
       }
@@ -234,12 +236,12 @@ function sectionWindow(ctx, base) {
       const p = r.parts[0];
       canvas.dataset.url = p.url;
       const painted = paintText(canvas, p.url, 5);
-      canvas.style.display = painted.ok ? '' : 'none';
+      canvas.style.visibility = painted.ok ? '' : 'hidden';
       empty.hidden = painted.ok;
+      if (!painted.ok) empty.textContent = painted.error || '这张码装不下';
 
       range.dataset.from = r.from;
-      range.textContent = '包含 ' + md(r.from) + ' — ' + md(r.until)
-        + ' · ' + r.count + ' 笔';
+      range.textContent = '包含 ' + md(r.from) + ' — ' + md(r.until) + ' · ' + r.count + ' 笔';
       if (auto) ta.value = 'LZ1:' + String(p.url).split('#m=')[1];
     } catch (e) {
       if (my !== seq) return;
@@ -249,9 +251,22 @@ function sectionWindow(ctx, base) {
   }
 
   canvas.addEventListener('click', zoom);
-  paintMon();
   rebuild();
   return box;
+}
+
+/* ---------- 年月列表：当前月往前 24 个月 ---------- */
+
+function monthLabels(baseDate) {
+  const out = [];
+  const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+  d.setMonth(d.getMonth() - 24);
+  for (let i = 0; i <= 24; i += 1) {
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    out.push(d.getFullYear() + '/' + m);
+    d.setMonth(d.getMonth() + 1);
+  }
+  return out;
 }
 
 /* ---------- ③ 接收：窗口同步码（JSON）或 #m= 链接 ---------- */
@@ -284,15 +299,6 @@ async function receive(ctx, raw) {
 }
 
 /* ---------- 小工具 ---------- */
-
-function iconBtn(text, onClick) {
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.className = 'nt-btn nt-btn-icon';
-  b.textContent = text;
-  b.addEventListener('click', onClick);
-  return b;
-}
 
 function textBtn(text, onClick) {
   const b = document.createElement('button');

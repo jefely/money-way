@@ -98,7 +98,7 @@
 | `ui/share-block.js` | 二维码分享区块 |
 | `ui/suggest-popover.js` | 流水 tab / 查询 tab → 账户候选气泡 |
 | `ui/sync-dialog.js` | （未标注界面）同步弹窗（UI 层） |
-| `ui/sync-wheel.js` | 同步弹窗里的日期竖轮（手指上下拖，正中间那格生效） |
+| `ui/sync-wheel.js` | 同步弹窗里的滚轮（日 / 年月共用） |
 | `ui/table-layout.js` | 表格冻结列 + 列宽拖动 |
 | `ui/table.js` | 统计 / 查询 / 固定 / 设置 → 通用表格渲染 |
 | `ui/tabs.js` | 顶部 7 个 tab 切换 |
