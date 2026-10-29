@@ -13,7 +13,7 @@ import {
 } from '../core/state-store.js';
 import { createScheduled } from '../core/schema.js';
 import { buildFlowRows, buildFooterInfo } from '../ui/flow-model.js';
-import { renderRows } from '../ui/render-transactions.js';
+import { renderRows, patchRow } from '../ui/render-transactions.js';
 import { parseAccountInput, suggestAccounts as suggestByIndex, ensurePendingAccount } from '../core/account-resolver.js';
 import { bindRowEditing } from '../ui/row-editor.js';
 import * as NtModal from '../ui/modal.js';
@@ -29,6 +29,9 @@ const WIP = '该功能在后续版本接入（当前版本先做单页壳）。'
 
 export function mountFlow(section, ctx) {
   const body = section.querySelector('#nt-flow-body');
+  // 只在进入流水页的第一次 render 时滚到末尾；之后（建单/删除触发 render）
+  // 不再动滚动位置 —— 否则输入金额转正那一瞬间视图会跳（用户 2026-10-30）
+  let scrollInit = false;
 
   bindRowEditing(body, {
     onEdit,
@@ -235,7 +238,8 @@ export function mountFlow(section, ctx) {
     // 滚到「数据末尾」：最后一笔数据贴着视口底，40 行空行在它下面继续
     // （直接滚到 scrollHeight 的话，视口里全是空行，刚录的那笔反而看不见）
     const wrap = body.closest('.nt-tablewrap');
-    if (wrap) {
+    if (wrap && !scrollInit) {
+      scrollInit = true;
       const first = body.querySelector('tr');
       const rowH = first ? first.getBoundingClientRect().height || 34 : 34;
       wrap.scrollTop = Math.max(0, rows.length * rowH - wrap.clientHeight + rowH);
@@ -258,6 +262,12 @@ export function mountFlow(section, ctx) {
     } else {
       patch[field] = value;
     }
+
+    // 虚拟滚动的窗口快照也要更新，否则一滚动重建就显示旧值
+    if (field === 'note') patchRow(id, { note: value });
+    else if (field === 'date') patchRow(id, { dateEdit: value });
+    else if (field === 'amount') patchRow(id, { amountEdit: value });
+    else if (field === 'from' || field === 'to') patchRow(id, { [field]: value });
 
     ctx.setState(updateTransaction(ctx.getState(), id, patch));
     ctx.setFooter(footerText());

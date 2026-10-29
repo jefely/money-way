@@ -43,22 +43,18 @@ export function bindRowEditing(tbody, h) {
       else if (isSuggestFor(input) || String(input.value).trim().length >= 2) hideSuggest();
     }
 
-    if (tr.dataset.new === '1') return;   // 新增行等失焦再建单
+    if (tr.dataset.new === '1') {
+      // 单文件版的做法：金额一填就建单，行立即转正 → 之后输入（含备注）都直接进 state
+      if (input.dataset.field === 'amount' && String(input.value || '').trim()) createFromRow(tr);
+      return;
+    }
 
     const id = tr.dataset.id;
     if (!id) return;
     if (ACCOUNT_FIELDS.includes(field)) return;   // 账户格等解析完再提交
-    // 不边打边提交（每敲一字就存盘会打断输入法），但也别等失焦才提交：
-    // 流水表是虚拟滚动，滚走会重建行 —— 不提交的话，滚回来内容就"消失"了。
-    // 折中：空闲 400ms 提交一次，失焦时再立即补一次。
-    input.dataset.dirty = '1';
-    clearTimeout(input._ntSubmit);
-    input._ntSubmit = setTimeout(() => {
-      if (input.dataset.dirty !== '1') return;
-      input.dataset.dirty = '0';
-      const row = input.closest('tr');
-      if (row && row.dataset.id) h.onEdit(row.dataset.id, field, input.value);
-    }, 400);
+    // 恢复单文件版的做法：输入即写进 state（内存），不重建行；存盘由 ctx.save 防抖。
+    // 之前只在失焦时提交，虚拟滚动滚走重建行就会读回旧值 —— 备注"消失"就是这么来的。
+    h.onEdit(id, field, input.value);
   });
 
   /* ---------- 空格 / 回车 / 聚焦 ---------- */
@@ -114,31 +110,28 @@ export function bindRowEditing(tbody, h) {
       }
     }
 
-    if (tr.dataset.new !== '1') {
-      // 失焦统一提交本格（备注简码已在上一步换成文本）；新增行走下面的建单
-      clearTimeout(input._ntSubmit);
-      if (input.dataset.dirty === '1') {
-        input.dataset.dirty = '0';
-        if (tr.dataset.id) h.onEdit(tr.dataset.id, input.dataset.field, input.value);
-      }
-      return;
-    }
+    if (tr.dataset.new !== '1') return;   // 已有行走的是即时提交，这里不再补
 
     // 延迟一点，让"点候选"的 click 先发生
     setTimeout(() => {
       if (!document.body.contains(tr)) return;
       if (isSuggestFor(input)) return;
-      const fields = {};
-      tr.querySelectorAll('input[data-field]').forEach((el) => {
-        const v = String(el.value || '').trim();
-        if (v) fields[el.dataset.field] = v;
-      });
-      // 用户 2026-10-29：金额填了才真正建单（ID / 日期 / 序号到那一步才生成），
-      // 只填转出/转入的空行不算
-      if (!fields.amount) return;
-      h.onCreate(fields);
+      createFromRow(tr);
     }, 120);
   });
+
+  /** 新增行 → 建单：金额填了才真正生成（ID / 日期 / 序号到这一步才出现） */
+  function createFromRow(tr) {
+    if (!tr.isConnected) return false;
+    const fields = {};
+    tr.querySelectorAll('input[data-field]').forEach((el) => {
+      const v = String(el.value || '').trim();
+      if (v) fields[el.dataset.field] = v;
+    });
+    if (!fields.amount) return false;
+    h.onCreate(fields);
+    return true;
+  }
 
   /* ---------- 删除 ---------- */
   tbody.addEventListener('click', (ev) => {

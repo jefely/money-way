@@ -62,6 +62,17 @@ export function tpl(id) {
 
 let currentRows = [];
 let currentTbody = null;
+
+/**
+ * 行内编辑后同步这一行的「展示快照」。
+ *
+ * 虚拟滚动每次重建窗口都从 currentRows 取值；只更新 state、不更新它的话，
+ * 一滚动就会读回旧值（备注"消失"的真正原因，用户 2026-10-30）。
+ */
+export function patchRow(id, patch) {
+  const r = currentRows.find((x) => x && x.id === id);
+  if (r) Object.assign(r, patch);
+}
 let raf = 0;
 
 function getRowH() {
@@ -103,13 +114,6 @@ function bindScroll(tbody) {
 function renderWindow() {
   const tbody = currentTbody;
   if (!tbody) return;
-
-  // 重建前先把「正在编辑、还没提交」的格子提交掉：
-  // 虚拟滚动重建行时会从 state 读值，不先提交的话刚输入的内容会"消失"（用户 2026-10-29）
-  const ae = typeof document !== 'undefined' ? document.activeElement : null;
-  if (ae && ae.dataset && ae.dataset.dirty === '1' && tbody.contains(ae)) {
-    ae.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
-  }
 
   const rowTpl = tpl('tpl-flow-row');
   const newTpl = tpl('tpl-flow-new');
