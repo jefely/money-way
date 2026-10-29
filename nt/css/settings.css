@@ -88,11 +88,8 @@
   background-image: linear-gradient(rgba(107, 91, 196, 0.12), rgba(107, 91, 196, 0.12));
 }
 
-/* 冻结表头也叠一层和区域列标行一样的主题色（用户 2026-10-30） */
-.nt-table-accounts .nt-th {
-  position: relative;
-}
-
+/* 冻结表头也叠一层和区域列标行一样的主题色（用户 2026-10-30）。
+   不要给 .nt-th 写 position: relative —— 那会把 sticky 覆盖掉，表头就不吸顶了。 */
 .nt-table-accounts .nt-th::before {
   content: '';
   position: absolute;
