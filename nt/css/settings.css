@@ -182,16 +182,22 @@
   font-size: 13px;
 }
 
-/* 备注区（用户 2026-10-29）：独立于 A/B，标题用中性灰，不抢红绿 */
+/* 备注区（用户 2026-10-29）：独立于 A/B，标题用主题紫（和 A 绿 / B 红并列） */
 .nt-table-accounts tbody tr.nt-zone-note > td.nt-cell {
-  background-image: linear-gradient(rgba(120, 120, 140, 0.14), rgba(120, 120, 140, 0.14));
-  color: var(--nt-text-light);
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--nt-primary) 16%, transparent),
+    color-mix(in srgb, var(--nt-primary) 16%, transparent)
+  );
+  color: var(--nt-primary);
 }
 
 .nt-table-accounts tbody tr.nt-zone-note > td.nt-cell.nt-zone-tag {
-  background: linear-gradient(rgba(120, 120, 140, 0.14), rgba(120, 120, 140, 0.14))
+  background: linear-gradient(
+      color-mix(in srgb, var(--nt-primary) 16%, transparent),
+      color-mix(in srgb, var(--nt-primary) 16%, transparent)
+    )
     var(--nt-unit-bg, var(--nt-bg));
-  color: var(--nt-text-light);
+  color: var(--nt-primary);
 }
 
 .nt-zone-empty .nt-cell {
