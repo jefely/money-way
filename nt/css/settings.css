@@ -216,7 +216,8 @@
   display: flex;
   padding: 5px 8px;
   align-items: baseline;
-  justify-content: space-between;
+  /* 区域标题行整行居中（用户 2026-10-30） */
+  justify-content: center;
   gap: 12px;
   font-weight: 800;
   font-size: 12.5px;
@@ -242,9 +243,9 @@
   border-bottom: 1px solid var(--nt-bg-line);
 }
 
-/* 备注区标题：说明文字紧跟名称（A/B 的 space-between 会把它推到屏幕外） */
+/* 备注区标题：同样整行居中，说明紧跟名称 */
 .nt-zone-head.nt-zone-note .nt-zone-label {
-  justify-content: flex-start;
+  justify-content: center;
   gap: 10px;
 }
 
@@ -262,6 +263,11 @@
 }
 
 .nt-table-accounts td:nth-child(3) .nt-cell-input {
+  text-align: center;
+}
+
+/* 账户名称列居中（用户 2026-10-30） */
+.nt-table-accounts .nt-cell-input[data-field="name"] {
   text-align: center;
 }
 
