@@ -19,6 +19,7 @@ import { toAmount } from '../core/stats.js';
 import { addAccount, updateAccount, removeAccount, addTransaction } from '../core/state-store.js';
 import { normalizeCode, isValidCode, OPENING_ACCOUNT_ID } from '../core/schema.js';
 import { balanceOf } from '../core/balance-calculator.js';
+import { validate, issuesOf } from '../core/validator.js';
 
 const FIELDS = ['type', 'category', 'code', 'name', 'opening'];
 const TYPES = ['资产类', '负债类', '收入类', '权益类', '费用类'];
@@ -34,6 +35,29 @@ export function mountAccountTable(ctx, tbody, opts) {
   function render() {
     const state = ctx.getState();
     const visible = (state.accounts || []).filter((a) => a && !a.isHidden);
+
+    // 简码校验（V7）：缺简码 / 长度字符不合法 / 重复，都会在这里拿到 accountId。
+    // 只跑 accounts（不传 transactions），V7 不依赖流水。
+    const badCodes = new Map();
+    for (const it of issuesOf(validate({ accounts: visible }), 'V7')) {
+      const id = it.ref && it.ref.accountId;
+      if (id) badCodes.set(id, it.message);
+    }
+
+    // 重复简码两边都要标红：validator 只把「后出现」的那个报成 issue，
+    // 但用户看到一对其中的一个变红，会以为另一个没问题（2026-10-29）。
+    const codeGroups = new Map();
+    for (const a of visible) {
+      const c = normalizeCode(a.code);
+      if (!c) continue;
+      if (!codeGroups.has(c)) codeGroups.set(c, []);
+      codeGroups.get(c).push(a);
+    }
+    for (const [code, list] of codeGroups) {
+      if (list.length < 2) continue;
+      const names = list.map((a) => a.name || '(未命名)').join(' / ');
+      for (const a of list) badCodes.set(a.id, '简码「' + code + '」重复：' + names);
+    }
 
     tbody.textContent = '';
 
@@ -107,6 +131,17 @@ export function mountAccountTable(ctx, tbody, opts) {
         if (seq % 2 === 0) tr.classList.add('nt-row-even');
         setCell(tr, 'code', acc.code || '');
         setCell(tr, 'seq', seq);
+
+        // 简码有问题 → 输入框标红（title 里写原因：缺失 / 不合法 / 和谁重复）
+        if (badCodes.has(acc.id)) {
+          const codeInput = tr.querySelector('[data-field="code"]');
+          if (codeInput) {
+            codeInput.classList.add('nt-code-bad');
+            codeInput.title = badCodes.get(acc.id);
+            // 空格子没有字可标红，用占位符把「缺简码」直接写在格子里
+            if (!acc.code) codeInput.placeholder = '缺简码';
+          }
+        }
 
         const sel = tr.querySelector('[data-field="type"]');
         if (sel) sel.value = TYPES.includes(acc.type) ? acc.type : '资产类';

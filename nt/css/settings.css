@@ -210,3 +210,24 @@
   font-size: 11px;
   opacity: 0.85;
 }
+
+/* 简码校验不通过：红字 + 红色波浪下划线（设置页账户表）。
+   V7：缺简码 / 长度字符不合法 / 重复 —— 具体原因写在 input.title 里。 */
+.nt-table-accounts .nt-cell-input.nt-code-bad {
+  color: var(--nt-bad) !important;
+  font-weight: 800;
+  text-decoration: underline wavy var(--nt-bad);
+  text-underline-offset: 3px;
+}
+
+/* 空格子也要看得出来：红色内描边 + 「缺简码」占位符 */
+.nt-table-accounts .nt-cell-input.nt-code-bad {
+  box-shadow: inset 0 0 0 1px var(--nt-bad);
+}
+
+.nt-table-accounts .nt-cell-input.nt-code-bad::placeholder {
+  color: var(--nt-bad);
+  opacity: 0.9;
+  letter-spacing: 0;
+  font-size: 10px;
+}

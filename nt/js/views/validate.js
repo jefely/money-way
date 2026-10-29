@@ -8,7 +8,7 @@
  */
 
 import { balanceOf } from '../core/balance-calculator.js';
-import { validate } from '../core/validator.js';
+import { validate, issuesOf } from '../core/validator.js';
 import { money } from '../core/format.js';
 import { shareBlock } from '../ui/share-block.js';
 import { mountThanksWall } from '../ui/thanks-wall.js';
@@ -98,7 +98,7 @@ export function mountValidate(section, ctx) {
     for (const it of res.issues || []) byCode[it.code] = (byCode[it.code] || 0) + 1;
     const ok = (res.issues || []).length === 0;
 
-    host.appendChild(card(
+    const card3 = card(
       '③ 数据完整性',
       ok ? '账户表里的名字和流水里的名字全部对得上。' : `发现 ${res.issues.length} 个问题，见下方计数。`,
       ok,
@@ -110,7 +110,23 @@ export function mountValidate(section, ctx) {
         ['日期非法（V5）', String(byCode.V5 || 0)],
         ['简码问题（V7）', String(byCode.V7 || 0)],
       ],
-    ));
+    );
+
+    // 简码问题只有计数等于「没找到问题」—— 把具体是哪个账户、为什么列出来
+    // （重复简码只报后一个账户，前一行的简码同样会在设置页标红，两处一起看）。
+    const v7 = issuesOf(res, 'V7');
+    if (v7.length) {
+      const ul = document.createElement('ul');
+      ul.className = 'nt-issue-list';
+      for (const it of v7.slice(0, 6)) {
+        const li = document.createElement('li');
+        li.textContent = it.message;
+        ul.appendChild(li);
+      }
+      card3.appendChild(ul);
+    }
+
+    host.appendChild(card3);
   }
 
   function renderAbout() {

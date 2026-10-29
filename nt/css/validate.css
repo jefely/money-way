@@ -253,3 +253,12 @@
   font-size: 8px;
   vertical-align: top;
 }
+
+/* 简码问题明细（V7）：卡片里只给计数等于「没找到问题」，这里列出原因 */
+.nt-issue-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--nt-bad);
+}
