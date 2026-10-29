@@ -48,7 +48,8 @@ export function bindRowEditing(tbody, h) {
     const id = tr.dataset.id;
     if (!id) return;
     if (ACCOUNT_FIELDS.includes(field)) return;   // 账户格等解析完再提交
-    h.onEdit(id, field, input.value);
+    // 不边打边提交：每敲一个字都存盘会打断输入（备注格最明显，用户 2026-10-29 反馈）
+    input.dataset.dirty = '1';
   });
 
   /* ---------- 空格 / 回车 / 聚焦 ---------- */
@@ -104,7 +105,14 @@ export function bindRowEditing(tbody, h) {
       }
     }
 
-    if (tr.dataset.new !== '1') return;
+    if (tr.dataset.new !== '1') {
+      // 失焦统一提交本格（备注简码已在上一步换成文本）；新增行走下面的建单
+      if (input.dataset.dirty === '1') {
+        input.dataset.dirty = '0';
+        if (tr.dataset.id) h.onEdit(tr.dataset.id, input.dataset.field, input.value);
+      }
+      return;
+    }
 
     // 延迟一点，让"点候选"的 click 先发生
     setTimeout(() => {

@@ -22,7 +22,7 @@ export function renderNotes(ctx, rerender) {
   const notes = ctx.getState().notes || [];
 
   frag.appendChild(noteHead());
-  for (const note of notes) frag.appendChild(noteRow(ctx, note, rerender));
+  notes.forEach((note, i) => frag.appendChild(noteRow(ctx, note, i, rerender)));
   frag.appendChild(noteNewRow(ctx, rerender));
   return frag;
 }
@@ -57,7 +57,7 @@ function noteHead() {
 
 /* ---------- 三个单元格：简码 / 类型 / 内容 ---------- */
 
-function noteCells(note) {
+function noteCells(note, seqText) {
   const codeTd = document.createElement('td');
   codeTd.className = 'nt-cell nt-cell-code';
   const code = document.createElement('input');
@@ -68,6 +68,11 @@ function noteCells(note) {
   code.setAttribute('aria-label', '备注简码');
   code.value = note.code || '';
   codeTd.appendChild(code);
+
+  // 序号：每个区域从 1 开始；新增行显示「+」（用户 2026-10-29）
+  const seqTd = document.createElement('td');
+  seqTd.className = 'nt-cell nt-cell-seq';
+  seqTd.textContent = seqText;
 
   const typeTd = document.createElement('td');
   typeTd.className = 'nt-cell';
@@ -86,7 +91,7 @@ function noteCells(note) {
 
   const textTd = document.createElement('td');
   textTd.className = 'nt-cell';
-  textTd.colSpan = 6;
+  textTd.colSpan = 5;
   const text = document.createElement('input');
   text.className = 'nt-cell-input';
   text.type = 'text';
@@ -96,7 +101,7 @@ function noteCells(note) {
   text.value = note.text || '';
   textTd.appendChild(text);
 
-  return { codeTd, typeTd, textTd, code, sel, text };
+  return { codeTd, seqTd, typeTd, textTd, code, sel, text };
 }
 
 function noteActionTd() {
@@ -108,12 +113,12 @@ function noteActionTd() {
 
 /* ---------- 已有备注 ---------- */
 
-function noteRow(ctx, note, rerender) {
+function noteRow(ctx, note, index, rerender) {
   const tr = document.createElement('tr');
   tr.className = 'nt-row nt-note-row';
   tr.dataset.id = note.id;
 
-  const c = noteCells(note);
+  const c = noteCells(note, String(index + 1));
 
   c.code.addEventListener('change', () => {
     const v = normalizeCode(c.code.value);
@@ -152,6 +157,7 @@ function noteRow(ctx, note, rerender) {
   delTd.appendChild(del);
 
   tr.appendChild(c.codeTd);
+  tr.appendChild(c.seqTd);
   tr.appendChild(c.typeTd);
   tr.appendChild(c.textTd);
   tr.appendChild(delTd);
@@ -165,7 +171,7 @@ function noteNewRow(ctx, rerender) {
   tr.className = 'nt-row nt-row-new';
   tr.dataset.new = '2';
 
-  const c = noteCells({ __new: true, type: NOTE_TYPES[0], text: '' });
+  const c = noteCells({ __new: true, type: NOTE_TYPES[0], text: '' }, '+');
 
   const tryCreate = () => {
     if (!tr.isConnected) return;
@@ -187,6 +193,7 @@ function noteNewRow(ctx, rerender) {
   }
 
   tr.appendChild(c.codeTd);
+  tr.appendChild(c.seqTd);
   tr.appendChild(c.typeTd);
   tr.appendChild(c.textTd);
   tr.appendChild(noteActionTd());

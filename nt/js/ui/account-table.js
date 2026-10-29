@@ -64,10 +64,10 @@ export function mountAccountTable(ctx, tbody, opts) {
 
     const rowTpl = tpl('tpl-account-row');
     const frag = document.createDocumentFragment();
-    let seq = 0;
-
     for (const zone of ZONES) {
       const inZone = visible.filter((a) => zone.types.indexOf(a.type) >= 0);
+      // 序号每个区域从 1 开始（用户 2026-10-29）
+      let zoneSeq = 0;
 
       // 区域标题行拆成两格（v1.73）：
       //   ① 第 1 格住在**冻结的简码列**里，只放区号 A / B ——
@@ -125,12 +125,12 @@ export function mountAccountTable(ctx, tbody, opts) {
         const tr = rowTpl.cloneNode(true);
         tr.dataset.id = acc.id;
 
-        seq += 1;
+        zoneSeq += 1;
         // 斑马纹按**数据行序号**打类：区域标题行（A/B）不参与序号，
         // 用 nth-child 会被标题行挤得隔行错位（用户 2026-10-29 反馈）。
-        if (seq % 2 === 0) tr.classList.add('nt-row-even');
+        if (zoneSeq % 2 === 0) tr.classList.add('nt-row-even');
         setCell(tr, 'code', acc.code || '');
-        setCell(tr, 'seq', seq);
+        setCell(tr, 'seq', zoneSeq);
 
         // 简码有问题 → 输入框标红（title 里写原因：缺失 / 不合法 / 和谁重复）
         if (badCodes.has(acc.id)) {
