@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NT账本 · 感谢墙管理</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f6f4fb; --card: #fff; --line: #e3ddf2; --text: #241d3d; --muted: #6b6483; --pri: #6b5bc4; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14101f; --card: #1b1630; --line: #2f2751; --text: #ece8f7; --muted: #9d95bb; --pri: #8b6cff; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 26px 16px 60px; font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  label { display: block; font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+  textarea { width: 100%; min-height: 150px; padding: 9px 11px; font: 13px/1.55 ui-monospace, Consolas, monospace; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 8px; outline: none; resize: vertical; }
+  textarea:focus { border-color: var(--pri); }
+  button { font: inherit; font-weight: 600; cursor: pointer; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--pri); }
+  button:hover { border-color: var(--pri); }
+  button.primary { background: var(--pri); border-color: var(--pri); color: #fff; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .hint { font-size: 12.5px; color: var(--muted); margin-top: 8px; line-height: 1.75; }
+  .m0 { margin: 0; }
+  .lh19 { line-height: 1.9; }
+  .hint code { background: color-mix(in srgb, var(--pri) 12%, transparent); padding: 1px 5px; border-radius: 4px; }
+  .ok { color: #2f7d4f; font-weight: 600; }
+  .err { color: #b8433f; font-weight: 600; }
+  .qr { width: 132px; height: 132px; object-fit: contain; background: #fff; border-radius: 8px; border: 1px solid var(--line); }
+  .imgs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .thumb { position: relative; width: 64px; height: 64px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #fff; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb button { position: absolute; top: 0; right: 0; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 0; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; line-height: 18px; }
+  #out { min-height: 120px; background: color-mix(in srgb, var(--pri) 7%, transparent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>感谢墙 · 管理界面</h1>
+  <div class="sub">编辑名单 / 收款码 / PNG → 生成加密的 <code>thanks.enc.json</code> → 替换仓库里的同名文件。</div>
+
+  <div class="card">
+    <label>① 收款码（可选，PNG）</label>
+    <div class="row">
+      <button type="button" id="pick-qr">选择 PNG</button>
+      <button type="button" id="drop-qr">移除</button>
+      <span id="qr-name" class="hint m0"></span>
+    </div>
+    <div class="row"><img id="qr-preview" class="qr" alt="" hidden></div>
+    <div class="hint">不设就只显示感谢墙，不显示收款码。</div>
+  </div>
+
+  <div class="card">
+    <label>② 名单（一行一个名字）</label>
+    <textarea id="names" placeholder="NT&#10;jefely&#10;可爱的|宝贝"></textarea>
+    <div class="hint">
+      名字里写 <code>|</code> 就按你切的位置断行（<code>可爱的|宝贝</code> → 两行）；不写则自动断行。<br>
+      想让人名那一行往右挪一点，在行首加空格。
+    </div>
+    <div class="row">
+      <button type="button" id="pick-img">添加 PNG 图片</button>
+      <span id="cnt" class="hint m0">0 个名字 · 0 张图片</span>
+    </div>
+    <div class="imgs" id="imgs"></div>
+  </div>
+
+  <div class="card">
+    <label>③ 生成 / 载入</label>
+    <div class="row">
+      <button type="button" class="primary" id="btn-enc">加密并生成</button>
+      <button type="button" id="btn-load">从仓库载入当前名单</button>
+      <button type="button" id="btn-copy">复制</button>
+      <button type="button" id="btn-dl">下载 thanks.enc.json</button>
+    </div>
+    <textarea id="out" readonly placeholder="生成后这里是要提交的内容"></textarea>
+    <div class="hint" id="msg"></div>
+  </div>
+
+  <div class="card">
+    <label>怎么用</label>
+    <div class="hint lh19">
+      1. 生成后点「下载 thanks.enc.json」；<br>
+      2. 用它替换仓库里的 <code>nt/thanks.enc.json</code>（GitHub 网页上传或 git 提交都行）；<br>
+      3. 提交后，用户打开「校验 → 赞助感谢」会自动拉取并解密；离线时用上一次的缓存。<br>
+      <br>
+      <b>关于加密</b>：密钥内置在 <code>nt/js/ui/thanks-wall.js</code> 里，这是纯静态站点，
+      所以本质是<b>混淆</b>——挡得住随手查看，挡不住铁了心的人。
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var namesEl = $('names'), outEl = $('out'), msgEl = $('msg'), cntEl = $('cnt'), imgsEl = $('imgs');
+  var qr = '';            // dataURL
+  var images = [];        // [{ name, data }]
+
+  /* 与 nt/js/ui/thanks-wall.js 的 secret() 保持一致 */
+  function secret() {
+    return 'nt' + String.fromCharCode(45, 103, 119) + (2025).toString(36) + 'thanks';
+  }
+
+  function b64(bytes) {
+    var s = '';
+    for (var i = 0; i < bytes.length; i += 1) s += String.fromCharCode(bytes[i]);
+    return btoa(s);
+  }
+  function unb64(str) {
+    var bin = atob(str), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  async function deriveKey(salt, usage) {
+    var base = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret()), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: salt, iterations: 100000, hash: 'SHA-256' },
+      base, { name: 'AES-GCM', length: 256 }, false, usage
+    );
+  }
+
+  function names() {
+    return namesEl.value.split(/\r?\n/).map(function (s) { return s.replace(/\s+$/, ''); }).filter(function (s) { return s.trim(); });
+  }
+  function updateCount() {
+    cntEl.textContent = names().length + ' 个名字 · ' + images.length + ' 张图片';
+  }
+
+  function renderImages() {
+    imgsEl.innerHTML = '';
+    images.forEach(function (im, i) {
+      var box = document.createElement('span');
+      box.className = 'thumb';
+      var img = document.createElement('img');
+      img.src = im.data; img.alt = im.name || 'png';
+      var del = document.createElement('button');
+      del.type = 'button'; del.textContent = '×'; del.title = '移除';
+      del.onclick = function () { images.splice(i, 1); renderImages(); updateCount(); };
+      box.appendChild(img); box.appendChild(del);
+      imgsEl.appendChild(box);
+    });
+  }
+
+  function readPng(file) {
+    return new Promise(function (resolve, reject) {
+      var isPng = file.type === 'image/png' || /\.png$/i.test(file.name || '');
+      if (!isPng) { reject(new Error('只支持 PNG')); return; }
+      if (file.size > 1024 * 1024) { reject(new Error('单张 PNG 不要超过 1MB')); return; }
+      var fr = new FileReader();
+      fr.onload = function () { resolve(String(fr.result || '')); };
+      fr.onerror = function () { reject(new Error('读不出来')); };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  function pickFiles(multiple, cb) {
+    var inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = 'image/png,.png';
+    if (multiple) inp.multiple = true;
+    inp.style.display = 'none';
+    document.body.appendChild(inp);   // 必须进文档，否则某些浏览器 / 自动化拿不到 change
+    inp.onchange = function () {
+      var files = [].slice.call(inp.files || []);
+      inp.remove();
+      Promise.all(files.map(function (f) {
+        return readPng(f).then(function (url) { return { name: f.name, data: url }; }).catch(function (e) {
+          msgEl.className = 'hint err'; msgEl.textContent = (f.name || '') + '：' + e.message;
+          return null;
+        });
+      })).then(function (list) { cb(list.filter(Boolean)); });
+    };
+    inp.click();
+  }
+
+  $('pick-qr').onclick = function () {
+    pickFiles(false, function (list) {
+      if (!list.length) return;
+      qr = list[0].data;
+      $('qr-preview').src = qr;
+      $('qr-preview').hidden = false;
+      $('qr-name').textContent = list[0].name;
+      msgEl.className = 'hint'; msgEl.textContent = '';
+    });
+  };
+  $('drop-qr').onclick = function () {
+    qr = ''; $('qr-preview').hidden = true; $('qr-preview').src = ''; $('qr-name').textContent = '';
+  };
+  $('pick-img').onclick = function () {
+    pickFiles(true, function (list) {
+      images = images.concat(list);
+      renderImages(); updateCount();
+    });
+  };
+  namesEl.addEventListener('input', updateCount);
+
+  $('btn-enc').onclick = async function () {
+    var list = names();
+    if (!qr && !list.length && !images.length) {
+      msgEl.className = 'hint err'; msgEl.textContent = '名单、图片、收款码都是空的。';
+      return;
+    }
+    msgEl.className = 'hint'; msgEl.textContent = '加密中…';
+    try {
+      var donors = list.map(function (n) { return { n: n }; });
+      images.forEach(function (im) { donors.push({ img: im.data }); });
+      var payload = { qr: qr, donors: donors };
+      var salt = crypto.getRandomValues(new Uint8Array(16));
+      var iv = crypto.getRandomValues(new Uint8Array(12));
+      var key = await deriveKey(salt, ['encrypt']);
+      var ct = new Uint8Array(await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv: iv }, key, new TextEncoder().encode(JSON.stringify(payload))
+      ));
+      outEl.value = JSON.stringify({ v: 1, salt: b64(salt), iv: b64(iv), ct: b64(ct) }, null, 2) + '\n';
+      msgEl.className = 'hint ok';
+      msgEl.textContent = '生成成功：' + list.length + ' 个名字 + ' + images.length + ' 张图片'
+        + (qr ? ' + 收款码' : '') + '。下载后替换 nt/thanks.enc.json。';
+    } catch (e) {
+      msgEl.className = 'hint err'; msgEl.textContent = '失败：' + e.message;
+    }
+  };
+
+  $('btn-copy').onclick = async function () {
+    if (!outEl.value) { msgEl.className = 'hint err'; msgEl.textContent = '还没生成内容。'; return; }
+    try {
+      await navigator.clipboard.writeText(outEl.value);
+      msgEl.className = 'hint ok'; msgEl.textContent = '已复制。';
+    } catch (e) {
+      outEl.select(); document.execCommand('copy');
+      msgEl.className = 'hint ok'; msgEl.textContent = '已复制。';
+    }
+  };
+
+  $('btn-dl').onclick = function () {
+    if (!outEl.value) { msgEl.className = 'hint err'; msgEl.textContent = '还没生成内容。'; return; }
+    var blob = new Blob([outEl.value], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'thanks.enc.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  };
+
+  $('btn-load').onclick = async function () {
+    msgEl.className = 'hint'; msgEl.textContent = '读取中…';
+    try {
+      var res = await fetch('./thanks.enc.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var box = await res.json();
+      var key = await deriveKey(unb64(box.salt), ['decrypt']);
+      var pt = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: unb64(box.iv) }, key, unb64(box.ct)
+      );
+      var obj = JSON.parse(new TextDecoder().decode(pt));
+      qr = obj.qr || '';
+      $('qr-preview').src = qr;
+      $('qr-preview').hidden = !qr;
+      $('qr-name').textContent = qr ? '（已载入）' : '';
+      var namesArr = [];
+      images = [];
+      (obj.donors || []).forEach(function (d) {
+        if (!d) return;
+        if (d.img) images.push({ name: 'remote.png', data: d.img });
+        else if (d.n) namesArr.push(d.n);
+      });
+      namesEl.value = namesArr.join('\n');
+      renderImages(); updateCount();
+      msgEl.className = 'hint ok';
+      msgEl.textContent = '已载入：' + namesArr.length + ' 个名字 + ' + images.length + ' 张图片'
+        + (qr ? ' + 收款码' : '') + '。';
+    } catch (e) {
+      msgEl.className = 'hint err';
+      msgEl.textContent = '载入失败：' + e.message + '（仓库里还没有名单，或文件格式不对）';
+    }
+  };
+
+  updateCount();
+})();
+</script>
+</body>
+</html>

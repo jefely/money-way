@@ -260,7 +260,7 @@ Tab：`账本说明 | 账本校验 | 赞助感谢`
 
 底部小字：`对不上的名称 0 个 · 单边 0 笔`
 
-### 7.1 赞助感谢 · 感谢墙（v1.82：远程加密名单）
+### 7.1 赞助感谢 · 感谢墙（v1.82 起：远程加密名单）
 
 站长维护一份**加密名单**放在仓库里，用户打开软件时自动拉取、解密、显示：
 
@@ -269,6 +269,16 @@ Tab：`账本说明 | 账本校验 | 赞助感谢`
 _tools/thanks.plain.json  --加密-->  nt/thanks.enc.json
   { qr, donors:[…] }                   { v, salt, iv, ct }（base64）
 ```
+
+**管理界面**（v1.84 加）：`nt/thanks-admin.html`
+
+- 本地 `http://127.0.0.1:8080/nt/thanks-admin.html`
+- 线上 `https://jefely.github.io/money-way/nt/thanks-admin.html`
+- 功能：编辑名单（一行一个）、添加 PNG 图片（多选，缩略图可删）、选收款码、
+  「从仓库载入当前名单」（用内置密钥解密回填）、生成加密 JSON、复制 / 下载
+  `thanks.enc.json`。生成后替换仓库里的同名文件即可，用户端下次打开自动生效。
+
+也可以用命令行：`node _tools/thanks_encrypt.mjs`（读 `_tools/thanks.plain.json`）。
 
 - **加密**：`PBKDF2-SHA256(100000) → AES-GCM-256`，密钥内置在 `ui/thanks-wall.js`
   的 `secret()`（拆段拼接）—— 只防「随手看明文 / 随手改」，不是密码学秘密
