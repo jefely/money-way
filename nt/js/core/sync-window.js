@@ -86,3 +86,45 @@ export async function fitWindow(state, opts) {
   const count = (bestR.parts || []).reduce((s, p) => s + (p.count || 0), 0);
   return { from, until, days: spanDays(from, until), parts: bestR.parts || [], count };
 }
+
+/** 前一天（YYYY-MM-DD）；到 1970-01-01 之前返回空 */
+function dayBefore(date) {
+  const d = new Date(String(date) + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return '';
+  d.setDate(d.getDate() - 1);
+  const y = d.getFullYear();
+  if (y < 1971) return '';
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+}
+
+/**
+ * 把 [base, until] 整段历史切成若干页，每页一张能扫的码（用户 2026-10-30）。
+ *
+ * 每页沿用 fitWindow 的容量口径（一张码 / 最多 maxCount 笔），
+ * 从 until 往前翻页：页 N 的 from 前一天就是页 N+1 的 until。
+ * 返回的 pages 按时间从早到晚排列（页码 1 = 最早的一页）。
+ *
+ * @returns {Promise<Array<{from:string,until:string,count:number,url:string}>>}
+ */
+export async function paginate(state, opts) {
+  const o = opts || {};
+  const base = String(o.base || '');
+  const maxCount = Math.max(1, Number(o.maxCount) || 70);
+
+  const pages = [];
+  let until = String(o.until || '');
+  for (let guard = 0; guard < 500; guard += 1) {
+    const r = await fitWindow(state, { base, until, per: 200, maxCount });
+    if (r.empty || r.tooDense) break;
+    const p = (r.parts || [])[0];
+    if (!p || !p.url) break;
+
+    pages.unshift({ from: r.from, until: r.until, count: r.count, url: p.url });
+    const prev = dayBefore(r.from);
+    if (!prev) break;
+    until = prev;
+  }
+  return pages;
+}
