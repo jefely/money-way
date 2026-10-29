@@ -90,6 +90,8 @@ export function mountStats(section, ctx) {
           },
         });
       }
+      // 每组自动跟一行合计：格式固定为 tpl-stat-total（序+分类合并格 + 6 个金额列）。
+      // 新出现的类型/分类走的是同一条路径，不需要手工加行（用户 2026-10-30）。
       items.push({
         tplId: 'tpl-stat-total',
         data: {
