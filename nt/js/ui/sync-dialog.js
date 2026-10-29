@@ -12,7 +12,7 @@
 
 import * as NtModal from './modal.js';
 import { decodeSyncCode, unpackFromHash } from '../core/sync-code.js';
-import { paginate } from '../core/sync-window.js';
+import { fitWindow } from '../core/sync-window.js';
 import { paintText } from './qr-canvas.js';
 import { buildWheel } from './sync-wheel.js';
 
@@ -58,7 +58,7 @@ function sectionWindow(ctx, base) {
 
   const tip = document.createElement('p');
   tip.className = 'nt-sync-hint';
-  tip.textContent = '一张码最多装 ' + MAX_COUNT + ' 笔；整段历史按页切开，右侧翻页。';
+  tip.textContent = '选截止日：一张码最多装 ' + MAX_COUNT + ' 笔。';
   box.appendChild(tip);
 
   /* 年月：水平滚轮，在二维码上方居中 */
@@ -77,6 +77,8 @@ function sectionWindow(ctx, base) {
       if (!y || !m) return;
       year = y;
       month = m - 1;
+      day = Math.min(day, monthDays());
+      dayWheel.setMaxDay(monthDays());
       rebuild();
     },
   });
@@ -98,10 +100,12 @@ function sectionWindow(ctx, base) {
   empty.hidden = true;
   qrRow.appendChild(empty);
 
-  // 右侧：页码竖列（每页一张码，点一下切换；用户 2026-10-30 的布局）
-  const pageCol = document.createElement('div');
-  pageCol.className = 'nt-sync-pages';
-  qrRow.appendChild(pageCol);
+  const dayWheel = buildWheel({
+    maxDay: monthDays(),
+    value: day,
+    onChange: (d) => { day = d; rebuild(); },
+  });
+  qrRow.appendChild(dayWheel.el);
   box.appendChild(qrRow);
 
   const range = document.createElement('div');
@@ -167,7 +171,7 @@ function sectionWindow(ctx, base) {
   function pad(n) { return String(n).padStart(2, '0'); }
   function ymd(y, m, d) { return y + '-' + pad(m + 1) + '-' + pad(d); }
   function monthDays() { return new Date(year, month + 1, 0).getDate(); }
-  function untilText() { return ymd(year, month, monthDays()); }
+  function untilText() { return ymd(year, month, Math.min(day, monthDays())); }
   function md(s) { return String(s).slice(5).replace('-', '/'); }
   function flash(t) { msg.textContent = t; }
 
@@ -198,51 +202,11 @@ function sectionWindow(ctx, base) {
     flash('已保存图片');
   }
 
-  let pagesList = [];
-  let cur = 0;
-
-  /** 画当前页的码，并同步页码高亮 / 区间文字 / 同步码文本 */
-  function paintPage() {
-    const p = pagesList[cur];
-    if (!p) {
-      canvas.style.visibility = 'hidden';
-      canvas.dataset.url = '';
-      empty.hidden = false;
-      empty.textContent = '这一段没有流水';
-      return;
-    }
-    canvas.dataset.url = p.url;
-    const painted = paintText(canvas, p.url, 5);
-    canvas.style.visibility = painted.ok ? '' : 'hidden';
-    empty.hidden = painted.ok;
-    if (!painted.ok) empty.textContent = painted.error || '这张码装不下';
-
-    range.dataset.from = p.from;
-    range.dataset.until = p.until;
-    range.textContent = '第 ' + (cur + 1) + '/' + pagesList.length + ' 页 · 包含 '
-      + md(p.from) + ' — ' + md(p.until) + ' · ' + p.count + ' 笔';
-    if (auto) ta.value = 'LZ1:' + String(p.url).split('#m=')[1];
-    [...pageCol.children].forEach((b, i) => b.setAttribute('aria-current', i === cur ? 'true' : 'false'));
-  }
-
-  function renderPages() {
-    pageCol.textContent = '';
-    pagesList.forEach((p, i) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'nt-sync-page';
-      b.textContent = String(i + 1);
-      b.title = md(p.from) + ' — ' + md(p.until) + ' · ' + p.count + ' 笔';
-      b.addEventListener('click', () => { cur = i; paintPage(); });
-      pageCol.appendChild(b);
-    });
-  }
-
   async function rebuild() {
     const my = ++seq;
     const until = untilText();
 
-    // 只藏内容、不藏元素：二维码始终占着 240×240，布局才不跳
+    // 只藏内容、不藏元素：二维码始终占着 240×240，滚轮位置才不跳
     canvas.style.visibility = 'hidden';
     empty.hidden = true;
     canvas.dataset.url = '';
@@ -251,22 +215,34 @@ function sectionWindow(ctx, base) {
     range.dataset.until = until;
 
     try {
-      const pages = await paginate(ctx.getState(), { base, until, maxCount: MAX_COUNT });
+      const r = await fitWindow(ctx.getState(), {
+        base, until, per: 200, maxCount: MAX_COUNT,
+      });
       if (my !== seq) return;
 
-      pagesList = pages;
-      if (!pages.length) {
-        pageCol.textContent = '';
+      if (r.empty) {
         empty.hidden = false;
-        empty.textContent = '这一段没有流水';
-        range.textContent = '换个年月试试';
+        range.textContent = '这一段没有流水，换个日期试试';
         if (auto) ta.value = '';
         return;
       }
+      if (r.tooDense) {
+        empty.hidden = false;
+        empty.textContent = '一天的量就超过一张码';
+        range.textContent = '改用下面的同步码发送';
+        return;
+      }
 
-      cur = pages.length - 1;   // 默认显示最新那一页
-      renderPages();
-      paintPage();
+      const p = r.parts[0];
+      canvas.dataset.url = p.url;
+      const painted = paintText(canvas, p.url, 5);
+      canvas.style.visibility = painted.ok ? '' : 'hidden';
+      empty.hidden = painted.ok;
+      if (!painted.ok) empty.textContent = painted.error || '这张码装不下';
+
+      range.dataset.from = r.from;
+      range.textContent = '包含 ' + md(r.from) + ' — ' + md(r.until) + ' · ' + r.count + ' 笔';
+      if (auto) ta.value = 'LZ1:' + String(p.url).split('#m=')[1];
     } catch (e) {
       if (my !== seq) return;
       empty.hidden = false;
