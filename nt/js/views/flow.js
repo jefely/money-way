@@ -31,7 +31,7 @@ export function mountFlow(section, ctx) {
   const body = section.querySelector('#nt-flow-body');
   // 只在进入流水页的第一次 render 时滚到末尾；之后（建单/删除触发 render）
   // 不再动滚动位置 —— 否则输入金额转正那一瞬间视图会跳（用户 2026-10-30）
-  let scrollInit = false;
+  let scrollInit = false; let lastRowCount = 0;
 
   bindRowEditing(body, {
     onEdit,
@@ -234,15 +234,17 @@ export function mountFlow(section, ctx) {
       window.__tlError = String(e && e.message || e);
     }
     const rows = buildFlowRows(st, virtual);
-    renderRows(body, rows);
+    renderRows(body, rows); lastRowCount = rows.length;
     // 滚到「数据末尾」：最后一笔数据贴着视口底，40 行空行在它下面继续
     // （直接滚到 scrollHeight 的话，视口里全是空行，刚录的那笔反而看不见）
     const wrap = body.closest('.nt-tablewrap');
     if (wrap && !scrollInit) {
       scrollInit = true;
+      // 用户 2026-10-30：把最后一条有内容的行放在视口第 6 行 ——
+      // 打开就能看到最后 6 行内容，下面全是可输入的空行。
       const first = body.querySelector('tr');
       const rowH = first ? first.getBoundingClientRect().height || 34 : 34;
-      wrap.scrollTop = Math.max(0, rows.length * rowH - wrap.clientHeight + rowH);
+      wrap.scrollTop = Math.max(0, (rows.length - 6) * rowH);
     }
     ctx.setFooter(footerText());
   }
@@ -303,7 +305,18 @@ export function mountFlow(section, ctx) {
     ctx.save();
   }
 
-  return { render };
+  /** 切回流水页时用：把最后一条有内容的行放到视口第 6 行（用户 2026-10-30） */
+  function focusEnd() {
+    const wrap = body.closest('.nt-tablewrap');
+    if (!wrap) return;
+    const first = body.querySelector('tr');
+    const rowH = first ? first.getBoundingClientRect().height || 34 : 34;
+    // 用总数据行数（不是 DOM 里窗口内渲染了几行），虚拟滚动下后者只是可视区
+    const n = lastRowCount;
+    wrap.scrollTop = Math.max(0, (n - 6) * rowH);
+  }
+
+  return { render, focusEnd };
 }
 
 /* ---------- 工具条 ---------- */

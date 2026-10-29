@@ -253,6 +253,8 @@ function enterApp() {
       document.body.classList.remove('nt-col-resizing');
       active = name;
       renderActive();
+      // 切回流水页：最后一条有内容的行落在视口第 6 行（用户 2026-10-30）
+      if (name === 'flow' && views.flow && views.flow.focusEnd) views.flow.focusEnd();
     },
   });
 
