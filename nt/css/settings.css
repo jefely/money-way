@@ -360,3 +360,14 @@
 .nt-picker-item:hover {
   background: var(--nt-bg-soft);
 }
+
+/* 未分类账户区：中性灰，不抢 A 绿 / B 红（用户 2026-10-30） */
+.nt-table-accounts tbody tr.nt-zone-u > td.nt-cell {
+  background-image: linear-gradient(rgba(120, 120, 140, 0.16), rgba(120, 120, 140, 0.16));
+  color: var(--nt-text);
+}
+
+.nt-table-accounts tbody tr.nt-zone-u > td.nt-cell.nt-zone-tag {
+  background: linear-gradient(rgba(120, 120, 140, 0.16), rgba(120, 120, 140, 0.16))
+    var(--nt-unit-bg, var(--nt-bg));
+}

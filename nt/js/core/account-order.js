@@ -9,12 +9,14 @@
  */
 
 import { ZONES } from './settings.js';
+import { OPENING_ACCOUNT_ID } from './schema.js';
 
 const B_TYPES = (ZONES.find((z) => z.key === 'B') || {}).types || [];
 
 /** 这个账户属于哪个区（未知类型默认 A） */
 export function zoneKeyOf(acc) {
   const type = String((acc && acc.type) || '').trim();
+  if (!type) return 'U';   // 类型为空 = 未分类（含自动补建的账户）
   return B_TYPES.indexOf(type) >= 0 ? 'B' : 'A';
 }
 
@@ -63,4 +65,23 @@ export function moveWithinType(accounts, id) {
   list[i] = list[j];
   list[j] = acc;
   return { moved: true, accounts: list };
+}
+
+/**
+ * 流水里引用了、设置表里没有的账户 → 补一个 type/category 都为空的壳，
+ * 落在 U 区「未分类账户」（用户 2026-10-30）。只补壳、不动流水。
+ */
+export function withUndefinedAccounts(state) {
+  const known = new Set((state.accounts || []).map((a) => a.id));
+  const missing = [];
+  for (const t of state.transactions || []) {
+    for (const id of [t.from_id, t.to_id]) {
+      if (id && id !== OPENING_ACCOUNT_ID && !known.has(id) && missing.indexOf(id) < 0) missing.push(id);
+    }
+  }
+  if (!missing.length) return state;
+  const extra = missing.map((id) => ({
+    id, code: '', name: '', type: '', category: '', isHidden: false,
+  }));
+  return { ...state, accounts: [...(state.accounts || []), ...extra] };
 }

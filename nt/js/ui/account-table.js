@@ -17,7 +17,7 @@ import { ZONES } from '../core/settings.js';
 import { money } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
 import { addAccount, updateAccount, removeAccount, addTransaction, addNote, updateNote, removeNote, NOTE_TYPES, accountTypesOf } from '../core/state-store.js';
-import { accountsOfZone, orderBySeq, nextSeqFor, effectiveSeq, moveWithinType } from '../core/account-order.js';
+import { accountsOfZone, orderBySeq, nextSeqFor, effectiveSeq, moveWithinType, withUndefinedAccounts } from '../core/account-order.js';
 import { bindTypePicker, promptType } from './type-picker.js';
 import { zoneCols } from './table-parts.js';
 import { normalizeCode, isValidCode, OPENING_ACCOUNT_ID } from '../core/schema.js';
@@ -38,7 +38,11 @@ export function mountAccountTable(ctx, tbody, opts) {
   const o = opts || {};
 
   function render() {
-    const state = ctx.getState();
+    let state = ctx.getState();
+    // 自动扫描：流水里引用了、设置表里没有的账户 → 补一个「未分类账户」行
+    // （类型/分类留空，归到 U 区；流水是主表，这里只是给它一个可编辑的壳）
+    const filled = withUndefinedAccounts(state);
+    if (filled !== state) { ctx.setState(filled); state = filled; ctx.saveNow(); }
     const visible = (state.accounts || []).filter((a) => a && !a.isHidden);
 
     // 简码校验（V7）：缺简码 / 长度字符不合法 / 重复，都会在这里拿到 accountId。
@@ -84,7 +88,7 @@ export function mountAccountTable(ctx, tbody, opts) {
       // 一横滚标题就整行滑走。
       {
         const head = document.createElement('tr');
-        head.className = 'nt-zone-head ' + (zone.key === 'A' ? 'nt-zone-a' : 'nt-zone-b');
+        head.className = 'nt-zone-head ' + (zone.key === 'A' ? 'nt-zone-a' : zone.key === 'B' ? 'nt-zone-b' : 'nt-zone-u');
 
         const tag = document.createElement('td');
         tag.className = 'nt-cell nt-zone-cell nt-zone-tag';
