@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.129';
+const CACHE_NAME = 'nt-v1.130';
 
 const ASSETS = [
   './index.html',
@@ -89,6 +89,7 @@ const ASSETS = [
   './js/core/table-cols.js',
   './js/core/validate.js',
   './js/core/validator.js',
+  './js/core/vault-rekey.js',
   './js/core/version.js',
   './js/graph/mw-depth.js',
   './js/graph/mw-data-fetcher.js',

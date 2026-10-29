@@ -79,3 +79,76 @@ test('坏文件要报错，不能当成空账本导进来', async () => {
     /transactions/,
   );
 });
+
+/* ---------- 单文件版的计划：fixed + installments ----------
+   这两条是 2026-10-30 补的。在那之前只读 `scheduled`，而单文件版根本不导出 `scheduled` ——
+   从单文件版导一份 .lz 过来，账户和流水都在、固定收支与分期全部静默消失。 */
+
+const LEGACY_PLAN = {
+  v: 3,
+  accounts: [
+    { code: 'ZHC', name: '招行储7912', cat: '资产类', sub: '储蓄', opening: 0 },
+    { code: 'XY', name: '招行信用卡', cat: '负债类', sub: '信用', opening: 0 },
+  ],
+  transactions: [],
+  fixed: [
+    { freq: 'month', day: 5, from: '招行储7912', to: '水', amount: 30, note: '水费' },
+    { freq: 'day', day: '', from: '招行储7912', to: '水', amount: 2, note: '通勤' },
+  ],
+  installments: [{
+    name: '招行信用卡',
+    principal: 1200,
+    billDay: 5,
+    repayDay: 20,
+    cells: { '2610': { p: 100, i: 5 }, '2611': { p: 100, i: 5 } },
+  }],
+  installState: { from: 2610, to: 2645 },
+};
+
+test('单文件版的 fixed → scheduled（频率 / 几号 / 账户 / 金额都要对）', () => {
+  const built = stateFromLzPayload(LEGACY_PLAN);
+  const list = built.state.scheduled || [];
+
+  assert.equal(built.stats.scheduled, 3, '两条固定 + 一条分期');
+  assert.equal(built.stats.lostScheduled, 0);
+
+  const byNote = (t) => list.find((s) => s.note === t && !s.inst);
+  const water = byNote('水费');
+  assert.ok(water, '每月那条没搬过来');
+  assert.equal(water.freq, 'monthly');
+  assert.equal(water.day, 5);
+  assert.equal(water.amount, 30);
+  assert.ok(water.from_id, '转出账户要按名字对上');
+  assert.equal(water.to_id, null, '「水」不在账户表里，就该留空而不是乱指一个');
+
+  const daily = byNote('通勤');
+  assert.ok(daily);
+  assert.equal(daily.freq, 'daily');
+});
+
+test('单文件版的 installments → inst（期数 / 首月 / 本金 / 利息按矩阵反推）', () => {
+  const built = stateFromLzPayload(LEGACY_PLAN);
+  const inst = (built.state.scheduled || []).find((s) => s.inst);
+
+  assert.ok(inst, '分期没搬过来');
+  assert.equal(inst.inst.periods, 2, '有值的月份数 = 期数');
+  assert.equal(inst.inst.firstMonth, '2026-10', '首个有值的月份');
+  assert.equal(inst.inst.principal, 200, '本金 = 各期 p 之和');
+  assert.equal(inst.inst.interest, 10, '利息 = 各期 i 之和');
+  assert.equal(inst.billDay, 5);
+  assert.equal(inst.day, 20, 'repayDay 落在 day 上');
+  assert.ok(inst.to_id, '「哪张卡」落到 to_id');
+});
+
+test('分期账户名对不上 → 计入 lostScheduled，不静默消失', () => {
+  const payload = {
+    ...LEGACY_PLAN,
+    installments: [{
+      name: '不存在的卡', principal: 100, billDay: 1, repayDay: 2,
+      cells: { '2610': { p: 100, i: 0 } },
+    }],
+  };
+  const built = stateFromLzPayload(payload);
+  assert.equal(built.stats.lostScheduled, 1);
+  assert.equal(built.state.scheduled.filter((s) => s.inst).length, 0);
+});
