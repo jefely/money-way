@@ -43,11 +43,7 @@ export function bindRowEditing(tbody, h) {
       else if (isSuggestFor(input) || String(input.value).trim().length >= 2) hideSuggest();
     }
 
-    if (tr.dataset.new === '1') {
-      // 单文件版的做法：金额一填就建单，行立即转正 → 之后输入（含备注）都直接进 state
-      if (input.dataset.field === 'amount' && String(input.value || '').trim()) createFromRow(tr);
-      return;
-    }
+    if (tr.dataset.new === '1') return;   // 新增行：等失焦（点其它格 / 点序号列）再建单
 
     const id = tr.dataset.id;
     if (!id) return;
