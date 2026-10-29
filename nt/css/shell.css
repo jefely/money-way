@@ -311,6 +311,21 @@ body {
   color: var(--nt-text);
 }
 
+/* 分类表的合计标题（资产类合计 / 负债类合计…）住在冻结的「序」格里，
+   横滚时一直可见（用户 2026-10-30）。序格只有 44px，标题会往右溢出到
+   空的「分类」格上 —— 所以要放开 overflow，并把层级抬到分类列之上。 */
+.nt-table-stats .nt-row-total .nt-cell:nth-child(1) {
+  overflow: visible;
+  white-space: nowrap;
+  text-align: left;
+  z-index: 5;
+  background: var(--nt-bg-soft);
+}
+
+.nt-table-stats .nt-row-total .nt-cell:nth-child(2) {
+  background: transparent;
+}
+
 /* ============================================================
    冻结列
    ------------------------------------------------------------
