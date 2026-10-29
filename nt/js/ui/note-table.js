@@ -113,7 +113,6 @@ function noteCells(note, seqText) {
   type.dataset.field = 'ntype';
   type.setAttribute('aria-label', '备注类型');
   type.setAttribute('list', 'nt-note-type-list');
-  type.placeholder = note.__new ? '类型' : '';
   type.value = note.type || '';
   typeTd.appendChild(type);
 
@@ -124,7 +123,6 @@ function noteCells(note, seqText) {
   keyword.type = 'text';
   keyword.dataset.field = 'nkeyword';
   keyword.setAttribute('aria-label', '关键字');
-  keyword.placeholder = note.__new ? '关键字' : '';
   keyword.value = note.keyword || '';
   keyTd.appendChild(keyword);
 
@@ -136,7 +134,6 @@ function noteCells(note, seqText) {
   text.type = 'text';
   text.dataset.field = 'ntext';
   text.setAttribute('aria-label', '备注内容');
-  text.placeholder = note.__new ? '成员归属 / 项目说明' : '';
   text.value = note.text || '';
   textTd.appendChild(text);
 
