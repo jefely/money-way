@@ -296,7 +296,9 @@ export function mountFlow(section, ctx) {
 
     // 还没填金额 = 用户只是先把账户名写上了（自由录入：想在哪个空行写就在哪行写）。
     // 这时只把账户登记进设置表，不建一笔金额为空的流水。
-    if (!normalizeAmountInput(fields.amount || '')) { ctx.setState(s); ctx.save(); render(); return; }
+    // 这里**绝不能 render()** —— 一重建整表，用户刚打进去的名字就被清空，
+    // 看起来就是「输入的未建档账户自动消失」（用户 2026-10-30 报的正是这个）。
+    if (!normalizeAmountInput(fields.amount || '')) { ctx.setState(s); ctx.save(); return; }
 
     // 建单要重建整表；先把滚动位置记下来，重建后放回去 ——
     // 否则在末尾空行里敲金额，整页会跳回第一行（用户 2026-10-30）
