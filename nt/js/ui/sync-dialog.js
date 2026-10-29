@@ -16,6 +16,7 @@
 import * as NtModal from './modal.js';
 import { packForQr, decodeSyncCode, unpackFromHash, QR_PER_PART } from '../core/sync-code.js';
 import { paintText } from './qr-canvas.js';
+import { buildWheel } from './sync-wheel.js';
 
 /** 往前倒推几天：3 表示窗口 [D-3, D]（4 个日历日，跨度 3 天） */
 const SPAN_DAYS = 3;
@@ -46,8 +47,8 @@ export function openSyncDialog(ctx) {
 
 function sectionWindow(ctx, base) {
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();          // 0-based
+  let year = now.getFullYear();
+  let month = now.getMonth();          // 0-based
   let day = now.getDate();
 
   const box = document.createElement('section');
@@ -62,6 +63,18 @@ function sectionWindow(ctx, base) {
   tip.className = 'nt-sync-hint';
   tip.textContent = '以 ' + SPAN_DAYS + ' 天为单位生成一张码。改日期会重新生成二维码和下面的同步码。';
   box.appendChild(tip);
+
+  /* 月份切换：竖轮只列当月天数，没本月数据时切到上个月 */
+  const monRow = document.createElement('div');
+  monRow.className = 'nt-sync-monrow';
+  const prevMon = btn('‹', () => shiftMonth(-1));
+  const monLabel = document.createElement('span');
+  monLabel.className = 'nt-sync-mon';
+  const nextMon = btn('›', () => shiftMonth(1));
+  monRow.appendChild(prevMon);
+  monRow.appendChild(monLabel);
+  monRow.appendChild(nextMon);
+  box.appendChild(monRow);
 
   const range = document.createElement('div');
   range.className = 'nt-sync-range';
@@ -82,8 +95,12 @@ function sectionWindow(ctx, base) {
   empty.hidden = true;
   qrRow.appendChild(empty);
 
-  const wheel = buildWheel();
-  qrRow.appendChild(wheel);
+  const wheel = buildWheel({
+    maxDay: monthDays(),
+    value: day,
+    onChange: (d) => { day = d; rebuild(); },
+  });
+  qrRow.appendChild(wheel.el);
   box.appendChild(qrRow);
 
   const pager = document.createElement('div');
@@ -131,103 +148,19 @@ function sectionWindow(ctx, base) {
   function untilText() { return ymd(year, month, Math.min(day, monthDays())); }
   function shortDate(s) { return s.slice(5).replace('-', ' / '); }
 
-  /**
-   * 日期竖轮：手指上下拖动，正中间那一格就是生效的日期。
-   * 只列本月的 1..当月天数；松手吸附到最近一格，变化时重建二维码与同步码。
-   */
-  function buildWheel() {
-    const maxDay = monthDays();
-    const ITEM_H = 32;
-    const H = ITEM_H * 5;          // 可见 5 格
+  function paintMon() {
+    monLabel.textContent = year + ' / ' + pad(month + 1);
+  }
 
-    const wrap = document.createElement('div');
-    wrap.className = 'nt-sync-wheel';
-    wrap.style.height = H + 'px';
-    wrap.setAttribute('role', 'spinbutton');
-    wrap.setAttribute('aria-label', '窗口结束日（上下拖动选择）');
-
-    const track = document.createElement('div');
-    track.className = 'nt-sync-wheel-track';
-    for (let d = 1; d <= maxDay; d += 1) {
-      const it = document.createElement('div');
-      it.className = 'nt-sync-wheel-item';
-      it.style.height = ITEM_H + 'px';
-      it.textContent = String(d);
-      track.appendChild(it);
-    }
-    wrap.appendChild(track);
-
-    const center = document.createElement('div');
-    center.className = 'nt-sync-wheel-center';
-    center.style.top = (H / 2 - ITEM_H / 2) + 'px';
-    center.style.height = ITEM_H + 'px';
-    wrap.appendChild(center);
-
-    let index = Math.min(day, maxDay) - 1;
-    let offset = 0;
-    let drag = null;
-
-    const target = (i) => H / 2 - ITEM_H / 2 - i * ITEM_H;
-
-    function paint(anim) {
-      track.style.transition = anim ? 'transform .18s ease-out' : 'none';
-      track.style.transform = 'translateY(' + offset + 'px)';
-    }
-    function markActive() {
-      for (let i = 0; i < track.children.length; i += 1) {
-        track.children[i].classList.toggle('on', i === index);
-      }
-    }
-
-    function setIndex(i, anim) {
-      index = Math.max(0, Math.min(maxDay - 1, i));
-      offset = target(index);
-      paint(anim);
-      markActive();
-      if (index + 1 !== day) {
-        day = index + 1;
-        rebuild();
-      }
-    }
-
-    wrap.addEventListener('pointerdown', (ev) => {
-      if (ev.pointerType === 'mouse' && ev.button !== 0) return;
-      ev.preventDefault();
-      drag = { y: ev.clientY, o: offset, moved: false, id: ev.pointerId };
-      try { wrap.setPointerCapture(ev.pointerId); } catch (e) { /* 合成事件 */ }
-      track.style.transition = 'none';
-    });
-
-    wrap.addEventListener('pointermove', (ev) => {
-      if (!drag || drag.id !== ev.pointerId) return;
-      const dy = ev.clientY - drag.y;
-      if (Math.abs(dy) > 4) drag.moved = true;
-      offset = drag.o + dy;
-      paint(false);
-    });
-
-    function finish(ev) {
-      if (!drag) return;
-      const d = drag;
-      drag = null;
-      try { wrap.releasePointerCapture(d.id); } catch (e) { /* 忽略 */ }
-
-      if (!d.moved && ev && ev.type === 'pointerup') {
-        // 点按：点哪一格就把哪一格转到中间
-        const r = wrap.getBoundingClientRect();
-        const rel = ev.clientY - (r.top + r.height / 2);
-        setIndex(index + Math.round(rel / ITEM_H), true);
-        return;
-      }
-      setIndex(Math.round((H / 2 - ITEM_H / 2 - offset) / ITEM_H), true);
-    }
-
-    wrap.addEventListener('pointerup', finish);
-    wrap.addEventListener('pointercancel', finish);
-    offset = target(index);
-    paint(false);
-    markActive();
-    return wrap;
+  /** 切月份：竖轮只列当月天数，没本月数据时切到上个月 */
+  function shiftMonth(d) {
+    month += d;
+    if (month < 0) { month = 11; year -= 1; }
+    if (month > 11) { month = 0; year += 1; }
+    day = Math.min(day, monthDays());
+    wheel.setMaxDay(monthDays());
+    paintMon();
+    rebuild();
   }
 
   function stepPart(d) {
@@ -289,6 +222,7 @@ function sectionWindow(ctx, base) {
     }
   }
 
+  paintMon();
   rebuild();
   return box;
 }

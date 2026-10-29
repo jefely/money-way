@@ -677,6 +677,23 @@ body.nt-col-resizing {
   background: linear-gradient(transparent, var(--nt-bg));
 }
 
+/* 月份切换（竖轮只列当月天数） */
+.nt-sync-monrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.nt-sync-mon {
+  min-width: 74px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--nt-text);
+  font-variant-numeric: tabular-nums;
+}
+
 .nt-sync-range {
   margin-bottom: 8px;
   font-size: 12px;
