@@ -45,10 +45,11 @@ export function mountAccountTable(ctx, tbody, opts) {
     if (filled !== state) { ctx.setState(filled); state = filled; ctx.saveNow(); }
     const visible = (state.accounts || []).filter((a) => a && !a.isHidden);
 
-    // 简码校验（V7）：缺简码 / 长度字符不合法 / 重复，都会在这里拿到 accountId。
-    // 只跑 accounts（不传 transactions），V7 不依赖流水。
+    // 简码校验（V7）：**缺简码不标**（用户 2026-10-30：简码只是高频录入的快捷键，
+    // 空着不影响统计）；只有重复 / 长度字符不合法才标出来。
     const badCodes = new Map();
     for (const it of issuesOf(validate({ accounts: visible }), 'V7')) {
+      if (String(it.message || '').indexOf('缺少简码') >= 0) continue;
       const id = it.ref && it.ref.accountId;
       if (id) badCodes.set(id, it.message);
     }
@@ -151,7 +152,7 @@ export function mountAccountTable(ctx, tbody, opts) {
             codeInput.classList.add('nt-code-bad');
             codeInput.title = badCodes.get(acc.id);
             // 空格子没有字可标红，用占位符把「缺简码」直接写在格子里
-            if (!acc.code) codeInput.placeholder = '缺简码';
+            // 简码是可选的高频录入快捷键：没有就不写占位提示（用户 2026-10-30）
           }
         }
 
