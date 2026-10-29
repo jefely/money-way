@@ -38,14 +38,18 @@ test('简码归一化：去空白、转大写', () => {
   assert.equal(normalizeCode(null), '');
 });
 
-test('简码合法性：2~5 位字母/数字', () => {
+test('简码合法性：1~5 位、任意字符', () => {
   assert.equal(isValidCode('JH'), true);
   assert.equal(isValidCode('JHC'), true);
   assert.equal(isValidCode('ABCDE'), true);
-  assert.equal(isValidCode('A'), false, '1 位太短');
+  assert.equal(isValidCode('A'), true, '1 位合法（2026-10-29 起）');
+  assert.equal(isValidCode('交'), true, '中文一个字也合法');
+  assert.equal(isValidCode('交行'), true, '任意字符');
+  assert.equal(isValidCode('#'), true, '符号也合法');
   assert.equal(isValidCode('ABCDEF'), false, '6 位太长');
-  assert.equal(isValidCode('交行'), false, '必须是字母/数字');
-  assert.equal(CODE_MIN_LEN, 2);
+  assert.equal(isValidCode(''), false, '空不合法');
+  assert.equal(isValidCode('   '), false, '只有空格 = 空');
+  assert.equal(CODE_MIN_LEN, 1);
   assert.equal(CODE_MAX_LEN, 5);
 });
 
@@ -92,6 +96,17 @@ test('解析：简码优先于名字', () => {
 
   const r3 = resolveAccount(idx, '不存在的');
   assert.equal(r3.acc, null);
+});
+
+test('解析：1 位简码也能精确命中（2026-10-29 起）', () => {
+  const list = accounts().concat([
+    { id: 'acc_q', code: 'Q', name: '单字', type: ACCOUNT_TYPE.ASSET, category: '' },
+    { id: 'acc_cn', code: '交', name: '中文单字', type: ACCOUNT_TYPE.EXPENSE, category: '' },
+  ]);
+  const idx = buildAccountIndex(list);
+  assert.equal(resolveAccount(idx, 'q').acc.id, 'acc_q', '不区分大小写');
+  assert.equal(resolveAccount(idx, '交').acc.id, 'acc_cn', '中文单字简码');
+  assert.equal(parseAccountInput(idx, 'Q').display, '单字');
 });
 
 test('解析：模拟「用户只打了简码就回车」→ 回填真实名', () => {
@@ -144,7 +159,8 @@ test('V7：缺简码 / 重复简码 / 长度不合法 都会报', () => {
     { id: 'a', code: 'AB', name: '甲', type: '资产类' },
     { id: 'b', code: 'ab', name: '乙', type: '资产类' },
     { id: 'c', code: '', name: '丙', type: '资产类' },
-    { id: 'd', code: 'X', name: '丁', type: '资产类' },
+    // 1 位现在合法了（2026-10-29），长度不合法改用 6 位
+    { id: 'd', code: 'ABCDEF', name: '丁', type: '资产类' },
   ];
   const r = validate({ accounts: bad, transactions: [] });
   const v7 = issuesOf(r, 'V7');

@@ -124,7 +124,7 @@ function addFlow(o) {
   NtModal.prompt('新增账户', '', (name) => {
     const n = String(name || '').trim();
     if (!n) return false;
-    NtModal.prompt(`「${n}」的简码（2~5 位，可留空自动生成）`, '', (code) => {
+    NtModal.prompt(`「${n}」的简码（1~5 位，任意字符，可留空自动生成）`, '', (code) => {
       Promise.resolve(o.onAdd({ name: n, code: String(code || '').trim(), category: '未分类' }))
         .then(o.onRefresh);
       return true;

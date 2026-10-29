@@ -46,8 +46,8 @@ export const OPENING_ACCOUNT = {
   isHidden: true,
 };
 
-/** 简码长度约束（2~5，不区分大小写，统一存大写） */
-export const CODE_MIN_LEN = 2;
+/** 简码长度约束（1~5，不区分大小写，统一存大写） */
+export const CODE_MIN_LEN = 1;
 export const CODE_MAX_LEN = 5;
 
 /** 简码归一化：去空白 → 转大写。空串返回空串，不做别的猜测。 */
@@ -55,11 +55,13 @@ export function normalizeCode(raw) {
   return String(raw == null ? '' : raw).replace(/\s+/g, '').toUpperCase();
 }
 
-/** 简码是否合法（长度 2~5，只允许字母数字与 _ -） */
+/**
+ * 简码是否合法：**1~5 位、任意字符**（用户 2026-10-29 指定 —— 中文、符号都行）。
+ * 空白会被 normalizeCode 去掉，所以「只有空格」等于空串、判不合法。
+ */
 export function isValidCode(raw) {
   const c = normalizeCode(raw);
-  if (c.length < CODE_MIN_LEN || c.length > CODE_MAX_LEN) return false;
-  return /^[A-Z0-9_-]+$/.test(c);
+  return c.length >= CODE_MIN_LEN && c.length <= CODE_MAX_LEN;
 }
 
 /** 数据结构版本（迁移用） */
