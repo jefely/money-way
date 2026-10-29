@@ -67,6 +67,13 @@
    自绘小三角也去掉 —— 用户 2026-10-29 指定「隐藏下拉三角形」）。
    appearance:none 只是把「看起来像下拉」去掉，select 还是 select：
    点格子任意位置照样弹出选择器，键盘也能选。 */
+/* 原生下拉的选项：显式给底色/文字色。深色主题下不设的话，弹层可能是系统白底，
+   而选项文字继承了页面的浅色文字，看起来就是「看不清」（用户 2026-10-30）。 */
+.nt-table-accounts select.nt-cell-input option {
+  background: var(--nt-bg);
+  color: var(--nt-text);
+}
+
 .nt-table-accounts select.nt-cell-input {
   padding-right: 0;
   text-align-last: center;

@@ -16,6 +16,7 @@ import { openAccountsWith } from './ui/account-actions.js';
 import { hasVault, createVault, unlockVault, saveState, destroyVault } from './browser/db.js';
 import * as NtModal from './ui/modal.js';
 import { migrate } from './core/migrate.js';
+import { syncOpeningDates } from './core/ledger-stats.js';
 import { createState, addAccount } from './core/state-store.js';
 import { buildAccountIndex } from './core/account-index.js';
 import { ACCOUNT_TYPE } from './core/schema.js';
@@ -188,7 +189,7 @@ function seedState() {
 
 function adoptState(raw) {
   if (!raw || !Array.isArray(raw.transactions)) return seedState();
-  return migrate(raw).state;
+  return syncOpeningDates(migrate(raw).state);
 }
 
 /** 表元素 → TABLE_COLS 的 key（统计表按当前视图判：分类 / 汇总各一套列宽） */

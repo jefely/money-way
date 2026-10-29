@@ -12,7 +12,7 @@
 
 import { tpl } from './render-transactions.js';
 import { setCell, moneyOrBlank } from './table.js';
-import { openingOf } from '../core/ledger-stats.js';
+import { openingOf, syncOpeningDates } from '../core/ledger-stats.js';
 import { ZONES } from '../core/settings.js';
 import { money } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
@@ -297,7 +297,8 @@ export function mountAccountTable(ctx, tbody, opts) {
         seq: 0,
       });
     }
-    ctx.setState(s);
+    // 期初日期统一对齐到「最早流水前一天 23:59:59」（用户 2026-10-30）
+    ctx.setState(syncOpeningDates(s));
   }
 
   function bindNewRow(tr, zone) {

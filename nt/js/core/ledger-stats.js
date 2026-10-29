@@ -181,6 +181,41 @@ export function openingOf(state, id) {
 }
 
 /**
+ * 期初日期：账本里最早一笔流水的前一天 23:59:59 —— 保证期初永远排在第一笔之前
+ * （用户 2026-10-30 指定的「最早流水之前 1 秒」）。没有流水时沿用 2000-01-01。
+ */
+export function openingDateFor(txs) {
+  let first = '';
+  for (const t of txs || []) {
+    if (!t || t.opening) continue;
+    const d = String(t.date || '').slice(0, 10);
+    if (!d) continue;
+    if (!first || d < first) first = d;
+  }
+  if (!first) return '2000-01-01';
+
+  const dt = new Date(first + 'T00:00:00');
+  dt.setDate(dt.getDate() - 1);
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const d = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}T23:59:59`;
+}
+
+/** 把全部期初流水的日期对齐到 openingDateFor（没有变化就原样返回） */
+export function syncOpeningDates(state) {
+  const txs = (state && state.transactions) || [];
+  const date = openingDateFor(txs);
+  let changed = false;
+  const next = txs.map((t) => {
+    if (!t || !t.opening || t.date === date) return t;
+    changed = true;
+    return { ...t, date };
+  });
+  return changed ? { ...state, transactions: next } : state;
+}
+
+/**
  * 本月的起止日期（账户表的「当期」口径）。
  * @param {Date} [now] 便于测试注入
  */

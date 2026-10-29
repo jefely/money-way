@@ -17,6 +17,7 @@
  */
 
 import { shortDate } from './format.js';
+import { syncOpeningDates } from './ledger-stats.js';
 import { parseLedgerText } from './import-parser.js';
 import { addTransaction, idOf, nextSeq } from './state-store.js';
 import { createAccount, normalizeCode, indexAccounts, OPENING_ACCOUNT_ID } from './schema.js';
@@ -171,7 +172,7 @@ export function replaceLedgerFromText(state, text) {
   }
 
   return {
-    state: s,
+    state: syncOpeningDates(s),
     accountsAdded: work.added,
     accountsUpdated: work.updated,
     txAdded,
@@ -206,7 +207,7 @@ export function appendLedgerFromText(state, text) {
   }
 
   return {
-    state: s,
+    state: syncOpeningDates(s),
     accountsAdded: work.added,
     accountsUpdated: work.updated,
     txAdded: added,

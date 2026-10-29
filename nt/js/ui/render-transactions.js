@@ -148,9 +148,9 @@ function renderWindow() {
     // 滚动时深色条纹会「往下滑一下」（用户实测到的跳动）。
     if (i % 2 === 1) tr.classList.add('nt-row-even');
     if (r.isOpening) {
-      // 期初行：日期显示长横线、不可编辑、不能删除；序号照常显示
+      // 期初行：日期显示「最早流水前一天」（用户 2026-10-30：之前 1 秒），不可编辑、不能删除
       setText(tr, CLASS.seq, String(r.seq));
-      setInput(tr, 'date', '—');
+      setInput(tr, 'date', String(r.date || '').slice(0, 10) || '—');
       const d = tr.querySelector('[data-field="date"]');
       if (d) d.readOnly = true;
       const act = tr.querySelector('.' + CLASS.action);
