@@ -256,6 +256,15 @@
   opacity: 1;
 }
 
+/* 类型列：账户表（资产类…）和备注区（成员…）都整列居中（用户 2026-10-30） */
+.nt-table-accounts td:nth-child(3) {
+  text-align: center;
+}
+
+.nt-table-accounts td:nth-child(3) .nt-cell-input {
+  text-align: center;
+}
+
 /* 备注内容：整行文本，左对齐读起来才顺（账户表的控件默认居中） */
 .nt-table-accounts .nt-cell-input[data-field="ntext"] {
   text-align: left;
