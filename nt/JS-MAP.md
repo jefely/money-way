@@ -45,6 +45,7 @@
 | `core/stats.js` | （无界面）统计计算 |
 | `core/sync-code.js` | （未标注界面）跨设备同步码与二维码载荷（纯函数） |
 | `core/sync-merge.js` | （未标注界面）合并远端记录（纯函数） |
+| `core/sync-window.js` | （无界面）同步窗口自适应：一张码能装多少天就装多少天 |
 | `core/table-cols.js` | （无界面）每张表各自的列与默认列宽 |
 | `core/validate.js` | （无界面）账本校验 V1–V7 |
 | `core/validator.js` | （无界面）校验工具 |

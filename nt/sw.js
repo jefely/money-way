@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.89';
+const CACHE_NAME = 'nt-v1.90';
 
 const ASSETS = [
   './index.html',
@@ -84,6 +84,7 @@ const ASSETS = [
   './js/core/stats.js',
   './js/core/sync-code.js',
   './js/core/sync-merge.js',
+  './js/core/sync-window.js',
   './js/core/table-cols.js',
   './js/core/validate.js',
   './js/core/validator.js',

@@ -1,31 +1,26 @@
 /**
  * 同步弹窗（UI 层）
  *
- * 按「3 天一张」的窗口同步（用户 2026-10-29 定的设计）：
- *   默认窗口 = 今天往前倒推 3 天 → 今天（含两端）。
- *   日期可改：输入 6 = 本月 6 号结束，窗口 3 号 ~ 6 号。
- *   每改一次日期，二维码和下面的可复制同步码一起重算。
+ * 设计（用户 2026-10-29 重定）：
+ *   ① 自适应窗口：选一个截止日，从这天往前按**天**装流水，装到一张码满为止
+ *      （fitWindow 二分找最大的可行窗口；最后一天装不下就整天不要）。
+ *      二维码固定 220×220 靠左；右侧竖轮选「日」，上面的年份右缘与竖轮右缘对齐；
+ *      下方一行写明「包含 9/5 — 9/9 · N 笔」，再跟「保存二维码图片」。
+ *   ② 一个文本框打通复制与接收：复制 / 清空 / 粘贴 / 同步 四个按钮。
  *
- * 两条通道：
- *   ① 二维码：base + '#m=…'，另一台设备用系统相机扫 → 打开网页自动合并缺的流水。
- *   ② 同步码：同一窗口的 `LZ1:…` 文本，微信发过去、粘贴回来即可。
- *
- * 编解码全在 core/sync-code.js（有 16 条测试），本文件只管界面。
+ * 编解码在 core/sync-code.js、窗口自适应在 core/sync-window.js，本文件只管界面。
  */
 
 import * as NtModal from './modal.js';
-import { packForQr, decodeSyncCode, unpackFromHash } from '../core/sync-code.js';
+import { decodeSyncCode, unpackFromHash } from '../core/sync-code.js';
+import { fitWindow } from '../core/sync-window.js';
 import { paintText } from './qr-canvas.js';
 import { buildWheel } from './sync-wheel.js';
 
-/** 往前倒推几天：3 表示窗口 [D-3, D]（4 个日历日，跨度 3 天） */
-const SPAN_DAYS = 3;
-
 /**
  * @param {{
- *   getState:Function, setState:Function, save?:Function, setFooter?:Function,
- *   mergeRows:(rows:Array)=>number,
- *   mergeText:(text:string)=>number,
+ *   getState:Function, setFooter?:Function, save?:Function,
+ *   mergeRows:(rows:Array)=>number, mergeText:(text:string)=>number,
  *   baseUrl?:string
  * }} ctx
  */
@@ -35,120 +30,141 @@ export function openSyncDialog(ctx) {
 
   NtModal.open({
     title: '同步账本',
-    build: (body) => {
-      body.appendChild(sectionWindow(ctx, base));
-      body.appendChild(sectionReceive(ctx));
-    },
+    build: (body) => { body.appendChild(sectionWindow(ctx, base)); },
     actions: [{ label: '关闭', kind: 'ghost', close: true }],
   });
 }
 
-/* ---------- ① 窗口二维码 + ② 同步码 ---------- */
+/* ---------- ① 二维码 + 日期竖轮 + ② 同步码 / 接收 ---------- */
 
 function sectionWindow(ctx, base) {
   const now = new Date();
   let year = now.getFullYear();
   let month = now.getMonth();          // 0-based
   let day = now.getDate();
+  let auto = true;                     // 文本框内容还是自动填的？
+  let seq = 0;
 
   const box = document.createElement('section');
   box.className = 'nt-sync-block';
 
   const h = document.createElement('div');
   h.className = 'nt-sync-title';
-  h.textContent = '① 扫码同步（' + SPAN_DAYS + ' 天一张）';
+  h.textContent = '① 扫码同步（自适应天数）';
   box.appendChild(h);
 
   const tip = document.createElement('p');
   tip.className = 'nt-sync-hint';
-  tip.textContent = '以 ' + SPAN_DAYS + ' 天为单位生成一张码。改日期会重新生成二维码和下面的同步码。';
+  tip.textContent = '选一个截止日：从这天往前按天装流水，一张码装满为止（装不下的那天整天不要）。';
   box.appendChild(tip);
 
-  /* 日期行：左边写完整日期，右边是月份切换（紧挨着日选择的竖轮） */
-  const dateRow = document.createElement('div');
-  dateRow.className = 'nt-sync-daterow';
-
-  const dates = document.createElement('span');
-  dates.className = 'nt-sync-dates';
-
-  const monWrap = document.createElement('span');
-  monWrap.className = 'nt-sync-monwrap';
-  const prevMon = btn('‹', () => shiftMonth(-1));
-  const monLabel = document.createElement('span');
-  monLabel.className = 'nt-sync-mon';
-  const nextMon = btn('›', () => shiftMonth(1));
-  monWrap.appendChild(prevMon);
-  monWrap.appendChild(monLabel);
-  monWrap.appendChild(nextMon);
-
-  dateRow.appendChild(dates);
-  dateRow.appendChild(monWrap);
-  box.appendChild(dateRow);
-
-  /* 二维码 + 右侧的日期竖轮（手指上下拖动，中间那格是生效的日期） */
-  const qrRow = document.createElement('div');
-  qrRow.className = 'nt-sync-qrrow';
+  /* 二维码（固定 220，靠左）+ 日期竖轮（日）+ 年份（右缘对齐竖轮） */
+  const main = document.createElement('div');
+  main.className = 'nt-sync-main';
 
   const canvas = document.createElement('canvas');
   canvas.className = 'nt-sync-qr';
-  qrRow.appendChild(canvas);
+  main.appendChild(canvas);
 
-  // 窗口内没有流水时，用同样大小的占位块说明原因（不要留一块空白让人以为坏了）
+  // 没有流水时的占位：同尺寸，保证「有码无码都不动」
   const empty = document.createElement('div');
   empty.className = 'nt-sync-qr-empty';
-  empty.textContent = '这 3 天没有流水';
+  empty.textContent = '还没有可同步的流水';
   empty.hidden = true;
-  qrRow.appendChild(empty);
+  main.appendChild(empty);
+
+  const picker = document.createElement('div');
+  picker.className = 'nt-sync-picker';
+
+  const yearRow = document.createElement('div');
+  yearRow.className = 'nt-sync-year';
+  const prevMon = iconBtn('‹', () => shiftMonth(-1));
+  const yearLabel = document.createElement('span');
+  yearLabel.className = 'nt-sync-year-label';
+  const nextMon = iconBtn('›', () => shiftMonth(1));
+  yearRow.appendChild(prevMon);
+  yearRow.appendChild(yearLabel);
+  yearRow.appendChild(nextMon);
+  picker.appendChild(yearRow);
 
   const wheel = buildWheel({
     maxDay: monthDays(),
     value: day,
     onChange: (d) => { day = d; rebuild(); },
   });
-  qrRow.appendChild(wheel.el);
-  box.appendChild(qrRow);
+  picker.appendChild(wheel.el);
+  main.appendChild(picker);
+  box.appendChild(main);
 
-  const partLabel = document.createElement('div');
-  partLabel.className = 'nt-sync-part';
-  box.appendChild(partLabel);
+  const range = document.createElement('div');
+  range.className = 'nt-sync-range';
+  box.appendChild(range);
 
-  /* 同步码（同一窗口） */
-  const codeTitle = document.createElement('div');
-  codeTitle.className = 'nt-sync-sec';
-  codeTitle.textContent = '② 同步码（同一窗口，可复制）';
-  box.appendChild(codeTitle);
+  const save = document.createElement('button');
+  save.type = 'button';
+  save.className = 'nt-btn nt-btn-sm';
+  save.textContent = '保存二维码图片';
+  save.addEventListener('click', savePng);
+  box.appendChild(save);
 
-  const codeOut = document.createElement('textarea');
-  codeOut.className = 'nt-sync-code';
-  codeOut.readOnly = true;
-  codeOut.placeholder = '生成中…';
-  box.appendChild(codeOut);
+  /* ② 一个框：复制 / 清空 / 粘贴 / 同步 */
+  const sec = document.createElement('div');
+  sec.className = 'nt-sync-sec';
+  sec.textContent = '② 同步码 / 接收';
+  box.appendChild(sec);
 
-  const copy = document.createElement('button');
-  copy.type = 'button';
-  copy.className = 'nt-btn nt-btn-sm';
-  copy.textContent = '复制同步码';
-  copy.addEventListener('click', async () => {
-    if (!codeOut.value) return;
-    const ok = await copyText(codeOut.value);
-    copy.textContent = ok ? '已复制' : '选中后手动复制';
-    if (!ok) codeOut.select();
-  });
-  box.appendChild(copy);
+  const bar = document.createElement('div');
+  bar.className = 'nt-sync-bar';
+  bar.appendChild(textBtn('复制', async () => {
+    if (!ta.value) return flash('还没有内容');
+    const ok = await copyText(ta.value);
+    flash(ok ? '已复制' : '复制失败，请手动选中');
+  }));
+  bar.appendChild(textBtn('清空', () => { ta.value = ''; auto = false; flash('已清空'); }));
+  bar.appendChild(textBtn('粘贴', async () => {
+    try {
+      ta.value = await navigator.clipboard.readText();
+      auto = false;
+      flash('已粘贴');
+    } catch (e) {
+      ta.focus();
+      flash('读不到剪贴板，请手动粘贴');
+    }
+  }));
+  bar.appendChild(textBtn('同步', async () => {
+    const raw = ta.value.trim();
+    if (!raw) return flash('先复制或粘贴一段同步码');
+    try {
+      const n = await receive(ctx, raw);
+      NtModal.closeAll();
+      if (ctx.setFooter) ctx.setFooter(n ? `已合并 ${n} 笔` : '没有新记录（都已经有了）');
+    } catch (e) {
+      flash('同步失败：' + e.message);
+    }
+  }));
+  box.appendChild(bar);
 
-  let parts = [];
-  let seq = 0;
+  const ta = document.createElement('textarea');
+  ta.className = 'nt-sync-code';
+  ta.placeholder = '这里是本窗口的同步码；也可以粘贴对方发来的同步码，点「同步」合并';
+  ta.addEventListener('input', () => { auto = false; });
+  box.appendChild(ta);
+
+  const msg = document.createElement('div');
+  msg.className = 'nt-sync-msg';
+  box.appendChild(msg);
+
+  /* ---------- 工具 ---------- */
 
   function pad(n) { return String(n).padStart(2, '0'); }
   function ymd(y, m, d) { return y + '-' + pad(m + 1) + '-' + pad(d); }
   function monthDays() { return new Date(year, month + 1, 0).getDate(); }
   function untilText() { return ymd(year, month, Math.min(day, monthDays())); }
+  function md(s) { return String(s).slice(5).replace('-', '/'); }
+  function flash(t) { msg.textContent = t; }
 
-  function paintMon() {
-    monLabel.textContent = year + '/' + pad(month + 1);
-  }
+  function paintMon() { yearLabel.textContent = year + '/' + pad(month + 1); }
 
-  /** 切月份：竖轮只列当月天数，没本月数据时切到上个月 */
   function shiftMonth(d) {
     month += d;
     if (month < 0) { month = 11; year -= 1; }
@@ -159,22 +175,9 @@ function sectionWindow(ctx, base) {
     rebuild();
   }
 
-  function paintPart() {
-    const p = parts[0];
-    if (!p) return;
-    canvas.dataset.url = p.url;
-    const r = paintText(canvas, p.url, 5);
-    canvas.style.display = r.ok ? '' : 'none';
-    empty.hidden = r.ok;
-    if (!r.ok) empty.textContent = r.error || '这张码装不下';
-    partLabel.textContent = r.ok ? `${p.count} 笔 · 截止 ${p.until || '—'}` : (r.error || '装不下');
-    codeOut.value = 'LZ1:' + String(p.url).split('#m=')[1];
-  }
-
-  /* 点二维码 → 放大显示（用第二个 <dialog>：主弹窗是 showModal 的 top layer，
-     普通 fixed 遮罩盖不过它） */
   function zoom() {
     if (!canvas.dataset.url) return;
+    // 主弹窗是 showModal 的 top layer，普通遮罩盖不过，放大也用 dialog
     const dlg = document.createElement('dialog');
     dlg.className = 'nt-sync-zoom';
     const img = document.createElement('img');
@@ -188,97 +191,71 @@ function sectionWindow(ctx, base) {
     else dlg.setAttribute('open', '');
   }
 
-  canvas.addEventListener('click', zoom);
+  function savePng() {
+    if (!canvas.dataset.url) return flash('还没有二维码可保存');
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = '同步码_' + (range.dataset.from || '') + '_' + (range.dataset.until || '') + '.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    flash('已保存图片');
+  }
 
   async function rebuild() {
     const my = ++seq;
     const until = untilText();
-    const fromD = new Date(until + 'T00:00:00');
-    fromD.setDate(fromD.getDate() - SPAN_DAYS);
-    const from = ymd(fromD.getFullYear(), fromD.getMonth(), fromD.getDate());
 
-    dates.textContent = from.replace(/-/g, '/') + ' — ' + until.replace(/-/g, '/');
-    partLabel.textContent = '生成中…';
-    canvas.style.display = 'none'; empty.hidden = true;
-    codeOut.value = ''; codeOut.placeholder = '生成中…';
+    canvas.style.display = 'none';
+    empty.hidden = true;
+    empty.textContent = '还没有可同步的流水';
+    canvas.dataset.url = '';
+    range.textContent = '正在装码…';
+    range.dataset.from = '';
+    range.dataset.until = until;
+
     try {
-      // per 直接给 200（packForQr 的上限）：一张码尽量装下整个窗口，
-      // 装不下时由 QR_MAX_URL 判定 tooDense，不再默认切成多张。
-      const r = await packForQr(ctx.getState(), { base, until, days: SPAN_DAYS + 1, per: 200 });
-      if (my !== seq) return;          // 日期又变了，这次结果作废
+      const r = await fitWindow(ctx.getState(), { base, until, per: 200 });
+      if (my !== seq) return;
 
-      parts = r.parts || [];
-
+      if (r.empty) {
+        empty.hidden = false;
+        range.textContent = '这一段没有流水，换个日期试试';
+        if (auto) ta.value = '';
+        return;
+      }
       if (r.tooDense) {
-        partLabel.textContent = '这几天流水太多，一张码装不下；请直接把同步码发给对方';
-        codeOut.placeholder = '流水太多，装不进二维码；可以缩短窗口或改用同步码';
+        empty.hidden = false;
+        empty.textContent = '最近一天的流水一张码都装不下';
+        range.textContent = '改用下面的同步码发送';
         return;
       }
-      if (!parts.length) {
-        partLabel.textContent = '这 ' + SPAN_DAYS + ' 天没有流水';
-        empty.hidden = false;          // 用占位块说明原因，别留空白
-        codeOut.placeholder = '这 ' + SPAN_DAYS + ' 天没有流水，没有可同步的内容';
-        return;
-      }
-      paintPart();
+
+      const p = r.parts[0];
+      canvas.dataset.url = p.url;
+      const painted = paintText(canvas, p.url, 5);
+      canvas.style.display = painted.ok ? '' : 'none';
+      empty.hidden = painted.ok;
+
+      range.dataset.from = r.from;
+      range.textContent = '包含 ' + md(r.from) + ' — ' + md(r.until)
+        + ' · ' + r.count + ' 笔';
+      if (auto) ta.value = 'LZ1:' + String(p.url).split('#m=')[1];
     } catch (e) {
       if (my !== seq) return;
-      partLabel.textContent = '生成失败：' + e.message;
-      codeOut.placeholder = '生成失败：' + e.message;
+      empty.hidden = false;
+      range.textContent = '生成失败：' + e.message;
     }
   }
 
+  canvas.addEventListener('click', zoom);
   paintMon();
   rebuild();
   return box;
 }
 
-/* ---------- ③ 接收 ---------- */
+/* ---------- ③ 接收：窗口同步码（JSON）或 #m= 链接 ---------- */
 
-function sectionReceive(ctx) {
-  const box = document.createElement('section');
-  box.className = 'nt-sync-block';
-
-  const h = document.createElement('div');
-  h.className = 'nt-sync-title';
-  h.textContent = '③ 接收（粘贴同步码，或粘二维码链接）';
-  box.appendChild(h);
-
-  const ta = document.createElement('textarea');
-  ta.className = 'nt-sync-code';
-  ta.placeholder = '粘贴同步码 LZ1:… ，或扫出来的链接（含 #m=…）';
-  box.appendChild(ta);
-
-  const merge = document.createElement('button');
-  merge.type = 'button';
-  merge.className = 'nt-btn nt-btn-primary nt-btn-sm';
-  merge.textContent = '合并进来';
-  merge.addEventListener('click', async () => {
-    const raw = ta.value.trim();
-    if (!raw) return;
-    merge.disabled = true;
-    const old = merge.textContent;
-    merge.textContent = '合并中…';
-    try {
-      const n = await receive(ctx, raw);
-      NtModal.closeAll();
-      if (ctx.setFooter) ctx.setFooter(n ? `已合并 ${n} 笔` : '没有新记录（都已经有了）');
-    } catch (e) {
-      ta.value = '';
-      ta.placeholder = '合并失败：' + e.message;
-      merge.disabled = false;
-      merge.textContent = old;
-    }
-  });
-  box.appendChild(merge);
-
-  return box;
-}
-
-/**
- * 接收一段东西：窗口同步码（JSON payload）或 带 #m= 的链接。
- * @returns {Promise<number>} 新增笔数
- */
 async function receive(ctx, raw) {
   if (/[#&]m=/.test(raw)) {
     const payload = await unpackFromHash(raw);
@@ -289,7 +266,6 @@ async function receive(ctx, raw) {
   }
   if (/^LZ[01][:：]/i.test(raw)) {
     const text = await decodeSyncCode(raw);
-    // 窗口同步码的明文是 JSON（{ rows, codes, u }）；整本账的同步码是账本文本
     if (text.trim().startsWith('{')) {
       try {
         const payload = JSON.parse(text);
@@ -309,10 +285,19 @@ async function receive(ctx, raw) {
 
 /* ---------- 小工具 ---------- */
 
-function btn(text, onClick) {
+function iconBtn(text, onClick) {
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'nt-btn nt-btn-icon';
+  b.textContent = text;
+  b.addEventListener('click', onClick);
+  return b;
+}
+
+function textBtn(text, onClick) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'nt-btn nt-btn-sm';
   b.textContent = text;
   b.addEventListener('click', onClick);
   return b;

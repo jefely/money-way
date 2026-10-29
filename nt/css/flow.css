@@ -555,28 +555,82 @@ body.nt-col-resizing {
   font: 12px/1.5 ui-monospace, Consolas, monospace;
   resize: vertical;
 }
-/* 同步弹窗：二维码 + 右侧日期竖轮（3 天一张） */
-.nt-sync-qrrow {
+/* 同步弹窗：二维码（固定 220，靠左）+ 右侧日期竖轮 + 年份（右缘对齐竖轮） */
+.nt-sync-main {
   display: flex;
-  align-items: center;
-  gap: 14px;
+  align-items: flex-start;
+  gap: 12px;
   margin-top: 8px;
 }
 
-.nt-sync-qrrow .nt-sync-qr {
-  flex: 0 0 auto;
-  width: auto;
-  min-width: 160px;
-  /* 窗口里流水多、二维码版本变大时，这里跟着长（最大 260px）；点一下全屏放大 */
-  max-width: 260px;
-  height: auto;
+.nt-sync-qr {
+  flex: 0 0 220px;
+  width: 220px;
+  height: 220px;
+  display: block;
   margin: 0;
   cursor: zoom-in;
+  image-rendering: pixelated;
+}
+
+/* 窗口内没有流水时的占位：和二维码同尺寸，有码无码布局都不动 */
+.nt-sync-qr-empty {
+  flex: 0 0 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 220px;
+  height: 220px;
+  padding: 14px;
+  box-sizing: border-box;
+  border: 1px dashed var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: center;
+  color: var(--nt-text-muted);
+}
+
+.nt-sync-picker {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+/* 年份：右缘和竖轮右缘对齐，宽度不外扩 */
+.nt-sync-year {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.nt-sync-year-label {
+  min-width: 52px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--nt-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 年份两侧的切月箭头：小巧一点，整行才放得下 */
+.nt-sync-year .nt-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1;
 }
 
 .nt-sync-wheel {
   position: relative;
-  flex: 0 0 40px;
+  flex: 0 0 auto;
   width: 40px;
   overflow: hidden;
   border: 0;
@@ -601,24 +655,6 @@ body.nt-col-resizing {
     inset 0 2px 10px rgba(0, 0, 0, 0.65),
     inset 0 -2px 10px rgba(0, 0, 0, 0.65),
     inset 0 0 0 1px var(--nt-bg-line);
-}
-
-/* 窗口内没有流水时的占位：和二维码一样大，说明原因而不是留白 */
-.nt-sync-qr-empty {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 200px;
-  height: 200px;
-  padding: 14px;
-  box-sizing: border-box;
-  border: 1px dashed var(--nt-bg-line);
-  border-radius: var(--nt-radius);
-  font-size: 12px;
-  line-height: 1.7;
-  text-align: center;
-  color: var(--nt-text-muted);
 }
 
 .nt-sync-qr-empty[hidden] {
@@ -681,40 +717,25 @@ body.nt-col-resizing {
   background: linear-gradient(transparent, var(--nt-bg));
 }
 
-/* 日期行：左边完整日期，右边月份切换（紧挨日选择的竖轮） */
-.nt-sync-daterow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 6px;
-  font-variant-numeric: tabular-nums;
-}
-
-.nt-sync-dates {
-  flex: 1 1 auto;
-  min-width: 0;
+/* 包含范围 / 按钮行 / 提示 */
+.nt-sync-range {
+  margin-top: 8px;
   font-size: 12px;
   color: var(--nt-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.nt-sync-monwrap {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.nt-sync-mon {
-  min-width: 58px;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--nt-text);
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+}
+
+.nt-sync-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nt-btn-gap, 6px);
+  margin: 4px 0 8px;
+}
+
+.nt-sync-msg {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--nt-text-muted);
 }
 
 /* 点二维码 → 第二个 dialog 放大（主弹窗在 top layer，普通遮罩盖不过） */
@@ -764,32 +785,6 @@ dialog.nt-sync-zoom::backdrop {
   font-size: 13px;
   font-weight: 700;
   color: var(--nt-text);
-}
-
-/* 二维码：白底、圆角、居中，四周留白让扫码器识别 */
-.nt-sync-qr {
-  display: block;
-  margin: 8px auto;
-  max-width: 200px;
-  width: 100%;
-  height: auto;
-  border-radius: 6px;
-  background: #fff;
-}
-
-.nt-sync-nav {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.nt-sync-part {
-  min-width: 150px;
-  text-align: center;
-  font-size: 12px;
-  color: var(--nt-text-muted);
-  font-variant-numeric: tabular-nums;
 }
 
 /* 虚拟行（未来分期）：虚线 + 半透明，一眼分得清「计划」和「已发生」 */
