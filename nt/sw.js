@@ -23,12 +23,13 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.81';
+const CACHE_NAME = 'nt-v1.82';
 
 const ASSETS = [
   './index.html',
   './text.html',
   './manifest.json',
+  './thanks.enc.json',
   './templates/templates.html',
   './css/base.css',
   './css/debug.css',

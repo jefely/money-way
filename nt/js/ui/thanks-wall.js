@@ -1,19 +1,26 @@
-// 界面：校验页「赞助感谢」—— 感谢墙（名字方块 + PNG 图片）
+// 界面：校验页「赞助感谢」—— 远程加密的感谢墙
 /**
- * 感谢墙（UI 层，本地版）
+ * 感谢墙（UI 层，远程名单版）
  *
- * 单文件版的感谢墙是 `thanks.json` 那套「转账备注写昵称 → 我手动加进名单」，
- * 这里复刻它的**样子**：直角方块、按字数分档、配色按名字哈希；
- * 数据落在本机 localStorage —— NT账本 是离线应用，没有服务器可以取名单。
+ * 流程（用户 2026-10-29 定）：
+ *   站长改仓库里的明文名单 → `_tools/thanks_encrypt.mjs` 加密成
+ *   `nt/thanks.enc.json` → 提交；用户打开软件时自动拉取、解密、显示。
  *
- * 存储：`nt_thanks_v1` = { qr?: dataURL, items: [{ t:'name', v } | { t:'img', v }] }
- *   图片是 dataURL（PNG），所以有单张与总量上限；感谢墙是公开内容，不加密。
+ * 加密：PBKDF2-SHA256(100000) → AES-GCM-256，格式 { v, salt, iv, ct }（base64）。
+ * 密钥内置在这个文件里（拆段拼出来的）—— 它只防「随手看明文 / 随手改」，
+ * 不是密码学意义上的秘密。
+ *
+ * 离线：解密结果缓存在 localStorage；拉不到或解不开时用缓存，
+ * 第一次打开就离线则显示空墙。
  */
 
-const KEY = 'nt_thanks_v1';
-const MAX_IMG_BYTES = 600 * 1024;   // 单张 PNG 上限（dataURL 约为原文件的 1.34 倍）
-const MAX_ITEMS = 40;
-const MAX_NAME = 16;
+const ENC_URL = './thanks.enc.json';
+const CACHE_KEY = 'nt_thanks_cache_v1';
+
+/** 拼接内置密钥（拆成几段，避免直接搜到整串） */
+function secret() {
+  return 'nt' + String.fromCharCode(45, 103, 119) + (2025).toString(36) + 'thanks';
+}
 
 /** 方块配色：[底色, 字色]。从单文件版的 THANKS_PALETTE 取前 8 组（绿色系已剔除）。 */
 const PALETTE = [
@@ -27,7 +34,7 @@ const PALETTE = [
   ['#C9A227', '#2A2105'],  // 金黄
 ];
 
-/* ---------- 尺寸 / 断行 ---------- */
+/* ---------- 尺寸 / 断行（与单文件版一致的分档） ---------- */
 
 /** 名字 → { lines, box, fs }：按字数分档，方块 46 / 66 / 92。 */
 export function thanksPlan(name) {
@@ -80,29 +87,55 @@ function hashOf(s) {
   return h >>> 0;
 }
 
-/* ---------- 存储 ---------- */
+/* ---------- 加密 / 缓存 ---------- */
 
-function load() {
+function b64ToBytes(b64) {
+  const bin = atob(String(b64 || ''));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+/** 解 { v, salt, iv, ct }（base64）→ 明文对象 */
+export async function decryptWall(box) {
+  if (!box || !box.ct || !box.salt || !box.iv) throw new Error('格式不对');
+  const subtle = (typeof crypto !== 'undefined' && crypto.subtle) ? crypto.subtle : null;
+  if (!subtle) throw new Error('这个浏览器不支持 WebCrypto');
+
+  const raw = new TextEncoder().encode(secret());
+  const base = await subtle.importKey('raw', raw, 'PBKDF2', false, ['deriveKey']);
+  const key = await subtle.deriveKey(
+    { name: 'PBKDF2', salt: b64ToBytes(box.salt), iterations: 100000, hash: 'SHA-256' },
+    base,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['decrypt'],
+  );
+  const plain = await subtle.decrypt({ name: 'AES-GCM', iv: b64ToBytes(box.iv) }, key, b64ToBytes(box.ct));
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+
+/** 拉远程名单：`?t=` 绕过 Service Worker 的缓存匹配，保证拿到仓库里的最新版 */
+async function fetchWall() {
+  const res = await fetch(ENC_URL + '?t=' + Date.now(), { cache: 'no-store' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return await decryptWall(await res.json());
+}
+
+function loadCache() {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(CACHE_KEY);
     const o = raw ? JSON.parse(raw) : null;
-    if (!o || typeof o !== 'object') return { qr: '', items: [] };
-    const items = Array.isArray(o.items) ? o.items.filter((it) => it && it.t && it.v) : [];
-    return { qr: typeof o.qr === 'string' ? o.qr : '', items };
+    return o && typeof o === 'object' ? o : null;
   } catch (e) {
-    return { qr: '', items: [] };
+    return null;
   }
 }
 
-function save(data, notify) {
+function saveCache(o) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(data));
-    return true;
-  } catch (e) {
-    // 容量超限时浏览器抛 QuotaExceededError —— 图片是主要来源
-    if (notify) notify('存不下：感谢墙的图片太多了，先删几张再试');
-    return false;
-  }
+    localStorage.setItem(CACHE_KEY, JSON.stringify(o));
+  } catch (e) { /* 存不下就只影响离线 */ }
 }
 
 /* ---------- 渲染 ---------- */
@@ -115,7 +148,6 @@ function save(data, notify) {
 export function mountThanksWall(opts) {
   const o = opts || {};
   const notify = (t) => { if (o.notify) o.notify(t); };
-  let data = load();
 
   const section = document.createElement('section');
   section.className = 'nt-text-block nt-thanks';
@@ -130,12 +162,10 @@ export function mountThanksWall(opts) {
   lead.textContent = '感谢你使用 NT账本。把这条工具推荐给需要的人，就是最好的支持。';
   section.appendChild(lead);
 
-  /* 收款码：有就显示图片，没有就是一个虚线占位（点它选 PNG） */
   const qrWrap = document.createElement('div');
   qrWrap.className = 'nt-thanks-qr-wrap';
   section.appendChild(qrWrap);
 
-  /* 说明 */
   const tip = document.createElement('div');
   tip.className = 'nt-thanks-tip';
   tip.innerHTML = '<b>想出现在下面的感谢墙？</b><br>'
@@ -143,7 +173,6 @@ export function mountThanksWall(opts) {
     + '只显示昵称/图片，<b>不显示金额、不显示时间</b>。';
   section.appendChild(tip);
 
-  /* 墙头 */
   const head = document.createElement('div');
   head.className = 'nt-thanks-head';
   const h4 = document.createElement('h4');
@@ -159,80 +188,12 @@ export function mountThanksWall(opts) {
   wall.className = 'nt-thanks-wall';
   section.appendChild(wall);
 
-  /* 管理区：本机维护（加名字 / 加 PNG / 清空） */
-  const manage = document.createElement('div');
-  manage.className = 'nt-thanks-manage';
-
-  const nameInput = document.createElement('input');
-  nameInput.className = 'nt-input nt-thanks-name';
-  nameInput.type = 'text';
-  nameInput.maxLength = MAX_NAME;
-  nameInput.placeholder = '昵称（最多 ' + MAX_NAME + ' 字）';
-  nameInput.setAttribute('aria-label', '要添加的昵称');
-
-  const addName = document.createElement('button');
-  addName.type = 'button';
-  addName.className = 'nt-btn nt-btn-sm';
-  addName.textContent = '添加名字';
-
-  const addImg = document.createElement('button');
-  addImg.type = 'button';
-  addImg.className = 'nt-btn nt-btn-sm';
-  addImg.textContent = '添加 PNG';
-
-  const clearBtn = document.createElement('button');
-  clearBtn.type = 'button';
-  clearBtn.className = 'nt-btn nt-btn-sm nt-thanks-clear';
-  clearBtn.textContent = '清空';
-
-  manage.appendChild(nameInput);
-  manage.appendChild(addName);
-  manage.appendChild(addImg);
-  manage.appendChild(clearBtn);
-  section.appendChild(manage);
-
-  /* ---------- 渲染 ---------- */
-
-  function paintQr() {
-    qrWrap.textContent = '';
-    if (data.qr) {
-      const img = document.createElement('img');
-      img.className = 'nt-thanks-qr';
-      img.alt = '赞助收款码';
-      img.src = data.qr;
-      qrWrap.appendChild(img);
-
-      const acts = document.createElement('div');
-      acts.className = 'nt-thanks-qr-acts';
-      const change = document.createElement('button');
-      change.type = 'button';
-      change.className = 'nt-btn nt-btn-sm';
-      change.textContent = '换收款码';
-      change.addEventListener('click', () => pickPng((url) => { data.qr = url; commit(); }));
-      const del = document.createElement('button');
-      del.type = 'button';
-      del.className = 'nt-btn nt-btn-sm';
-      del.textContent = '移除';
-      del.addEventListener('click', () => { data.qr = ''; commit(); });
-      acts.appendChild(change);
-      acts.appendChild(del);
-      qrWrap.appendChild(acts);
-      return;
-    }
-
-    const slot = document.createElement('button');
-    slot.type = 'button';
-    slot.className = 'nt-thanks-qr-miss';
-    slot.textContent = '＋ 添加收款码（PNG）';
-    slot.addEventListener('click', () => pickPng((url) => { data.qr = url; commit(); }));
-    qrWrap.appendChild(slot);
-  }
-
-  function paintWall() {
+  function paintWall(data) {
+    const donors = data && Array.isArray(data.donors) ? data.donors : [];
     wall.textContent = '';
-    count.textContent = data.items.length ? String(data.items.length) + ' 位' : '';
+    count.textContent = donors.length ? String(donors.length) + ' 位' : '';
 
-    if (!data.items.length) {
+    if (!donors.length) {
       const empty = document.createElement('span');
       empty.className = 'nt-thanks-empty';
       empty.textContent = '还没有人，等第一位朋友。';
@@ -240,13 +201,25 @@ export function mountThanksWall(opts) {
       return;
     }
 
-    for (let i = 0; i < data.items.length; i += 1) {
-      const it = data.items[i];
-      wall.appendChild(it.t === 'img' ? imgCell(it.v, i) : nameCell(it.v, i));
+    for (const d of donors) {
+      if (!d) continue;
+      if (d.img) wall.appendChild(imgCell(d.img));
+      else wall.appendChild(nameCell(d.n));
     }
   }
 
-  function nameCell(name, i) {
+  function paintQr(data) {
+    qrWrap.textContent = '';
+    const src = data && data.qr;
+    if (!src) return;
+    const img = document.createElement('img');
+    img.className = 'nt-thanks-qr';
+    img.alt = '赞助收款码';
+    img.src = src;
+    qrWrap.appendChild(img);
+  }
+
+  function nameCell(name) {
     const p = thanksPlan(name);
     const pair = PALETTE[hashOf(p.raw) % PALETTE.length];
 
@@ -257,131 +230,39 @@ export function mountThanksWall(opts) {
     el.style.fontSize = p.fs + 'px';
     el.style.background = pair[0];
     el.style.color = pair[1];
-    el.setAttribute('role', 'listitem');
     for (const line of p.lines) {
       const row = document.createElement('span');
       row.className = 'nt-thanks-chip-row';
       row.textContent = line;
       el.appendChild(row);
     }
-    el.appendChild(delBtn(i));
     return el;
   }
 
-  function imgCell(src, i) {
+  function imgCell(src) {
     const el = document.createElement('span');
     el.className = 'nt-thanks-img';
-    el.setAttribute('role', 'listitem');
-
     const img = document.createElement('img');
     img.alt = '感谢墙图片';
     img.src = src;
     el.appendChild(img);
-    el.appendChild(delBtn(i));
     return el;
   }
 
-  function delBtn(i) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'nt-thanks-del';
-    b.setAttribute('data-idx', String(i));
-    b.setAttribute('aria-label', '删除这一项');
-    b.textContent = '×';
-    return b;
-  }
+  /* ---------- 首次渲染：缓存 → 远程刷新 ---------- */
 
-  /* ---------- 交互 ---------- */
+  const cached = loadCache();
+  paintQr(cached);
+  paintWall(cached);
 
-  function commit() {
-    if (save(data, notify)) {
-      paintQr();
-      paintWall();
-    }
-  }
-
-  addName.addEventListener('click', () => {
-    const name = String(nameInput.value || '').trim();
-    if (!name) { notify('先写一个昵称'); return; }
-    if (data.items.some((it) => it.t === 'name' && String(it.v) === name)) {
-      notify('「' + name + '」已经在墙上了');
-      return;
-    }
-    if (data.items.length >= MAX_ITEMS) { notify('感谢墙最多 ' + MAX_ITEMS + ' 项'); return; }
-    data.items.push({ t: 'name', v: name });
-    nameInput.value = '';
-    commit();
-    notify('已添加：' + name);
+  fetchWall().then((data) => {
+    saveCache(data);
+    paintQr(data);
+    paintWall(data);
+  }).catch(() => {
+    // 离线 / 文件没更新 / 解密失败：保持缓存；第一次打开就是空的
+    if (!cached) notify('感谢墙暂时取不到（离线或文件未更新）');
   });
 
-  nameInput.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Enter') { ev.preventDefault(); addName.click(); }
-  });
-
-  addImg.addEventListener('click', () => {
-    pickPng((url) => {
-      if (data.items.length >= MAX_ITEMS) { notify('感谢墙最多 ' + MAX_ITEMS + ' 项'); return; }
-      data.items.push({ t: 'img', v: url });
-      commit();
-      notify('已添加一张 PNG');
-    });
-  });
-
-  clearBtn.addEventListener('click', () => {
-    if (!data.items.length) { notify('感谢墙已经是空的'); return; }
-    if (!window.confirm('清空感谢墙上的 ' + data.items.length + ' 项？（收款码会保留）')) return;
-    data.items = [];
-    commit();
-    notify('感谢墙已清空');
-  });
-
-  wall.addEventListener('click', (ev) => {
-    const b = ev.target && ev.target.closest ? ev.target.closest('.nt-thanks-del') : null;
-    if (!b) return;
-    const i = Number(b.getAttribute('data-idx'));
-    if (!Number.isInteger(i) || i < 0 || i >= data.items.length) return;
-    data.items.splice(i, 1);
-    commit();
-  });
-
-  paintQr();
-  paintWall();
   return section;
-}
-
-/* ---------- PNG 选择 ---------- */
-
-/**
- * 选一张 PNG → 读成 dataURL。
- * 只收 PNG（提供方要求）；`file.type` 在某些系统为空，用扩展名兜底。
- */
-function pickPng(onPick) {
-  const inp = document.createElement('input');
-  inp.type = 'file';
-  inp.accept = 'image/png,.png';
-  inp.style.display = 'none';
-  document.body.appendChild(inp);
-
-  inp.addEventListener('change', () => {
-    const file = inp.files && inp.files[0];
-    inp.remove();
-    if (!file) return;
-
-    const isPng = file.type === 'image/png' || /\.png$/i.test(file.name || '');
-    if (!isPng) { window.alert('只支持 PNG 图片（.png）'); return; }
-    if (file.size > MAX_IMG_BYTES) {
-      window.alert('这张 PNG 太大了（' + Math.round(file.size / 1024) + ' KB），'
-        + '请压到 ' + Math.round(MAX_IMG_BYTES / 1024) + ' KB 以内');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') onPick(reader.result);
-    };
-    reader.onerror = () => { window.alert('这张图片读不出来，换一张试试'); };
-    reader.readAsDataURL(file);
-  });
-
-  inp.click();
 }
