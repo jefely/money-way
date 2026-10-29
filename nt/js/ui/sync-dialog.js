@@ -75,6 +75,13 @@ function sectionWindow(ctx, base) {
   canvas.className = 'nt-sync-qr';
   qrRow.appendChild(canvas);
 
+  // 窗口内没有流水时，用同样大小的占位块说明原因（不要留一块空白让人以为坏了）
+  const empty = document.createElement('div');
+  empty.className = 'nt-sync-qr-empty';
+  empty.textContent = '这 3 天没有流水';
+  empty.hidden = true;
+  qrRow.appendChild(empty);
+
   const wheel = buildWheel();
   qrRow.appendChild(wheel);
   box.appendChild(qrRow);
@@ -166,7 +173,6 @@ function sectionWindow(ctx, base) {
       track.style.transition = anim ? 'transform .18s ease-out' : 'none';
       track.style.transform = 'translateY(' + offset + 'px)';
     }
-
     function markActive() {
       for (let i = 0; i < track.children.length; i += 1) {
         track.children[i].classList.toggle('on', i === index);
@@ -218,7 +224,6 @@ function sectionWindow(ctx, base) {
 
     wrap.addEventListener('pointerup', finish);
     wrap.addEventListener('pointercancel', finish);
-
     offset = target(index);
     paint(false);
     markActive();
@@ -237,6 +242,8 @@ function sectionWindow(ctx, base) {
     canvas.dataset.url = p.url;
     const r = paintText(canvas, p.url, 5);
     canvas.style.display = r.ok ? '' : 'none';
+    empty.hidden = r.ok;
+    if (!r.ok) empty.textContent = r.error || '这张码装不下';
     partLabel.textContent = r.ok
       ? `第 ${p.part[0]} / ${p.part[1]} 张 · ${p.count} 笔 · 截止 ${p.until || '—'}`
       : (r.error || '装不下');
@@ -253,14 +260,10 @@ function sectionWindow(ctx, base) {
 
     range.textContent = shortDate(from) + ' — ' + shortDate(until) + ' · 跨度 ' + SPAN_DAYS + ' 天';
     partLabel.textContent = '生成中…';
-    canvas.style.display = 'none';
-    codeOut.value = '';
-    codeOut.placeholder = '生成中…';
-
+    canvas.style.display = 'none'; empty.hidden = true;
+    codeOut.value = ''; codeOut.placeholder = '生成中…';
     try {
-      const r = await packForQr(ctx.getState(), {
-        base, until, days: SPAN_DAYS + 1, per: QR_PER_PART,
-      });
+      const r = await packForQr(ctx.getState(), { base, until, days: SPAN_DAYS + 1, per: QR_PER_PART });
       if (my !== seq) return;          // 日期又变了，这次结果作废
 
       parts = r.parts || [];
@@ -272,8 +275,9 @@ function sectionWindow(ctx, base) {
         return;
       }
       if (!parts.length) {
-        partLabel.textContent = '这几天没有流水';
-        codeOut.placeholder = '这几天没有流水';
+        partLabel.textContent = shortDate(from) + ' — ' + shortDate(until) + ' 没有流水';
+        empty.hidden = false;          // 用占位块说明原因，别留空白
+        codeOut.placeholder = '这 3 天没有流水，没有可同步的内容';
         pager.style.display = 'none';
         return;
       }

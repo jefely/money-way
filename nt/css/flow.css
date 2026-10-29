@@ -572,16 +572,53 @@ body.nt-col-resizing {
 
 .nt-sync-wheel {
   position: relative;
-  flex: 0 0 56px;
-  width: 56px;
+  flex: 0 0 40px;
+  width: 40px;
   overflow: hidden;
-  border: 1px solid var(--nt-bg-line);
+  border: 0;
   border-radius: var(--nt-radius);
-  background: var(--nt-bg);
+  background: color-mix(in srgb, var(--nt-bg-soft) 55%, transparent);
+  /* 玻璃 + 内阴影：上下各压一道暗边，像凹进去的滚筒（用户 2026-10-29 指定） */
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.28),
+    inset 0 -2px 8px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 1px var(--nt-bg-line);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   /* 竖列自己要吃掉上下拖动，别让弹窗跟着滚 */
   touch-action: none;
   cursor: grab;
   user-select: none;
+}
+
+[data-theme="dark"] .nt-sync-wheel,
+[data-theme="alt2"] .nt-sync-wheel {
+  box-shadow:
+    inset 0 2px 10px rgba(0, 0, 0, 0.65),
+    inset 0 -2px 10px rgba(0, 0, 0, 0.65),
+    inset 0 0 0 1px var(--nt-bg-line);
+}
+
+/* 窗口内没有流水时的占位：和二维码一样大，说明原因而不是留白 */
+.nt-sync-qr-empty {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 200px;
+  height: 200px;
+  padding: 14px;
+  box-sizing: border-box;
+  border: 1px dashed var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: center;
+  color: var(--nt-text-muted);
+}
+
+.nt-sync-qr-empty[hidden] {
+  display: none;
 }
 
 .nt-sync-wheel-track {
