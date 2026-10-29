@@ -242,7 +242,8 @@ export function mountFlow(section, ctx) {
       scrollInit = true;
       // 用户 2026-10-30：把最后一条有内容的行放在视口第 6 行 ——
       // 打开就能看到最后 6 行内容，下面全是可输入的空行。
-      const first = body.querySelector('tr');
+      // 行高取「非 spacer 行」：spacer 只是个撑高度的空行，高度算出来是双倍。
+      const first = body.querySelector('tr[data-id]') || body.querySelector('tr[data-new="1"]');
       const rowH = first ? first.getBoundingClientRect().height || 34 : 34;
       wrap.scrollTop = Math.max(0, (rows.length - 6) * rowH);
     }
@@ -309,14 +310,13 @@ export function mountFlow(section, ctx) {
     ctx.save();
   }
 
-  /** 切回流水页时用：把最后一条有内容的行放到视口第 6 行（用户 2026-10-30） */
+  /**
+   * 切回流水页时用：重置「已定位」标记并重渲染 —— 定位逻辑集中在 render 里，
+   * 这里不另算一遍（之前两处各算一次，行高取错就定不到位，用户 2026-10-30）。
+   */
   function focusEnd() {
-    const wrap = body.closest('.nt-tablewrap'); if (!wrap) return;
-    const first = body.querySelector('tr');
-    const rowH = first ? first.getBoundingClientRect().height || 34 : 34;
-    // 用总数据行数（不是 DOM 里窗口内渲染了几行），虚拟滚动下后者只是可视区
-    const n = lastRowCount;
-    wrap.scrollTop = Math.max(0, (n - 6) * rowH);
+    scrollInit = false;
+    render();
   }
 
   return { render, focusEnd };
