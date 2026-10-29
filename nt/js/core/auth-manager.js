@@ -34,6 +34,22 @@ export function lock() {
   _activeKey = null;
 }
 
+/**
+ * 接管一把已经派生好的密钥（换密码后调用）。
+ *
+ * 为什么必须走这里：换密码会派生一把**新**密钥，如果只把新记录写盘、
+ * 不换掉闭包里这把，下一次存盘会用旧密钥加密——盘上就变成「新盐 + 旧密钥密文」，
+ * 刷新之后旧密码解不开、新密码也解不开，账本彻底打不开。
+ *
+ * 不收 Uint8Array / 字符串：调用方必须真的用 deriveKey 派生过。
+ */
+export function adoptKey(key) {
+  if (!(key instanceof CryptoKey)) throw new Error('adoptKey 只接受 CryptoKey');
+  _activeKey = key;
+  _failures = 0;
+  return key;
+}
+
 export function failureCount() {
   return _failures;
 }

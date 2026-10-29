@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 
 import { createState, addAccount, addTransaction } from '../js/core/state-store.js';
 import { createScheduled } from '../js/core/schema.js';
-import { buildTemplateSheets, buildFlowSheet, buildSettingsSheet } from '../js/core/xlsx-template.js';
+import { buildTemplateSheets, buildFlowSheet, buildSettingsSheet, pickTemplateSheets } from '../js/core/xlsx-template.js';
 import {
   parseSettingsRows, parseFlowRows, parseFixedRows, parseInstRows, stateFromTemplate,
 } from '../js/core/xlsx-template-read.js';
@@ -140,4 +140,49 @@ test('buildTemplateSheets 出 4 张表，名字与顺序都固定', () => {
   const s = createState();
   const sheets = buildTemplateSheets(s, { nameOf: () => '', nowMonth: '2026-10' });
   assert.deepEqual(sheets.map((x) => x.name), ['流水', '设置', '分期', '固定']);
+});
+
+/* ---------- 单文件版的备份：表名「汇总」、13 列、列序不同 ----------
+   2026-10-30 补。在那之前只认「设置」+ 固定列位，
+   单文件版导出的 xlsx 导进来会读出「简码=序号、类型=分类、期初=当前结余」——
+   每一列都错位，而且界面上看不出错。 */
+
+const LEGACY_SUMMARY = [
+  ['账户汇总', '', '2025-10-30', '至', '2026-10-30'],
+  ['类型：资产类 / 负债类 / …（算账用）　分类：储蓄 / 现金 / …（统计用，可自定义）'],
+  ['序', '类型', '分类', '简码', '账户名称', '当前结余', '转出', '转入', '转出历史', '转入历史', '期初', '账单日', '还款日'],
+  ['资产', '', '', '', '资产类', 222.94, 0, 0, 0, 0, 222.94, '', ''],
+  [1, '资产类', '储蓄', 'ZHC', '招行储7912', 72.94, 150, 0, 0, 0, 22.94, 17, 5],
+  [2, '资产类', '现金', 'XJ', '现金', 150, 0, 0, 0, 0, 200, '', ''],
+];
+
+test('单文件版的「汇总」表：按表头定位，不按固定列位', () => {
+  const rows = parseSettingsRows(LEGACY_SUMMARY);
+  assert.equal(rows.length, 2, '分组行要跳过');
+
+  const zhc = rows.find((r) => r.name === '招行储7912');
+  assert.ok(zhc, '账户名要落在「账户名称」那一列');
+  assert.equal(zhc.code, 'ZHC', '简码不能读成序号');
+  assert.equal(zhc.type, '资产类');
+  assert.equal(zhc.category, '储蓄', '分类不能读成简码');
+  assert.equal(zhc.opening, 22.94, '期初不能读成「当前结余」');
+  assert.equal(zhc.billDay, 17);
+  assert.equal(zhc.repayDay, 5);
+});
+
+test('pickTemplateSheets：账户表叫「设置」或「汇总」都算整本备份', () => {
+  const own = pickTemplateSheets([
+    { name: '流水', rows: [] }, { name: '设置', rows: [] },
+  ]);
+  assert.equal(own.isTemplate, true);
+
+  const legacy = pickTemplateSheets([
+    { name: '流水', rows: [] }, { name: '汇总', rows: [] },
+    { name: '分期', rows: [] }, { name: '固定', rows: [] },
+  ]);
+  assert.equal(legacy.isTemplate, true, '单文件版的「汇总」也要认');
+  assert.ok(legacy.settings, 'settings 要取到「汇总」那张表');
+  assert.equal(legacy.settings, legacy.settings);
+
+  assert.equal(pickTemplateSheets([{ name: '流水', rows: [] }]).isTemplate, false);
 });

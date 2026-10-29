@@ -18,6 +18,7 @@ import { applySettings } from '../ui/apply-settings.js';
 import { loadMergedSettings } from '../ui/debug-themes.js';
 import { mountDebugPanel } from '../ui/debug-panel.js';
 import { openAccountConfig } from '../ui/account-config.js';
+import { checkNewPassword } from '../core/vault-rekey.js';
 
 const ACT_LABEL = { password: '修改密码', config: '配置', layout: '布局' };
 
@@ -54,6 +55,7 @@ export function mountSettings(section, ctx) {
     if (act === 'reset') { showReset(); return; }
     if (act === 'layout') { showLayout(); return; }
     if (act === 'config') { openAccountConfig(ctx); return; }
+    if (act === 'password') { showPassword(); return; }
     NtModal.info(ACT_LABEL[act] || act, (b) => { b.textContent = '该功能在后续版本接入。'; });
   }
 
@@ -138,6 +140,83 @@ export function mountSettings(section, ctx) {
     });
   }
 
+  /**
+   * 修改主密码。
+   *
+   * 真正的活全在 core/vault-rekey.js：验旧密码（真的解一次盘上密文，不是比对摘要）
+   * → 换新盐 → 用新密钥重新加密整份 state。这里只负责收集输入、把失败原因显示出来。
+   *
+   * 不能只改密码不重写：盐不换，同一把新钥匙能在别的设备上被复现；
+   * 不接管新密钥，下一次存盘会写出「新盐 + 旧密钥密文」，刷新后新旧密码都打不开。
+   */
+  function showPassword() {
+    if (typeof ctx.changePassword !== 'function') {
+      NtModal.info('修改密码', (b) => { b.textContent = '当前版本没有接上换密码通道。'; });
+      return;
+    }
+
+    const inp = {};
+    let errEl = null;
+    let busy = false;
+
+    NtModal.open({
+      title: '修改密码',
+      build: (body) => {
+        const tip = document.createElement('p');
+        tip.className = 'nt-sync-hint';
+        tip.textContent = '密码只在本机用来派生加密密钥：不上传、不存明文、也无法找回。'
+          + '改完之后旧密码立刻失效。';
+        body.appendChild(tip);
+
+        inp.old = pwField(body, '当前密码');
+        inp.next = pwField(body, '新密码');
+        inp.again = pwField(body, '再输一次新密码');
+
+        errEl = document.createElement('p');
+        errEl.className = 'nt-sync-hint nt-import-map-err';
+        errEl.hidden = true;
+        body.appendChild(errEl);
+      },
+      actions: [
+        { label: '取消', kind: 'ghost', close: true },
+        {
+          label: '确定修改',
+          kind: 'primary',
+          close: false,
+          onClick: ({ close }) => { submit(close); },
+        },
+      ],
+    });
+
+    function fail(text) {
+      errEl.textContent = text;
+      errEl.hidden = false;
+    }
+
+    async function submit(close) {
+      if (busy) return;
+      const problem = checkNewPassword(inp.next.value, inp.again.value);
+      if (problem) { fail(problem); return; }
+      if (!inp.old.value) { fail('请输入当前密码'); return; }
+
+      busy = true;
+      errEl.hidden = true;
+      try {
+        const r = await ctx.changePassword(inp.old.value, inp.next.value);
+        if (r && r.ok) {
+          close();
+          ctx.setFooter('主密码已修改：旧密码立即失效');
+          return;
+        }
+        fail((r && r.error) || '修改失败');
+      } catch (e) {
+        fail('修改失败：' + ((e && e.message) || e));
+      } finally {
+        busy = false;
+      }
+    }
+  }
+
   async function doReset() {
     try {
       if (ctx.resetAll) await ctx.resetAll();
@@ -157,4 +236,25 @@ function addKV(dl, k, v, cls) {
   if (cls) dd.className = cls;
   dl.appendChild(dt);
   dl.appendChild(dd);
+}
+
+/** 一个「标签 + 密码框」：不用表单，回车不会误提交（提交走弹窗底部的按钮） */
+function pwField(host, labelText) {
+  const wrap = document.createElement('label');
+  wrap.className = 'nt-field';
+
+  const label = document.createElement('span');
+  label.className = 'nt-label';
+  label.textContent = labelText;
+
+  const el = document.createElement('input');
+  el.type = 'password';
+  el.className = 'nt-input';
+  el.autocomplete = 'off';
+  el.setAttribute('aria-label', labelText);
+
+  wrap.appendChild(label);
+  wrap.appendChild(el);
+  host.appendChild(wrap);
+  return el;
 }

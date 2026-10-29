@@ -187,13 +187,23 @@ function showLzImport(payload, fileName, o) {
       const info = document.createElement('p');
       info.className = 'nt-sync-hint';
       info.textContent = `文件：${fileName}`
-        + `　账户 ${s.accounts} 个 · 流水 ${s.transactions} 笔 · 计划 ${s.scheduled} 条`;
+        + `　账户 ${s.accounts} 个 · 流水 ${s.transactions} 笔`
+        + `　固定 / 分期 ${s.scheduled || 0} 条`;
       body.appendChild(info);
 
       if (s.loose) {
         const p = document.createElement('p');
         p.className = 'nt-import-map-err';
         p.textContent = `${s.loose} 笔流水两端账户都对不上（会留空，导入后补）`;
+        body.appendChild(p);
+      }
+
+      // 计划搬不过来的必须说出来：静默少几条，用户会以为「本来就没有」
+      if (s.lostScheduled) {
+        const p = document.createElement('p');
+        p.className = 'nt-import-map-err';
+        p.textContent = `有 ${s.lostScheduled} 条固定收支 / 分期没能搬过来`
+          + '（账户名对不上，或金额为 0）—— 导入后到「固定」页补。';
         body.appendChild(p);
       }
     },
