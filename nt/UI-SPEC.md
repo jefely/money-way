@@ -260,19 +260,28 @@ Tab：`账本说明 | 账本校验 | 赞助感谢`
 
 底部小字：`对不上的名称 0 个 · 单边 0 笔`
 
-### 7.1 赞助感谢 · 感谢墙（v1.80）
+### 7.1 赞助感谢 · 感谢墙（v1.82：远程加密名单）
 
-复刻单文件版的观感，数据落在本机（离线，不 fetch `thanks.json`）：
+站长维护一份**加密名单**放在仓库里，用户打开软件时自动拉取、解密、显示：
 
-- **收款码**：PNG，可添加 / 更换 / 移除；没设置时是一个虚线占位方块（点它选图）
-- **说明**：转账备注写昵称即可；只显示昵称 / 图片，不显示金额与时间
-- **感谢墙**：名字方块（直角，按字数分档 46 / 66 / 92，配色按名字哈希取调色板）
-  + PNG 图片（92×92，`object-fit: cover`）；每项右上角 `×` 删除
-- **本机管理**：昵称输入 + 添加名字 / 添加 PNG / 清空
-- **存储**：`localStorage['nt_thanks_v1']` = `{ qr, items: [{t:'name'|'img', v}] }`
-- **限制**：只收 PNG（`accept="image/png"`），单张 ≤ 600KB，最多 40 项 ——
-  dataURL 存在 localStorage，超限会抛 `QuotaExceededError`，界面会提示先删几张
-- 实现：`ui/thanks-wall.js` + `css/thanks.css`
+```
+明文（站长手里）                     仓库（公开）
+_tools/thanks.plain.json  --加密-->  nt/thanks.enc.json
+  { qr, donors:[…] }                   { v, salt, iv, ct }（base64）
+```
+
+- **加密**：`PBKDF2-SHA256(100000) → AES-GCM-256`，密钥内置在 `ui/thanks-wall.js`
+  的 `secret()`（拆段拼接）—— 只防「随手看明文 / 随手改」，不是密码学秘密
+- **更新**：改 `_tools/thanks.plain.json` → `node _tools/thanks_encrypt.mjs` → 提交
+  `nt/thanks.enc.json`；用户端下次打开自动换新（fetch 带 `?t=` 绕开 SW 缓存）
+- **离线**：解密结果缓存 `localStorage['nt_thanks_cache_v1']`；拉不到 / 解不开时用缓存，
+  首次打开就离线则显示空墙
+- **渲染**：名字方块（直角，按字数分档 46 / 66 / 92，配色按名字哈希取调色板）
+  + PNG 图片（92×92，`object-fit: cover`）；只读，没有本机增删入口
+- **PNG 支持**：名单里 `{ "img": "路径或 dataURL" }`；加密脚本会把本地 PNG 读成
+  dataURL，加密文件自包含，用户端不需要再取图（也就能离线）
+- **收款码**：名单里的 `qr`（PNG 路径 / dataURL），没有就不显示
+- 实现：`ui/thanks-wall.js` + `css/thanks.css`；加密工具 `_tools/thanks_encrypt.mjs`
 
 ---
 

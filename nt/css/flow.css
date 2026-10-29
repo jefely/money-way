@@ -172,8 +172,13 @@
    两张表用两套写法：
      · 普通表（统计/查询/固定/设置）没有虚拟滚动 —— nth-child 稳定，直接用
      · 流水表是虚拟滚动，窗口起点一变 spacer 数量就变、nth-child 会整排翻转，
-       所以按数据下标打 .nt-row-even 类（见 ui/render-transactions.js） */
-.nt-table:not(.nt-table-flow) tbody tr:nth-child(even) .nt-cell {
+       所以按数据下标打 .nt-row-even 类（见 ui/render-transactions.js）
+
+   排除区域标题行 / 空状态行：它们也住在 tbody 里，会占 nth-child 的序号。
+   更要命的是 `background` 是**简写** —— 命中时会把 A/B 区标题的红/绿
+   `background-image` 一起重置成 none，只剩首列（.nt-zone-tag 特异性更高）
+   还有颜色，看起来就是「B 那一整行只有冻结列有红颜色」（用户 2026-10-29）。 */
+.nt-table:not(.nt-table-flow) tbody tr:nth-child(even):not(.nt-zone-head):not(.nt-zone-empty) .nt-cell {
   background: var(--nt-bg-zebra);
 }
 
