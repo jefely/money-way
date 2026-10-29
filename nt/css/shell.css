@@ -359,19 +359,25 @@ body {
   position: sticky;
   left: 0;
   z-index: 4;
-  /* 冻结列必须不透明，否则横滚时后面的字会透出来；斑马纹规则特异性更高，
-     偶数行会照常覆盖这一条（见 flow.css）。 */
-  background: var(--nt-row-bg, var(--nt-bg));
+  /* 冻结列必须不透明（横滚时不能透出后面的内容），但颜色要和同一行
+     其它列一致 —— 其它列是透明的，露出 tr 的「整行背景色」。
+     以前这里读 --nt-bg（页面底色），于是奇数行首列纯黑/纯白、
+     其它列是整行背景色，看起来「只有冻结列有斑马纹」（用户 2026-10-29）。
+     偶数行的斑马纹由 flow.css 的规则覆盖，不需要在这里重复。 */
+  background: var(--nt-unit-row-bg, var(--nt-row-bg, var(--nt-bg)));
   /* 右边界：内描边，不占布局、不溢出 */
   box-shadow: inset -1px 0 0 0 var(--nt-bg-line);
 }
 
+/* 其余表的冻结列：同样读「整行背景色」，而不是页面底色 ——
+   否则奇数行首列是纯黑/纯白、其它列是整行背景色，看起来「只有冻结列」。
+   偶数行的斑马纹由 flow.css 的规则覆盖，这里不用重复。 */
 .nt-table-flow .nt-cell:nth-child(1),
 .nt-table-plan .nt-cell:nth-child(1),
 .nt-table-inst .nt-cell:nth-child(1),
 .nt-table-stats .nt-cell:nth-child(1),
 .nt-table-stats .nt-cell:nth-child(2) {
-  background: var(--nt-row-bg, var(--nt-bg));
+  background: var(--nt-unit-row-bg, var(--nt-row-bg, var(--nt-bg)));
 }
 
 /* 右边界：内描边，不占布局、不溢出（绝对定位伪元素会多出一条黑带） */

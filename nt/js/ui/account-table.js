@@ -102,6 +102,9 @@ export function mountAccountTable(ctx, tbody, opts) {
         tr.dataset.id = acc.id;
 
         seq += 1;
+        // 斑马纹按**数据行序号**打类：区域标题行（A/B）不参与序号，
+        // 用 nth-child 会被标题行挤得隔行错位（用户 2026-10-29 反馈）。
+        if (seq % 2 === 0) tr.classList.add('nt-row-even');
         setCell(tr, 'code', acc.code || '');
         setCell(tr, 'seq', seq);
 

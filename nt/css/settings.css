@@ -26,6 +26,20 @@
   text-overflow: ellipsis;
 }
 
+/* ============ 斑马纹（按数据行序号） ============
+   A/B 区域标题行、空状态行都住在 tbody 里，`nth-child(even)` 会把它们算进去，
+   于是条纹从第一条数据就开始、隔行错位。渲染时给数据行打了
+   `.nt-row-even`（seq 为偶数），这里按类覆盖 flow.css 的 nth-child 版本。
+   特异性 (0,4,2) 与 nth-child 那条相同，靠加载顺序（settings.css 在后）取胜；
+   非条纹行显式写「整行背景色」，顺便把冻结列（不透明）拉回同一颜色。 */
+.nt-table.nt-table-accounts tbody tr.nt-row-even > .nt-cell {
+  background: var(--nt-bg-zebra);
+}
+
+.nt-table.nt-table-accounts tbody tr:not(.nt-row-even):not(.nt-zone-head):not(.nt-zone-empty) > .nt-cell {
+  background: var(--nt-unit-row-bg, transparent);
+}
+
 /* ============ 控件 ============
    目标：看起来是「这一格的字」，不是「放在表格里的输入框」。
    控件铺满整格，边框/底色/圆角全部去掉；编辑中的高亮由
