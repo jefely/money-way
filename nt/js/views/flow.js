@@ -9,7 +9,7 @@
 
 import {
   addTransaction, updateTransaction, removeTransaction, nextSeq,
-  removeBatch, restoreBatch,
+  removeBatch, restoreBatch, noteTextByCode,
 } from '../core/state-store.js';
 import { createScheduled } from '../core/schema.js';
 import { buildFlowRows, buildFooterInfo } from '../ui/flow-model.js';
@@ -37,6 +37,8 @@ export function mountFlow(section, ctx) {
     onCommit: () => { ctx.saveNow(); },
     parseAccount: (v) => parseAccountInput(ctx.getIndex(), v),
     suggestAccounts: (v) => suggestByIndex(ctx.getIndex(), v),
+    // 备注简码：失焦时把「简码」换成备注表里的文本（仅备注栏用，不碰账户简码）
+    resolveNote: (v) => noteTextByCode(ctx.getState(), v),
   });
 
   /* ---------- 「固定」列复选框 ----------

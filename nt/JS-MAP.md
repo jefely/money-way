@@ -88,6 +88,7 @@
 | `ui/modal.js` | 全局 → 统一弹窗（<dialog>） |
 | `ui/mw-params.js` | 全局：环图参数（CSS 变量 → 数字） |
 | `ui/mw-svg-renderer.js` | 路径 tab / path.html → SVG 渲染 |
+| `ui/note-table.js` | 设置页的备注区（独立于账户的 A/B 区） |
 | `ui/path-flow-table.js` | 路径页左栏的流水查询表 |
 | `ui/path-view.js` | 路径 tab |
 | `ui/pwa.js` | PWA 注册 |

@@ -12,6 +12,7 @@
 import {
   SCHEMA_VERSION, createAccount, createTransaction,
   indexAccounts, findAccountByName, OPENING_ACCOUNT, OPENING_ACCOUNT_ID,
+  normalizeCode,
 } from './schema.js';
 
 /** 建一本空账（带期初虚拟账户，但它 isHidden，不进 UI 列表） */
@@ -24,6 +25,8 @@ export function createState() {
     scheduled: [],
     // 界面参数（调试面板「保存」写这里，随账本加密存盘）
     settings: {},
+    // 备注表（用户 2026-10-29）：{ id, code, type, text }，只用于统计分类与备注栏快速输入
+    notes: [],
     // 多账本：活动账本的数据在 accounts/transactions/scheduled；其余账本快照在 ledgers
     ledgers: {},
     ledgerNames: { main: '主账本' },
@@ -189,4 +192,46 @@ export function migrateOpeningToTransactions(state, openingDate = '2000-01-01') 
 /** 可见账户（排除 isHidden 的期初账户） */
 export function visibleAccounts(state) {
   return (state.accounts || []).filter((a) => !a.isHidden);
+}
+
+/* ---------- 备注表（仅统计分类 / 备注栏快速输入） ---------- */
+
+export const NOTE_TYPES = ['成员', '商家', '项目', '用途'];
+
+let _noteSeq = 0;
+
+function noteId() {
+  _noteSeq += 1;
+  return 'note_' + Date.now().toString(36) + '_' + _noteSeq;
+}
+
+/** 新增一条备注；code 只做归一化，合法性/唯一性由 UI 把关 */
+export function addNote(state, input) {
+  const o = input || {};
+  const note = {
+    id: noteId(),
+    code: normalizeCode(o.code),
+    type: NOTE_TYPES.includes(o.type) ? o.type : NOTE_TYPES[0],
+    text: String(o.text || '').trim(),
+  };
+  return { ...state, notes: [...(state.notes || []), note] };
+}
+
+export function updateNote(state, id, patch) {
+  return {
+    ...state,
+    notes: (state.notes || []).map((n) => (n.id === id ? { ...n, ...patch } : n)),
+  };
+}
+
+export function removeNote(state, id) {
+  return { ...state, notes: (state.notes || []).filter((n) => n.id !== id) };
+}
+
+/** 按简码找备注文本（备注栏输入简码 → 自动代入） */
+export function noteTextByCode(state, raw) {
+  const code = normalizeCode(raw);
+  if (!code) return '';
+  const hit = (state.notes || []).find((n) => n && normalizeCode(n.code) === code && n.text);
+  return hit ? hit.text : '';
 }

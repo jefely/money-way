@@ -182,6 +182,18 @@
   font-size: 13px;
 }
 
+/* 备注区（用户 2026-10-29）：独立于 A/B，标题用中性灰，不抢红绿 */
+.nt-table-accounts tbody tr.nt-zone-note > td.nt-cell {
+  background-image: linear-gradient(rgba(120, 120, 140, 0.14), rgba(120, 120, 140, 0.14));
+  color: var(--nt-text-light);
+}
+
+.nt-table-accounts tbody tr.nt-zone-note > td.nt-cell.nt-zone-tag {
+  background: linear-gradient(rgba(120, 120, 140, 0.14), rgba(120, 120, 140, 0.14))
+    var(--nt-unit-bg, var(--nt-bg));
+  color: var(--nt-text-light);
+}
+
 .nt-zone-empty .nt-cell {
   color: var(--nt-text-light);
   font-size: 12px;
@@ -209,6 +221,19 @@
   font-weight: 500;
   font-size: 11px;
   opacity: 0.85;
+}
+
+/* 备注区标题：说明文字紧跟名称（A/B 的 space-between 会把它推到屏幕外） */
+.nt-zone-head.nt-zone-note .nt-zone-label {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+/* 备注内容：整行文本，左对齐读起来才顺（账户表的控件默认居中） */
+.nt-table-accounts .nt-cell-input[data-field="ntext"] {
+  text-align: left;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 /* 简码校验不通过：红字 + 红色波浪下划线（设置页账户表）。

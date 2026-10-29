@@ -95,6 +95,15 @@ export function bindRowEditing(tbody, h) {
       resolveField(tr, input);
     }
 
+    // 备注简码：内容正好是备注表的简码 → 自动代入文本（只作用于备注栏）
+    if (input.dataset.field === 'note' && h.resolveNote) {
+      const text = h.resolveNote(input.value);
+      if (text && text !== input.value) {
+        input.value = text;
+        if (tr.dataset.id && tr.dataset.new !== '1') h.onEdit(tr.dataset.id, 'note', text);
+      }
+    }
+
     if (tr.dataset.new !== '1') return;
 
     // 延迟一点，让"点候选"的 click 先发生

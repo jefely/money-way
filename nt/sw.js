@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.91';
+const CACHE_NAME = 'nt-v1.92';
 
 const ASSETS = [
   './index.html',
@@ -128,6 +128,7 @@ const ASSETS = [
   './js/ui/suggest-popover.js',
   './js/ui/sync-dialog.js',
   './js/ui/sync-wheel.js',
+  './js/ui/note-table.js',
   './js/ui/table-layout.js',
   './js/ui/export-dialog.js',
   './js/ui/xlsx-write.js',

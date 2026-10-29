@@ -16,10 +16,11 @@ import { openingOf } from '../core/ledger-stats.js';
 import { ZONES } from '../core/settings.js';
 import { money } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
-import { addAccount, updateAccount, removeAccount, addTransaction } from '../core/state-store.js';
+import { addAccount, updateAccount, removeAccount, addTransaction, addNote, updateNote, removeNote, NOTE_TYPES } from '../core/state-store.js';
 import { normalizeCode, isValidCode, OPENING_ACCOUNT_ID } from '../core/schema.js';
 import { balanceOf } from '../core/balance-calculator.js';
 import { validate, issuesOf } from '../core/validator.js';
+import { renderNotes } from './note-table.js';
 
 const FIELDS = ['type', 'category', 'code', 'name', 'opening'];
 const TYPES = ['资产类', '负债类', '收入类', '权益类', '费用类'];
@@ -155,6 +156,9 @@ export function mountAccountTable(ctx, tbody, opts) {
         frag.appendChild(tr);
       }
     }
+
+    /* ---------- 备注区：独立于 A/B，仅统计分类 + 备注栏快速输入 ---------- */
+    frag.appendChild(renderNotes(ctx, render));
 
     tbody.appendChild(frag);
 
