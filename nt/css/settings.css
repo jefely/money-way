@@ -36,7 +36,7 @@
   background: var(--nt-bg-zebra);
 }
 
-.nt-table.nt-table-accounts tbody tr:not(.nt-row-even):not(.nt-zone-head):not(.nt-zone-empty) > .nt-cell {
+.nt-table.nt-table-accounts tbody tr:not(.nt-row-even):not(.nt-zone-head):not(.nt-zone-empty):not(.nt-zone-cols) > .nt-cell {
   background: var(--nt-unit-row-bg, transparent);
 }
 
@@ -231,8 +231,10 @@
 }
 
 /* 区域内的列标题行：B/备注各一份，A 沿用顶部冻结表头（用户 2026-10-29）。
-   样式与 thead 的 .nt-th 保持一致：同样的底色、字号、字重。 */
+   样式与 thead 的 .nt-th 一致；再叠一层**各主题自己的颜色**（伪元素 9% 不透明度，
+   比直接改 background 稳，冻结首列也能叠到）——用户 2026-10-30。 */
 .nt-table-accounts tbody tr.nt-zone-cols > td.nt-cell {
+  position: relative;
   background: var(--nt-th-bg, var(--nt-unit-bg, var(--nt-bg-soft)));
   color: var(--nt-unit-text, var(--nt-text));
   height: var(--nt-th-h, 26px);
@@ -241,6 +243,15 @@
   text-align: center;
   padding: 0 4px;
   border-bottom: 1px solid var(--nt-bg-line);
+}
+
+.nt-table-accounts tbody tr.nt-zone-cols > td.nt-cell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--nt-primary);
+  opacity: 0.09;
+  pointer-events: none;
 }
 
 /* 备注区标题：同样整行居中，说明紧跟名称 */
