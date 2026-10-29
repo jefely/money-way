@@ -126,7 +126,13 @@ export function bindRowEditing(tbody, h) {
     }, 120);
   });
 
-  /** 新增行 → 建单：金额填了才真正生成（ID / 日期 / 序号到这一步才出现） */
+  /**
+   * 新增行 → 交给调用方。
+   *
+   * 有金额 = 建一笔流水；只有账户名 = 只把那个名字登记成账户（不建金额为空的流水）。
+   * 用户 2026-10-30：留那么多空行就是让人自由布局录入面板，想录哪里录哪里 ——
+   * 所以「先写账户、金额后补」也必须是有效动作，不能因为没金额就整行丢掉。
+   */
   function createFromRow(tr) {
     if (!tr.isConnected) return false;
     const fields = {};
@@ -134,7 +140,7 @@ export function bindRowEditing(tbody, h) {
       const v = String(el.value || '').trim();
       if (v) fields[el.dataset.field] = v;
     });
-    if (!fields.amount) return false;
+    if (!fields.amount && !fields.from && !fields.to) return false;
     h.onCreate(fields);
     return true;
   }
@@ -153,12 +159,25 @@ export function bindRowEditing(tbody, h) {
   /** 把账户格里的输入解析成账户，回填真实名，并把 id 交给调用方 */
   function resolveField(tr, input) {
     const res = h.parseAccount ? h.parseAccount(input.value) : { acc: null, display: input.value };
+    const isNew = tr.dataset.new === '1';
+    const text = String(input.value || '').trim();
+
     if (res.acc) {
       input.value = res.display;
-      if (tr.dataset.new !== '1' && tr.dataset.id) {
+      if (!isNew && tr.dataset.id) {
         h.onEdit(tr.dataset.id, input.dataset.field, res.display, res.acc.id);
       }
+    } else if (!isNew && tr.dataset.id) {
+      // 认不出也要交出去：流水表允许写自由文本，要不要建账户是业务层的事
+      // （views/flow.js 的 onEdit 里有一段「认不出就建未分类账户」）。
+      // 早先这里直接 return —— 那段兜底因此永远走不到：
+      // 把已有行的转出改成新名字时，账户不会建，from_id 还会留在旧账户上。
+      //
+      // 空串同样交出去：清空转出 = 这一端没有账户，from_id 必须跟着清掉，
+      // 否则屏幕上空了、数据里还挂着旧账户，统计会把它算到旧账户头上。
+      h.onEdit(tr.dataset.id, input.dataset.field, text);
     }
+
     hideSuggest();
   }
 

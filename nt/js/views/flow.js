@@ -254,8 +254,8 @@ export function mountFlow(section, ctx) {
   }
 
   function footerText() {
-    const info = buildFooterInfo(ctx.getState());
-    return `共 ${info.count} 笔 · 合计 ${info.totalText}`;
+    const i = buildFooterInfo(ctx.getState());
+    return `共 ${i.count} 笔 · 合计 ${i.totalText}`;
   }
 
   function onEdit(id, field, value, resolvedId) {
@@ -293,6 +293,10 @@ export function mountFlow(section, ctx) {
     if (!fromId && fields.from) { const r = ensureAccountByText(s, fields.from); s = r.state; fromId = r.id; }
     if (!toId && fields.to) { const r = ensureAccountByText(s, fields.to); s = r.state; toId = r.id; }
     if (!fromId && !toId) return;   // 两边都空：不建单
+
+    // 还没填金额 = 用户只是先把账户名写上了（自由录入：想在哪个空行写就在哪行写）。
+    // 这时只把账户登记进设置表，不建一笔金额为空的流水。
+    if (!normalizeAmountInput(fields.amount || '')) { ctx.setState(s); ctx.save(); render(); return; }
 
     // 建单要重建整表；先把滚动位置记下来，重建后放回去 ——
     // 否则在末尾空行里敲金额，整页会跳回第一行（用户 2026-10-30）
@@ -389,8 +393,7 @@ function bindToolbar(section, ctx, h) {
 /* ---------- 输入归一化 ---------- */
 
 function todayIso() {
-  const d = new Date();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const d = new Date(); const m = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${d.getFullYear()}-${m}-${dd}`;
 }
