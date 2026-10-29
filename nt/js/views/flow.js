@@ -230,7 +230,16 @@ export function mountFlow(section, ctx) {
       if (typeof console !== 'undefined') console.error('[flow] splitByTime 失败', e);
       window.__tlError = String(e && e.message || e);
     }
-    renderRows(body, buildFlowRows(st, virtual));
+    const rows = buildFlowRows(st, virtual);
+    renderRows(body, rows);
+    // 滚到「数据末尾」：最后一笔数据贴着视口底，40 行空行在它下面继续
+    // （直接滚到 scrollHeight 的话，视口里全是空行，刚录的那笔反而看不见）
+    const wrap = body.closest('.nt-tablewrap');
+    if (wrap) {
+      const first = body.querySelector('tr');
+      const rowH = first ? first.getBoundingClientRect().height || 34 : 34;
+      wrap.scrollTop = Math.max(0, rows.length * rowH - wrap.clientHeight + rowH);
+    }
     ctx.setFooter(footerText());
   }
 

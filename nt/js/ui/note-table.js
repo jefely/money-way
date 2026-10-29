@@ -11,7 +11,7 @@
  * 备注体系只做统计分类，不参与任何金额 / 账户校验。
  */
 
-import { addNote, updateNote, removeNote, NOTE_TYPES } from '../core/state-store.js';
+import { addNote, updateNote, removeNote, noteTypesOf } from '../core/state-store.js';
 import { normalizeCode, isValidCode } from '../core/schema.js';
 
 /**
@@ -106,23 +106,16 @@ function noteCells(note, seqText) {
 
   const typeTd = document.createElement('td');
   typeTd.className = 'nt-cell';
-  const sel = document.createElement('select');
-  sel.className = 'nt-cell-input';
-  sel.dataset.field = 'ntype';
-  sel.setAttribute('aria-label', '备注类型');
-  // 第一项是空：类型可以不填（用户 2026-10-29）
-  const blank = document.createElement('option');
-  blank.value = '';
-  blank.textContent = '—';
-  sel.appendChild(blank);
-  for (const t of NOTE_TYPES) {
-    const opt = document.createElement('option');
-    opt.value = t;
-    opt.textContent = t;
-    sel.appendChild(opt);
-  }
-  sel.value = NOTE_TYPES.includes(note.type) ? note.type : '';
-  typeTd.appendChild(sel);
+  // 类型可以自己输入（用户 2026-10-29）；候选来自内置四种 + 现有备注类型
+  const type = document.createElement('input');
+  type.className = 'nt-cell-input';
+  type.type = 'text';
+  type.dataset.field = 'ntype';
+  type.setAttribute('aria-label', '备注类型');
+  type.setAttribute('list', 'nt-note-type-list');
+  type.placeholder = note.__new ? '类型' : '';
+  type.value = note.type || '';
+  typeTd.appendChild(type);
 
   const keyTd = document.createElement('td');
   keyTd.className = 'nt-cell';
@@ -147,7 +140,7 @@ function noteCells(note, seqText) {
   text.value = note.text || '';
   textTd.appendChild(text);
 
-  return { codeTd, seqTd, typeTd, keyTd, textTd, code, sel, keyword, text };
+  return { codeTd, seqTd, typeTd, keyTd, textTd, code, type, keyword, text };
 }
 
 function noteActionTd() {
@@ -177,10 +170,9 @@ function noteRow(ctx, note, index, rerender) {
     rerender();
   });
 
-  c.sel.addEventListener('change', () => {
-    const v = c.sel.value;
-    if (v && !NOTE_TYPES.includes(v)) { rerender(); return; }
-    ctx.setState(updateNote(ctx.getState(), note.id, { type: v }));
+  c.type.addEventListener('change', () => {
+    // 类型可以自己输入，任意非空字符串都收下（类型库由 noteTypesOf 动态推导）
+    ctx.setState(updateNote(ctx.getState(), note.id, { type: String(c.type.value || '').trim() }));
     ctx.saveNow();
   });
 
@@ -219,6 +211,27 @@ function noteRow(ctx, note, index, rerender) {
   return tr;
 }
 
+/* ---------- 类型候选（datalist）：内置四种 + 现有备注里出现过的 ---------- */
+
+const TYPE_LIST_ID = 'nt-note-type-list';
+
+function ensureTypeList(state) {
+  let dl = document.getElementById(TYPE_LIST_ID);
+  if (!dl) {
+    dl = document.createElement('datalist');
+    dl.id = TYPE_LIST_ID;
+    document.body.appendChild(dl);
+  }
+  const types = noteTypesOf(state);
+  if ([...dl.options].map((o) => o.value).join('\u0000') === types.join('\u0000')) return;
+  dl.textContent = '';
+  for (const t of types) {
+    const o = document.createElement('option');
+    o.value = t;
+    dl.appendChild(o);
+  }
+}
+
 /* ---------- 新增行：内容填了就成 ---------- */
 
 function noteNewRow(ctx, rerender) {
@@ -226,6 +239,7 @@ function noteNewRow(ctx, rerender) {
   tr.className = 'nt-row nt-row-new';
   tr.dataset.new = '2';
 
+  ensureTypeList(ctx.getState());
   const c = noteCells({ __new: true, type: '', text: '' }, '+');
 
   const tryCreate = () => {
@@ -238,7 +252,7 @@ function noteNewRow(ctx, rerender) {
     if (code && (st.notes || []).some((n) => normalizeCode(n.code) === code)) { rerender(); return; }
     ctx.setState(addNote(st, {
       code,
-      type: c.sel.value,
+      type: String(c.type.value || '').trim(),
       keyword: String(c.keyword.value || '').trim(),
       text,
     }));
@@ -247,7 +261,7 @@ function noteNewRow(ctx, rerender) {
     if (ctx.setFooter) ctx.setFooter('已新增备注');
   };
 
-  for (const el of [c.code, c.sel, c.keyword, c.text]) {
+  for (const el of [c.code, c.type, c.keyword, c.text]) {
     // 延迟到本轮结束：一行里连填几格时，后面的不能落在已脱离 DOM 的旧行上
     el.addEventListener('change', () => setTimeout(tryCreate, 0));
   }

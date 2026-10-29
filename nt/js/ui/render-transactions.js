@@ -83,6 +83,9 @@ function spacerRow(h) {
   return tr;
 }
 
+/** 末尾固定 40 行空行：直接在最下面连续录入（用户 2026-10-29） */
+const BLANK_ROWS = 40;
+
 function bindScroll(tbody) {
   const wrap = tbody.closest('.nt-tablewrap');
   if (!wrap || wrap.dataset.virtual === '1') return;
@@ -102,75 +105,73 @@ function renderWindow() {
   if (!tbody) return;
   const rowTpl = tpl('tpl-flow-row');
   const newTpl = tpl('tpl-flow-new');
-  const emptyTpl = tpl('tpl-empty');
   if (!rowTpl) return;
 
   const rows = currentRows;
+  const total = rows.length + BLANK_ROWS;
   const wrap = tbody.closest('.nt-tablewrap');
   const rowH = getRowH();
   const scrollTop = wrap ? wrap.scrollTop : 0;
   const viewH = wrap ? wrap.clientHeight : 800;
 
   const start = Math.max(0, Math.floor(scrollTop / rowH) - 2);
-  const end = Math.min(rows.length, Math.ceil((scrollTop + viewH) / rowH) + 2);
+  const end = Math.min(total, Math.ceil((scrollTop + viewH) / rowH) + 2);
 
   const frag = document.createDocumentFragment();
 
-  if (!rows.length) {
-    if (emptyTpl) frag.appendChild(emptyTpl.cloneNode(true));
-  } else {
-    if (start > 0) frag.appendChild(spacerRow(start * rowH));
+  if (start > 0) frag.appendChild(spacerRow(start * rowH));
 
-    for (let i = start; i < end; i += 1) {
-      const r = rows[i];
-      const tr = rowTpl.cloneNode(true);
-      tr.dataset.id = r.id;
-      // 斑马纹必须按**数据下标**打类，不能用 CSS 的 nth-child：
-      // 虚拟滚动每次只渲染一个窗口，上下还各有一个 spacer 行，
-      // 窗口起点一变、spacer 数量就变，nth-child 的奇偶相位整排翻转 ——
-      // 滚动时深色条纹会「往下滑一下」（用户实测到的跳动）。
-      if (i % 2 === 1) tr.classList.add('nt-row-even');
-      if (r.isOpening) {
-        // 期初行：日期显示长横线、不可编辑、不能删除；序号照常显示
-        setText(tr, CLASS.seq, String(r.seq));
-        setInput(tr, 'date', '—');
-        const d = tr.querySelector('[data-field="date"]');
-        if (d) d.readOnly = true;
-        const act = tr.querySelector('.' + CLASS.action);
-        if (act) act.textContent = '';
-      } else {
-        setText(tr, CLASS.seq, String(r.seq));
-        setInput(tr, 'date', r.dateEdit != null ? r.dateEdit : r.date);
-      }
-      setInput(tr, 'from', r.from);
-      setInput(tr, 'to', r.to);
-      setInput(tr, 'amount', r.amountEdit != null ? r.amountEdit : r.amount);
-      setInput(tr, 'note', r.note);
-      // 「固定」列：勾选框表示这笔流水是否已经生成过固定收支规则。
-      // 关联在 scheduled.srcTxId 上（见 core/schema.js）。
-      // 期初行不能变固定（它没有业务日期），直接禁用。
-      const box = tr.querySelector('.' + CLASS.fixed + ' .nt-fixed-box');
-      if (box) {
-        box.checked = !!r.fixed;
-        box.disabled = !!r.isOpening || !!r.isVirtual;
-      }
-
-      if (r.isVirtual) {
-        // 虚拟行（未来分期）：只读，样式标出「这是计划，不是已发生」
-        tr.classList.add('nt-row-virtual');
-        tr.dataset.virtual = '1';
-        for (const inp of tr.querySelectorAll('input')) inp.readOnly = true;
-        const act2 = tr.querySelector('.' + CLASS.action);
-        if (act2) act2.textContent = '';
-      }
-      frag.appendChild(tr);
+  for (let i = start; i < end; i += 1) {
+    if (i >= rows.length) {
+      // 末尾 40 行空行：直接当「新增行」写，不用点「添加」
+      if (newTpl) frag.appendChild(newTpl.cloneNode(true));
+      continue;
+    }
+    const r = rows[i];
+    const tr = rowTpl.cloneNode(true);
+    tr.dataset.id = r.id;
+    // 斑马纹必须按**数据下标**打类，不能用 CSS 的 nth-child：
+    // 虚拟滚动每次只渲染一个窗口，上下还各有一个 spacer 行，
+    // 窗口起点一变、spacer 数量就变，nth-child 的奇偶相位整排翻转 ——
+    // 滚动时深色条纹会「往下滑一下」（用户实测到的跳动）。
+    if (i % 2 === 1) tr.classList.add('nt-row-even');
+    if (r.isOpening) {
+      // 期初行：日期显示长横线、不可编辑、不能删除；序号照常显示
+      setText(tr, CLASS.seq, String(r.seq));
+      setInput(tr, 'date', '—');
+      const d = tr.querySelector('[data-field="date"]');
+      if (d) d.readOnly = true;
+      const act = tr.querySelector('.' + CLASS.action);
+      if (act) act.textContent = '';
+    } else {
+      setText(tr, CLASS.seq, String(r.seq));
+      setInput(tr, 'date', r.dateEdit != null ? r.dateEdit : r.date);
+    }
+    setInput(tr, 'from', r.from);
+    setInput(tr, 'to', r.to);
+    setInput(tr, 'amount', r.amountEdit != null ? r.amountEdit : r.amount);
+    setInput(tr, 'note', r.note);
+    // 「固定」列：勾选框表示这笔流水是否已经生成过固定收支规则。
+    // 关联在 scheduled.srcTxId 上（见 core/schema.js）。
+    // 期初行不能变固定（它没有业务日期），直接禁用。
+    const box = tr.querySelector('.' + CLASS.fixed + ' .nt-fixed-box');
+    if (box) {
+      box.checked = !!r.fixed;
+      box.disabled = !!r.isOpening || !!r.isVirtual;
     }
 
-    if (end < rows.length) frag.appendChild(spacerRow((rows.length - end) * rowH));
+    if (r.isVirtual) {
+      // 虚拟行（未来分期）：只读，样式标出「这是计划，不是已发生」
+      tr.classList.add('nt-row-virtual');
+      tr.dataset.virtual = '1';
+      for (const inp of tr.querySelectorAll('input')) inp.readOnly = true;
+      const act2 = tr.querySelector('.' + CLASS.action);
+      if (act2) act2.textContent = '';
+    }
+    frag.appendChild(tr);
   }
 
-  // 末尾永远留一行「新增」
-  if (newTpl) frag.appendChild(newTpl.cloneNode(true));
+  if (end < total) frag.appendChild(spacerRow((total - end) * rowH));
 
   tbody.replaceChildren(frag);
 

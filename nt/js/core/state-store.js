@@ -211,8 +211,9 @@ export function addNote(state, input) {
   const note = {
     id: noteId(),
     code: normalizeCode(o.code),
-    // 类型可以不填（用户 2026-10-29）；填了就只认预设四种
-    type: NOTE_TYPES.includes(o.type) ? o.type : '',
+    // 类型可以自己输入（用户 2026-10-29）；类型库 = 内置四种 + 现有备注里出现过的，
+    // 所以某类型最后一条备注删掉后，它自然从类型库里消失。
+    type: String(o.type || '').trim(),
     keyword: String(o.keyword || '').trim(),
     text: String(o.text || '').trim(),
   };
@@ -232,15 +233,31 @@ export function removeNote(state, id) {
 
 /**
  * 按简码找备注（备注栏输入简码 → 自动代入）。
- * 代入文本 = 类型，关键字，内容（空的跳过，中文逗号隔开）——用户 2026-10-29。
+ * 代入文本 = 类型：关键字，内容（类型后中文冒号，关键字后中文逗号，空的跳过）——用户 2026-10-29。
  */
 export function noteTextByCode(state, raw) {
   const code = normalizeCode(raw);
   if (!code) return '';
   const hit = (state.notes || []).find((n) => n && normalizeCode(n.code) === code);
   if (!hit) return '';
-  return [hit.type, hit.keyword, hit.text]
-    .map((s) => String(s || '').trim())
-    .filter(Boolean)
-    .join('，');
+
+  const type = String(hit.type || '').trim();
+  const keyword = String(hit.keyword || '').trim();
+  const text = String(hit.text || '').trim();
+
+  // 「类型：关键字，内容」；类型可以不填，关键字也可以不填
+  if (type) {
+    return type + '：' + [keyword, text].filter(Boolean).join('，');
+  }
+  return [keyword, text].filter(Boolean).join('，');
+}
+
+/** 类型库：内置四种 + 现有备注里出现过的类型（删掉最后一条就自动消失） */
+export function noteTypesOf(state) {
+  const out = NOTE_TYPES.slice();
+  for (const n of state.notes || []) {
+    const t = String((n && n.type) || '').trim();
+    if (t && out.indexOf(t) < 0) out.push(t);
+  }
+  return out;
 }

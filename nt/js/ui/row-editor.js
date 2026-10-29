@@ -48,8 +48,17 @@ export function bindRowEditing(tbody, h) {
     const id = tr.dataset.id;
     if (!id) return;
     if (ACCOUNT_FIELDS.includes(field)) return;   // 账户格等解析完再提交
-    // 不边打边提交：每敲一个字都存盘会打断输入（备注格最明显，用户 2026-10-29 反馈）
+    // 不边打边提交（每敲一字就存盘会打断输入法），但也别等失焦才提交：
+    // 流水表是虚拟滚动，滚走会重建行 —— 不提交的话，滚回来内容就"消失"了。
+    // 折中：空闲 400ms 提交一次，失焦时再立即补一次。
     input.dataset.dirty = '1';
+    clearTimeout(input._ntSubmit);
+    input._ntSubmit = setTimeout(() => {
+      if (input.dataset.dirty !== '1') return;
+      input.dataset.dirty = '0';
+      const row = input.closest('tr');
+      if (row && row.dataset.id) h.onEdit(row.dataset.id, field, input.value);
+    }, 400);
   });
 
   /* ---------- 空格 / 回车 / 聚焦 ---------- */
@@ -107,6 +116,7 @@ export function bindRowEditing(tbody, h) {
 
     if (tr.dataset.new !== '1') {
       // 失焦统一提交本格（备注简码已在上一步换成文本）；新增行走下面的建单
+      clearTimeout(input._ntSubmit);
       if (input.dataset.dirty === '1') {
         input.dataset.dirty = '0';
         if (tr.dataset.id) h.onEdit(tr.dataset.id, input.dataset.field, input.value);
@@ -123,7 +133,9 @@ export function bindRowEditing(tbody, h) {
         const v = String(el.value || '').trim();
         if (v) fields[el.dataset.field] = v;
       });
-      if (!fields.amount && !fields.from && !fields.to) return;
+      // 用户 2026-10-29：金额填了才真正建单（ID / 日期 / 序号到那一步才生成），
+      // 只填转出/转入的空行不算
+      if (!fields.amount) return;
       h.onCreate(fields);
     }, 120);
   });
