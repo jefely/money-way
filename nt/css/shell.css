@@ -311,11 +311,13 @@ body {
   color: var(--nt-text);
 }
 
-/* 分类表的合计标题（资产类合计 / 负债类合计…）放在「分类」格里、靠右显示。
-   序和分类两列都冻结，横滚时标题一直可见（用户 2026-10-30 定的最终形态：
-   不要在序格里溢出 —— 那会打乱列宽拖动的手感）。 */
-.nt-table-stats .nt-row-total .nt-cell:nth-child(2) {
-  text-align: right;
+/* 分类表的合计标题（资产类合计 / 负债类合计…）：序和分类两列都冻结，
+   干脆把这两格合并成一个跨 2 列的单元格，文字放里面、左对齐
+   （用户 2026-10-30）。两列宽度由表头 th 决定，合并格跟着走。 */
+.nt-table-stats .nt-row-total .nt-cell[colspan] {
+  text-align: left;
+  padding-left: 10px;
+  box-shadow: none;
 }
 
 /* ============================================================
@@ -350,8 +352,10 @@ body {
   z-index: 4;
 }
 
-/* 冻结两列的表：第二列压在第一列之下 */
-.nt-table-stats .nt-cell:nth-child(2) {
+/* 冻结两列的表：第二列压在第一列之下。
+   :not([colspan]) 必须排除合计行的跨列单元格 —— 它是 nth-child(1) 的 2 列合并格，
+   否则那一行会把「转出金额」当成第二列钉住（用户 2026-10-30）。 */
+.nt-table-stats .nt-cell:nth-child(2):not([colspan]) {
   position: sticky;
   z-index: 3;
 }
