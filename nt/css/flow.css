@@ -565,9 +565,13 @@ body.nt-col-resizing {
 
 .nt-sync-qrrow .nt-sync-qr {
   flex: 0 0 auto;
-  width: 200px;
-  max-width: 200px;
+  width: auto;
+  min-width: 160px;
+  /* 窗口里流水多、二维码版本变大时，这里跟着长（最大 260px）；点一下全屏放大 */
+  max-width: 260px;
+  height: auto;
   margin: 0;
+  cursor: zoom-in;
 }
 
 .nt-sync-wheel {
@@ -677,28 +681,63 @@ body.nt-col-resizing {
   background: linear-gradient(transparent, var(--nt-bg));
 }
 
-/* 月份切换（竖轮只列当月天数） */
-.nt-sync-monrow {
+/* 日期行：左边完整日期，右边月份切换（紧挨日选择的竖轮） */
+.nt-sync-daterow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.nt-sync-dates {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--nt-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nt-sync-monwrap {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .nt-sync-mon {
-  min-width: 74px;
+  min-width: 58px;
   text-align: center;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--nt-text);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.nt-sync-range {
-  margin-bottom: 8px;
-  font-size: 12px;
-  color: var(--nt-text-muted);
-  font-variant-numeric: tabular-nums;
+/* 点二维码 → 第二个 dialog 放大（主弹窗在 top layer，普通遮罩盖不过） */
+dialog.nt-sync-zoom {
+  padding: 12px;
+  border: 0;
+  border-radius: 12px;
+  background: #ffffff;
+  max-width: 96vw;
+  max-height: 92vh;
+  cursor: zoom-out;
+}
+
+dialog.nt-sync-zoom::backdrop {
+  background: rgba(0, 0, 0, 0.88);
+}
+
+.nt-sync-zoom-img {
+  display: block;
+  max-width: 90vw;
+  max-height: 84vh;
+  background: #ffffff;
+  image-rendering: pixelated;
 }
 
 .nt-sync-sec {

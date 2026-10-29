@@ -14,7 +14,7 @@
  */
 
 import * as NtModal from './modal.js';
-import { packForQr, decodeSyncCode, unpackFromHash, QR_PER_PART } from '../core/sync-code.js';
+import { packForQr, decodeSyncCode, unpackFromHash } from '../core/sync-code.js';
 import { paintText } from './qr-canvas.js';
 import { buildWheel } from './sync-wheel.js';
 
@@ -64,21 +64,26 @@ function sectionWindow(ctx, base) {
   tip.textContent = '以 ' + SPAN_DAYS + ' 天为单位生成一张码。改日期会重新生成二维码和下面的同步码。';
   box.appendChild(tip);
 
-  /* 月份切换：竖轮只列当月天数，没本月数据时切到上个月 */
-  const monRow = document.createElement('div');
-  monRow.className = 'nt-sync-monrow';
+  /* 日期行：左边写完整日期，右边是月份切换（紧挨着日选择的竖轮） */
+  const dateRow = document.createElement('div');
+  dateRow.className = 'nt-sync-daterow';
+
+  const dates = document.createElement('span');
+  dates.className = 'nt-sync-dates';
+
+  const monWrap = document.createElement('span');
+  monWrap.className = 'nt-sync-monwrap';
   const prevMon = btn('‹', () => shiftMonth(-1));
   const monLabel = document.createElement('span');
   monLabel.className = 'nt-sync-mon';
   const nextMon = btn('›', () => shiftMonth(1));
-  monRow.appendChild(prevMon);
-  monRow.appendChild(monLabel);
-  monRow.appendChild(nextMon);
-  box.appendChild(monRow);
+  monWrap.appendChild(prevMon);
+  monWrap.appendChild(monLabel);
+  monWrap.appendChild(nextMon);
 
-  const range = document.createElement('div');
-  range.className = 'nt-sync-range';
-  box.appendChild(range);
+  dateRow.appendChild(dates);
+  dateRow.appendChild(monWrap);
+  box.appendChild(dateRow);
 
   /* 二维码 + 右侧的日期竖轮（手指上下拖动，中间那格是生效的日期） */
   const qrRow = document.createElement('div');
@@ -103,16 +108,9 @@ function sectionWindow(ctx, base) {
   qrRow.appendChild(wheel.el);
   box.appendChild(qrRow);
 
-  const pager = document.createElement('div');
-  pager.className = 'nt-sync-nav';
-  const prevPart = btn('‹', () => stepPart(-1));
-  const partLabel = document.createElement('span');
+  const partLabel = document.createElement('div');
   partLabel.className = 'nt-sync-part';
-  const nextPart = btn('›', () => stepPart(1));
-  pager.appendChild(prevPart);
-  pager.appendChild(partLabel);
-  pager.appendChild(nextPart);
-  box.appendChild(pager);
+  box.appendChild(partLabel);
 
   /* 同步码（同一窗口） */
   const codeTitle = document.createElement('div');
@@ -139,17 +137,15 @@ function sectionWindow(ctx, base) {
   box.appendChild(copy);
 
   let parts = [];
-  let idx = 0;
   let seq = 0;
 
   function pad(n) { return String(n).padStart(2, '0'); }
   function ymd(y, m, d) { return y + '-' + pad(m + 1) + '-' + pad(d); }
   function monthDays() { return new Date(year, month + 1, 0).getDate(); }
   function untilText() { return ymd(year, month, Math.min(day, monthDays())); }
-  function shortDate(s) { return s.slice(5).replace('-', ' / '); }
 
   function paintMon() {
-    monLabel.textContent = year + ' / ' + pad(month + 1);
+    monLabel.textContent = year + '/' + pad(month + 1);
   }
 
   /** 切月份：竖轮只列当月天数，没本月数据时切到上个月 */
@@ -163,26 +159,36 @@ function sectionWindow(ctx, base) {
     rebuild();
   }
 
-  function stepPart(d) {
-    if (parts.length < 2) return;
-    idx = (idx + d + parts.length) % parts.length;
-    paintPart();
-  }
-
   function paintPart() {
-    const p = parts[idx];
+    const p = parts[0];
     if (!p) return;
     canvas.dataset.url = p.url;
     const r = paintText(canvas, p.url, 5);
     canvas.style.display = r.ok ? '' : 'none';
     empty.hidden = r.ok;
     if (!r.ok) empty.textContent = r.error || '这张码装不下';
-    partLabel.textContent = r.ok
-      ? `第 ${p.part[0]} / ${p.part[1]} 张 · ${p.count} 笔 · 截止 ${p.until || '—'}`
-      : (r.error || '装不下');
+    partLabel.textContent = r.ok ? `${p.count} 笔 · 截止 ${p.until || '—'}` : (r.error || '装不下');
     codeOut.value = 'LZ1:' + String(p.url).split('#m=')[1];
-    pager.style.display = parts.length > 1 ? '' : 'none';
   }
+
+  /* 点二维码 → 放大显示（用第二个 <dialog>：主弹窗是 showModal 的 top layer，
+     普通 fixed 遮罩盖不过它） */
+  function zoom() {
+    if (!canvas.dataset.url) return;
+    const dlg = document.createElement('dialog');
+    dlg.className = 'nt-sync-zoom';
+    const img = document.createElement('img');
+    img.className = 'nt-sync-zoom-img';
+    img.alt = '同步二维码（放大）';
+    img.src = canvas.toDataURL('image/png');
+    dlg.appendChild(img);
+    dlg.addEventListener('click', () => { dlg.close(); dlg.remove(); });
+    document.body.appendChild(dlg);
+    if (typeof dlg.showModal === 'function') dlg.showModal();
+    else dlg.setAttribute('open', '');
+  }
+
+  canvas.addEventListener('click', zoom);
 
   async function rebuild() {
     const my = ++seq;
@@ -191,27 +197,27 @@ function sectionWindow(ctx, base) {
     fromD.setDate(fromD.getDate() - SPAN_DAYS);
     const from = ymd(fromD.getFullYear(), fromD.getMonth(), fromD.getDate());
 
-    range.textContent = shortDate(from) + ' — ' + shortDate(until) + ' · 跨度 ' + SPAN_DAYS + ' 天';
+    dates.textContent = from.replace(/-/g, '/') + ' — ' + until.replace(/-/g, '/');
     partLabel.textContent = '生成中…';
     canvas.style.display = 'none'; empty.hidden = true;
     codeOut.value = ''; codeOut.placeholder = '生成中…';
     try {
-      const r = await packForQr(ctx.getState(), { base, until, days: SPAN_DAYS + 1, per: QR_PER_PART });
+      // per 直接给 200（packForQr 的上限）：一张码尽量装下整个窗口，
+      // 装不下时由 QR_MAX_URL 判定 tooDense，不再默认切成多张。
+      const r = await packForQr(ctx.getState(), { base, until, days: SPAN_DAYS + 1, per: 200 });
       if (my !== seq) return;          // 日期又变了，这次结果作废
 
       parts = r.parts || [];
-      idx = 0;
 
       if (r.tooDense) {
-        partLabel.textContent = '这几天流水太多，一张装不下；请直接把同步码发给对方';
-        codeOut.placeholder = '流水太多，装不进二维码；可以逐张改日期分段同步';
+        partLabel.textContent = '这几天流水太多，一张码装不下；请直接把同步码发给对方';
+        codeOut.placeholder = '流水太多，装不进二维码；可以缩短窗口或改用同步码';
         return;
       }
       if (!parts.length) {
-        partLabel.textContent = shortDate(from) + ' — ' + shortDate(until) + ' 没有流水';
+        partLabel.textContent = '这 ' + SPAN_DAYS + ' 天没有流水';
         empty.hidden = false;          // 用占位块说明原因，别留空白
-        codeOut.placeholder = '这 3 天没有流水，没有可同步的内容';
-        pager.style.display = 'none';
+        codeOut.placeholder = '这 ' + SPAN_DAYS + ' 天没有流水，没有可同步的内容';
         return;
       }
       paintPart();
