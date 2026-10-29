@@ -144,6 +144,24 @@ export function blankDrafts() {
   return draftRows.map((d) => (d ? { ...d } : null));
 }
 
+/**
+ * 账户改名 → 空行草稿里的旧名字一起改。
+ *
+ * 不改的话：流水空行里写着「A」，用户在设置页把 A 改名成 789，
+ * 切回流水那行还显示 A，一失焦就按 A **又建一个新账户** ——
+ * 表现就是「789 不见了、A 又回来」（用户 2026-10-30 报的）。
+ */
+export function renameBlankDraft(from, to) {
+  const a = String(from || '').trim();
+  const b = String(to || '').trim();
+  if (!a || !b || a === b) return;
+  for (const d of draftRows) {
+    if (!d) continue;
+    if (String(d.from || '').trim() === a) d.from = b;
+    if (String(d.to || '').trim() === a) d.to = b;
+  }
+}
+
 function bindDrafts(tbody) {
   if (tbody.dataset.drafts === '1') return;
   tbody.dataset.drafts = '1';

@@ -10,7 +10,7 @@
  * 所以改期初 = 换掉那条流水（这里只做这一件事，不算钱）。
  */
 
-import { tpl } from './render-transactions.js';
+import { tpl, renameBlankDraft } from './render-transactions.js';
 import { setCell, moneyOrBlank } from './table.js';
 import { openingOf, syncOpeningDates } from '../core/ledger-stats.js';
 import { ZONES } from '../core/settings.js';
@@ -278,7 +278,9 @@ export function mountAccountTable(ctx, tbody, opts) {
       patch.code = code;
     } else if (field === 'name') {
       if (!v) { render(); return; }
-      patch.name = v;
+      // 空行草稿里写着旧名字的话跟着改 —— 否则那行一切回流水就会按旧名
+      // 重新建一个账户，看起来就是「改名没生效、旧名字又回来了」（用户 2026-10-30）
+      patch.name = v; renameBlankDraft(acc.name, v);
     } else {
       return;
     }
