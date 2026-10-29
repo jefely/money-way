@@ -263,24 +263,17 @@ export function buildTemplateSheets(state, opts) {
 
 /**
  * 从 sheet 数组里取 4 张表。
- *
- * 账户表的表名有两种：本工程导出的是「设置」，单文件版导出的是「汇总」。
- * 两张表列序不同 —— 差异由 core/xlsx-template-read.js 的 parseSettingsRows 按表头吸收，
- * 这里只负责两边的名字都认。
- *
  * @param {{name:string, rows:Array<Array<any>>}[]} sheets
  */
 export function pickTemplateSheets(sheets) {
   const byName = new Map();
   for (const s of sheets || []) byName.set(String(s.name || '').trim(), s.rows || []);
-
-  const settings = byName.get('设置') || byName.get('汇总') || null;
   return {
     flow: byName.get('流水') || null,
-    settings,
+    settings: byName.get('设置') || null,
     inst: byName.get('分期') || null,
     fixed: byName.get('固定') || null,
-    isTemplate: !!settings && byName.has('流水'),
+    isTemplate: byName.has('设置') && byName.has('流水'),
   };
 }
 

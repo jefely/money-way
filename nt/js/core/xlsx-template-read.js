@@ -23,94 +23,22 @@ const num = (v) => {
 
 /* ---------- 各表解析 ---------- */
 
-/** 账户表：表头关键词 → 我们的字段名 */
-const SETTINGS_COLS = {
-  code: ['简码'],
-  type: ['类型'],
-  category: ['分类'],
-  name: ['账户名称', '名称'],
-  opening: ['期初'],
-  billDay: ['账单日'],
-  repayDay: ['还款日'],
-};
-
-/**
- * 找账户表的表头行（同时出现「账户名称」和「期初」）。
- *
- * 为什么非要有它：单文件版导出的那张账户表叫「汇总」，13 列，列序与本工程的「设置」不同 ——
- *   单文件版：序 类型 分类 简码 账户名称 当前结余 转出 转入 转出历史 转入历史 期初 账单日 还款日
- *   本工程：  简码 序 类型 分类 账户名称 期初 账单日 还款日
- * 按固定列位读会得到「简码=序号、类型=分类、期初=当前结余」—— 每条都错，而且界面上看不出错。
- */
-function findSettingsHead(rows) {
-  const limit = Math.min(rows.length, 12);
-  for (let i = 0; i < limit; i += 1) {
-    const cells = (rows[i] || []).map(str);
-    if (!cells.length) continue;
-    const has = (kw) => cells.some((c) => c.includes(kw));
-    if (has('账户名称') && has('期初')) return i;
-  }
-  return -1;
-}
-
-/** 表头行 → 「字段 → 列号」；认不出的字段不写进表 */
-function settingsColMap(headCells) {
-  const cells = (headCells || []).map(str);
-  const map = {};
-  for (const key of Object.keys(SETTINGS_COLS)) {
-    for (let i = 0; i < cells.length; i += 1) {
-      if (map[key] != null) break;
-      const c = cells[i];
-      if (!c) continue;
-      if (SETTINGS_COLS[key].some((kw) => c.includes(kw))) map[key] = i;
-    }
-  }
-  return map;
-}
-
-/** 五大类的短名 / 全名（用来认「类型小计行」） */
-const TYPE_LABEL = /^(资产|负债|收入|权益|费用)(类)?$/;
-
-/**
- * 设置表：账户行（账户名称非空），分区行 / 类型小计行自然被跳过。
- *
- * 两种来源都认：
- *   · 有表头 → 按表头文字定位（单文件版的「汇总」与本案的「设置」都能读）
- *   · 没表头 → 退回本工程的固定列位（老文件兜底）
- */
+/** 设置表：账户行（第 5 列＝账户名称 非空），分区行 / 类型小计行自然被跳过 */
 export function parseSettingsRows(rows) {
-  const list = rows || [];
-  const head = findSettingsHead(list);
-  const map = head >= 0 ? settingsColMap(list[head]) : null;
-  const col = (key, fallback) => (map && map[key] != null ? map[key] : fallback);
-
-  const cCode = col('code', 0);
-  const cType = col('type', 2);
-  const cCat = col('category', 3);
-  const cName = col('name', 4);
-  const cOpen = col('opening', 5);
-  const cBill = col('billDay', 6);
-  const cRepay = col('repayDay', 7);
-  const start = head >= 0 ? head + 1 : 2;
-
   const out = [];
-  for (let i = start; i < list.length; i += 1) {
-    const r = list[i] || [];
-    const name = str(r[cName]);
-    if (!name) continue;                     // 标题 / 分区行
-
-    // 单文件版的类型小计行：账户名称列写的是「资产类」这种类名，
-    // 简码 / 类型 / 分类三列全空。不跳过就会多出一个叫「资产类」的假账户。
-    if (TYPE_LABEL.test(name) && !str(r[cCode]) && !str(r[cType]) && !str(r[cCat])) continue;
+  for (let i = 2; i < (rows || []).length; i += 1) {
+    const r = rows[i] || [];
+    const name = str(r[4]);
+    if (!name) continue;                     // 标题 / 分区行 / 类型小计行
 
     out.push({
-      code: str(r[cCode]).toUpperCase(),
-      type: fullType(r[cType]),
-      category: str(r[cCat]),
+      code: str(r[0]).toUpperCase(),
+      type: fullType(r[2]),
+      category: str(r[3]),
       name,
-      opening: num(r[cOpen]),
-      billDay: isDayGiven(r[cBill]) ? clampDay(r[cBill]) : 0,
-      repayDay: isDayGiven(r[cRepay]) ? clampDay(r[cRepay]) : 0,
+      opening: num(r[5]),
+      billDay: isDayGiven(r[6]) ? clampDay(r[6]) : 0,
+      repayDay: isDayGiven(r[7]) ? clampDay(r[7]) : 0,
     });
   }
   return out;

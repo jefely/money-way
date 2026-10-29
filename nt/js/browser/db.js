@@ -10,8 +10,7 @@
  */
 
 import { encryptData, decryptData, randomSalt, bytesToBase64, base64ToBytes } from '../core/crypto-engine.js';
-import { getKey, createWith, unlock, isUnlocked, adoptKey } from '../core/auth-manager.js';
-import { rekeyVault } from '../core/vault-rekey.js';
+import { getKey, createWith, unlock, isUnlocked } from '../core/auth-manager.js';
 import { idbGet, idbPut, idbDel } from './idb.js';
 import { SCHEMA_VERSION } from '../core/schema.js';
 
@@ -94,25 +93,4 @@ export async function loadState() {
 /** 销毁保险库（重置账本用，不可恢复）。 */
 export async function destroyVault() {
   await idbDel(VAULT_KEY);
-}
-
-/**
- * 换主密码：验旧密码 → 换新盐 → 用新密钥重新加密整份 state → 落盘 → 接管新密钥。
- *
- * 顺序是关键：**先**写盘，成功了才 adoptKey。反过来做的话，写盘失败会留下
- * 「闭包里是新钥匙、盘上还是旧记录」的状态 —— 这一进程能继续用，刷新就打不开。
- *
- * @param {string} oldPassword
- * @param {string} newPassword
- * @param {object} stateObj 当前内存里的 state（把未保存的编辑一并保住）
- * @returns {Promise<{ok:boolean, error?:string}>}
- */
-export async function changeVaultPassword(oldPassword, newPassword, stateObj) {
-  const rec = await readVaultRecord();
-  const r = await rekeyVault(rec, oldPassword, newPassword, stateObj);
-  if (!r.ok) return { ok: false, error: r.error };
-
-  await idbPut(VAULT_KEY, r.record);
-  adoptKey(r.key);
-  return { ok: true };
 }

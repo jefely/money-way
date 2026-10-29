@@ -13,7 +13,7 @@ import { loadTemplates } from './ui/render-transactions.js';
 import { bindTabs } from './ui/tabs.js';
 import { showGate, hideGate } from './ui/gate.js';
 import { openAccountsWith } from './ui/account-actions.js';
-import { hasVault, createVault, unlockVault, saveState, destroyVault, changeVaultPassword } from './browser/db.js';
+import { hasVault, createVault, unlockVault, saveState, destroyVault } from './browser/db.js';
 import * as NtModal from './ui/modal.js';
 import { migrate } from './core/migrate.js';
 import { syncOpeningDates } from './core/ledger-stats.js';
@@ -164,9 +164,6 @@ function mountViews() {
       NtModal.closeAll();
       location.reload();
     },
-    // 换主密码：逻辑在 browser/db.js → core/vault-rekey.js，
-    // 这里只把「当前内存 state」递过去（换完密码不会丢掉未保存的编辑）。
-    changePassword: (oldPw, newPw) => changeVaultPassword(oldPw, newPw, getState()),
   };
 
   views = {

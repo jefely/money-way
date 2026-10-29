@@ -16,7 +16,7 @@
 
 import { decodeSyncCode } from './sync-code.js';
 import { createState, addAccount, addTransaction } from './state-store.js';
-import { createScheduled, FREQ, normalizeMonth } from './schema.js';
+import { createScheduled } from './schema.js';
 import { OPENING_ACCOUNT_ID } from './schema.js';
 
 const str = (v) => String(v == null ? '' : v).trim();
@@ -128,17 +128,8 @@ export function stateFromLzPayload(payload) {
     count += 1;
   }
 
-  // 计划流水。三种形状都要认：
-  //   ① 本工程的 scheduled（带 isScheduled）
-  //   ② 单文件版的 fixed  —— 固定收支，{freq:'month'|'day', day, from, to, amount, note}
-  //   ③ 单文件版的 installments —— 分期矩阵，每条占两行、cells 是 { '2610': {p,i} }
-  //
-  // ②③ 是 2026-10-30 补的。在那之前只读 scheduled，而单文件版**根本不导出 scheduled** ——
-  // 于是从单文件版导一份 .lz 过来，账户和流水都在、固定收支与分期全部静默消失，
-  // 界面上连一句提示都没有（统计里 scheduled 数 = 0，看起来就像「本来就没有」）。
+  // 计划流水：本工程有 scheduled；单文件版没有这个概念（忽略未知字段）
   const scheduled = [];
-  let lostScheduled = 0;
-
   for (const s of p.scheduled || []) {
     if (!s || !s.isScheduled) continue;
     scheduled.push(createScheduled({
@@ -153,61 +144,6 @@ export function stateFromLzPayload(payload) {
     }));
   }
 
-  // ② 固定收支
-  for (const f of p.fixed || []) {
-    if (!f) continue;
-    const fromId = resolve(null, f.from);
-    const toId = resolve(null, f.to);
-    const amount = Math.abs(num(f.amount));
-    // 两端账户都认不出、或金额为 0 的规则搬过来也没有意义
-    if ((!fromId && !toId) || !amount) { lostScheduled += 1; continue; }
-    scheduled.push(createScheduled({
-      freq: str(f.freq) === 'day' ? FREQ.DAILY : FREQ.MONTHLY,
-      day: f.day || 1,
-      from_id: fromId,
-      to_id: toId,
-      amount,
-      note: f.note,
-    }));
-  }
-
-  // ③ 分期：单文件版是「每期本金 / 利息手填的矩阵」，本工程是「本金 + 期数 + 利息 + 首月」。
-  //    反推规则写在下面，**总额必须对上**（本金 = 各期 p 之和，利息 = 各期 i 之和）——
-  //    单文件版允许每期不等额，搬过来只能按均额摊，这一点要在导入提示里说清楚。
-  for (const it of p.installments || []) {
-    if (!it) continue;
-    const cells = it.cells || {};
-    const months = Object.keys(cells)
-      .filter((k) => cells[k] && (num(cells[k].p) || num(cells[k].i)))
-      .sort();
-    const toId = resolve(null, it.name);
-
-    if (!months.length || !toId) { lostScheduled += 1; continue; }
-
-    let principal = 0;
-    let interest = 0;
-    for (const ym of months) {
-      principal += num(cells[ym].p);
-      interest += num(cells[ym].i);
-    }
-
-    scheduled.push(createScheduled({
-      freq: FREQ.MONTHLY,
-      day: it.repayDay || 1,
-      billDay: it.billDay,
-      from_id: null,          // 单文件版的分期只记「哪张卡」，没有转出方
-      to_id: toId,
-      amount: principal || interest,
-      note: str(it.note) || '分期',
-      inst: {
-        periods: months.length,
-        firstMonth: normalizeMonth(months[0]),
-        principal: round2(principal),
-        interest: round2(interest),
-      },
-    }));
-  }
-
   return {
     state: { ...state, scheduled },
     stats: {
@@ -215,12 +151,6 @@ export function stateFromLzPayload(payload) {
       transactions: count,
       loose,
       scheduled: scheduled.length,
-      lostScheduled,
     },
   };
-}
-
-/** 保留两位（.lz 里可能有 12.300000000000001 这种浮点尾巴） */
-function round2(n) {
-  return Math.round((Number(n) || 0) * 100) / 100;
 }
