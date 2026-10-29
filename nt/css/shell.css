@@ -311,26 +311,11 @@ body {
   color: var(--nt-text);
 }
 
-/* 分类表的合计标题（资产类合计 / 负债类合计…）住在冻结的「序」格里，
-   横滚时一直可见，列宽也能随便调窄（用户 2026-10-30，照单文件版 cat-tag 的做法：
-   小字号 + nowrap + 溢出显示）。
-
-   为什么这里不会撑宽：这张表是 table-layout:fixed，列宽由表头 th 的 width
-   决定，单元格内容不参与列宽计算；把 overflow 放开，文字就会盖到空的「分类」格上。 */
-.nt-table-stats .nt-row-total .nt-cell:nth-child(1) {
-  overflow: visible;
-  white-space: nowrap;
-  text-align: left;
-  font-size: 12px;
-  letter-spacing: -0.5px;
-  z-index: 5;
-  background: var(--nt-bg-soft);
-  border-right: 0 !important;
-  box-shadow: none;
-}
-
+/* 分类表的合计标题（资产类合计 / 负债类合计…）放在「分类」格里、靠右显示。
+   序和分类两列都冻结，横滚时标题一直可见（用户 2026-10-30 定的最终形态：
+   不要在序格里溢出 —— 那会打乱列宽拖动的手感）。 */
 .nt-table-stats .nt-row-total .nt-cell:nth-child(2) {
-  background: transparent;
+  text-align: right;
 }
 
 /* ============================================================
@@ -355,16 +340,6 @@ body {
 .nt-table-stats .nt-th:nth-child(2) {
   position: sticky;
   z-index: 6;
-}
-
-/* 分类视图只有 8 列，不冻结前两列（用户 2026-10-30）：横滚时整表一起走，
-   省掉一整套 sticky 计算，合计标题也就不用为了「冻结着还能看见」做特殊处理。
-   汇总视图列多（10 列），仍然冻结。 */
-.nt-table-stats.is-cat .nt-th:nth-child(-n+2),
-.nt-table-stats.is-cat .nt-cell:nth-child(-n+2) {
-  position: static;
-  left: auto !important;
-  z-index: auto;
 }
 
 .nt-table-flow .nt-cell:nth-child(1),
