@@ -14,7 +14,7 @@ import {
 import { createScheduled } from '../core/schema.js';
 import { buildFlowRows, buildFooterInfo } from '../ui/flow-model.js';
 import { moneyOrBlank } from '../core/format.js';
-import { renderRows, patchRow } from '../ui/render-transactions.js';
+import { renderRows, patchRow, clearBlankDraft } from '../ui/render-transactions.js';
 import { parseAccountInput, suggestAccounts as suggestByIndex, ensurePendingAccount } from '../core/account-resolver.js';
 import { bindRowEditing } from '../ui/row-editor.js';
 import * as NtModal from '../ui/modal.js';
@@ -253,10 +253,7 @@ export function mountFlow(section, ctx) {
     ctx.setFooter(footerText());
   }
 
-  function footerText() {
-    const i = buildFooterInfo(ctx.getState());
-    return `共 ${i.count} 笔 · 合计 ${i.totalText}`;
-  }
+  function footerText() { const i = buildFooterInfo(ctx.getState()); return `共 ${i.count} 笔 · 合计 ${i.totalText}`; }
 
   function onEdit(id, field, value, resolvedId) {
     const patch = {};
@@ -282,7 +279,7 @@ export function mountFlow(section, ctx) {
     ctx.save();
   }
 
-  function onCreate(fields) {
+  function onCreate(fields, tr) {
     // 流水只负责记录（用户 2026-10-30）：转出/转入可以随便写，
     // 认不出的文本自动建一个未分类账户，不拦录入。
     let s = ctx.getState();
@@ -303,6 +300,10 @@ export function mountFlow(section, ctx) {
     // 建单要重建整表；先把滚动位置记下来，重建后放回去 ——
     // 否则在末尾空行里敲金额，整页会跳回第一行（用户 2026-10-30）
     const wrap = body.closest('.nt-tablewrap'); const keepTop = wrap ? wrap.scrollTop : 0;
+
+    // 这一行要变成正式记录：先消费掉它在空行区里的草稿，再 render。
+    // 不消费的话，重建时它会被当成「第 k 个空行」原样摆回去（内容重复出现）。
+    if (tr) clearBlankDraft(tr.dataset.blank);
 
     ctx.setState(addTransaction(s, {
       date: normalizeDateInput(fields.date || todayIso()),

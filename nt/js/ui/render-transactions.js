@@ -97,6 +97,67 @@ function spacerRow(h) {
 /** 末尾固定 40 行空行：直接在最下面连续录入（用户 2026-10-29） */
 const BLANK_ROWS = 40;
 
+/* ---------- 空行草稿 ----------
+ *
+ * 用户 2026-10-30：留这么多空行就是让人自由布局录入面板，想在哪一行写就在哪一行写。
+ *
+ * 但空行**不在 state 里** —— 它们是 renderWindow 临时造出来的 DOM。所以任何一次
+ * 重建（建单后 render / 滚动 / 切页回来）都会把它们清空，表现就是
+ * 「录完一行的金额，别的行写好的东西全没了，只剩刚建的那一条」。
+ *
+ * 这里按「空行区序号」存一份草稿，重建时回填。序号是空行里的下标（0..39），
+ * 与数据行数无关；某一空行转成正式记录后，它的草稿要被丢掉，后面的序号随之前移一位。
+ */
+const DRAFT_FIELDS = ['date', 'from', 'to', 'amount', 'note'];
+let draftRows = new Array(BLANK_ROWS).fill(null);
+
+function readDraft(tr) {
+  const o = {};
+  let any = false;
+  for (const f of DRAFT_FIELDS) {
+    const el = tr.querySelector('[data-field="' + f + '"]');
+    const v = el ? String(el.value || '') : '';
+    o[f] = v;
+    if (v) any = true;
+  }
+  return any ? o : null;
+}
+
+function applyDraft(tr, draft) {
+  if (!draft) return;
+  for (const f of DRAFT_FIELDS) {
+    const el = tr.querySelector('[data-field="' + f + '"]');
+    if (el && draft[f]) el.value = draft[f];
+  }
+}
+
+/** 这一行空行已经转成正式记录：丢掉它的草稿，后面的序号前移 */
+export function clearBlankDraft(idx) {
+  const i = Number(idx);
+  if (!Number.isFinite(i) || i < 0 || i >= draftRows.length) return;
+  draftRows.splice(i, 1);
+  draftRows.push(null);
+}
+
+/** 草稿快照（诊断用） */
+export function blankDrafts() {
+  return draftRows.map((d) => (d ? { ...d } : null));
+}
+
+function bindDrafts(tbody) {
+  if (tbody.dataset.drafts === '1') return;
+  tbody.dataset.drafts = '1';
+  tbody.addEventListener('input', (ev) => {
+    const input = ev.target;
+    if (!input || input.tagName !== 'INPUT') return;
+    const tr = input.closest('tr[data-blank]');
+    if (!tr) return;
+    const k = Number(tr.dataset.blank);
+    if (!Number.isFinite(k) || k < 0 || k >= draftRows.length) return;
+    draftRows[k] = readDraft(tr);
+  }, true);
+}
+
 function bindScroll(tbody) {
   const wrap = tbody.closest('.nt-tablewrap');
   if (!wrap || wrap.dataset.virtual === '1') return;
@@ -124,7 +185,10 @@ function renderWindow() {
   const wrap = tbody.closest('.nt-tablewrap');
   const rowH = getRowH();
   const scrollTop = wrap ? wrap.scrollTop : 0;
-  const viewH = wrap ? wrap.clientHeight : 800;
+  // clientHeight 在读到的这一刻可能是 0（刚切回本 tab、容器还没重排完），
+  // 那样 end 会算成 rows.length+2 —— 只渲染数据行，一个空行都不生成。
+  // 用户看到的就是「只剩有金额的那一行」，而且没地方可以往下录。
+  const viewH = (wrap && wrap.clientHeight) || 800;
 
   const start = Math.max(0, Math.floor(scrollTop / rowH) - 2);
   const end = Math.min(total, Math.ceil((scrollTop + viewH) / rowH) + 2);
@@ -135,8 +199,15 @@ function renderWindow() {
 
   for (let i = start; i < end; i += 1) {
     if (i >= rows.length) {
-      // 末尾 40 行空行：直接当「新增行」写，不用点「添加」
-      if (newTpl) frag.appendChild(newTpl.cloneNode(true));
+      // 末尾空行：直接当「新增行」写，不用点「添加」。
+      // 有草稿就回填 —— 重建窗口时不能让用户已经写下的东西消失。
+      if (newTpl) {
+        const tr = newTpl.cloneNode(true);
+        const k = i - rows.length;
+        tr.dataset.blank = String(k);
+        applyDraft(tr, draftRows[k]);
+        frag.appendChild(tr);
+      }
       continue;
     }
     const r = rows[i];
@@ -202,6 +273,7 @@ export function renderRows(tbody, rows) {
   currentRows = rows || [];
   currentTbody = tbody;
   bindScroll(tbody);
+  bindDrafts(tbody);
   renderWindow();
 }
 

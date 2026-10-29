@@ -141,7 +141,7 @@ export function bindRowEditing(tbody, h) {
       if (v) fields[el.dataset.field] = v;
     });
     if (!fields.amount && !fields.from && !fields.to) return false;
-    h.onCreate(fields);
+    h.onCreate(fields, tr);
     return true;
   }
 
