@@ -1,4 +1,4 @@
-﻿// 界面：校验 tab
+// 界面：校验 tab
 /**
  * 校验视图（账本说明 / 账本校验 / 赞助感谢）
  * 层：第五层 · UI
@@ -11,6 +11,7 @@ import { balanceOf } from '../core/balance-calculator.js';
 import { validate } from '../core/validator.js';
 import { money } from '../core/format.js';
 import { shareBlock } from '../ui/share-block.js';
+import { mountThanksWall } from '../ui/thanks-wall.js';
 
 const TYPES = ['资产类', '负债类', '收入类', '权益类', '费用类'];
 
@@ -156,10 +157,8 @@ export function mountValidate(section, ctx) {
   }
 
   function renderThanks() {
-    host.appendChild(textBlock('赞助感谢', [
-      '感谢你使用 NT账本。',
-      '把这条工具推荐给需要的人，就是最好的支持。',
-    ]));
+    // 感谢墙整块在 ui/thanks-wall.js（名字方块 + PNG 图片 + 本地存储）
+    host.appendChild(mountThanksWall({ notify: (text) => ctx.setFooter(text) }));
   }
 
   return { render };

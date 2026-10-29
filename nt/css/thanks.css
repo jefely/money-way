@@ -1,0 +1,214 @@
+/* ============================================================
+   校验页 · 赞助感谢（感谢墙）
+   ------------------------------------------------------------
+   复刻单文件版的观感：收款码 + 说明 + 直角方块名字墙；
+   额外支持往墙上添加 PNG 图片（每张 92×92，object-fit: cover）。
+   ============================================================ */
+
+.nt-thanks {
+  /* .nt-text-block 已经给了卡片边框/底色，这里只补内部节奏 */
+  padding-bottom: 12px;
+}
+
+/* ---------- 收款码 ---------- */
+
+.nt-thanks-qr-wrap {
+  margin: 12px 0 4px;
+  text-align: center;
+}
+
+.nt-thanks-qr {
+  width: 180px;
+  height: 180px;
+  border-radius: 10px;
+  background: #fff;
+  object-fit: contain;
+}
+
+.nt-thanks-qr-acts {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.nt-thanks-qr-miss {
+  width: 180px;
+  height: 180px;
+  border: 1px dashed var(--nt-bg-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--nt-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.nt-thanks-qr-miss:hover {
+  border-color: var(--nt-primary);
+  color: var(--nt-primary);
+}
+
+/* ---------- 说明 ---------- */
+
+.nt-thanks-tip {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--nt-primary) 8%, transparent);
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--nt-text);
+}
+
+.nt-thanks-tip b {
+  color: var(--nt-primary);
+}
+
+/* ---------- 墙 ---------- */
+
+.nt-thanks-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.nt-thanks-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--nt-text);
+}
+
+.nt-thanks-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--nt-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.nt-thanks-wall {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  min-height: 46px;
+}
+
+.nt-thanks-empty {
+  align-self: center;
+  font-size: 12px;
+  color: var(--nt-text-light);
+}
+
+/* 名字方块：直角、居中、按字数分好的字号由 JS 写在行内 */
+.nt-thanks-chip {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  box-sizing: border-box;
+  padding: 2px 3px;
+  border-radius: 0;
+  font-weight: 800;
+  line-height: 1.08;
+  text-align: center;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+.nt-thanks-chip-row {
+  display: block;
+  white-space: nowrap;
+}
+
+/* 图片条目：和名字方块同一档尺寸 */
+.nt-thanks-img {
+  position: relative;
+  display: inline-block;
+  width: 92px;
+  height: 92px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+.nt-thanks-img img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 删除按钮：右上角小直角块，桌面悬停才出现，触屏常显半透明 */
+.nt-thanks-del {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 13px;
+  line-height: 18px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.nt-thanks-chip:hover .nt-thanks-del,
+.nt-thanks-img:hover .nt-thanks-del {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .nt-thanks-del {
+    opacity: 0.55;
+  }
+}
+
+/* ---------- 管理区（本机维护） ---------- */
+
+.nt-thanks-manage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.nt-thanks-name {
+  flex: 1 1 110px;
+  min-width: 90px;
+  height: 26px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.nt-thanks-manage .nt-btn {
+  height: 26px;
+  padding: 0 8px;
+}
+
+.nt-thanks-clear {
+  margin-left: auto;
+  color: var(--nt-text-muted);
+}
+
+.nt-thanks-clear:hover {
+  color: var(--nt-bad);
+}
+
+/* 窄屏：收款码缩小；「清空」仍靠右（换行后也贴右边） */
+@media (max-width: 520px) {
+  .nt-thanks-qr,
+  .nt-thanks-qr-miss {
+    width: 156px;
+    height: 156px;
+  }
+}

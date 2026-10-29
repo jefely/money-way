@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.79';
+const CACHE_NAME = 'nt-v1.80';
 
 const ASSETS = [
   './index.html',
@@ -46,6 +46,7 @@ const ASSETS = [
   './css/suggest.css',
   './css/text-editor.css',
   './css/theme.css',
+  './css/thanks.css',
   './css/validate.css',
   './js/app.js',
   './js/browser/db.js',
@@ -120,6 +121,7 @@ const ASSETS = [
   './js/ui/render-transactions.js',
   './js/ui/row-editor.js',
   './js/ui/share-block.js',
+  './js/ui/thanks-wall.js',
   './js/ui/suggest-popover.js',
   './js/ui/sync-dialog.js',
   './js/ui/table-layout.js',

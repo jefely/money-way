@@ -100,6 +100,7 @@
 | `ui/table-layout.js` | 表格冻结列 + 列宽拖动 |
 | `ui/table.js` | 统计 / 查询 / 固定 / 设置 → 通用表格渲染 |
 | `ui/tabs.js` | 顶部 7 个 tab 切换 |
+| `ui/thanks-wall.js` | 校验页「赞助感谢」—— 感谢墙（名字方块 + PNG 图片） |
 | `ui/theme-manager.js` | 全局 → 主题切换（1/2/3/4） |
 | `ui/undo-bar.js` | 删除后的撤销条 |
 | `ui/update-check.js` | （未标注界面）版本更新（UI 层） |
