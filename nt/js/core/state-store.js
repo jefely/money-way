@@ -83,13 +83,14 @@ export function updateAccount(state, id, patch) {
  * 删账户。**同时删掉引用它的流水**，否则会留下断链。
  * 期初虚拟账户不许删。
  */
+/**
+ * 从设置表移除账户。**不碰流水**（用户 2026-10-30）：
+ * 流水是主表 / 原数据，设置表只是列举账户信息；删掉账户后，
+ * 引用它的流水会显示为空账户（V3 断链提示），统计结果跟着受影响而已。
+ */
 export function removeAccount(state, id) {
   if (id === OPENING_ACCOUNT_ID) return state;
-  return {
-    ...state,
-    accounts: state.accounts.filter((a) => a.id !== id),
-    transactions: state.transactions.filter((t) => t.from_id !== id && t.to_id !== id),
-  };
+  return { ...state, accounts: state.accounts.filter((a) => a.id !== id) };
 }
 
 /* ---------- 流水：增删改 ---------- */

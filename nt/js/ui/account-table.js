@@ -200,11 +200,15 @@ export function mountAccountTable(ctx, tbody, opts) {
     if (del) {
       del.addEventListener('click', () => {
         const acc = ctx.getIndex().byId.get(id);
-        if (!confirm('删除「' + (acc ? acc.name : '') + '」？它的流水会一起删掉。')) return;
+        const nm = acc ? acc.name : '';
+        // 流水是主表：设置表删账户只影响「账户怎么归类」，不许动流水（用户 2026-10-30）
+        const ok = confirm('从设置表移除「' + nm + '」？\n\n'
+          + '流水不会被删除；引用它的流水会显示为空账户（校验里会提示断链）。');
+        if (!ok) return;
         ctx.setState(removeAccount(ctx.getState(), id));
         ctx.saveNow();
         render();
-        ctx.setFooter('已删除账户');
+        ctx.setFooter('已移除账户（流水保留）');
       });
     }
 

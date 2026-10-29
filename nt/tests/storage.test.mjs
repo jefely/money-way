@@ -103,11 +103,13 @@ test('期初迁移：账户 opening → 期初流水，余额不变且幂等', (
   assert.equal(second.state.transactions.length, first.state.transactions.length);
 });
 
-test('删账户会连带删掉引用它的流水（不留断链）', () => {
+test('删账户只从设置表移除，流水是主表、必须保留（用户 2026-10-30）', () => {
   const s = seed();
   const after = removeAccount(s, 'acc_food');
   assert.equal(after.accounts.some((a) => a.id === 'acc_food'), false);
-  assert.equal(after.transactions.length, 0, '引用被删账户的流水必须一起清掉');
+  assert.equal(after.transactions.length, s.transactions.length, '流水一条都不许删');
+  assert.ok(after.transactions.some((t) => t.from_id === 'acc_food' || t.to_id === 'acc_food'),
+    '引用被删账户的流水留着（显示为空账户 / 断链提示）');
 });
 
 test('期初虚拟账户不许删', () => {
