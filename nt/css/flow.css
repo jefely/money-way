@@ -555,6 +555,104 @@ body.nt-col-resizing {
   font: 12px/1.5 ui-monospace, Consolas, monospace;
   resize: vertical;
 }
+/* 同步弹窗：二维码 + 右侧日期竖轮（3 天一张） */
+.nt-sync-qrrow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.nt-sync-qrrow .nt-sync-qr {
+  flex: 0 0 auto;
+  width: 200px;
+  max-width: 200px;
+  margin: 0;
+}
+
+.nt-sync-wheel {
+  position: relative;
+  flex: 0 0 56px;
+  width: 56px;
+  overflow: hidden;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  background: var(--nt-bg);
+  /* 竖列自己要吃掉上下拖动，别让弹窗跟着滚 */
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.nt-sync-wheel-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  will-change: transform;
+}
+
+.nt-sync-wheel-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--nt-text-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.nt-sync-wheel-item.on {
+  color: var(--nt-text);
+  font-weight: 800;
+}
+
+/* 正中间那一格 = 生效的日期 */
+.nt-sync-wheel-center {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--nt-primary);
+  border-bottom: 1px solid var(--nt-primary);
+  background: color-mix(in srgb, var(--nt-primary) 10%, transparent);
+  pointer-events: none;
+}
+
+/* 上下边缘淡出：数字滚到底/顶时不要被硬生生切一刀 */
+.nt-sync-wheel::before,
+.nt-sync-wheel::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 26px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.nt-sync-wheel::before {
+  top: 0;
+  background: linear-gradient(var(--nt-bg), transparent);
+}
+
+.nt-sync-wheel::after {
+  bottom: 0;
+  background: linear-gradient(transparent, var(--nt-bg));
+}
+
+.nt-sync-range {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--nt-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.nt-sync-sec {
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 /* 同步弹窗：三个区块（二维码 / 同步码 / 接收） */
 .nt-sync-block {
   padding: 10px 0;
