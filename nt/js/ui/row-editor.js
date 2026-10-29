@@ -153,22 +153,12 @@ export function bindRowEditing(tbody, h) {
   /** 把账户格里的输入解析成账户，回填真实名，并把 id 交给调用方 */
   function resolveField(tr, input) {
     const res = h.parseAccount ? h.parseAccount(input.value) : { acc: null, display: input.value };
-    const editable = tr.dataset.new !== '1' && tr.dataset.id;
-
     if (res.acc) {
       input.value = res.display;
-      if (editable) h.onEdit(tr.dataset.id, input.dataset.field, res.display, res.acc.id);
-    } else if (editable) {
-      // 认不出也要交出去：流水表允许写自由文本，要不要自动建账户是业务层的事
-      // （views/flow.js 的 onEdit 里有一段「认不出就建未分类账户」）。
-      // 早先这里直接 return —— 那段兜底因此永远走不到：
-      // 把已有行的转出改成新名字时，账户不会建，from_id 还会留在旧账户上。
-      //
-      // 空串同样要交出去：清空转出 = 这一端没有账户，from_id 必须跟着清掉，
-      // 否则屏幕上空了、数据里还挂着旧账户，统计会把它算到旧账户头上。
-      h.onEdit(tr.dataset.id, input.dataset.field, String(input.value || '').trim());
+      if (tr.dataset.new !== '1' && tr.dataset.id) {
+        h.onEdit(tr.dataset.id, input.dataset.field, res.display, res.acc.id);
+      }
     }
-
     hideSuggest();
   }
 
