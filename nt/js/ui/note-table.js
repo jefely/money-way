@@ -45,7 +45,7 @@ function noteHead() {
   const inner = document.createElement('div');
   inner.className = 'nt-zone-label';
   const hint = document.createElement('span');
-  hint.className = 'nt-zone-hint';
+  hint.className = 'nt-zone-hint nt-note-hint';
   hint.textContent = '成员归属/项目说明';
   inner.appendChild(hint);
   td.appendChild(inner);

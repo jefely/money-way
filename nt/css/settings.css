@@ -235,6 +235,14 @@
   gap: 10px;
 }
 
+/* 备注标题的说明用和 A/B 标题一样的字号/字重（11px 小字挂在区域标题上
+   看不出从属关系，用户 2026-10-29 指出不匹配） */
+.nt-zone-head.nt-zone-note .nt-note-hint {
+  font-size: 12px;
+  font-weight: 800;
+  opacity: 1;
+}
+
 /* 备注内容：整行文本，左对齐读起来才顺（账户表的控件默认居中） */
 .nt-table-accounts .nt-cell-input[data-field="ntext"] {
   text-align: left;

@@ -118,7 +118,6 @@ export function mountAccountTable(ctx, tbody, opts) {
         td.textContent = '（这一类还没有账户）';
         tr.appendChild(td);
         frag.appendChild(tr);
-        continue;
       }
 
       for (const acc of inZone) {
@@ -155,20 +154,23 @@ export function mountAccountTable(ctx, tbody, opts) {
         bindRow(tr, acc.id);
         frag.appendChild(tr);
       }
+
+      // 每个区域各自一个新增行（用户 2026-10-29）：A 区末尾建资产/费用类，
+      // B 区末尾建负债/权益/收入类，不需要滚到表格最下面再建。
+      const newTpl = tpl('tpl-account-new');
+      if (newTpl) {
+        const tr = newTpl.cloneNode(true);
+        const sel = tr.querySelector('[data-field="type"]');
+        if (sel && zone.types && zone.types[0]) sel.value = zone.types[0];
+        frag.appendChild(tr);
+        bindNewRow(tr);
+      }
     }
 
     /* ---------- 备注区：独立于 A/B，仅统计分类 + 备注栏快速输入 ---------- */
     frag.appendChild(renderNotes(ctx, render));
 
     tbody.appendChild(frag);
-
-    // 末尾空行：新建账户
-    const newTpl = tpl('tpl-account-new');
-    if (newTpl) {
-      const tr = newTpl.cloneNode(true);
-      tbody.appendChild(tr);
-      bindNewRow(tr);
-    }
 
     summarize(visible, state);
   }
