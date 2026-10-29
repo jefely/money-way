@@ -83,9 +83,28 @@
   letter-spacing: 0.04em;
 }
 
-/* 账户名称：最长的一列，左对齐才好扫读（其余列居中） */
+/* 备注列标行：再补一层固定淡紫，保证各主题下都看得出（用户 2026-10-30） */
+.nt-table-accounts tbody tr.nt-note-cols > td.nt-cell {
+  background-image: linear-gradient(rgba(107, 91, 196, 0.12), rgba(107, 91, 196, 0.12));
+}
+
+/* 冻结表头也叠一层和区域列标行一样的主题色（用户 2026-10-30） */
+.nt-table-accounts .nt-th {
+  position: relative;
+}
+
+.nt-table-accounts .nt-th::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--nt-primary);
+  opacity: 0.09;
+  pointer-events: none;
+}
+
+/* 账户名称：居中显示（用户 2026-10-30；原来左对齐） */
 .nt-table-accounts td:nth-child(5) .nt-cell-input {
-  text-align: left;
+  text-align: center;
 }
 
 /* 期初：金额，右对齐 + 等宽数字 */
@@ -177,9 +196,10 @@
 
 /* 区号格：64px 的简码列里放一个字母，居中、比正文重一档 */
 .nt-table-accounts tbody tr.nt-zone-head > td.nt-zone-tag {
-  padding: 0;
-  text-align: center;
+  padding: 0 6px 0 0;
+  text-align: right;
   font-size: 13px;
+  border-right: 0;
 }
 
 /* 备注区（用户 2026-10-29）：独立于 A/B，标题用主题紫（和 A 绿 / B 红并列） */

@@ -46,3 +46,21 @@ export function nextSeqFor(list) {
   });
   return max + 1;
 }
+
+/** 上移：与同一类型里的前一个账户交换位置（跨类型换看不出效果，所以限制在类型内） */
+export function moveWithinType(accounts, id) {
+  const list = (accounts || []).slice();
+  const i = list.findIndex((a) => a && a.id === id);
+  if (i < 0) return { moved: false, accounts: list };
+
+  const acc = list[i];
+  let j = -1;
+  for (let k = i - 1; k >= 0; k -= 1) {
+    if (list[k] && list[k].type === acc.type) { j = k; break; }
+  }
+  if (j < 0) return { moved: false, accounts: list };
+
+  list[i] = list[j];
+  list[j] = acc;
+  return { moved: true, accounts: list };
+}

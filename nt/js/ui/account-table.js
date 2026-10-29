@@ -17,12 +17,14 @@ import { ZONES } from '../core/settings.js';
 import { money } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
 import { addAccount, updateAccount, removeAccount, addTransaction, addNote, updateNote, removeNote, NOTE_TYPES, accountTypesOf } from '../core/state-store.js';
-import { accountsOfZone, orderBySeq, nextSeqFor, effectiveSeq } from '../core/account-order.js';
-import { ensureDatalist } from './datalists.js';
+import { accountsOfZone, orderBySeq, nextSeqFor, effectiveSeq, moveWithinType } from '../core/account-order.js';
+import { fillTypeSelect } from './datalists.js';
+import { zoneCols } from './table-parts.js';
 import { normalizeCode, isValidCode, OPENING_ACCOUNT_ID } from '../core/schema.js';
 import { balanceOf } from '../core/balance-calculator.js';
 import { validate, issuesOf } from '../core/validator.js';
 import { renderNotes } from './note-table.js';
+import * as NtModal from './modal.js';
 
 const FIELDS = ['type', 'category', 'code', 'name', 'opening', 'seq'];
 const TYPES = ['资产类', '负债类', '收入类', '权益类', '费用类'];
@@ -38,9 +40,6 @@ export function mountAccountTable(ctx, tbody, opts) {
   function render() {
     const state = ctx.getState();
     const visible = (state.accounts || []).filter((a) => a && !a.isHidden);
-
-    // 账户类型候选（内置五种 + 用户自己填过的）——新增/已有行的类型格都引用它
-    ensureAccountTypes(state);
 
     // 简码校验（V7）：缺简码 / 长度字符不合法 / 重复，都会在这里拿到 accountId。
     // 只跑 accounts（不传 transactions），V7 不依赖流水。
@@ -152,8 +151,8 @@ export function mountAccountTable(ctx, tbody, opts) {
           }
         }
 
-        const typeInput = tr.querySelector('[data-field="type"]');
-        if (typeInput) typeInput.value = acc.type || '资产类';
+        const typeSel = tr.querySelector('[data-field="type"]');
+        if (typeSel) fillTypeSelect(typeSel, acc.type || '资产类', accountTypesOf(state), false);
         setCell(tr, 'category', acc.category || '');
         setCell(tr, 'name', acc.name || '');
         setCell(tr, 'opening', moneyOrBlank(openingOf(state, acc.id)));
@@ -214,23 +213,12 @@ export function mountAccountTable(ctx, tbody, opts) {
    */
   function moveUp(id) {
     const st = ctx.getState();
-    const list = (st.accounts || []).slice();
-    const i = list.findIndex((a) => a && a.id === id);
-    if (i < 0) return;
-
-    const acc = list[i];
-    let j = -1;
-    for (let k = i - 1; k >= 0; k -= 1) {
-      if (list[k] && list[k].type === acc.type) { j = k; break; }
-    }
-    if (j < 0) {
+    const r = moveWithinType(st.accounts, id);
+    if (!r.moved) {
       ctx.setFooter('已经是这一类的第一个了');
       return;
     }
-
-    list[i] = list[j];
-    list[j] = acc;
-    ctx.setState({ ...st, accounts: list });
+    ctx.setState({ ...st, accounts: r.accounts });
     ctx.saveNow();
     render();
     ctx.setFooter('已上移');
@@ -252,7 +240,19 @@ export function mountAccountTable(ctx, tbody, opts) {
 
     const patch = {};
     if (field === 'type') {
-      // 类型可以手填（用户 2026-10-30）；空则还原
+      // 类型可以手填（用户 2026-10-30）：选「其他…」弹输入框，值进类型库
+      if (v === '__custom__') {
+        NtModal.prompt('新的账户类型（会加进类型库）', '', (val) => {
+          const t = String(val || '').trim();
+          if (t) {
+            ctx.setState(updateAccount(ctx.getState(), id, { type: t }));
+            ctx.saveNow();
+          }
+          render();
+          return true;
+        });
+        return;
+      }
       if (!v) { render(); return; }
       patch.type = v;
     } else if (field === 'seq') {
@@ -303,9 +303,7 @@ export function mountAccountTable(ctx, tbody, opts) {
   function bindNewRow(tr, zone) {
     let created = false;
 
-    ensureAccountTypes(ctx.getState());
-
-    const tryCreate = () => {
+    const tryCreate = (customType) => {
       if (created || !tr.isConnected) return;
 
       const get = (f) => {
@@ -322,8 +320,17 @@ export function mountAccountTable(ctx, tbody, opts) {
         return;
       }
 
-      // 类型可以手填（不用下拉），空则按资产类；类型值会进「账户类型库」供绘图用
-      const type = get('type') || '资产类';
+      // 类型：选「其他…」弹输入框（新类型会进类型库）；空则按资产类
+      let type = customType || get('type') || '资产类';
+      if (type === '__custom__') {
+        NtModal.prompt('新的账户类型（会加进类型库）', '', (val) => {
+          const t = String(val || '').trim();
+          if (t) tryCreate(t);
+          else render();
+          return true;
+        });
+        return;
+      }
       const code = normalizeCode(get('code'));
       if (code && !isValidCode(code)) return;
       if (code && (st.accounts || []).some((a) => normalizeCode(a.code) === code)) return;
@@ -385,28 +392,6 @@ export function mountAccountTable(ctx, tbody, opts) {
   }
 
   return { render };
-}
-
-/** 账户类型候选（datalist）：内置五种 + 用户自己填过的类型 */
-const ACCOUNT_TYPE_LIST_ID = 'nt-account-type-list';
-
-function ensureAccountTypes(state) {
-  ensureDatalist(ACCOUNT_TYPE_LIST_ID, accountTypesOf(state));
-}
-
-/** 区域内的列标题行：A/B 用同一份（用户 2026-10-29） */
-const ACCOUNT_COLS = ['简码', '序', '类型', '分类', '名称', '期初', '账单日', '还款日', '上移', '删除'];
-
-function zoneCols() {
-  const tr = document.createElement('tr');
-  tr.className = 'nt-zone-cols';
-  for (const label of ACCOUNT_COLS) {
-    const td = document.createElement('td');
-    td.className = 'nt-cell';
-    td.textContent = label;
-    tr.appendChild(td);
-  }
-  return tr;
 }
 
 /** 期初：实现在 core，这里转出以保持既有调用点不变 */
