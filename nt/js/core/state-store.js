@@ -15,8 +15,7 @@ import {
   normalizeCode, ALL_ACCOUNT_TYPES,
 } from './schema.js';
 
-/** 建一本空账（带期初虚拟账户，但它 isHidden，不进 UI 列表） */
-export function createState() {
+/** 建一本空账（带期初虚拟账户，但它 isHidden，不进 UI 列表） */export function createState() {
   return {
     version: SCHEMA_VERSION,
     accounts: [{ ...OPENING_ACCOUNT }],
@@ -77,6 +76,35 @@ export function updateAccount(state, id, patch) {
     ...state,
     accounts: state.accounts.map((a) => (a.id === id ? createAccount({ ...a, ...patch }) : a)),
   };
+}
+
+/**
+ * 录入流水时用的「文本 → 账户」兜底（用户 2026-10-30）：
+ * 流水只负责记录，转出/转入可以随便写；认不出的文本自动建一个
+ * type/category 都为空的账户（落在设置页的「未分类账户」区），
+ * 之后用户慢慢补类型/分类即可 —— 不拦截录入，也不丢原文本。
+ *
+ * @returns {{state:object, id:string|null}}
+ */
+export function ensureAccountByText(state, text) {
+  const t = String(text || '').trim();
+  if (!t) return { state, id: null };
+
+  const norm = normalizeCode(t);
+  const hit = (state.accounts || []).find(
+    (a) => a && (a.name === t || (a.code && normalizeCode(a.code) === norm)),
+  );
+  if (hit) return { state, id: hit.id };
+
+  const acc = {
+    id: 'acc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    code: '',
+    name: t,
+    type: '',
+    category: '',
+    isHidden: false,
+  };
+  return { state: { ...state, accounts: [...(state.accounts || []), acc] }, id: acc.id };
 }
 
 /**

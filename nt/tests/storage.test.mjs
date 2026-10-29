@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import {
   createState, addAccount, addTransaction, updateAccount, updateTransaction,
   removeAccount, removeTransaction, nameOf, idOf, visibleAccounts,
-  migrateOpeningToTransactions, nextSeq,
+  migrateOpeningToTransactions, nextSeq, ensureAccountByText,
 } from '../js/core/state-store.js';
 import { balanceOf, balancesOf, balanceAsOf } from '../js/core/balance-calculator.js';
 import { migrate } from '../js/core/migrate.js';
@@ -224,4 +224,25 @@ test('createAccount 允许自由类型（用户 2026-10-30）', () => {
   assert.equal(a.type, '乱七八糟');
   const b = createAccount({ name: 'y' });
   assert.equal(b.type, ACCOUNT_TYPE.ASSET);
+});
+
+test('ensureAccountByText：自由文本自动建未分类账户，已知简码仍走原账户', () => {
+  const s = seed();
+
+  // 认不出的文本 → 建一个 type/category 都为空的账户（设置页 U 区）
+  const r1 = ensureAccountByText(s, '楼下的猫');
+  assert.equal(r1.state.accounts.length, s.accounts.length + 1);
+  const acc = r1.state.accounts.find((a) => a.name === '楼下的猫');
+  assert.ok(acc, '文本要成为账户名');
+  assert.equal(acc.type, '');
+  assert.equal(acc.category, '');
+
+  // 同名二次录入复用，不重复建
+  const r2 = ensureAccountByText(r1.state, '楼下的猫');
+  assert.equal(r2.state.accounts.length, r1.state.accounts.length);
+  assert.equal(r2.id, acc.id);
+
+  // 已有账户（名字或简码）照旧解析
+  assert.equal(ensureAccountByText(s, '餐饮').id, 'acc_food');
+  assert.equal(ensureAccountByText(s, '').id, null);
 });

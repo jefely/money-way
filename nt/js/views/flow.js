@@ -9,7 +9,7 @@
 
 import {
   addTransaction, updateTransaction, removeTransaction, nextSeq,
-  removeBatch, restoreBatch, noteTextByCode,
+  removeBatch, restoreBatch, noteTextByCode, ensureAccountByText,
 } from '../core/state-store.js';
 import { createScheduled } from '../core/schema.js';
 import { buildFlowRows, buildFooterInfo } from '../ui/flow-model.js';
@@ -260,7 +260,9 @@ export function mountFlow(section, ctx) {
     if (field === 'date') patch.date = normalizeDateInput(value);
     else if (field === 'amount') patch.amount = normalizeAmountInput(value);
     else if (field === 'from' || field === 'to') {
-      const accId = resolvedId || (parseAccountInput(ctx.getIndex(), value).acc || {}).id || null;
+      // 流水只负责记录：认不出的文本自动建一个未分类账户（不拦录入）
+      let accId = resolvedId || (parseAccountInput(ctx.getIndex(), value).acc || {}).id || null;
+      if (!accId) { const r = ensureAccountByText(ctx.getState(), value); if (r.id) { ctx.setState(r.state); accId = r.id; } }
       patch[field === 'from' ? 'from_id' : 'to_id'] = accId;
     } else {
       patch[field] = value;
@@ -278,26 +280,28 @@ export function mountFlow(section, ctx) {
   }
 
   function onCreate(fields) {
+    // 流水只负责记录（用户 2026-10-30）：转出/转入可以随便写，
+    // 认不出的文本自动建一个未分类账户，不拦录入。
+    let s = ctx.getState();
     const from = parseAccountInput(ctx.getIndex(), fields.from || '');
     const to = parseAccountInput(ctx.getIndex(), fields.to || '');
-    if (!from.acc && !to.acc) {
-      NtModal.info('没找到账户', (b) => {
-        b.textContent = '转出 / 转入 至少要填一个已存在的账户（可打简码）。';
-      });
-      return;
-    }
+    let fromId = from.acc ? from.acc.id : null;
+    let toId = to.acc ? to.acc.id : null;
+    if (!fromId && fields.from) { const r = ensureAccountByText(s, fields.from); s = r.state; fromId = r.id; }
+    if (!toId && fields.to) { const r = ensureAccountByText(s, fields.to); s = r.state; toId = r.id; }
+    if (!fromId && !toId) return;   // 两边都空：不建单
 
     // 建单要重建整表；先把滚动位置记下来，重建后放回去 ——
     // 否则在末尾空行里敲金额，整页会跳回第一行（用户 2026-10-30）
     const wrap = body.closest('.nt-tablewrap'); const keepTop = wrap ? wrap.scrollTop : 0;
 
-    const state = ctx.getState(); ctx.setState(addTransaction(state, {
+    ctx.setState(addTransaction(s, {
       date: normalizeDateInput(fields.date || todayIso()),
-      from_id: from.acc ? from.acc.id : null,
-      to_id: to.acc ? to.acc.id : null,
+      from_id: fromId,
+      to_id: toId,
       amount: normalizeAmountInput(fields.amount || ''),
       note: fields.note || '',
-      seq: nextSeq(state),
+      seq: nextSeq(s),
     }));
     render();
     if (wrap) wrap.scrollTop = keepTop;
