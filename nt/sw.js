@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.102';
+const CACHE_NAME = 'nt-v1.103';
 
 const ASSETS = [
   './index.html',
@@ -55,6 +55,7 @@ const ASSETS = [
   './js/browser/idb.js',
   './js/core/account-config.js',
   './js/core/account-index.js',
+  './js/core/account-order.js',
   './js/core/account-resolver.js',
   './js/core/auth-manager.js',
   './js/core/balance-calculator.js',
@@ -128,6 +129,7 @@ const ASSETS = [
   './js/ui/suggest-popover.js',
   './js/ui/sync-dialog.js',
   './js/ui/sync-wheel.js',
+  './js/ui/datalists.js',
   './js/ui/note-table.js',
   './js/ui/table-layout.js',
   './js/ui/export-dialog.js',

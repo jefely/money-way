@@ -11,6 +11,7 @@
 | `browser/idb.js` | （无界面）IndexedDB 打开 |
 | `core/account-config.js` | （未标注界面）账户配置（纯函数） |
 | `core/account-index.js` | （无界面）账户索引 |
+| `core/account-order.js` | （未标注界面）数据基座：账户的分区、序号与排序（纯函数，无浏览器 API） |
 | `core/account-resolver.js` | （无界面）账户名/简码解析 |
 | `core/auth-manager.js` | （无界面）主密码校验/修改 |
 | `core/balance-calculator.js` | （无界面）余额计算 |
@@ -73,6 +74,7 @@
 | `ui/checks-view.js` | 校验 tab → 账本校验区 |
 | `ui/col-save.js` | 把某张表某列的宽度存进「用户设置」 |
 | `ui/color-picker.js` | 界面参数浮层 → 取色器 |
+| `ui/datalists.js` | 共用的 datalist（类型候选） |
 | `ui/debug-panel.js` | ?debug=1 → 界面参数浮层 |
 | `ui/debug-pip.js` | ?debug=1 → 界面参数独立窗口（画中画） |
 | `ui/debug-themes.js` | ?debug=1 → 界面参数 1/2/3/4 主题按钮 |

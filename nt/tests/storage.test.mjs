@@ -217,7 +217,9 @@ test('balancesOf：不包含期初虚拟账户', () => {
   assert.equal(rows.length, 3);
 });
 
-test('createAccount 会归一化非法类型', () => {
+test('createAccount 允许自由类型（用户 2026-10-30）', () => {
   const a = createAccount({ name: 'x', type: '乱七八糟' });
-  assert.equal(a.type, ACCOUNT_TYPE.ASSET);
+  assert.equal(a.type, '乱七八糟');
+  const b = createAccount({ name: 'y' });
+  assert.equal(b.type, ACCOUNT_TYPE.ASSET);
 });

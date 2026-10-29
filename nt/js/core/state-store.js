@@ -12,7 +12,7 @@
 import {
   SCHEMA_VERSION, createAccount, createTransaction,
   indexAccounts, findAccountByName, OPENING_ACCOUNT, OPENING_ACCOUNT_ID,
-  normalizeCode,
+  normalizeCode, ALL_ACCOUNT_TYPES,
 } from './schema.js';
 
 /** 建一本空账（带期初虚拟账户，但它 isHidden，不进 UI 列表） */
@@ -192,6 +192,16 @@ export function migrateOpeningToTransactions(state, openingDate = '2000-01-01') 
 /** 可见账户（排除 isHidden 的期初账户） */
 export function visibleAccounts(state) {
   return (state.accounts || []).filter((a) => !a.isHidden);
+}
+
+/** 账户类型库：内置五种 + 现有账户里出现过的（用户自己填的类型会进来，绘图用） */
+export function accountTypesOf(state) {
+  const out = ALL_ACCOUNT_TYPES.slice();
+  for (const a of state.accounts || []) {
+    const t = String((a && a.type) || '').trim();
+    if (t && out.indexOf(t) < 0) out.push(t);
+  }
+  return out;
 }
 
 /* ---------- 备注表（仅统计分类 / 备注栏快速输入） ---------- */

@@ -216,8 +216,8 @@
   display: flex;
   padding: 5px 8px;
   align-items: baseline;
-  /* 区域标题行整行居中（用户 2026-10-30） */
-  justify-content: center;
+  /* 区域标题靠左显示（用户 2026-10-30） */
+  justify-content: flex-start;
   gap: 12px;
   font-weight: 800;
   font-size: 12.5px;
@@ -254,9 +254,9 @@
   pointer-events: none;
 }
 
-/* 备注区标题：同样整行居中，说明紧跟名称 */
+/* 备注区标题：靠左，说明紧跟名称 */
 .nt-zone-head.nt-zone-note .nt-zone-label {
-  justify-content: center;
+  justify-content: flex-start;
   gap: 10px;
 }
 

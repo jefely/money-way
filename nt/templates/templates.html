@@ -230,13 +230,7 @@
     </td>
     <td class="nt-cell nt-cell-seq" data-field="seq"></td>
     <td class="nt-cell">
-      <select class="nt-cell-input" data-field="type" aria-label="账户类型">
-        <option value="资产类">资产类</option>
-        <option value="负债类">负债类</option>
-        <option value="收入类">收入类</option>
-        <option value="权益类">权益类</option>
-        <option value="费用类">费用类</option>
-      </select>
+      <input class="nt-cell-input" type="text" data-field="type" list="nt-account-type-list" aria-label="账户类型">
     </td>
     <td class="nt-cell">
       <input class="nt-cell-input" type="text" data-field="category" aria-label="统计分类">
@@ -268,15 +262,11 @@
     <td class="nt-cell nt-cell-code">
       <input class="nt-cell-input nt-cell-input-code" type="text" maxlength="5" data-field="code" aria-label="简码">
     </td>
-    <td class="nt-cell nt-cell-seq">+</td>
+    <td class="nt-cell nt-cell-seq">
+      <input class="nt-cell-input nt-cell-input-seq" type="text" inputmode="numeric" data-field="seq" aria-label="序号">
+    </td>
     <td class="nt-cell">
-      <select class="nt-cell-input" data-field="type" aria-label="账户类型">
-        <option value="资产类">资产类</option>
-        <option value="负债类">负债类</option>
-        <option value="收入类">收入类</option>
-        <option value="权益类">权益类</option>
-        <option value="费用类">费用类</option>
-      </select>
+      <input class="nt-cell-input" type="text" data-field="type" list="nt-account-type-list" aria-label="账户类型">
     </td>
     <td class="nt-cell">
       <input class="nt-cell-input" type="text" data-field="category" aria-label="统计分类">

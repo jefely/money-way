@@ -84,15 +84,21 @@ export function makeId(prefix) {
  * @param {{id?:string,code?:string,name?:string,type?:string,category?:string,isHidden?:boolean}} patch
  */
 export function createAccount(patch = {}) {
+  const rawType = String(patch.type == null ? '' : patch.type).trim();
   const acc = {
     id: patch.id || makeId('acc'),
     // 简码只是「输入用的马甲」，但必须唯一且非空（由 V7 校验把关）
     code: normalizeCode(patch.code),
     name: String(patch.name || '').trim(),
-    type: ALL_ACCOUNT_TYPES.includes(patch.type) ? patch.type : ACCOUNT_TYPE.ASSET,
+    // 类型允许用户自己填（用户 2026-10-30）；不填时按资产类
+    type: rawType || ACCOUNT_TYPE.ASSET,
     category: String(patch.category || '').trim(),
     isHidden: !!patch.isHidden,
   };
+
+  // 序号：允许跳号（如 …63、80、100）；没填就不写这个字段
+  const seq = Number(patch.seq);
+  if (Number.isFinite(seq) && seq > 0) acc.seq = Math.round(seq);
 
   // 账单日 / 还款日是可选属性：没填就不写这个字段。
   // 用 clampDay 兜底会把「没填」变成 1 号 —— 那是在替用户编数据。

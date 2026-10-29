@@ -16,13 +16,15 @@ import { openingOf } from '../core/ledger-stats.js';
 import { ZONES } from '../core/settings.js';
 import { money } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
-import { addAccount, updateAccount, removeAccount, addTransaction, addNote, updateNote, removeNote, NOTE_TYPES } from '../core/state-store.js';
+import { addAccount, updateAccount, removeAccount, addTransaction, addNote, updateNote, removeNote, NOTE_TYPES, accountTypesOf } from '../core/state-store.js';
+import { accountsOfZone, orderBySeq, nextSeqFor, effectiveSeq } from '../core/account-order.js';
+import { ensureDatalist } from './datalists.js';
 import { normalizeCode, isValidCode, OPENING_ACCOUNT_ID } from '../core/schema.js';
 import { balanceOf } from '../core/balance-calculator.js';
 import { validate, issuesOf } from '../core/validator.js';
 import { renderNotes } from './note-table.js';
 
-const FIELDS = ['type', 'category', 'code', 'name', 'opening'];
+const FIELDS = ['type', 'category', 'code', 'name', 'opening', 'seq'];
 const TYPES = ['资产类', '负债类', '收入类', '权益类', '费用类'];
 
 /**
@@ -36,6 +38,9 @@ export function mountAccountTable(ctx, tbody, opts) {
   function render() {
     const state = ctx.getState();
     const visible = (state.accounts || []).filter((a) => a && !a.isHidden);
+
+    // 账户类型候选（内置五种 + 用户自己填过的）——新增/已有行的类型格都引用它
+    ensureAccountTypes(state);
 
     // 简码校验（V7）：缺简码 / 长度字符不合法 / 重复，都会在这里拿到 accountId。
     // 只跑 accounts（不传 transactions），V7 不依赖流水。
@@ -65,7 +70,9 @@ export function mountAccountTable(ctx, tbody, opts) {
     const rowTpl = tpl('tpl-account-row');
     const frag = document.createDocumentFragment();
     for (const zone of ZONES) {
-      const inZone = visible.filter((a) => zone.types.indexOf(a.type) >= 0);
+      // 分区 + 按序号排序（未知类型默认归 A）；序号允许跳号，见 core/account-order.js
+      const inZone = orderBySeq(accountsOfZone(visible, zone.key));
+      const zoneList = accountsOfZone(visible, zone.key);
       // 序号每个区域从 1 开始（用户 2026-10-29）
       let zoneSeq = 0;
 
@@ -132,7 +139,7 @@ export function mountAccountTable(ctx, tbody, opts) {
         // 用 nth-child 会被标题行挤得隔行错位（用户 2026-10-29 反馈）。
         if (zoneSeq % 2 === 0) tr.classList.add('nt-row-even');
         setCell(tr, 'code', acc.code || '');
-        setCell(tr, 'seq', zoneSeq);
+        setCell(tr, 'seq', effectiveSeq(acc, zoneSeq));
 
         // 简码有问题 → 输入框标红（title 里写原因：缺失 / 不合法 / 和谁重复）
         if (badCodes.has(acc.id)) {
@@ -145,8 +152,8 @@ export function mountAccountTable(ctx, tbody, opts) {
           }
         }
 
-        const sel = tr.querySelector('[data-field="type"]');
-        if (sel) sel.value = TYPES.includes(acc.type) ? acc.type : '资产类';
+        const typeInput = tr.querySelector('[data-field="type"]');
+        if (typeInput) typeInput.value = acc.type || '资产类';
         setCell(tr, 'category', acc.category || '');
         setCell(tr, 'name', acc.name || '');
         setCell(tr, 'opening', moneyOrBlank(openingOf(state, acc.id)));
@@ -157,15 +164,12 @@ export function mountAccountTable(ctx, tbody, opts) {
         frag.appendChild(tr);
       }
 
-      // 每个区域各自一个新增行（用户 2026-10-29）：A 区末尾建资产/费用类，
-      // B 区末尾建负债/权益/收入类，不需要滚到表格最下面再建。
+      // 每个区域各自一个新增行（用户 2026-10-29）：整行留空，序号/类型都可手填
       const newTpl = tpl('tpl-account-new');
       if (newTpl) {
         const tr = newTpl.cloneNode(true);
-        const sel = tr.querySelector('[data-field="type"]');
-        if (sel && zone.types && zone.types[0]) sel.value = zone.types[0];
         frag.appendChild(tr);
-        bindNewRow(tr);
+        bindNewRow(tr, zone);
       }
     }
 
@@ -248,8 +252,13 @@ export function mountAccountTable(ctx, tbody, opts) {
 
     const patch = {};
     if (field === 'type') {
-      if (!TYPES.includes(v)) { render(); return; }
+      // 类型可以手填（用户 2026-10-30）；空则还原
+      if (!v) { render(); return; }
       patch.type = v;
+    } else if (field === 'seq') {
+      const n = parseInt(v, 10);
+      if (!Number.isFinite(n) || n <= 0) { render(); return; }
+      patch.seq = n;
     } else if (field === 'category') {
       patch.category = v;
     } else if (field === 'code') {
@@ -291,8 +300,11 @@ export function mountAccountTable(ctx, tbody, opts) {
     ctx.setState(s);
   }
 
-  function bindNewRow(tr) {
+  function bindNewRow(tr, zone) {
     let created = false;
+
+    ensureAccountTypes(ctx.getState());
+
     const tryCreate = () => {
       if (created || !tr.isConnected) return;
 
@@ -310,17 +322,24 @@ export function mountAccountTable(ctx, tbody, opts) {
         return;
       }
 
+      // 类型可以手填（不用下拉），空则按资产类；类型值会进「账户类型库」供绘图用
       const type = get('type') || '资产类';
       const code = normalizeCode(get('code'));
       if (code && !isValidCode(code)) return;
       if (code && (st.accounts || []).some((a) => normalizeCode(a.code) === code)) return;
 
+      // 序号可以跳着填（如 63 → 100）；不填就「本区最大序号 + 1」
+      const zoneAccounts = accountsOfZone(st.accounts, zone.key);
+      const typed = parseInt(get('seq'), 10);
+      const seq = Number.isFinite(typed) && typed > 0 ? typed : nextSeqFor(zoneAccounts);
+
       created = true;
       let s = addAccount(st, {
         name,
-        type: TYPES.includes(type) ? type : '资产类',
+        type,
         category: get('category') || '未分类',
         code: code || undefined,
+        seq,
       });
       ctx.setState(s);
 
@@ -366,6 +385,13 @@ export function mountAccountTable(ctx, tbody, opts) {
   }
 
   return { render };
+}
+
+/** 账户类型候选（datalist）：内置五种 + 用户自己填过的类型 */
+const ACCOUNT_TYPE_LIST_ID = 'nt-account-type-list';
+
+function ensureAccountTypes(state) {
+  ensureDatalist(ACCOUNT_TYPE_LIST_ID, accountTypesOf(state));
 }
 
 /** 区域内的列标题行：A/B 用同一份（用户 2026-10-29） */
