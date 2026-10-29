@@ -18,7 +18,7 @@ import { money } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
 import { addAccount, updateAccount, removeAccount, addTransaction, addNote, updateNote, removeNote, NOTE_TYPES, accountTypesOf } from '../core/state-store.js';
 import { accountsOfZone, orderBySeq, nextSeqFor, effectiveSeq, moveWithinType } from '../core/account-order.js';
-import { fillTypeSelect } from './datalists.js';
+import { bindTypePicker, promptType } from './type-picker.js';
 import { zoneCols } from './table-parts.js';
 import { normalizeCode, isValidCode, OPENING_ACCOUNT_ID } from '../core/schema.js';
 import { balanceOf } from '../core/balance-calculator.js';
@@ -151,8 +151,18 @@ export function mountAccountTable(ctx, tbody, opts) {
           }
         }
 
-        const typeSel = tr.querySelector('[data-field="type"]');
-        if (typeSel) fillTypeSelect(typeSel, acc.type || '资产类', accountTypesOf(state), false);
+        const typeInput = tr.querySelector('[data-field="type"]');
+        if (typeInput) {
+          typeInput.value = acc.type || '';
+          // 点击弹候选，选「其他…」再弹输入框（用户 2026-10-30：原生下拉坏掉）
+          bindTypePicker(typeInput, () => accountTypesOf(state), (v) => {
+            if (v === '__custom__') {
+              promptType((t) => applyEdit(acc.id, 'type', t));
+              return;
+            }
+            applyEdit(acc.id, 'type', v);
+          });
+        }
         setCell(tr, 'category', acc.category || '');
         setCell(tr, 'name', acc.name || '');
         setCell(tr, 'opening', moneyOrBlank(openingOf(state, acc.id)));
@@ -240,21 +250,10 @@ export function mountAccountTable(ctx, tbody, opts) {
 
     const patch = {};
     if (field === 'type') {
-      // 类型可以手填（用户 2026-10-30）：选「其他…」弹输入框，值进类型库
-      if (v === '__custom__') {
-        NtModal.prompt('新的账户类型（会加进类型库）', '', (val) => {
-          const t = String(val || '').trim();
-          if (t) {
-            ctx.setState(updateAccount(ctx.getState(), id, { type: t }));
-            ctx.saveNow();
-          }
-          render();
-          return true;
-        });
-        return;
-      }
-      if (!v) { render(); return; }
-      patch.type = v;
+      // 类型可以手填，也可以点格子弹候选（见 bindTypePicker）
+      const t = String(v || '').trim();
+      if (!t) { render(); return; }
+      patch.type = t;
     } else if (field === 'seq') {
       const n = parseInt(v, 10);
       if (!Number.isFinite(n) || n <= 0) { render(); return; }
@@ -304,7 +303,7 @@ export function mountAccountTable(ctx, tbody, opts) {
   function bindNewRow(tr, zone) {
     let created = false;
 
-    const tryCreate = (customType) => {
+    const tryCreate = () => {
       if (created || !tr.isConnected) return;
 
       const get = (f) => {
@@ -322,16 +321,8 @@ export function mountAccountTable(ctx, tbody, opts) {
       }
 
       // 类型：选「其他…」弹输入框（新类型会进类型库）；空则按资产类
-      let type = customType || get('type') || '资产类';
-      if (type === '__custom__') {
-        NtModal.prompt('新的账户类型（会加进类型库）', '', (val) => {
-          const t = String(val || '').trim();
-          if (t) tryCreate(t);
-          else render();
-          return true;
-        });
-        return;
-      }
+      // 类型：空则按资产类；新类型会进类型库
+      const type = get('type') || '资产类';
       const code = normalizeCode(get('code'));
       if (code && !isValidCode(code)) return;
       if (code && (st.accounts || []).some((a) => normalizeCode(a.code) === code)) return;
@@ -376,6 +367,18 @@ export function mountAccountTable(ctx, tbody, opts) {
       if (!inp) continue;
       // 延迟到本轮结束：一行里连填几格时，后面的不能落在已脱离 DOM 的旧行上
       inp.addEventListener('change', () => { setTimeout(tryCreate, 0); });
+    }
+
+    const typeInput = tr.querySelector('[data-field="type"]');
+    if (typeInput) {
+      bindTypePicker(typeInput, () => accountTypesOf(ctx.getState()), (v) => {
+        if (v === '__custom__') {
+          promptType((t) => { typeInput.value = t; setTimeout(tryCreate, 0); });
+          return;
+        }
+        typeInput.value = v;
+        setTimeout(tryCreate, 0);
+      });
     }
   }
 

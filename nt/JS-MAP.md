@@ -108,6 +108,7 @@
 | `ui/tabs.js` | 顶部 7 个 tab 切换 |
 | `ui/thanks-wall.js` | 校验页「赞助感谢」—— 远程加密的感谢墙 |
 | `ui/theme-manager.js` | 全局 → 主题切换（1/2/3/4） |
+| `ui/type-picker.js` | 轻量选择浮层（代替原生 select 的弹层） |
 | `ui/undo-bar.js` | 删除后的撤销条 |
 | `ui/update-check.js` | （未标注界面）版本更新（UI 层） |
 | `ui/xlsx-read.js` | xlsx 读取（ZIP 展开） |

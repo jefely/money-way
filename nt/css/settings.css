@@ -331,3 +331,32 @@
   letter-spacing: 0;
   font-size: 10px;
 }
+
+/* 类型候选浮层（代替原生 select 弹层，用户 2026-10-30） */
+.nt-picker {
+  position: fixed;
+  z-index: 20000;
+  max-height: 240px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 8px;
+  background: var(--nt-bg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.nt-picker-item {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--nt-text);
+  font: inherit;
+  text-align: left;
+}
+
+.nt-picker-item:hover {
+  background: var(--nt-bg-soft);
+}
