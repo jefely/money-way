@@ -227,10 +227,25 @@ body {
    手机上每格约 27px，所以字号收到 11、左右内边距 2px；390px 宽刚好放得下。
    宽屏给容器一个上限，否则 12 个按钮会被拉成一排大块。 */
 .nt-pills[data-scope="month"] {
+  position: relative;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 3px;
   padding: 6px 8px;
   max-width: 640px;
+  /* 下划线交给 ::after 画整行（用户 2026-10-30）：按钮有 640 上限，
+     border-bottom 会跟着截断，看起来只有左边一截 */
+  border-bottom: 0;
+}
+
+.nt-pills[data-scope="month"]::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 1px;
+  background: var(--nt-bg-line);
+  pointer-events: none;
 }
 
 .nt-pills[data-scope="month"] .nt-pill {
