@@ -110,7 +110,17 @@ export function bindRowEditing(tbody, h) {
       }
     }
 
-    if (tr.dataset.new !== '1') return;   // 已有行走的是即时提交，这里不再补
+    if (tr.dataset.new !== '1') {
+      // 金额：失焦时统一成「¥1,234.56」的财务格式（用户 2026-10-30）
+      if (input.dataset.field === 'amount' && h.formatAmount) {
+        const text = h.formatAmount(input.value);
+        if (text && text !== input.value) {
+          input.value = text;
+          if (tr.dataset.id) h.onEdit(tr.dataset.id, 'amount', text);
+        }
+      }
+      return;   // 已有行走的是即时提交，这里不再补
+    }
 
     // 延迟一点，让"点候选"的 click 先发生
     setTimeout(() => {

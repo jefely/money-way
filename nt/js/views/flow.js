@@ -13,6 +13,7 @@ import {
 } from '../core/state-store.js';
 import { createScheduled } from '../core/schema.js';
 import { buildFlowRows, buildFooterInfo } from '../ui/flow-model.js';
+import { moneyOrBlank } from '../core/format.js';
 import { renderRows, patchRow } from '../ui/render-transactions.js';
 import { parseAccountInput, suggestAccounts as suggestByIndex, ensurePendingAccount } from '../core/account-resolver.js';
 import { bindRowEditing } from '../ui/row-editor.js';
@@ -42,6 +43,8 @@ export function mountFlow(section, ctx) {
     suggestAccounts: (v) => suggestByIndex(ctx.getIndex(), v),
     // 备注简码：失焦时把「简码」换成备注表里的文本（仅备注栏用，不碰账户简码）
     resolveNote: (v) => noteTextByCode(ctx.getState(), v),
+    // 金额失焦后统一成「¥1,234.56」的财务格式（用户 2026-10-30）
+    formatAmount: (v) => moneyOrBlank(normalizeAmountInput(v)),
   });
 
   /* ---------- 「固定」列复选框 ----------
@@ -304,7 +307,8 @@ export function mountFlow(section, ctx) {
       seq: nextSeq(s),
     }));
     render();
-    if (wrap) wrap.scrollTop = keepTop;
+    // 建单后表格高度刚变，同步设 scrollTop 会被 clamp 回顶部 —— 等一帧再放回去
+    if (wrap) requestAnimationFrame(() => { wrap.scrollTop = keepTop; });
     return ctx.save();
   }
 
