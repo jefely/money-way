@@ -97,7 +97,7 @@
 | `ui/pwa.js` | PWA 注册 |
 | `ui/qr-canvas.js` | （未标注界面）把 QR 矩阵画到 canvas（UI 层） |
 | `ui/range-bar.js` | 单元格框选的工具条 |
-| `ui/render-transactions.js` | 流水 tab → 表格 tbody（虚拟滚动） |
+| `ui/render-transactions.js` | 流水 tab → 表格 tbody（分批追加，照单文件版） |
 | `ui/row-editor.js` | 流水 tab → 行内编辑 / 新增行 |
 | `ui/share-block.js` | 二维码分享区块 |
 | `ui/suggest-popover.js` | 流水 tab / 查询 tab → 账户候选气泡 |

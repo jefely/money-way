@@ -1,16 +1,26 @@
-// 界面：流水 tab → 表格 tbody（虚拟滚动）
+// 界面：流水 tab → 表格 tbody（分批追加，照单文件版）
 /**
- * ☐12 流水渲染器（虚拟滚动）
+ * 流水渲染器
  * 层：第五层 · UI 渲染
  *
- * 消费 timeline/time-state.js 的切分结果，套 templates/templates.html 的模板生成 DOM。
- * 950 行全量渲染会让窗口 resize 卡顿，这里只渲染可视区几十行 + 上下占位行。
+ * **用户 2026-11-01 决定：取消虚拟滚动，照单文件版的模式来。**
+ *
+ * 单文件版的做法（这里逐条照搬）：
+ *   · 首批 200 行；滚到顶 / 点「更早」再往前接 200 条
+ *   · **只追加，不重建已经渲染的行**
+ *   · 建单把这一行**就地转正**，末尾补一个空行，别的行一行都不动
+ *
+ * 为什么不再用虚拟滚动：行是「当前窗口的临时投影」，任何一次重建（滚动 / render /
+ * 切页 / 建单）都要把整屏重新造一遍 —— 空行里写了一半的内容、焦点、选中态、
+ * 输入法的组合态全得单独维护。机制与代价见 ../TABLE-RENDERING.md。
+ *
+ * 空行草稿仍保留，作为**双保险**：删除行、切页、导入这些动作依然会整体重建，
+ * 重建时草稿回填，用户写了一半的内容照样不丢。
  *
  * 铁律：**本文件不许算钱。**
  *   金额只能来自 format.money()，不允许出现 `a + b`、`a - b` 这类运算。
  */
 
-import { money, shortDate } from '../core/format.js';
 import { syncFrozen } from './table-layout.js';
 
 export const CLASS = {
@@ -25,6 +35,11 @@ export const CLASS = {
   fixed: 'nt-cell-fixed',
   action: 'nt-cell-action',
 };
+
+/** 一次渲染 / 追加多少条 */
+const BATCH = 200;
+/** 末尾常驻空行：直接在最下面连续录入（用户 2026-10-29） */
+const BLANK_ROWS = 40;
 
 /** 一次性把 templates.html 注入 <body>（每个 id 只注入一次）。 */
 export async function loadTemplates(url = './templates/templates.html') {
@@ -41,6 +56,13 @@ export async function loadTemplates(url = './templates/templates.html') {
   return found.length;
 }
 
+/** 模板 → 根元素（content 是 DocumentFragment，必须取 firstElementChild）。 */
+export function tpl(id) {
+  const el = document.getElementById(id);
+  if (!el || !el.content) return null;
+  return el.content.firstElementChild;
+}
+
 function setText(tr, cls, text) {
   const cell = tr.querySelector('.' + cls);
   if (cell) cell.textContent = text;
@@ -51,62 +73,25 @@ function setInput(tr, field, value) {
   if (input) input.value = value == null ? '' : String(value);
 }
 
-/** 模板 → 根元素（content 是 DocumentFragment，必须取 firstElementChild）。 */
-export function tpl(id) {
-  const el = document.getElementById(id);
-  if (!el || !el.content) return null;
-  return el.content.firstElementChild;
-}
-
-/* ---------- 虚拟滚动状态 ---------- */
+/* ---------- 渲染状态 ---------- */
 
 let currentRows = [];
 let currentTbody = null;
+/** 从末尾往前显示多少条（往上滚 / 点「更早」时增加） */
+let shown = BATCH;
 
 /**
  * 行内编辑后同步这一行的「展示快照」。
- *
- * 虚拟滚动每次重建窗口都从 currentRows 取值；只更新 state、不更新它的话，
- * 一滚动就会读回旧值（备注"消失"的真正原因，用户 2026-10-30）。
+ * 重建时从 currentRows 取值；只更新 state、不更新它的话会读回旧值。
  */
 export function patchRow(id, patch) {
   const r = currentRows.find((x) => x && x.id === id);
   if (r) Object.assign(r, patch);
 }
-let raf = 0;
-
-function getRowH() {
-  // 每张表一套行高之后，「数据区行高」这组全局参数已经删了 ——
-  // 还读 --nt-row-h 的话永远是 fallback 32，用户在面板里把流水行高调到 40
-  // 时虚拟滚动仍按 32 算，spacer 高度就错，滚动到中间会跳。
-  const cs = getComputedStyle(document.documentElement);
-  const v = parseFloat(cs.getPropertyValue('--nt-row-h-flow'));
-  return Number.isFinite(v) && v > 0 ? v : 32;
-}
-
-function spacerRow(h) {
-  const tr = document.createElement('tr');
-  tr.className = 'nt-row-spacer';
-  tr.style.height = h + 'px';
-  const td = document.createElement('td');
-  td.colSpan = 8;
-  tr.appendChild(td);
-  return tr;
-}
-
-/** 末尾固定 40 行空行：直接在最下面连续录入（用户 2026-10-29） */
-const BLANK_ROWS = 40;
 
 /* ---------- 空行草稿 ----------
- *
- * 用户 2026-10-30：留这么多空行就是让人自由布局录入面板，想在哪一行写就在哪一行写。
- *
- * 但空行**不在 state 里** —— 它们是 renderWindow 临时造出来的 DOM。所以任何一次
- * 重建（建单后 render / 滚动 / 切页回来）都会把它们清空，表现就是
- * 「录完一行的金额，别的行写好的东西全没了，只剩刚建的那一条」。
- *
- * 这里按「空行区序号」存一份草稿，重建时回填。序号是空行里的下标（0..39），
- * 与数据行数无关；某一空行转成正式记录后，它的草稿要被丢掉，后面的序号随之前移一位。
+ * 空行不在 state 里，是渲染出来的；重建时若不回填，用户写了一半的内容就没了。
+ * 按「空行区序号」存（0..39），某一空行转成正式记录后丢掉它的草稿、后面序号前移。
  */
 const DRAFT_FIELDS = ['date', 'from', 'to', 'amount', 'note'];
 let draftRows = new Array(BLANK_ROWS).fill(null);
@@ -146,10 +131,7 @@ export function blankDrafts() {
 
 /**
  * 账户改名 → 空行草稿里的旧名字一起改。
- *
- * 不改的话：流水空行里写着「A」，用户在设置页把 A 改名成 789，
- * 切回流水那行还显示 A，一失焦就按 A **又建一个新账户** ——
- * 表现就是「789 不见了、A 又回来」（用户 2026-10-30 报的）。
+ * 不改的话：那行切回流水会按旧名重新建一个账户，看起来就是「改名没生效、旧名字又回来了」。
  */
 export function renameBlankDraft(from, to) {
   const a = String(from || '').trim();
@@ -162,6 +144,75 @@ export function renameBlankDraft(from, to) {
   }
 }
 
+/* ---------- 造行 ---------- */
+
+function dataRow(r, i, rowTpl) {
+  const tr = rowTpl.cloneNode(true);
+  tr.dataset.id = r.id;
+  // 斑马纹按**全量下标**打类：用 nth-child 会被「更早」行与空行挤得错位
+  if (i % 2 === 1) tr.classList.add('nt-row-even');
+
+  setText(tr, CLASS.seq, String(r.seq));
+  if (r.isOpening) {
+    setInput(tr, 'date', String(r.date || '').slice(0, 10) || '—');
+    const d = tr.querySelector('[data-field="date"]');
+    if (d) d.readOnly = true;
+    const act = tr.querySelector('.' + CLASS.action);
+    if (act) act.textContent = '';
+  } else {
+    setInput(tr, 'date', r.dateEdit != null ? r.dateEdit : r.date);
+  }
+  setInput(tr, 'from', r.from);
+  setInput(tr, 'to', r.to);
+  setInput(tr, 'amount', r.amountEdit != null ? r.amountEdit : r.amount);
+  setInput(tr, 'note', r.note);
+
+  const box = tr.querySelector('.' + CLASS.fixed + ' .nt-fixed-box');
+  if (box) {
+    box.checked = !!r.fixed;
+    box.disabled = !!r.isOpening || !!r.isVirtual;
+  }
+
+  if (r.isVirtual) {
+    tr.classList.add('nt-row-virtual');
+    tr.dataset.virtual = '1';
+    for (const inp of tr.querySelectorAll('input')) inp.readOnly = true;
+    const act2 = tr.querySelector('.' + CLASS.action);
+    if (act2) act2.textContent = '';
+  }
+  return tr;
+}
+
+/** 顶部「还有 N 笔更早的」 */
+function moreRow(count, onClick) {
+  const tr = document.createElement('tr');
+  tr.className = 'nt-row nt-row-more';
+  const td = document.createElement('td');
+  td.className = 'nt-cell nt-flow-more';
+  td.colSpan = 8;
+  td.textContent = `还有 ${count} 笔更早的 · 点这里加载`;
+  td.addEventListener('click', onClick);
+  tr.appendChild(td);
+  return tr;
+}
+
+function blankRow(newTpl, k) {
+  const tr = newTpl.cloneNode(true);
+  tr.dataset.blank = String(k);
+  applyDraft(tr, draftRows[k]);
+  return tr;
+}
+
+/** 空行序号重排：转正消耗掉一个之后，后面的要前移 */
+function renumberBlanks(tbody) {
+  const list = [...tbody.querySelectorAll('tr[data-new="1"]')];
+  list.forEach((el, i) => { el.dataset.blank = String(i); });
+}
+
+/**
+ * 把空行里输入的内容写进草稿（只绑一次）。
+ * 用 capture：本表的行内编辑监听在冒泡阶段，草稿要在它之前落到数组里。
+ */
 function bindDrafts(tbody) {
   if (tbody.dataset.drafts === '1') return;
   tbody.dataset.drafts = '1';
@@ -176,123 +227,102 @@ function bindDrafts(tbody) {
   }, true);
 }
 
-function bindScroll(tbody) {
+/* ---------- 渲染 ---------- */
+
+function renderAll(tbody) {
+  const rowTpl = tpl('tpl-flow-row');
+  const newTpl = tpl('tpl-flow-new');
+  if (!tbody || !rowTpl || !newTpl) return 0;
+
+  const rows = currentRows;
+  const start = Math.max(0, rows.length - shown);
+  const frag = document.createDocumentFragment();
+
+  if (start > 0) {
+    frag.appendChild(moreRow(start, () => {
+      shown = Math.min(rows.length, shown + BATCH);
+      renderAll(currentTbody);
+    }));
+  }
+
+  for (let i = start; i < rows.length; i += 1) {
+    frag.appendChild(dataRow(rows[i], i, rowTpl));
+  }
+  for (let k = 0; k < BLANK_ROWS; k += 1) {
+    frag.appendChild(blankRow(newTpl, k));
+  }
+
+  tbody.replaceChildren(frag);
+  syncFrozen(tbody.closest('table'));
+  return rows.length - start;
+}
+
+/** 滚到顶自动往更早接一批（只绑一次） */
+function bindMore(tbody) {
   const wrap = tbody.closest('.nt-tablewrap');
-  if (!wrap || wrap.dataset.virtual === '1') return;
-  wrap.dataset.virtual = '1';
+  if (!wrap || wrap.dataset.more === '1') return;
+  wrap.dataset.more = '1';
   wrap.addEventListener('scroll', () => {
-    if (raf) return;
-    raf = requestAnimationFrame(() => {
-      raf = 0;
-      renderWindow();
-    });
+    if (wrap.scrollTop > 40) return;
+    if (shown >= currentRows.length) return;
+    const before = wrap.scrollHeight;
+    shown = Math.min(currentRows.length, shown + BATCH);
+    renderAll(tbody);
+    // 往前接了一批之后保持视觉位置：新内容撑高的部分补回 scrollTop
+    wrap.scrollTop = Math.max(0, wrap.scrollHeight - before + 40);
   }, { passive: true });
 }
 
-/** 只渲染可视区窗口（上下用占位行撑起总高度） */
-function renderWindow() {
-  const tbody = currentTbody;
-  if (!tbody) return;
-
-  const rowTpl = tpl('tpl-flow-row');
-  const newTpl = tpl('tpl-flow-new');
-  if (!rowTpl) return;
-
-  const rows = currentRows;
-  const total = rows.length + BLANK_ROWS;
-  const wrap = tbody.closest('.nt-tablewrap');
-  const rowH = getRowH();
-  const scrollTop = wrap ? wrap.scrollTop : 0;
-  // clientHeight 在读到的这一刻可能是 0（刚切回本 tab、容器还没重排完），
-  // 那样 end 会算成 rows.length+2 —— 只渲染数据行，一个空行都不生成。
-  // 用户看到的就是「只剩有金额的那一行」，而且没地方可以往下录。
-  const viewH = (wrap && wrap.clientHeight) || 800;
-
-  const start = Math.max(0, Math.floor(scrollTop / rowH) - 2);
-  const end = Math.min(total, Math.ceil((scrollTop + viewH) / rowH) + 2);
-
-  const frag = document.createDocumentFragment();
-
-  if (start > 0) frag.appendChild(spacerRow(start * rowH));
-
-  for (let i = start; i < end; i += 1) {
-    if (i >= rows.length) {
-      // 末尾空行：直接当「新增行」写，不用点「添加」。
-      // 有草稿就回填 —— 重建窗口时不能让用户已经写下的东西消失。
-      if (newTpl) {
-        const tr = newTpl.cloneNode(true);
-        const k = i - rows.length;
-        tr.dataset.blank = String(k);
-        applyDraft(tr, draftRows[k]);
-        frag.appendChild(tr);
-      }
-      continue;
-    }
-    const r = rows[i];
-    const tr = rowTpl.cloneNode(true);
-    tr.dataset.id = r.id;
-    // 斑马纹必须按**数据下标**打类，不能用 CSS 的 nth-child：
-    // 虚拟滚动每次只渲染一个窗口，上下还各有一个 spacer 行，
-    // 窗口起点一变、spacer 数量就变，nth-child 的奇偶相位整排翻转 ——
-    // 滚动时深色条纹会「往下滑一下」（用户实测到的跳动）。
-    if (i % 2 === 1) tr.classList.add('nt-row-even');
-    if (r.isOpening) {
-      // 期初行：日期显示「最早流水前一天」（用户 2026-10-30：之前 1 秒），不可编辑、不能删除
-      setText(tr, CLASS.seq, String(r.seq));
-      setInput(tr, 'date', String(r.date || '').slice(0, 10) || '—');
-      const d = tr.querySelector('[data-field="date"]');
-      if (d) d.readOnly = true;
-      const act = tr.querySelector('.' + CLASS.action);
-      if (act) act.textContent = '';
-    } else {
-      setText(tr, CLASS.seq, String(r.seq));
-      setInput(tr, 'date', r.dateEdit != null ? r.dateEdit : r.date);
-    }
-    setInput(tr, 'from', r.from);
-    setInput(tr, 'to', r.to);
-    setInput(tr, 'amount', r.amountEdit != null ? r.amountEdit : r.amount);
-    setInput(tr, 'note', r.note);
-    // 「固定」列：勾选框表示这笔流水是否已经生成过固定收支规则。
-    // 关联在 scheduled.srcTxId 上（见 core/schema.js）。
-    // 期初行不能变固定（它没有业务日期），直接禁用。
-    const box = tr.querySelector('.' + CLASS.fixed + ' .nt-fixed-box');
-    if (box) {
-      box.checked = !!r.fixed;
-      box.disabled = !!r.isOpening || !!r.isVirtual;
-    }
-
-    if (r.isVirtual) {
-      // 虚拟行（未来分期）：只读，样式标出「这是计划，不是已发生」
-      tr.classList.add('nt-row-virtual');
-      tr.dataset.virtual = '1';
-      for (const inp of tr.querySelectorAll('input')) inp.readOnly = true;
-      const act2 = tr.querySelector('.' + CLASS.action);
-      if (act2) act2.textContent = '';
-    }
-    frag.appendChild(tr);
-  }
-
-  if (end < total) frag.appendChild(spacerRow((total - end) * rowH));
-
-  tbody.replaceChildren(frag);
-
-  // 虚拟滚动每次只重建可视区那几十行，新行上没有冻结列的 left ——
-  // 不给它们补上，横向滚动时表头「序」钉住了、下面的序号却跟着跑
-  //（用户原话：「序列标被固定住了，但是序的内容区域未固定」）。
-  syncFrozen(tbody.closest('table'));
+/**
+ * 渲染流水表体（行内可编辑）
+ * @param {HTMLElement} tbody
+ * @param {Array} rows 全量（按 seq 升序）
+ * @param {{keepShown?:boolean}} [opts] keepShown=true 时保留当前已展开的条数
+ * @returns {{shownRows:number, total:number}}
+ */
+export function renderRows(tbody, rows, opts) {
+  currentRows = rows || [];
+  currentTbody = tbody;
+  if (!(opts && opts.keepShown)) shown = Math.min(BATCH, currentRows.length) || BATCH;
+  bindMore(tbody);
+  bindDrafts(tbody);
+  const shownRows = renderAll(tbody);
+  return { shownRows, total: currentRows.length };
 }
 
 /**
- * 渲染流水表体（行内可编辑，虚拟滚动）
+ * 就地转正：把一行空行换成正式数据行，**不重建整表**。
+ *
+ * 这是单文件版的核心动作，也是「自由录入」能成立的原因 ——
+ * 建单一笔只动这一行，别的行（包括其它空行里写了一半的内容）原封不动。
+ *
  * @param {HTMLElement} tbody
- * @param {Array<{id:any,seq:number,date:string,from:string,to:string,amount:any,note:string}>} rows
+ * @param {HTMLElement|null} tr 被转正的那一行空行
+ * @param {object} row buildFlowRows 里对应那一条（字段同渲染行）
+ * @returns {boolean}
  */
-export function renderRows(tbody, rows) {
-  currentRows = rows || [];
-  currentTbody = tbody;
-  bindScroll(tbody);
-  bindDrafts(tbody);
-  renderWindow();
+export function promoteRow(tbody, tr, row) {
+  const rowTpl = tpl('tpl-flow-row');
+  const newTpl = tpl('tpl-flow-new');
+  if (!tbody || !rowTpl || !row) return false;
+
+  const k = tr && tr.dataset.blank != null ? Number(tr.dataset.blank) : -1;
+
+  const fresh = dataRow(row, currentRows.length, rowTpl);
+  const firstBlank = tbody.querySelector('tr[data-new="1"]');
+  if (firstBlank) tbody.insertBefore(fresh, firstBlank);
+  else tbody.appendChild(fresh);
+
+  if (tr && tr.isConnected) tr.remove();
+  // 空行恒 BLANK_ROWS 个：末尾补一个刚被消耗掉的
+  if (newTpl) tbody.appendChild(blankRow(newTpl, BLANK_ROWS - 1));
+  renumberBlanks(tbody);
+
+  if (k >= 0) clearBlankDraft(k);
+
+  currentRows.push(row);
+  syncFrozen(tbody.closest('table'));
+  return true;
 }
 
 /** 按分段渲染（过去 / 当前 / 未来）。 */

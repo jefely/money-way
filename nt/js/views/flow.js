@@ -14,7 +14,7 @@ import {
 import { createScheduled } from '../core/schema.js';
 import { buildFlowRows, buildFooterInfo } from '../ui/flow-model.js';
 import { moneyOrBlank } from '../core/format.js';
-import { renderRows, patchRow, clearBlankDraft } from '../ui/render-transactions.js';
+import { renderRows, patchRow, promoteRow } from '../ui/render-transactions.js';
 import { parseAccountInput, suggestAccounts as suggestByIndex, ensurePendingAccount } from '../core/account-resolver.js';
 import { bindRowEditing } from '../ui/row-editor.js';
 import * as NtModal from '../ui/modal.js';
@@ -237,7 +237,7 @@ export function mountFlow(section, ctx) {
       window.__tlError = String(e && e.message || e);
     }
     const rows = buildFlowRows(st, virtual);
-    renderRows(body, rows); lastRowCount = rows.length;
+    const info = renderRows(body, rows); lastRowCount = rows.length;
     // 滚到「数据末尾」：最后一笔数据贴着视口底，40 行空行在它下面继续
     // （直接滚到 scrollHeight 的话，视口里全是空行，刚录的那笔反而看不见）
     const wrap = body.closest('.nt-tablewrap');
@@ -245,10 +245,10 @@ export function mountFlow(section, ctx) {
       scrollInit = true;
       // 用户 2026-10-30：把最后一条有内容的行放在视口第 6 行 ——
       // 打开就能看到最后 6 行内容，下面全是可输入的空行。
-      // 行高取「非 spacer 行」：spacer 只是个撑高度的空行，高度算出来是双倍。
+      // 只渲染了最后 info.shownRows 行，所以要按它算，不能按全量行数。
       const first = body.querySelector('tr[data-id]') || body.querySelector('tr[data-new="1"]');
       const rowH = first ? first.getBoundingClientRect().height || 34 : 34;
-      wrap.scrollTop = Math.max(0, (rows.length - 6) * rowH);
+      wrap.scrollTop = Math.max(0, (info.shownRows - 6) * rowH);
     }
     ctx.setFooter(footerText());
   }
@@ -297,14 +297,6 @@ export function mountFlow(section, ctx) {
     // 看起来就是「输入的未建档账户自动消失」（用户 2026-10-30 报的正是这个）。
     if (!normalizeAmountInput(fields.amount || '')) { ctx.setState(s); ctx.save(); return; }
 
-    // 建单要重建整表；先把滚动位置记下来，重建后放回去 ——
-    // 否则在末尾空行里敲金额，整页会跳回第一行（用户 2026-10-30）
-    const wrap = body.closest('.nt-tablewrap'); const keepTop = wrap ? wrap.scrollTop : 0;
-
-    // 这一行要变成正式记录：先消费掉它在空行区里的草稿，再 render。
-    // 不消费的话，重建时它会被当成「第 k 个空行」原样摆回去（内容重复出现）。
-    if (tr) clearBlankDraft(tr.dataset.blank);
-
     ctx.setState(addTransaction(s, {
       date: normalizeDateInput(fields.date || todayIso()),
       from_id: fromId,
@@ -313,9 +305,13 @@ export function mountFlow(section, ctx) {
       note: fields.note || '',
       seq: nextSeq(s),
     }));
-    render();
-    // 建单后表格高度刚变，同步设 scrollTop 会被 clamp 回顶部 —— 等一帧再放回去
-    if (wrap) requestAnimationFrame(() => { wrap.scrollTop = keepTop; });
+
+    // 建单不再重建整表（用户 2026-11-01：取消虚拟滚动，照单文件版的模式）：
+    // 把这一行**就地转正** + 末尾补一个空行，别的行一行都不动 ——
+    // 这样其它空行里写了一半的内容、光标、草稿全都原封不动。
+    const all = buildFlowRows(ctx.getState());
+    promoteRow(body, tr, all[all.length - 1]);
+    ctx.setFooter(footerText());
     return ctx.save();
   }
 
