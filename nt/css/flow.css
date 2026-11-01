@@ -563,12 +563,12 @@ body.nt-col-resizing {
 }
 
 /* 二维码 + 右侧日竖轮（竖向拖动，拇指在右边够得着）。
-   space-between：二维码贴左、竖条贴右 —— 竖条的右缘因此和上面「存」按钮的右缘对齐。 */
+   竖条紧跟二维码（gap 8），不贴容器右缘 —— 右侧那块留白是弹窗自己的边距。 */
 .nt-sync-qrrow {
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
 }
 
@@ -814,7 +814,8 @@ dialog.nt-sync-zoom::backdrop {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  margin-left: auto;
+  /* 紧跟年月条（同样留 8px），右缘正好和下面日竖条的右缘重合 */
+  margin-left: 8px;
   width: 30px;
   height: 30px;
   padding: 0;
