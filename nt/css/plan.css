@@ -13,15 +13,31 @@
   display: none;
 }
 
+/* 分期页：纵向由表格容器自己滚（不要外层再套一层），
+   这样横向滚动条才会停在**视口底部**，而不是跑到几十行数据的末尾去
+   （用户 2026-11-01：要滚到表格最低下才看得到滚动条）。 */
 .nt-plan-inst {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   padding: 10px;
 }
 
 .nt-plan-inst[hidden] {
   display: none;
+}
+
+/* 新增表单固定高度，表格吃掉剩下的 */
+.nt-plan-inst .nt-inst-add {
+  flex: 0 0 auto;
+}
+
+.nt-plan-inst .nt-tablewrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
 }
 
 .nt-plan-matrix .nt-th,
@@ -59,33 +75,13 @@
   min-width: 62px;
 }
 
-/* 分期表外层是定位上下文：横向滚动指示条画在它上面（见 ui/scroll-hint.js） */
-.nt-plan-inst {
-  position: relative;
-}
-
-/* 横向滚动指示条（自绘）：移动端浏览器不显示原生滚动条，靠这条细横条告知「还能往右拖」 */
-.nt-scroll-hint {
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 2px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--nt-text-light);
-  opacity: 0.7;
-  pointer-events: none;
-  z-index: 8;
-  transition: opacity 0.2s ease;
-}
-
-/* 让分期表横向滚动，否则 9 列会被压成竖排字。
-   电脑上原生滚动条常显（scroll）；手机上原生的不显示，由上面那条细横条兜底。 */
+/* 横向滚动：用**浏览器自带的**滚动条（电脑上看得见、能拖），
+   手机是 overlay 滚动条，本来就不显示，也不用管（用户 2026-11-01）。 */
 .nt-plan-inst .nt-tablewrap {
-  overflow-x: scroll;
+  overflow: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: var(--nt-bg-line) transparent;
+  scrollbar-color: var(--nt-text-light) transparent;
 }
 .nt-plan-inst .nt-tablewrap::-webkit-scrollbar {
   height: 10px;
