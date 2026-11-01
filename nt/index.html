@@ -203,7 +203,8 @@
         <div class="nt-plan-inst" id="nt-plan-inst" hidden>
           <div class="nt-tablewrap">
             <table class="nt-table nt-table-inst">
-
+              <!-- 列宽一律走 col：table-layout: fixed 认的是 col，不是 th -->
+              <colgroup id="nt-inst-cols"></colgroup>
               <thead>
                 <!-- 两行表头（照单文件版）：
                      上行 = 账户名称 / 账单日 / 每月合计 + 每个月那一列的合计

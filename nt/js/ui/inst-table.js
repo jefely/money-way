@@ -17,6 +17,7 @@ import { setCell as putCell, cellsOf, sumOf, spanOf } from '../core/installment-
 import { mountCellRange } from './cell-range.js';
 import { mountRangeBar } from './inst-range.js';
 import { mountAddForm } from './inst-add.js';
+import { paintHandles, syncFrozen } from './table-layout.js';
 import { showUndo } from './undo-bar.js';
 import { money, moneyAlways } from '../core/format.js';
 import { clampDay, isDayGiven } from '../core/schema.js';
@@ -117,13 +118,22 @@ export function mountInstTable(ctx, tbody, opts) {
     }
 
     const cols = document.getElementById('nt-inst-cols');
-    if (!cols) return;
-    cols.textContent = '';
-    for (let i = 0; i < FIXED_COLS; i += 1) cols.appendChild(document.createElement('col'));
-    for (let i = 0; i < span.length; i += 1) {
-      const col = document.createElement('col');
-      col.className = 'nt-c-month';
-      cols.appendChild(col);
+    if (cols) {
+      cols.textContent = '';
+      for (let i = 0; i < FIXED_COLS; i += 1) cols.appendChild(document.createElement('col'));
+      for (let i = 0; i < span.length; i += 1) {
+        const col = document.createElement('col');
+        col.className = 'nt-c-month';
+        cols.appendChild(col);
+      }
+    }
+
+    // 表头是每次渲染重建的，手柄也得跟着补 ——
+    // bindAllTables 只在启动时跑一次，新 th 上不会有 handle。
+    const table = tbody.closest('table');
+    if (table) {
+      paintHandles(table);
+      syncFrozen(table);
     }
   }
 
