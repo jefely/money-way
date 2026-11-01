@@ -78,6 +78,18 @@
   cursor: pointer;
 }
 
+/* 程序性聚焦（showModal 的默认落点 / Tab 走到）不画焦点环 ——
+   它只是个关闭按钮，出现一圈白环会像界面坏了。
+   键盘用户仍然能从 :focus-visible 看到位置（见下一条）。 */
+.nt-modal-close:focus {
+  outline: none;
+}
+
+/* dialog 自己接焦点时（autoFocus:false 的分支）也不画外框 */
+.nt-modal:focus {
+  outline: none;
+}
+
 .nt-modal-close:hover {
   background: var(--nt-bg-soft);
   color: var(--nt-text);

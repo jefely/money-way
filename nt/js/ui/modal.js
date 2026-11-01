@@ -62,6 +62,9 @@ export function open(opts) {
   if (actionsEl) {
     actionsEl.textContent = '';
     const list = Array.isArray(o.actions) ? o.actions : [{ label: '关闭', kind: 'ghost', close: true }];
+    // 空数组 = 不要底部按钮（同步弹窗只留右上角 ×），此时把整条操作栏藏起来，
+    // 不然会留一条空白把弹窗撑高。
+    if (!list.length) actionsEl.hidden = true;
 
     for (const a of list) {
       const btn = document.createElement('button');
@@ -99,16 +102,22 @@ export function open(opts) {
 
   document.body.appendChild(dlg);
 
+  // dialog 要能接收焦点，才能在 autoFocus:false 时把焦点从按钮上挪开
+  dlg.setAttribute('tabindex', '-1');
+
   if (typeof dlg.showModal === 'function') dlg.showModal();
   else dlg.setAttribute('open', '');
 
   // 焦点给第一个输入框，否则给关闭按钮。
-  // autoFocus:false 时**完全不抢焦点** —— 同步弹窗那种里面有个大文本框的界面，
-  // 一打开就聚焦会让手机立刻弹起键盘，把二维码挡掉（用户 2026-11-01）。
+  // autoFocus:false 时**不落在任何控件上** —— showModal() 本身会把焦点塞给第一个
+  // 可聚焦元素（也就是右上角关闭按钮），于是它带着一圈焦点环出现，看起来像凭空多了个白圈
+  //（用户 2026-11-01 报的正是这个）。这里改成聚焦 dialog 容器本身。
   if (o.autoFocus !== false) {
     const firstInput = dlg.querySelector('.nt-modal-body input, .nt-modal-body textarea');
     const focusTarget = firstInput || closeBtn;
     if (focusTarget) setTimeout(() => { try { focusTarget.focus(); } catch (e) {} }, 40);
+  } else {
+    setTimeout(() => { try { dlg.focus(); } catch (e) {} }, 40);
   }
 
   /** 关掉自己这个弹窗 */

@@ -33,7 +33,8 @@ export function openSyncDialog(ctx) {
   NtModal.open({
     title: '同步账本',
     build: (body) => { body.appendChild(sectionWindow(ctx, base)); },
-    actions: [{ label: '关闭', kind: 'ghost', close: true }],
+    // 不要底部「关闭」按钮：右上角那个 × 就够了，底部再放一个只是白占一行高度
+    actions: [],
     // 不自动聚焦：下面那个同步码文本框一聚焦，手机就把键盘弹起来盖住二维码
     autoFocus: false,
   });
