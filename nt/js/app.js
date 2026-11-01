@@ -48,14 +48,24 @@ let index = buildAccountIndex(state.accounts);
 let views = {};
 let active = 'flow';
 let saveTimer = 0;
+/**
+ * 数据版本号：每次 setState 自增。
+ *
+ * 视图用它判断「这次真的要重画吗」—— 切 tab 回来时数据没变，
+ * 就没必要把 200 多行 DOM 重新造一遍（用户 2026-11-01 报的卡顿就是它）。
+ */
+let dataVersion = 0;
 
 /* ---------- state 与索引 ---------- */
 
 function setState(next) {
   state = next;
+  dataVersion += 1;
   index = buildAccountIndex(state.accounts);
   updateDocTitle();
 }
+
+function getVersion() { return dataVersion; }
 
 /** 窗口/标签标题显示当前账本：NT 账本 - 主账本 */
 function updateDocTitle() {
@@ -151,6 +161,7 @@ function mountViews() {
   const ctx = {
     getState,
     getIndex,
+    getVersion,
     setState,
     save: scheduleSave,
     saveNow: flushSave,

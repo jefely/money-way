@@ -7,10 +7,7 @@
  * 合计与余额全部来自 core 的纯函数，本文件不算钱。
  */
 
-import {
-  addTransaction, updateTransaction, removeTransaction, nextSeq,
-  removeBatch, restoreBatch, noteTextByCode, ensureAccountByText,
-} from '../core/state-store.js';
+import { addTransaction, updateTransaction, removeTransaction, nextSeq, removeBatch, restoreBatch, noteTextByCode, ensureAccountByText } from '../core/state-store.js';
 import { createScheduled } from '../core/schema.js';
 import { buildFlowRows, buildFooterInfo } from '../ui/flow-model.js';
 import { moneyOrBlank } from '../core/format.js';
@@ -26,13 +23,13 @@ import { showUndo } from '../ui/undo-bar.js';
 import { openImportDialog } from '../ui/import-dialog.js';
 import { openExportDialog } from '../ui/export-dialog.js';
 
-const WIP = '该功能在后续版本接入（当前版本先做单页壳）。';
-
 export function mountFlow(section, ctx) {
   const body = section.querySelector('#nt-flow-body');
   // 只在进入流水页的第一次 render 时滚到末尾；之后（建单/删除触发 render）
   // 不再动滚动位置 —— 否则输入金额转正那一瞬间视图会跳（用户 2026-10-30）
-  let scrollInit = false; let lastRowCount = 0;
+  let scrollInit = false;
+  /** 上次渲染时的数据版本；切 tab 回来时用它判断要不要真的重画 */
+  let renderedVer = -1;
 
   bindRowEditing(body, {
     onEdit,
@@ -223,7 +220,34 @@ export function mountFlow(section, ctx) {
     },
   });
 
-  function render() {
+  /**
+   * 把最后一条有内容的行放到视口第 6 行（用户 2026-10-30 定）。
+   * 行高要量实际的：参数面板里能把每张表的行高调成别的值。
+   */
+  function scrollToLast() {
+    // 放到下一帧再量行高：切 tab 的那一刻表格刚从 hidden 变可见，
+    // 这时候读 getBoundingClientRect 会逼浏览器立刻把 240 行布局完（约 25ms 的同步阻塞）。
+    // 挪到 rAF 之后，布局本来就要做，读取不再额外卡一次点击。
+    requestAnimationFrame(() => {
+      const wrap = body.closest('.nt-tablewrap');
+      const first = body.querySelector('tr[data-id]') || body.querySelector('tr[data-new="1"]');
+      const rowH = first ? first.getBoundingClientRect().height || 34 : 34;
+      if (wrap) wrap.scrollTop = Math.max(0, (body.querySelectorAll('tr[data-id]').length - 6) * rowH);
+    });
+  }
+
+  function render(force) {
+    const ver = typeof ctx.getVersion === 'function' ? ctx.getVersion() : -1;
+
+    // 数据没变、表格还在 → 不重建。
+    // 切 tab 回来就走这条：200 多行 DOM 重造一次约 45ms，而这时 DOM 本来就是对的
+    // （用户 2026-11-01：从别的标签切回流水会卡，每次卡的时间差不多）。
+    if (!force && ver >= 0 && ver === renderedVer && body.querySelector('tr')) {
+      if (!scrollInit) { scrollInit = true; scrollToLast(); }
+      ctx.setFooter(footerText()); return;
+    }
+    renderedVer = ver;
+
     const st = ctx.getState();
     // 未来分期推成虚拟行（只读），让「计划」和「已发生」在同一张表里分得清
     let virtual = [];
@@ -237,19 +261,8 @@ export function mountFlow(section, ctx) {
       window.__tlError = String(e && e.message || e);
     }
     const rows = buildFlowRows(st, virtual);
-    const info = renderRows(body, rows); lastRowCount = rows.length;
-    // 滚到「数据末尾」：最后一笔数据贴着视口底，40 行空行在它下面继续
-    // （直接滚到 scrollHeight 的话，视口里全是空行，刚录的那笔反而看不见）
-    const wrap = body.closest('.nt-tablewrap');
-    if (wrap && !scrollInit) {
-      scrollInit = true;
-      // 用户 2026-10-30：把最后一条有内容的行放在视口第 6 行 ——
-      // 打开就能看到最后 6 行内容，下面全是可输入的空行。
-      // 只渲染了最后 info.shownRows 行，所以要按它算，不能按全量行数。
-      const first = body.querySelector('tr[data-id]') || body.querySelector('tr[data-new="1"]');
-      const rowH = first ? first.getBoundingClientRect().height || 34 : 34;
-      wrap.scrollTop = Math.max(0, (info.shownRows - 6) * rowH);
-    }
+    renderRows(body, rows);
+    if (!scrollInit) { scrollInit = true; scrollToLast(); }
     ctx.setFooter(footerText());
   }
 
@@ -311,15 +324,13 @@ export function mountFlow(section, ctx) {
     // 这样其它空行里写了一半的内容、光标、草稿全都原封不动。
     const all = buildFlowRows(ctx.getState());
     promoteRow(body, tr, all[all.length - 1]);
+    // DOM 已经和数据对上了：把版本记下来，下次切 tab 回来不必再重建
+    renderedVer = typeof ctx.getVersion === 'function' ? ctx.getVersion() : -1;
     ctx.setFooter(footerText());
     return ctx.save();
   }
 
-  function onDelete(id) {
-    ctx.setState(removeTransaction(ctx.getState(), id));
-    render();
-    ctx.save();
-  }
+  function onDelete(id) { ctx.setState(removeTransaction(ctx.getState(), id)); render(); ctx.save(); }
 
   /**
    * 切回流水页时用：重置「已定位」标记并重渲染 —— 定位逻辑集中在 render 里，
