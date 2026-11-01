@@ -340,6 +340,7 @@ body {
 .nt-table-inst .nt-th:nth-child(1),
 .nt-table-stats .nt-th:nth-child(1),
 .nt-table-stats .nt-th:nth-child(2) {
+  position: -webkit-sticky;   /* 老 Safari / 部分安卓 WebView 只认带前缀的 */
   position: sticky;
   z-index: 6;
 }
@@ -348,6 +349,7 @@ body {
 .nt-table-plan .nt-cell:nth-child(1),
 .nt-table-inst .nt-cell:nth-child(1),
 .nt-table-stats .nt-cell:nth-child(1) {
+  position: -webkit-sticky;
   position: sticky;
   z-index: 4;
 }
