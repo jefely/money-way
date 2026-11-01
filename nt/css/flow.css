@@ -594,7 +594,7 @@ body.nt-col-resizing {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: calc(100% - 34px);
+  width: calc(100% - 42px);
   max-width: min(100%, 380px, 52vh);
   aspect-ratio: 1 / 1;
   padding: 14px;
@@ -611,8 +611,8 @@ body.nt-col-resizing {
 .nt-sync-wheel {
   position: relative;
   flex: 0 0 auto;
-  /* 只放得下两个数字的宽度（用户 2026-11-01：再窄一点），二维码因此能到 276 */
-  width: 26px;
+  /* 竖条宽度 = 「存」按钮边长（34），右侧一列上下同宽（用户 2026-11-01） */
+  width: 34px;
   overflow: hidden;
   border: 0;
   border-radius: var(--nt-radius);
@@ -814,8 +814,8 @@ dialog.nt-sync-zoom::backdrop {
 .nt-sync-save {
   flex: 0 0 auto;
   margin-left: auto;
-  width: 24px;
-  height: 24px;
+  width: 34px;
+  height: 34px;
   padding: 0;
   line-height: 1;
   border: 0;

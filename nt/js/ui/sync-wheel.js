@@ -38,8 +38,8 @@ export function buildWheel(opts) {
   wrap.className = 'nt-sync-wheel' + (axis === 'x' ? ' h' : '');
   if (axis === 'x') {
     wrap.style.width = SIZE + 'px';
-    // 24 而不是 32：横排只用来看年月/日号，一行字撑 32 会显得上下空（用户 2026-11-01）
-    wrap.style.height = '24px';
+    // 34 高：与右侧「存」按钮（34×34 正方形）同一行等高（用户 2026-11-01）
+    wrap.style.height = '34px';
   } else {
     wrap.style.height = SIZE + 'px';
   }
