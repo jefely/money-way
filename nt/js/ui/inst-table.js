@@ -1,56 +1,57 @@
 // 界面：分期表（表格内直接交互）
 /**
- * 分期表
- * 层：第五层 · UI
+ * 分期表（照单文件版的外观）
  *
- * 每格都是输入框，改完立刻落库并重算「每月应还」；
- * 末尾永远有一行空行，填齐「账户 + 本金 + 期数 + 首月」就变成一条真记录。
+ * 一条占**两行**：
+ *   本金行  账户名称 | 账单日 | 本息合计（本） | 各月本金…
+ *   利息行  分期金额 | 还款日 | 本息合计（息） | 各月利息…
  *
- * 不算钱：每月应还、剩余本息全部来自 core/installment-engine。
+ * 期数不再单独占一列 —— 它由「月份格里填了几格」推出来（core/installment-cells）。
+ * 月份列的范围由表格上方的「起 / 止」两个输入决定；不填就按现有分期自动算。
+ *
+ * 不算钱：每期多少、合计多少全部来自 core/installment-cells。
  */
 
 import { tpl } from './render-transactions.js';
-import { setCell, moneyOrBlank } from './table.js';
+import { setCell as putCell, cellsOf, sumOf, spanOf } from '../core/installment-cells.js';
 import { mountCellRange } from './cell-range.js';
+import { mountRangeBar } from './inst-range.js';
+import { addMonths } from '../core/installment-engine.js';
 import { showUndo } from './undo-bar.js';
 import { money, moneyAlways } from '../core/format.js';
-import { computeInstallment, addMonths, monthsBetween, isDueInMonth as isDueMonth } from '../core/installment-engine.js';
-import { createScheduled, normalizeMonth, clampDay, isDayGiven } from '../core/schema.js';
+import { createScheduled, clampDay, isDayGiven } from '../core/schema.js';
 import { parseAccountInput } from '../core/account-resolver.js';
 import { removeBatch, restoreBatch } from '../core/state-store.js';
 
-const FIELDS = ['name', 'principal', 'periods', 'billDay', 'day', 'interest', 'firstMonth'];
+/** 固定 3 列：账户名称/分期金额 · 账单日/还款日 · 本息合计 */
+const FIXED_COLS = 3;
+/** 新增行要填的字段（都在本金行里） */
+const NEW_FIELDS = ['name', 'principal', 'periods', 'billDay', 'day', 'interest', 'firstMonth'];
+
+const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
 /**
- * @param {{getState:Function, setState:Function, getIndex:Function,
- *          saveNow:Function, setFooter:Function, rerender:Function}} ctx
+ * @param {object} ctx
  * @param {HTMLElement} tbody #nt-inst-body
  * @param {{onSummary?:(text:string)=>void}} [opts]
  */
 export function mountInstTable(ctx, tbody, opts) {
   const o = opts || {};
 
-  /** 固定列数（账户名称 / 分期金额 / 期数 / 账单日 / 还款日） */
-  const FIXED_COLS = 5;
-
-  // 框选：一条分期占上下两行（同 data-id），cell-range 已去重；
-  // 粘贴只允许一格 —— 月份格本来就不是输入框，整片粘一半会被拒。
   mountCellRange(tbody.closest('table'), {
     paste: 'single',
     onDeleteRows: (ids) => deleteRows(ids),
     onNotice: (t) => ctx.setFooter(t),
   });
 
-  /**
-   * 删若干条分期，并给 8 秒撤销。
-   * 一条分期在表里是上下两行，但只对应一个 id —— 删一条不能只删半条。
-   */
+  // 月份范围工具条（起 / 止 / 自动），改完就重画
+  const rangeBar = mountRangeBar(ctx, tbody.closest('.nt-tablewrap'), () => render());
+
   function deleteRows(ids) {
     const r = removeBatch(ctx.getState(), 'scheduled', ids);
     ctx.setState(r.state);
     ctx.saveNow();
     render();
-
     showUndo(`已删除 ${r.removed.length} 条分期`, () => {
       ctx.setState(restoreBatch(ctx.getState(), 'scheduled', r.removed));
       ctx.saveNow();
@@ -59,92 +60,44 @@ export function mountInstTable(ctx, tbody, opts) {
     });
   }
 
+  /* ---------- 渲染 ---------- */
+
   function render() {
     const state = ctx.getState();
     const list = (state.scheduled || []).filter((s) => s && s.isScheduled && s.inst);
-    const nowMonth = todayMonth();
+    const span = spanOf(list, state.installRange, todayMonth());
 
+    rangeBar.render();
+    paintHead(span);
     tbody.textContent = '';
 
-    // 月份跨度：从最早的首月到最晚的还清月
-    const span = monthSpan(list, nowMonth);
-    paintHead(span);
-
-    for (const row of list) {
-      const st = computeInstallment(row, nowMonth);
-      const acc = ctx.getIndex().byId.get(row.to_id) || ctx.getIndex().byId.get(row.from_id);
-
-      // 上行：本金
-      const trP = document.createElement('tr');
-      trP.className = 'nt-row nt-inst-main';
-      trP.dataset.id = row.id;
-      tbody.appendChild(trP);
-
-      trP.appendChild(cellInput(row.id, 'name', acc ? acc.name : '', '', 'nt-c-inst-name'));
-      trP.appendChild(cellInput(row.id, 'principal', moneyOrBlank(row.inst.principal), 'nt-cell-input-num'));
-      trP.appendChild(cellInput(row.id, 'periods', row.inst.periods || '', 'nt-cell-input-num'));
-      // 账单日是可选字段：没填就是空，不再镜像「还款日」装成有值
-      trP.appendChild(cellInput(row.id, 'billDay', row.billDay || '', 'nt-cell-input-num'));
-      trP.appendChild(cellInput(row.id, 'day', row.day || '', 'nt-cell-input-num'));
-
-      // 下行：利息（左 4 格留空，与上行对齐）
-      const trI = document.createElement('tr');
-      trI.className = 'nt-row nt-inst-sub';
-      trI.dataset.id = row.id;
-      tbody.appendChild(trI);
-
-      for (let k = 0; k < FIXED_COLS - 1; k += 1) {
-        const td = document.createElement('td');
-        td.className = 'nt-cell nt-cell-empty';
-        trI.appendChild(td);
-      }
-
-      // 每月两格：本金写上行、利息写下行
-      for (const m of span) {
-        const cell = st && isDueMonth(row, m) ? computeInstallment(row, m) : null;
-        trP.appendChild(cellText(cell ? moneyAlways(cell.principalPer) : '', 'nt-cell-num nt-inst-p'));
-        trI.appendChild(cellText(cell ? moneyAlways(cell.interestPer) : '', 'nt-cell-num nt-inst-i'));
-      }
-
-      bindRow(trP, row.id);
-    }
-
-    const newTpl = tpl('tpl-inst-new');
-    if (newTpl) {
-      const tr = newTpl.cloneNode(true);
-      tbody.appendChild(tr);
-      bindNewRow(tr);
-    }
-
-    summarize(list, nowMonth);
+    for (const row of list) paintRow(row, span);
+    paintAddForm();
+    summarize(list);
   }
 
-  /** 表头 + 列宽：固定 5 列 + 每月一列，两者必须同步生成 */
   function paintHead(span) {
     const tr = document.getElementById('nt-inst-head');
     if (!tr) return;
-
-    // 先清掉旧的月份列
     while (tr.children.length > FIXED_COLS) tr.removeChild(tr.lastChild);
+    const ths = tr.querySelectorAll('.nt-th');
+    if (ths.length >= 3) {
+      ths[0].textContent = '账户 / 金额';
+      ths[1].textContent = '账单日 / 还款日';
+      ths[2].textContent = '本息合计';
+    }
     for (const m of span) {
       const th = document.createElement('th');
       th.className = 'nt-th nt-c-month';
       th.scope = 'col';
-      // 表头就是月份本身（2026-10），和单文件版导出的账本一致；
-      // 早先写的「还款月2026-10」太长，手机上一个月占掉两倍宽度
       th.textContent = m;
       tr.appendChild(th);
     }
 
-    // colgroup 与表头一一对应：table-layout: fixed 认的是 col，不是 th
     const cols = document.getElementById('nt-inst-cols');
     if (!cols) return;
     cols.textContent = '';
-    for (const cls of ['nt-c-inst-name', '', '', '', '']) {
-      const col = document.createElement('col');
-      if (cls) col.className = cls;
-      cols.appendChild(col);
-    }
+    for (let i = 0; i < FIXED_COLS; i += 1) cols.appendChild(document.createElement('col'));
     for (let i = 0; i < span.length; i += 1) {
       const col = document.createElement('col');
       col.className = 'nt-c-month';
@@ -152,16 +105,49 @@ export function mountInstTable(ctx, tbody, opts) {
     }
   }
 
-  function cellText(text, cls) {
+  function paintRow(row, span) {
+    const acc = ctx.getIndex().byId.get(row.to_id) || ctx.getIndex().byId.get(row.from_id);
+    const cells = cellsOf(row);
+    const sumP = sumOf(cells, 'p', span);
+    const sumI = sumOf(cells, 'i', span);
+
+    const trP = document.createElement('tr');
+    trP.className = 'nt-row nt-inst-main';
+    trP.dataset.id = row.id;
+    trP.appendChild(inputCell(row.id, 'name', acc ? acc.name : '', 'nt-c-inst-name'));
+    trP.appendChild(inputCell(row.id, 'billDay', row.billDay || '', 'nt-cell-input-num'));
+    trP.appendChild(textCell(moneyAlways(sumP), 'nt-cell-num'));
+
+    const trI = document.createElement('tr');
+    trI.className = 'nt-row nt-inst-sub';
+    trI.dataset.id = row.id;
+    trI.appendChild(inputCell(row.id, 'principal', moneyAlways(row.inst.principal), 'nt-cell-input-num'));
+    trI.appendChild(inputCell(row.id, 'day', row.day || '', 'nt-cell-input-num'));
+    trI.appendChild(textCell(moneyAlways(sumI), 'nt-cell-num'));
+
+    for (const m of span) {
+      trP.appendChild(monthCell(row.id, m, 'p', (cells[m] || {}).p));
+      trI.appendChild(monthCell(row.id, m, 'i', (cells[m] || {}).i));
+    }
+
+    tbody.appendChild(trP);
+    tbody.appendChild(trI);
+    bindRow(trP, row.id);
+    bindRow(trI, row.id);
+  }
+
+  /* ---------- 格子 ---------- */
+
+  function textCell(text, cls) {
     const td = document.createElement('td');
     td.className = 'nt-cell' + (cls ? ' ' + cls : '');
     td.textContent = text == null ? '' : String(text);
     return td;
   }
 
-  function cellInput(id, field, value, cls, tdCls) {
+  function inputCell(id, field, value, cls) {
     const td = document.createElement('td');
-    td.className = 'nt-cell' + (tdCls ? ' ' + tdCls : '');
+    td.className = 'nt-cell';
     const input = document.createElement('input');
     input.className = 'nt-cell-input' + (cls ? ' ' + cls : '');
     input.type = 'text';
@@ -171,174 +157,208 @@ export function mountInstTable(ctx, tbody, opts) {
     return td;
   }
 
-  /** 月份跨度：最早首月 → 最晚还清月（至少含当月） */
-  function monthSpan(list, nowMonth) {
-    let first = nowMonth;
-    let last = nowMonth;
-    for (const row of list) {
-      const fm = row.inst && row.inst.firstMonth;
-      if (fm && fm < first) first = fm;
-      const st = computeInstallment(row, nowMonth);
-      if (st.lastMonth && st.lastMonth > last) last = st.lastMonth;
-    }
-    const out = [];
-    const n = monthsBetween(first, last);
-    for (let i = 0; i <= (Number.isFinite(n) ? n : 0) && i < 36; i += 1) {
-      out.push(addMonths(first, i));
-    }
-    return out;
+  function monthCell(id, month, part, value) {
+    const td = document.createElement('td');
+    td.className = 'nt-cell nt-cell-num';
+    const input = document.createElement('input');
+    input.className = 'nt-cell-input nt-cell-input-num nt-inst-cell';
+    input.type = 'text';
+    input.inputMode = 'decimal';
+    input.setAttribute('data-month', month);
+    input.setAttribute('data-part', part);
+    input.setAttribute('aria-label', `${month} 的${part === 'p' ? '本金' : '利息'}`);
+    input.value = value ? String(round2(value)) : '';
+    td.appendChild(input);
+    return td;
   }
 
   function bindRow(tr, id) {
     const del = tr.querySelector('[data-act="del"]');
-    if (del) {
-      del.addEventListener('click', () => { deleteRows([id]); });
-    }
+    if (del) del.addEventListener('click', () => deleteRows([id]));
 
-    for (const f of FIELDS) {
-      const inp = tr.querySelector('[data-field="' + f + '"]');
-      if (!inp) continue;
-      inp.addEventListener('change', () => applyEdit(id, f, inp.value));
+    for (const inp of tr.querySelectorAll('input[data-field]')) {
+      inp.addEventListener('change', () => applyEdit(id, inp.getAttribute('data-field'), inp.value));
+    }
+    for (const inp of tr.querySelectorAll('input[data-month]')) {
+      inp.addEventListener('change', () => applyCell(id, inp.getAttribute('data-month'), inp.getAttribute('data-part'), inp.value));
     }
   }
 
-  function applyEdit(id, field, raw) {
+  /* ---------- 编辑 ---------- */
+
+  function replaceRow(id, mutate) {
     const st = ctx.getState();
     const list = (st.scheduled || []).slice();
     const i = list.findIndex((x) => x.id === id);
-    if (i < 0) return;
-
+    if (i < 0) return false;
     const row = { ...list[i], inst: { ...(list[i].inst || {}) } };
-    const v = String(raw || '').trim();
-
-    if (field === 'name') {
-      const r = parseAccountInput(ctx.getIndex(), v);
-      if (!r || !r.acc) { render(); return; }
-      row.to_id = r.acc.id;
-      row.from_id = null;
-    } else if (field === 'principal') {
-      row.inst.principal = Math.max(0, Number(v) || 0);
-    } else if (field === 'interest') {
-      row.inst.interest = Math.max(0, Number(v) || 0);
-    } else if (field === 'periods') {
-      row.inst.periods = Math.max(0, Math.floor(Number(v) || 0));
-    } else if (field === 'firstMonth') {
-      const m = normalizeMonth(v);
-      if (!m) { render(); return; }
-      row.inst.firstMonth = m;
-    } else if (field === 'day') {
-      row.day = clampDay(v);
-    } else if (field === 'billDay') {
-      // 清空账单日 = 真的没有账单日（信用卡账单日不是每张卡都有），
-      // 不能留成 1 号，也不能继续镜像还款日
-      if (isDayGiven(v)) row.billDay = clampDay(v);
-      else delete row.billDay;
-    }
-
-    row.amount = computeInstallment(row, todayMonth()).perPeriod;
+    mutate(row);
+    row.amount = round2((Number(row.inst.principal) || 0) + (Number(row.inst.interest) || 0));
     list[i] = row;
     ctx.setState({ ...st, scheduled: list });
     ctx.saveNow();
     render();
+    return true;
   }
 
-  function bindNewRow(tr) {
-    // 6 个字段各自触发 change，必须只成一条：建完上锁 + 行已脱离 DOM 就不再处理
-    let created = false;
-    const tryCreate = () => {
-      if (created || !tr.isConnected) return;
-
-      const get = (f) => {
-        const el = tr.querySelector('[data-field="' + f + '"]');
-        return el ? String(el.value || '').trim() : '';
-      };
-
-      const name = get('name');
-      const principal = Number(get('principal')) || 0;
-      const interest = Number(get('interest')) || 0;
-      const periods = Math.floor(Number(get('periods')) || 0);
-
-      // 新表没有「首月」列：不填就从当月开始（月份列由它推出来）
-      const firstMonth = normalizeMonth(get('firstMonth')) || todayMonth();
-
-      // 建不成时说清楚缺什么。原来这四个条件合成一个 return，
-      // 用户填了账户和期数却没建上，页脚一个字都不变 —— 完全不知道卡在哪。
-      if (!name) {
-        if (principal > 0 || periods > 0) ctx.setFooter('分期还没建成：先填账户');
-        return;
+  function applyEdit(id, field, raw) {
+    const v = String(raw || '').trim();
+    replaceRow(id, (row) => {
+      if (field === 'name') {
+        const r = parseAccountInput(ctx.getIndex(), v);
+        if (!r || !r.acc) return;
+        row.to_id = r.acc.id;
+        row.from_id = null;
+      } else if (field === 'principal') {
+        row.inst.principal = Math.max(0, Number(String(v).replace(/[¥,\s]/g, '')) || 0);
+      } else if (field === 'day') {
+        row.day = clampDay(v || 5);
+      } else if (field === 'billDay') {
+        if (isDayGiven(v)) row.billDay = clampDay(v); else delete row.billDay;
       }
+    });
+  }
 
-      const r = parseAccountInput(ctx.getIndex(), name);
-      if (!r || !r.acc) {
-        ctx.setFooter(`分期还没建成：账户「${name}」不在账本里`);
-        return;
-      }
+  /**
+   * 改月份格 = 写进手填矩阵。
+   * 第一格改动时会把「均摊出来的那份」固化下来，之后这条分期就以 cells 为准。
+   */
+  function applyCell(id, month, part, raw) {
+    replaceRow(id, (row) => {
+      const cells = putCell(cellsOf(row), month, part, raw);
+      row.inst.cells = cells;
+      const months = Object.keys(cells).sort();
+      row.inst.periods = months.length;
+      if (months.length) row.inst.firstMonth = months[0];
+      let p = 0;
+      let i = 0;
+      for (const m of months) { p += cells[m].p || 0; i += cells[m].i || 0; }
+      row.inst.principal = round2(p);
+      row.inst.interest = round2(i);
+    });
+  }
 
-      if (!(principal > 0)) {
-        ctx.setFooter('分期还没建成：分期金额要大于 0');
-        return;
-      }
-      if (!(periods > 0)) {
-        ctx.setFooter('分期还没建成：期数要大于 0');
-        return;
-      }
-      if (!firstMonth) {
-        ctx.setFooter('分期还没建成：首月认不出（写成 2026-10）');
-        return;
-      }
+  /** 新增表单：账户 / 金额 / 期数 / 首月 → 生成一条并按均摊铺满月份格 */
+  function paintAddForm() {
+    let bar = document.getElementById('nt-inst-add');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'nt-inst-add';
+      bar.className = 'nt-inst-add';
+      const anchor = document.getElementById('nt-inst-bar');
+      if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(bar, anchor.nextSibling);
+    }
+    bar.textContent = '';
 
-      const row = createScheduled({
-        to_id: r.acc.id,
-        from_id: null,
-        day: clampDay(get('day') || 5),
-        billDay: get('billDay'),
-        note: '分期',
-        amount: (principal + interest) / periods,
-        inst: { periods, firstMonth, principal, interest },
-      });
-
-      created = true;
-      const st = ctx.getState();
-      ctx.setState({ ...st, scheduled: (st.scheduled || []).concat([row]) });
-      ctx.saveNow();
-      render();
-      ctx.setFooter('已新增 1 条分期');
+    const mk = (key, ph, w) => {
+      const inp = document.createElement('input');
+      inp.className = 'nt-input nt-input-sm';
+      inp.type = 'text';
+      inp.setAttribute('data-add', key);
+      inp.placeholder = ph;
+      inp.setAttribute('aria-label', ph);
+      if (w) inp.style.width = w;
+      bar.appendChild(inp);
+      return inp;
     };
 
-    for (const f of FIELDS) {
-      const inp = tr.querySelector('[data-field="' + f + '"]');
-      if (!inp) continue;
-      // 延迟到本轮事件结束再判断：用户在一行里连着填几格时，
-      // 前面的格子先触发 change；若立刻建行，后面填的会落在已脱离 DOM 的旧行上。
-      inp.addEventListener('change', () => { setTimeout(tryCreate, 0); });
-    }
+    mk('name', '账户', '84px');
+    mk('principal', '分期金额', '92px');
+    mk('periods', '期数', '52px');
+    mk('firstMonth', '首月 2611', '84px');
+    mk('billDay', '账单日', '60px');
+    mk('day', '还款日', '60px');
+    mk('interest', '总利息', '76px');
+
+    const go = document.createElement('button');
+    go.type = 'button';
+    go.className = 'nt-btn nt-btn-sm nt-btn-primary';
+    go.textContent = '添加';
+    go.addEventListener('click', addRow);
+    bar.appendChild(go);
   }
 
-  function summarize(list, nowMonth) {
-    let totalP = 0;
-    let totalI = 0;
-    let perMonth = 0;
-    for (const s of list) {
-      const st = computeInstallment(s, nowMonth);
-      totalP += st.remainingPrincipal;
-      totalI += st.remainingInterest;
-      perMonth += st.perPeriod;
+  function addRow() {
+    const bar = document.getElementById('nt-inst-add');
+    if (!bar) return;
+    const get = (k) => {
+      const el = bar.querySelector('[data-add="' + k + '"]');
+      return el ? String(el.value || '').trim() : '';
+    };
+    const num = (k) => Math.abs(Number(String(get(k)).replace(/[¥,\s]/g, '')) || 0);
+
+    const name = get('name');
+    if (!name) return ctx.setFooter('分期还没建成：先填账户');
+    const r = parseAccountInput(ctx.getIndex(), name);
+    if (!r || !r.acc) return ctx.setFooter(`分期还没建成：账户「${name}」不在账本里`);
+
+    const principal = num('principal');
+    const interest = num('interest');
+    if (!principal && !interest) return ctx.setFooter('分期还没建成：分期金额要大于 0');
+
+    const periods = Math.max(1, Math.floor(Number(get('periods')) || 0));
+    const first = parseFirstMonth(get('firstMonth')) || todayMonth();
+
+    // 均摊铺满：之后用户可以在月份格里逐格改
+    const cells = {};
+    const pPer = round2(principal / periods);
+    const iPer = round2(interest / periods);
+    for (let k = 0; k < periods; k += 1) {
+      const m = addMonths(first, k);
+      if (m) cells[m] = { p: pPer, i: iPer };
     }
-    const text = `未还本金 ${moneyAlways(totalP)} · 未还利息 ${moneyAlways(totalI)}`;
+
+    const row = createScheduled({
+      to_id: r.acc.id,
+      from_id: null,
+      day: clampDay(get('day') || 5),
+      billDay: get('billDay'),
+      note: '分期',
+      amount: round2(principal + interest),
+      inst: { periods, firstMonth: first, principal, interest, cells },
+    });
+
+    const st = ctx.getState();
+    ctx.setState({ ...st, scheduled: (st.scheduled || []).concat([row]) });
+    ctx.saveNow();
+    render();
+    ctx.setFooter('已新增 1 条分期');
+  }
+
+  function parseFirstMonth(raw) {
+    const v = String(raw || '').replace(/[^0-9-]/g, '').replace(/\//g, '-');
+    if (!v) return '';
+    if (/^\d{4}-\d{1,2}$/.test(v)) {
+      const [y, m] = v.split('-');
+      return y + '-' + String(Number(m)).padStart(2, '0');
+    }
+    const d = v.replace(/-/g, '');
+    if (d.length === 4) return '20' + d.slice(0, 2) + '-' + d.slice(2);
+    if (d.length === 6) return d.slice(0, 4) + '-' + d.slice(4);
+    return '';
+  }
+
+  function summarize(list) {
+    let pendingP = 0;
+    let pendingI = 0;
+    const now = todayMonth();
+    for (const s of list) {
+      const cells = cellsOf(s);
+      for (const m of Object.keys(cells)) {
+        if (m < now) continue;
+        pendingP += cells[m].p || 0;
+        pendingI += cells[m].i || 0;
+      }
+    }
+    const text = `${list.length} 条分期 · 未还本金 ${moneyAlways(pendingP)} · 未还利息 ${moneyAlways(pendingI)}`;
     if (o.onSummary) o.onSummary(text);
-    ctx.setFooter(`${list.length} 条分期 · 每月应还 ${moneyAlways(perMonth)}`
-      + ` · 未还本金 ${moneyAlways(totalP)}`);
+    ctx.setFooter(`${list.length} 条分期`);
   }
 
   return { render };
-}
 
-export function todayMonth() {
-  const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-}
-
-export function shortMonth(m) {
-  const s = String(m || '');
-  return /^\d{4}-\d{2}$/.test(s) ? s.slice(2).replace('-', '') : '';
+  function todayMonth() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
 }

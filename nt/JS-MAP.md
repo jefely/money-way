@@ -26,6 +26,7 @@
 | `core/import-apply.js` | （无界面）导入落库 |
 | `core/import-parser.js` | （无界面）账本文本解析 |
 | `core/import-table.js` | 导入 Excel / CSV / 账单（纯逻辑，Node 可跑） |
+| `core/installment-cells.js` | 分期的「每期手填」矩阵（纯函数，Node 可跑） |
 | `core/installment-engine.js` | （无界面）分期引擎 |
 | `core/ledger-file.js` | （未标注界面）账本文件（纯函数） |
 | `core/ledger-stats.js` | （无界面）账本统计 |
@@ -87,6 +88,7 @@
 | `ui/import-dialog.js` | 导入 Excel / CSV / 账单 |
 | `ui/import-hub.js` | 流水工具条「导入」→ 先弹入口（选文件 / 粘贴文本） |
 | `ui/import-map.js` | 导入 → 手动指定列 |
+| `ui/inst-range.js` | 分期表上方的「月份范围」工具条 |
 | `ui/inst-table.js` | 分期表（表格内直接交互） |
 | `ui/layout-text.js` | 布局文本导出/导入 |
 | `ui/modal.js` | 全局 → 统一弹窗（<dialog>） |
