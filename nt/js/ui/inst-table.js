@@ -16,17 +16,15 @@ import { tpl } from './render-transactions.js';
 import { setCell as putCell, cellsOf, sumOf, spanOf } from '../core/installment-cells.js';
 import { mountCellRange } from './cell-range.js';
 import { mountRangeBar } from './inst-range.js';
-import { addMonths } from '../core/installment-engine.js';
+import { mountAddForm } from './inst-add.js';
 import { showUndo } from './undo-bar.js';
 import { money, moneyAlways } from '../core/format.js';
-import { createScheduled, clampDay, isDayGiven } from '../core/schema.js';
+import { clampDay, isDayGiven } from '../core/schema.js';
 import { parseAccountInput } from '../core/account-resolver.js';
 import { removeBatch, restoreBatch } from '../core/state-store.js';
 
 /** 固定 3 列：账户名称/分期金额 · 账单日/还款日 · 本息合计 */
 const FIXED_COLS = 3;
-/** 新增行要填的字段（都在本金行里） */
-const NEW_FIELDS = ['name', 'principal', 'periods', 'billDay', 'day', 'interest', 'firstMonth'];
 
 const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
@@ -44,8 +42,17 @@ export function mountInstTable(ctx, tbody, opts) {
     onNotice: (t) => ctx.setFooter(t),
   });
 
-  // 月份范围工具条（起 / 止 / 自动），改完就重画
-  const rangeBar = mountRangeBar(ctx, tbody.closest('.nt-tablewrap'), () => render());
+  // 月份列宽由 table-layout 统一管（拖任一个月份列 → 所有月份列一起变），
+  // 这里只要把上次拖出来的宽度读回来。
+  try {
+    const saved = localStorage.getItem('nt_inst_mw');
+    const tbl = tbody.closest('table');
+    if (saved && tbl) tbl.style.setProperty('--nt-inst-mw', saved);
+  } catch (e) { /* 无痕模式读不到就算了 */ }
+
+  // 月份范围工具条（起 / 止 / 自动）：追加在「添加」按钮后面，同一行
+  const rangeBar = mountRangeBar(ctx, () => render());
+  const addForm = mountAddForm(ctx, () => render());
 
   function deleteRows(ids) {
     const r = removeBatch(ctx.getState(), 'scheduled', ids);
@@ -106,6 +113,7 @@ export function mountInstTable(ctx, tbody, opts) {
       th.scope = 'col';
       th.textContent = m;
       tr.appendChild(th);
+      // 列宽手柄由 table-layout.paintHandles 统一补（这里再加一个会重叠）
     }
 
     const cols = document.getElementById('nt-inst-cols');
@@ -252,104 +260,20 @@ export function mountInstTable(ctx, tbody, opts) {
     });
   }
 
-  /** 新增表单：账户 / 金额 / 期数 / 首月 → 生成一条并按均摊铺满月份格 */
+  /** 新增表单 + 月份范围：同一行（账户…总利息 [添加] 月份范围 起 止 自动） */
   function paintAddForm() {
     let bar = document.getElementById('nt-inst-add');
     if (!bar) {
       bar = document.createElement('div');
       bar.id = 'nt-inst-add';
       bar.className = 'nt-inst-add';
-      const anchor = document.getElementById('nt-inst-bar');
-      if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(bar, anchor.nextSibling);
+      const wrap = tbody.closest('.nt-tablewrap');
+      if (wrap && wrap.parentNode) wrap.parentNode.insertBefore(bar, wrap);
     }
     bar.textContent = '';
-
-    const mk = (key, ph, w) => {
-      const inp = document.createElement('input');
-      inp.className = 'nt-input nt-input-sm';
-      inp.type = 'text';
-      inp.setAttribute('data-add', key);
-      inp.placeholder = ph;
-      inp.setAttribute('aria-label', ph);
-      if (w) inp.style.width = w;
-      bar.appendChild(inp);
-      return inp;
-    };
-
-    mk('name', '账户', '84px');
-    mk('principal', '分期金额', '92px');
-    mk('periods', '期数', '52px');
-    mk('firstMonth', '首月 2611', '84px');
-    mk('billDay', '账单日', '60px');
-    mk('day', '还款日', '60px');
-    mk('interest', '总利息', '76px');
-
-    const go = document.createElement('button');
-    go.type = 'button';
-    go.className = 'nt-btn nt-btn-sm nt-btn-primary';
-    go.textContent = '添加';
-    go.addEventListener('click', addRow);
-    bar.appendChild(go);
-  }
-
-  function addRow() {
-    const bar = document.getElementById('nt-inst-add');
-    if (!bar) return;
-    const get = (k) => {
-      const el = bar.querySelector('[data-add="' + k + '"]');
-      return el ? String(el.value || '').trim() : '';
-    };
-    const num = (k) => Math.abs(Number(String(get(k)).replace(/[¥,\s]/g, '')) || 0);
-
-    const name = get('name');
-    if (!name) return ctx.setFooter('分期还没建成：先填账户');
-    const r = parseAccountInput(ctx.getIndex(), name);
-    if (!r || !r.acc) return ctx.setFooter(`分期还没建成：账户「${name}」不在账本里`);
-
-    const principal = num('principal');
-    const interest = num('interest');
-    if (!principal && !interest) return ctx.setFooter('分期还没建成：分期金额要大于 0');
-
-    const periods = Math.max(1, Math.floor(Number(get('periods')) || 0));
-    const first = parseFirstMonth(get('firstMonth')) || todayMonth();
-
-    // 均摊铺满：之后用户可以在月份格里逐格改
-    const cells = {};
-    const pPer = round2(principal / periods);
-    const iPer = round2(interest / periods);
-    for (let k = 0; k < periods; k += 1) {
-      const m = addMonths(first, k);
-      if (m) cells[m] = { p: pPer, i: iPer };
-    }
-
-    const row = createScheduled({
-      to_id: r.acc.id,
-      from_id: null,
-      day: clampDay(get('day') || 5),
-      billDay: get('billDay'),
-      note: '分期',
-      amount: round2(principal + interest),
-      inst: { periods, firstMonth: first, principal, interest, cells },
-    });
-
-    const st = ctx.getState();
-    ctx.setState({ ...st, scheduled: (st.scheduled || []).concat([row]) });
-    ctx.saveNow();
-    render();
-    ctx.setFooter('已新增 1 条分期');
-  }
-
-  function parseFirstMonth(raw) {
-    const v = String(raw || '').replace(/[^0-9-]/g, '').replace(/\//g, '-');
-    if (!v) return '';
-    if (/^\d{4}-\d{1,2}$/.test(v)) {
-      const [y, m] = v.split('-');
-      return y + '-' + String(Number(m)).padStart(2, '0');
-    }
-    const d = v.replace(/-/g, '');
-    if (d.length === 4) return '20' + d.slice(0, 2) + '-' + d.slice(2);
-    if (d.length === 6) return d.slice(0, 4) + '-' + d.slice(4);
-    return '';
+    addForm.render(bar);
+    // 月份范围跟在「添加」后面，和表单同一行
+    rangeBar.render(bar);
   }
 
   function summarize(list) {

@@ -26,19 +26,11 @@ export function parseMonthText(raw) {
 }
 
 /**
- * @param {{getState:Function, setState:Function, saveNow:Function, render:Function}} ctx
- * @param {HTMLElement} host 表格容器
+ * @param {{getState:Function, setState:Function, saveNow:Function}} ctx
  * @param {()=>void} onChange 改完之后的回调（通常是重新渲染）
+ * @returns {{render:(host:HTMLElement)=>void}} 把控件**追加**到给定容器里
  */
-export function mountRangeBar(ctx, host, onChange) {
-  let bar = document.getElementById('nt-inst-bar');
-  if (!bar) {
-    bar = document.createElement('div');
-    bar.id = 'nt-inst-bar';
-    bar.className = 'nt-inst-bar';
-    if (host && host.parentNode) host.parentNode.insertBefore(bar, host);
-  }
-
+export function mountRangeBar(ctx, onChange) {
   function setRange(key, raw) {
     const st = ctx.getState();
     const next = { ...(st.installRange || {}) };
@@ -49,14 +41,21 @@ export function mountRangeBar(ctx, host, onChange) {
     if (onChange) onChange();
   }
 
-  function render() {
+  /**
+   * 追加到 host 末尾（不清空 host）—— 用户 2026-11-01 要求
+   * 月份范围跟在「添加」按钮后面，和新增表单同一行。
+   */
+  function render(host) {
+    if (!host) return;
     const cur = ctx.getState().installRange || {};
-    bar.textContent = '';
+
+    const box = document.createElement('span');
+    box.className = 'nt-inst-range-box';
 
     const label = document.createElement('span');
     label.className = 'nt-inst-bar-label';
     label.textContent = '月份范围';
-    bar.appendChild(label);
+    box.appendChild(label);
 
     for (const key of ['from', 'to']) {
       const inp = document.createElement('input');
@@ -66,7 +65,7 @@ export function mountRangeBar(ctx, host, onChange) {
       inp.placeholder = key === 'from' ? '起 2610' : '止 2709';
       inp.setAttribute('aria-label', key === 'from' ? '起始月' : '结束月');
       inp.addEventListener('change', () => setRange(key, inp.value));
-      bar.appendChild(inp);
+      box.appendChild(inp);
     }
 
     const auto = document.createElement('button');
@@ -80,7 +79,9 @@ export function mountRangeBar(ctx, host, onChange) {
       if (ctx.saveNow) ctx.saveNow();
       if (onChange) onChange();
     });
-    bar.appendChild(auto);
+    box.appendChild(auto);
+
+    host.appendChild(box);
   }
 
   return { render };

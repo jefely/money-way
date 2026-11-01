@@ -667,15 +667,16 @@ body.nt-col-resizing .nt-tablewrap {
 .nt-table-plan .nt-th:nth-child(7) { width: var(--nt-col-plan-note, 110px); }
 .nt-table-plan .nt-th:nth-child(8) { width: var(--nt-col-plan-action, 40px); }
 
-/* ---------- 分期（5 固定 + N 个月份列；这份表还没进参数，宽度写死） ---------- */
+/* ---------- 分期（3 固定 + N 个月份列） ----------
+   表头是两行（上行「每月合计」+ 合计数字，下行「本息总计」+ 月份标签），
+   两行共用同一个 colgroup，所以宽度只在这里定义一次。
+   月份列宽走 CSS 变量：拖任意一个月份列的分隔条，**所有月份列一起变**。 */
 
-.nt-table-inst { min-width: 540px; }
+.nt-table-inst { min-width: 480px; }
 .nt-table-inst .nt-th:nth-child(1) { width: 110px; min-width: 110px; max-width: 110px; }
 .nt-table-inst .nt-th:nth-child(2) { width: 96px; }
-.nt-table-inst .nt-th:nth-child(3) { width: 56px; }
-.nt-table-inst .nt-th:nth-child(4) { width: 68px; }
-.nt-table-inst .nt-th:nth-child(5) { width: 68px; }
-.nt-table-inst .nt-th.nt-c-month { width: 86px; }
+.nt-table-inst .nt-th:nth-child(3) { width: 100px; }
+.nt-table-inst .nt-th.nt-c-month { width: var(--nt-inst-mw, 86px); }
 
 /* ---------- 账户设置（10 列：简码 · 序 · 类型 · 分类 · 名称 · 期初 · 账单日 · 还款日 · 上移 · 删除） ---------- */
 

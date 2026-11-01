@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    计划页：固定收支表 + 分期矩阵
    ============================================================ */
 
@@ -69,10 +69,9 @@
 }
 
 /* ===== 分期表列宽 =====
-   9 列在 390px 屏上必然挤，这里固定总宽 560px，
-   表头 th 给明确宽度（fixed 布局只认表头第一行），父容器横向滚动。
-*/
-
+   实际宽度在 shell.css 的「分期」段里（3 固定 + 月份列走 --nt-inst-mw）。
+   这里不再按 nth-child 写死 —— 那是 9 列时代的布局，和现在的列对不上，
+   留着会把第 1 列压成 34px。 */
 
 .nt-table-inst th,
 .nt-table-inst td {
@@ -80,24 +79,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-/* 序 */
-.nt-table-inst th:nth-child(1) { width: 34px; }
-/* 账户 */
-.nt-table-inst th:nth-child(2) { width: 96px; }
-/* 本金 / 利息 */
-.nt-table-inst th:nth-child(3) { width: 80px; }
-.nt-table-inst th:nth-child(4) { width: 80px; }
-/* 期数 */
-.nt-table-inst th:nth-child(5) { width: 54px; }
-/* 首月 */
-.nt-table-inst th:nth-child(6) { width: 62px; }
-/* 还款日 */
-.nt-table-inst th:nth-child(7) { width: 54px; }
-/* 每月应还 */
-.nt-table-inst th:nth-child(8) { width: 90px; }
-/* 操作 */
-.nt-table-inst th:nth-child(9) { width: 34px; }
 
 /* 输入框撑满格子，字号小一点也不至于截断数字 */
 .nt-table-inst input.nt-cell-input {

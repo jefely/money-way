@@ -116,6 +116,19 @@ export function syncAllFrozen() {
  * 必须在拖动开始时做一次 —— 否则 A 模式下是百分比/100% 分配，
  * 改一列宽度会让其它列按比例重新分配（「拖一列动一排」）。
  */
+/**
+ * 分期表的月份列：拖**任意一个**月份列，所有月份列一起变宽变窄。
+ * 这种列不吃内联宽度，宽度只写一个 CSS 变量（--nt-inst-mw），
+ * 由 `.nt-table-inst .nt-th.nt-c-month { width: var(--nt-inst-mw) }` 统一读。
+ */
+function isUnifiedMonth(tableEl, th) {
+  return tableEl.classList.contains('nt-table-inst')
+    && th.classList.contains('nt-c-month');
+}
+
+/**
+ * 进「自定义列宽」模式：把当前各列的实际宽度固化成内联样式。
+ */
 function enterCustomMode(tableEl) {
   if (tableEl.classList.contains('cols-custom')) return;
 
@@ -131,6 +144,8 @@ function enterCustomMode(tableEl) {
   for (const th of tableEl.querySelectorAll('thead .nt-th')) {
     const w = widths[i];
     i += 1;
+    // 统一宽度的月份列跳过：内联 width 会盖住 CSS 变量，拖一个就不灵了
+    if (isUnifiedMonth(tableEl, th)) continue;
     // 内联清掉 min/max：CSS 里给冻结列写死的 max-width 会钳住拖出来的宽度
     th.style.minWidth = '0';
     th.style.maxWidth = 'none';
@@ -196,10 +211,17 @@ function startDrag(tableEl, grip, downEv, o) {
 
   let width = startW;
   let raf = 0;
+  const unified = isUnifiedMonth(tableEl, th);
 
   const flush = () => {
     raf = 0;
-    // 只改这一列的宽度：表宽由 `.cols-custom { width: max-content }` 跟着走
+    if (unified) {
+      // 分期表月份列：只改变量，所有月份列一起跟着变
+      tableEl.style.setProperty('--nt-inst-mw', Math.round(width) + 'px');
+      syncFrozen(tableEl);
+      return;
+    }
+    // 其余表：只改这一列的宽度，表宽由 `.cols-custom { width: max-content }` 跟着走
     th.style.width = width + 'px';
     syncFrozen(tableEl);
   };
@@ -228,6 +250,12 @@ function startDrag(tableEl, grip, downEv, o) {
     th.classList.remove('nt-col-dragging');
     document.body.classList.remove('nt-col-resizing');
     if (wrap) wrap.style.overflowX = prevOverflow;
+
+    // 分期表的月份列宽只有一份（CSS 变量），存这里就够了；
+    // 其余表按列存，走下面的 onResize → 账本参数 + 镜像。
+    if (unified) {
+      try { localStorage.setItem('nt_inst_mw', Math.round(width) + 'px'); } catch (e) { /* 忽略 */ }
+    }
 
     // 回调带上「哪张表 + 哪一列」：每张表的列宽是各自一份参数，
     // 只给下标的话调用方还得自己反查（之前就是这里传的是数字，

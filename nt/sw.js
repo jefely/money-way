@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.157';
+const CACHE_NAME = 'nt-v1.158';
 
 const ASSETS = [
   './index.html',
@@ -116,6 +116,7 @@ const ASSETS = [
   './js/ui/flow-model.js',
   './js/ui/gate.js',
   './js/ui/inst-table.js',
+  './js/ui/inst-add.js',
   './js/ui/inst-range.js',
   './js/ui/layout-text.js',
   './js/ui/modal.js',
