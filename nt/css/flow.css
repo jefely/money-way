@@ -555,10 +555,10 @@ body.nt-col-resizing {
   font: 12px/1.5 ui-monospace, Consolas, monospace;
   resize: vertical;
 }
-/* 同步弹窗：年月水平滚轮（靠右，和下面的日期竖轮同一条右缘） */
+/* 同步弹窗：年月横排滚轮（和二维码同宽、居中） */
 .nt-sync-monthrow {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   margin: 6px 0 8px;
 }
 
@@ -581,10 +581,10 @@ body.nt-col-resizing {
   image-rendering: pixelated;
 }
 
-/* 日：横排滚轮，右对齐（与上方年月条同一条右缘） */
+/* 日：横排滚轮，和二维码同宽、居中 */
 .nt-sync-dayrow {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   margin: 8px 0 4px;
 }
 
