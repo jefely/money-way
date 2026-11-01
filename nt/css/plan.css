@@ -75,28 +75,42 @@
   min-width: 62px;
 }
 
-/* 横向滚动：用**浏览器自带的**滚动条（电脑上看得见、能拖），
-   手机是 overlay 滚动条，本来就不显示，也不用管（用户 2026-11-01）。 */
+/* 横向滚动：用浏览器自带的滚动条（电脑上看得见、能拖）。
+   千万别写 `scrollbar-width: thin` —— 它会把**纵向**滚动条也一起压细，
+   手机上直接细到看不见（用户 2026-11-01 实测）。
+   这里把宽高都放到 16px（原来是 10 / 默认 ~15，看着太细）。 */
 .nt-plan-inst .nt-tablewrap {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
   scrollbar-color: var(--nt-text-light) transparent;
 }
 .nt-plan-inst .nt-tablewrap::-webkit-scrollbar {
-  height: 10px;
+  width: 16px;
+  height: 16px;
 }
 .nt-plan-inst .nt-tablewrap::-webkit-scrollbar-track {
   background: transparent;
 }
 .nt-plan-inst .nt-tablewrap::-webkit-scrollbar-thumb {
-  border: 2px solid transparent;
-  border-radius: 5px;
+  border: 3px solid transparent;
+  border-radius: 8px;
   background-clip: content-box;
   background-color: var(--nt-text-light);
 }
 .nt-plan-inst .nt-tablewrap::-webkit-scrollbar-thumb:hover {
   background-color: var(--nt-text-muted);
+}
+
+/* 两行表头：第二行必须往下错开第一行的高度。
+   两行的 th 都是 position: sticky，若都写 top: 0 就会**钉在同一个位置**，
+   结果第一行被第二行完全盖住 —— 用户看到的就是「表头冻结不正常」。 */
+.nt-table-inst thead tr:nth-child(1) .nt-th {
+  top: 0;
+  z-index: 6;
+}
+.nt-table-inst thead tr:nth-child(2) .nt-th {
+  top: 44px;
+  z-index: 5;
 }
 
 /* ===== 分期表列宽 =====

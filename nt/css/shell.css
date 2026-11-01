@@ -387,6 +387,8 @@ body {
 
    :not([colspan]) 必须 —— 空状态行是跨列格，加 sticky 会整行跟着横滚。 */
 .nt-table-inst .nt-th:nth-child(1) { left: 0; }
+/* 第一行表头固定 44px 高：第二行的 sticky top 就是按它错开的（见 plan.css） */
+.nt-table-inst thead tr:nth-child(1) .nt-th { height: 44px; }
 .nt-table-inst .nt-cell:nth-child(1):not([colspan]) {
   left: 0;
   background: var(--nt-row-bg, var(--nt-bg));
