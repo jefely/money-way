@@ -555,10 +555,10 @@ body.nt-col-resizing {
   font: 12px/1.5 ui-monospace, Consolas, monospace;
   resize: vertical;
 }
-/* 同步弹窗：年月横排滚轮（和二维码同宽、居中） */
+/* 同步弹窗：年月横排滚轮（左对齐，与二维码左边缘同一条线） */
 .nt-sync-monthrow {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   margin: 6px 0 8px;
 }
 
