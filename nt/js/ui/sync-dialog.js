@@ -87,7 +87,8 @@ function sectionWindow(ctx, base) {
   monRow.appendChild(monWheel.el);
   box.appendChild(monRow);
 
-  /* 二维码：占满整行宽度（用户 2026-11-01：手机上要再大一点） */
+  /* 二维码 + 右侧日竖轮：竖向拖动、拇指在右边够得着（用户 2026-11-01）
+     横排那版只有 24px 高，手指落在上下空白就抓不到，所以退回来。 */
   const qrRow = document.createElement('div');
   qrRow.className = 'nt-sync-qrrow';
 
@@ -101,21 +102,14 @@ function sectionWindow(ctx, base) {
   empty.textContent = '还没有可同步的流水';
   empty.hidden = true;
   qrRow.appendChild(empty);
-  box.appendChild(qrRow);
 
-  /* 日：横排滚轮，同样铺满、居中（7 格 × 44 ≈ 二维码宽度） */
-  const dayRow = document.createElement('div');
-  dayRow.className = 'nt-sync-dayrow';
   const dayWheel = buildWheel({
-    axis: 'x',
-    itemSize: 44,
-    visible: 7,
     maxDay: monthDays(),
     value: day,
     onChange: (d) => { day = d; rebuild(); },
   });
-  dayRow.appendChild(dayWheel.el);
-  box.appendChild(dayRow);
+  qrRow.appendChild(dayWheel.el);
+  box.appendChild(qrRow);
 
   const range = document.createElement('div');
   range.className = 'nt-sync-range';

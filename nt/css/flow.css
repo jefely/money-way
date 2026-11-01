@@ -562,30 +562,27 @@ body.nt-col-resizing {
   margin: 6px 0 8px;
 }
 
-/* 二维码：整行铺满，下面再跟一横排「日」 */
+/* 二维码 + 右侧日竖轮（竖向拖动，拇指在右边够得着） */
 .nt-sync-qrrow {
   position: relative;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-/* 二维码不再写死 240：占满 body 内容宽（手机约 306），只受 380 与 52vh 兜住。
-   日轮移到下方后，这里就是整行宽度（用户 2026-11-01：手机上看着不够大）。 */
+/* 二维码占满「行宽 − 竖轮」，只受 380 与 52vh 兜住。
+   日轮 26 宽 + 8 gap，手机上二维码约 276。 */
 .nt-sync-qr {
   display: block;
+  flex: 1 1 auto;
   width: 100%;
+  min-width: 0;
   max-width: min(100%, 380px, 52vh);
   aspect-ratio: 1 / 1;
   height: auto;
   margin: 0;
   cursor: zoom-in;
   image-rendering: pixelated;
-}
-
-/* 日：横排滚轮，和二维码同宽、居中 */
-.nt-sync-dayrow {
-  display: flex;
-  justify-content: center;
-  margin: 8px 0 4px;
 }
 
 /* 没有流水时的占位：绝对定位盖住二维码，不参与布局 */
@@ -597,7 +594,7 @@ body.nt-col-resizing {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  width: calc(100% - 34px);
   max-width: min(100%, 380px, 52vh);
   aspect-ratio: 1 / 1;
   padding: 14px;
@@ -614,7 +611,8 @@ body.nt-col-resizing {
 .nt-sync-wheel {
   position: relative;
   flex: 0 0 auto;
-  width: 40px;
+  /* 只放得下两个数字的宽度（用户 2026-11-01：再窄一点），二维码因此能到 276 */
+  width: 26px;
   overflow: hidden;
   border: 0;
   border-radius: var(--nt-radius);
