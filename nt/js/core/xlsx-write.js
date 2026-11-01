@@ -61,7 +61,8 @@ const XC = {
 function numFmts() {
   return '<numFmts count="2">'
     + '<numFmt numFmtId="164" formatCode="yyyy-mm-dd"/>'
-    + '<numFmt numFmtId="165" formatCode="#,##0.00;-#,##0.00;&quot;&quot;"/>'
+    // 负数段带转义反斜杠，和单文件版导出的账本逐字一致（文本相同，Excel 里都显示 -¥）
+    + '<numFmt numFmtId="165" formatCode="#,##0.00;\\-#,##0.00;&quot;&quot;"/>'
     + '</numFmts>';
 }
 
@@ -144,6 +145,9 @@ function cellXfs() {
   put(31, xf(0, 0, 3, 165, { align: 'right' }));
   put(32, xf(5, 0, 0, 164, { align: 'center' }));
   put(33, xf(5, 0, 0, 0, { align: 'center' }));
+  // 分期行长文本（账单日 / 还款日）：参照账本里这两格是**字符串**、左对齐，
+  // 不是居中的数字 —— 复刻时连对齐方式一起跟。
+  put(34, xf(0, 0, 2, 0, { align: 'left' }));
 
   for (let k = 0; k < list.length; k += 1) if (!list[k]) list[k] = P;
   return `<cellXfs count="${list.length}">${list.join('')}</cellXfs>`;

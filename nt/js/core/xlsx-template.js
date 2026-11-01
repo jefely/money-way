@@ -160,7 +160,10 @@ export function buildSettingsSheet(state) {
 
 /**
  * 分期：每条两行（本金 / 利息），月份列从最早首月到最晚还清月。
- * 两行用显式样式 26/27/30 与 28/29/31 —— 整组外围粗框，一眼看出是同一笔。
+ *
+ * 格式照单文件版导出的账本复刻（参照 `紫色账本_2026-10-24.xlsx` 的「分期」表）：
+ *   标题 / 说明 / 表头 三行冻结，列宽 20·14·9·9 + 每个月 11，
+ *   数据行 21.95（约 22），两条线一组：上 medium、下 medium 把本金+利息框在一起。
  */
 export function buildInstSheet(state, nowMonth) {
   const list = (state.scheduled || []).filter((s) => s && s.isScheduled && s.inst);
@@ -169,7 +172,12 @@ export function buildInstSheet(state, nowMonth) {
   const rows = [
     { h: 30, kind: 'title', cells: [{ v: '分期统计' }] },
     {
-      h: 26,
+      h: 20.1,
+      kind: 'note',
+      cells: [{ v: '一个账户占两行：上一行本金、下一行利息。账户名 / 分期金额 / 账单日 / 还款日只写一次。' }],
+    },
+    {
+      h: 26.1,
       kind: 'head',
       cells: ['账户名称', '分期金额', '账单日', '还款日'].map((t) => ({ v: t }))
         .concat(span.map((m) => ({ v: m, k: 'center' }))),
@@ -185,11 +193,15 @@ export function buildInstSheet(state, nowMonth) {
     const principalCells = [
       { v: nameOf(row.to_id) || nameOf(row.from_id), s: 26 },
       { v: Number(row.inst.principal) || 0, k: 'num', s: 30 },
-      { v: row.billDay || '', k: 'int', s: 27 },
-      { v: row.day || '', k: 'int', s: 27 },
+      // 账单日 / 还款日在参照账本里是文本、左对齐（不是居中的数字）。
+      // k 必须给 'str'：不给 k 时「纯数字」会被写成 <v>（数字），只有 6 位才强制文本。
+      { v: row.billDay ? String(row.billDay) : '', k: 'str', s: 34 },
+      { v: row.day ? String(row.day) : '', k: 'str', s: 34 },
     ];
+    // 利息行前四列留空，但 B 列保留金额格式 —— 参照账本里那一格虽然空着，
+    // 数字格式还在（往下拖公式、或者以后补数不会变成「常规」）
     const interestCells = [
-      { v: '', s: 28 }, { v: '', s: 29 }, { v: '', s: 29 }, { v: '', s: 29 },
+      { v: '', s: 28 }, { v: '', s: 31 }, { v: '', s: 29 }, { v: '', s: 29 },
     ];
 
     for (const m of span) {
@@ -199,11 +211,11 @@ export function buildInstSheet(state, nowMonth) {
       interestCells.push({ v: due ? round2(st.interestPer) : '', k: 'num', s: 31 });
     }
 
-    rows.push({ h: 20, kind: 'data', cells: principalCells });
-    rows.push({ h: 18, kind: 'data', cells: interestCells });
+    rows.push({ h: 21.9, kind: 'data', cells: principalCells });
+    rows.push({ h: 21.9, kind: 'data', cells: interestCells });
   }
 
-  return { rows, widths: [22, 12, 8, 8].concat(span.map(() => 10)), freeze: 2 };
+  return { rows, widths: [20, 14, 9, 9].concat(span.map(() => 11)), freeze: 3 };
 }
 
 /** 固定收支 */
