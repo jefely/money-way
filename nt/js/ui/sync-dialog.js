@@ -58,11 +58,6 @@ function sectionWindow(ctx, base) {
   h.textContent = '① 扫码同步';
   box.appendChild(h);
 
-  const tip = document.createElement('p');
-  tip.className = 'nt-sync-hint';
-  tip.textContent = '选截止日：一张码最多装 ' + MAX_COUNT + ' 笔。';
-  box.appendChild(tip);
-
   /* 年月：横排滚轮，宽度 = 二维码宽度（3 × 86.67 = 260），左对齐 */
   const monRow = document.createElement('div');
   monRow.className = 'nt-sync-monthrow';

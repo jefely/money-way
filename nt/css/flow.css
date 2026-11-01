@@ -562,11 +562,13 @@ body.nt-col-resizing {
   margin: 6px 0 8px;
 }
 
-/* 二维码 + 右侧日竖轮（竖向拖动，拇指在右边够得着） */
+/* 二维码 + 右侧日竖轮（竖向拖动，拇指在右边够得着）。
+   space-between：二维码贴左、竖条贴右 —— 竖条的右缘因此和上面「存」按钮的右缘对齐。 */
 .nt-sync-qrrow {
   position: relative;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
 
