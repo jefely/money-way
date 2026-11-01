@@ -34,6 +34,8 @@ export function openSyncDialog(ctx) {
     title: '同步账本',
     build: (body) => { body.appendChild(sectionWindow(ctx, base)); },
     actions: [{ label: '关闭', kind: 'ghost', close: true }],
+    // 不自动聚焦：下面那个同步码文本框一聚焦，手机就把键盘弹起来盖住二维码
+    autoFocus: false,
   });
 }
 
@@ -85,7 +87,7 @@ function sectionWindow(ctx, base) {
   monRow.appendChild(monWheel.el);
   box.appendChild(monRow);
 
-  /* 二维码（240 固定）+ 右侧日竖轮（垂直居中） */
+  /* 二维码：占满整行宽度（用户 2026-11-01：手机上要再大一点） */
   const qrRow = document.createElement('div');
   qrRow.className = 'nt-sync-qrrow';
 
@@ -99,14 +101,21 @@ function sectionWindow(ctx, base) {
   empty.textContent = '还没有可同步的流水';
   empty.hidden = true;
   qrRow.appendChild(empty);
+  box.appendChild(qrRow);
 
+  /* 日：横排滚轮，放在二维码下面、靠右（和上面的年月条同一条右缘） */
+  const dayRow = document.createElement('div');
+  dayRow.className = 'nt-sync-dayrow';
   const dayWheel = buildWheel({
+    axis: 'x',
+    itemSize: 44,
+    visible: 5,
     maxDay: monthDays(),
     value: day,
     onChange: (d) => { day = d; rebuild(); },
   });
-  qrRow.appendChild(dayWheel.el);
-  box.appendChild(qrRow);
+  dayRow.appendChild(dayWheel.el);
+  box.appendChild(dayRow);
 
   const range = document.createElement('div');
   range.className = 'nt-sync-range';
@@ -235,7 +244,9 @@ function sectionWindow(ctx, base) {
 
       const p = r.parts[0];
       canvas.dataset.url = p.url;
-      const painted = paintText(canvas, p.url, 5);
+      // 画得比显示大：二维码现在按容器宽度自适应（手机约 280），
+      // 模块 8px 保证缩放到显示尺寸后仍然锐利（用户 2026-11-01）
+      const painted = paintText(canvas, p.url, 8);
       canvas.style.visibility = painted.ok ? '' : 'hidden';
       empty.hidden = painted.ok;
       if (!painted.ok) empty.textContent = painted.error || '这张码装不下';

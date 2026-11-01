@@ -555,45 +555,51 @@ body.nt-col-resizing {
   font: 12px/1.5 ui-monospace, Consolas, monospace;
   resize: vertical;
 }
-/* 同步弹窗：二维码（固定 220，靠左）+ 右侧日期竖轮 + 年份（右缘对齐竖轮） */
-/* 同步弹窗：年月水平滚轮（二维码上方居中） */
+/* 同步弹窗：年月水平滚轮（靠右，和下面的日期竖轮同一条右缘） */
 .nt-sync-monthrow {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   margin: 6px 0 8px;
 }
 
-/* 二维码（240 固定）+ 右侧日竖轮（垂直居中） */
+/* 二维码：整行铺满，下面再跟一横排「日」 */
 .nt-sync-qrrow {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
+  display: block;
 }
 
+/* 二维码不再写死 240：占满 body 内容宽（手机约 306），只受 380 与 52vh 兜住。
+   日轮移到下方后，这里就是整行宽度（用户 2026-11-01：手机上看着不够大）。 */
 .nt-sync-qr {
-  flex: 0 0 240px;
-  width: 240px;
-  height: 240px;
   display: block;
+  width: 100%;
+  max-width: min(100%, 380px, 52vh);
+  aspect-ratio: 1 / 1;
+  height: auto;
   margin: 0;
   cursor: zoom-in;
   image-rendering: pixelated;
 }
 
-/* 没有流水时的占位：绝对定位盖住二维码，不参与布局 → 滚轮位置不跳 */
+/* 日：横排滚轮，右对齐（与上方年月条同一条右缘） */
+.nt-sync-dayrow {
+  display: flex;
+  justify-content: flex-end;
+  margin: 8px 0 4px;
+}
+
+/* 没有流水时的占位：绝对定位盖住二维码，不参与布局 */
 .nt-sync-qr-empty {
   position: absolute;
   left: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
   z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 240px;
-  height: 240px;
+  width: 100%;
+  max-width: min(100%, 380px, 52vh);
+  aspect-ratio: 1 / 1;
   padding: 14px;
   box-sizing: border-box;
   border: 1px dashed var(--nt-bg-line);
@@ -645,10 +651,14 @@ body.nt-col-resizing {
 
 .nt-sync-wheel.h .nt-sync-wheel-track {
   display: flex;
+  height: 100%;
 }
 
+/* 横排的每一格要撑满滚轮高度，文字才会在中间 ——
+   只给 item 内部居中的话，item 本身只有一行字高，整排字会贴着上沿。 */
 .nt-sync-wheel.h .nt-sync-wheel-item {
   flex: 0 0 auto;
+  height: 100%;
   justify-content: center;
   white-space: nowrap;
 }

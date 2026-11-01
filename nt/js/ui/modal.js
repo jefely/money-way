@@ -102,10 +102,14 @@ export function open(opts) {
   if (typeof dlg.showModal === 'function') dlg.showModal();
   else dlg.setAttribute('open', '');
 
-  // 焦点给第一个输入框，否则给关闭按钮
-  const firstInput = dlg.querySelector('.nt-modal-body input, .nt-modal-body textarea');
-  const focusTarget = firstInput || closeBtn;
-  if (focusTarget) setTimeout(() => { try { focusTarget.focus(); } catch (e) {} }, 40);
+  // 焦点给第一个输入框，否则给关闭按钮。
+  // autoFocus:false 时**完全不抢焦点** —— 同步弹窗那种里面有个大文本框的界面，
+  // 一打开就聚焦会让手机立刻弹起键盘，把二维码挡掉（用户 2026-11-01）。
+  if (o.autoFocus !== false) {
+    const firstInput = dlg.querySelector('.nt-modal-body input, .nt-modal-body textarea');
+    const focusTarget = firstInput || closeBtn;
+    if (focusTarget) setTimeout(() => { try { focusTarget.focus(); } catch (e) {} }, 40);
+  }
 
   /** 关掉自己这个弹窗 */
   function closeSelf() {
