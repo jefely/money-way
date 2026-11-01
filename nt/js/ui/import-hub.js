@@ -60,6 +60,21 @@ export function openImportHub(opts) {
         });
       });
       bar.appendChild(pick);
+
+      // 从剪贴板读一段文本直接填进框里（手机上没有 Ctrl+V 的场合用这个）
+      const paste = document.createElement('button');
+      paste.type = 'button';
+      paste.className = 'nt-btn nt-btn-sm';
+      paste.textContent = '粘贴';
+      paste.addEventListener('click', async () => {
+        try {
+          ta.value = await navigator.clipboard.readText();
+          ta.focus();
+        } catch (e) {
+          ta.focus();
+        }
+      });
+      bar.appendChild(paste);
       body.appendChild(bar);
 
       ta = document.createElement('textarea');

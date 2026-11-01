@@ -160,17 +160,27 @@ export function parseFixedRows(rows) {
 
 /**
  * 分期表：每条占两行（本金行 + 利息行），月份列从第 5 列起。
- * 期数与首月从「有本金值的月份」推出来；利息 = 利息行同一批月份之和。
+ *
+ * 表头**不能写死在第 2 行**：模板在表头前面还有「标题」和「说明」两行，
+ * 表头实际在第 3 行。写死 rows[1] 的话表头会被当成一条分期（账户名「账户名称」），
+ * 后面每条再错一行 —— 表现就是「N 条分期账户名对不上，全部跳过」
+ *（用户 2026-11-01 用单文件版导出的账本导入时踩到的）。
  */
 export function parseInstRows(rows) {
   if (!rows || rows.length < 3) return [];
 
-  const head = rows[1] || [];
+  let headIdx = -1;
+  for (let i = 0; i < Math.min(rows.length, 6); i += 1) {
+    if (str((rows[i] || [])[0]) === '账户名称') { headIdx = i; break; }
+  }
+  if (headIdx < 0) headIdx = 1;          // 老格式：标题 + 表头
+
+  const head = rows[headIdx] || [];
   const months = [];
   for (let c = 4; c < head.length; c += 1) months.push(str(head[c]));
 
   const out = [];
-  for (let i = 2; i < rows.length; i += 1) {
+  for (let i = headIdx + 1; i < rows.length; i += 1) {
     const r = rows[i] || [];
     const name = str(r[0]);
     if (!name) continue;                     // 利息行（跟着上一行一起处理）

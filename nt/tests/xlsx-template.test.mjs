@@ -89,6 +89,24 @@ test('固定表：每月/每天、账户与金额', () => {
   assert.equal(rows[0].amount, 900);
 });
 
+test('分期表：表头前面有「说明行」时也要认对表头（否则整表错一行）', () => {
+  // 参照账本（紫色账本_2026-10-24.xlsx）的「分期」表就是这个形状：
+  // 标题 / 说明 / 表头 / 数据…，表头在第 3 行。
+  const rows = parseInstRows([
+    ['分期统计'],
+    ['一个账户占两行：上一行本金、下一行利息。账户名 / 分期金额 / 账单日 / 还款日只写一次。'],
+    ['账户名称', '分期金额', '账单日', '还款日', '2026-08', '2026-09'],
+    ['招行信1007', 3000, '17', '5', 1000, 1000],
+    ['', '', '', '', 100, 100],
+  ]);
+
+  assert.equal(rows.length, 1, '表头不能被当成一条分期');
+  assert.equal(rows[0].name, '招行信1007');
+  assert.equal(rows[0].periods, 2);
+  assert.equal(rows[0].firstMonth, '2026-08');
+  assert.equal(rows[0].interest, 200);
+});
+
 test('重建 state：账户 + 期初流水 + 流水 + 固定 + 分期', () => {
   const built = stateFromTemplate({
     accounts: parseSettingsRows(SETTINGS),
