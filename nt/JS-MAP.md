@@ -85,6 +85,7 @@
 | `ui/flow-model.js` | （无界面）流水视图模型 |
 | `ui/gate.js` | 锁屏 / 首次设密码 |
 | `ui/import-dialog.js` | 导入 Excel / CSV / 账单 |
+| `ui/import-hub.js` | 流水工具条「导入」→ 先弹入口（选文件 / 粘贴文本） |
 | `ui/import-map.js` | 导入 → 手动指定列 |
 | `ui/inst-table.js` | 分期表（表格内直接交互） |
 | `ui/layout-text.js` | 布局文本导出/导入 |

@@ -20,7 +20,7 @@ import { openSyncDialog } from '../ui/sync-dialog.js';
 import { splitByTime } from '../timeline/time-state.js';
 import { mountCellRange } from '../ui/cell-range.js';
 import { showUndo } from '../ui/undo-bar.js';
-import { openImportDialog } from '../ui/import-dialog.js';
+import { openImportHub } from '../ui/import-hub.js';
 import { openExportDialog } from '../ui/export-dialog.js';
 
 export function mountFlow(section, ctx) {
@@ -383,13 +383,11 @@ function bindToolbar(section, ctx, h) {
   const imp = section.querySelector('[data-act="import"]');
   if (imp) {
     imp.addEventListener('click', () => {
-      openImportDialog({
-        onImport: (res) => {
-          if (o.onImport) o.onImport(res);
-        },
-        onImportTemplate: (state, stats) => {
-          if (o.onImportTemplate) o.onImportTemplate(state, stats);
-        },
+      openImportHub({
+        mergeText: (text) => (ctx.mergeText ? ctx.mergeText(text) : 0),
+        setFooter: (t) => ctx.setFooter(t),
+        onImport: (res) => { if (o.onImport) o.onImport(res); },
+        onImportTemplate: (state, stats) => { if (o.onImportTemplate) o.onImportTemplate(state, stats); },
       });
     });
   }

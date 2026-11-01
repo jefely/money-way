@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.150';
+const CACHE_NAME = 'nt-v1.151';
 
 const ASSETS = [
   './index.html',
@@ -143,6 +143,7 @@ const ASSETS = [
   './js/core/export-text.js',
   './js/ui/chart-gestures.js',
   './js/ui/import-dialog.js',
+  './js/ui/import-hub.js',
   './js/ui/import-map.js',
   './js/ui/xlsx-read.js',
   './js/core/import-table.js',
