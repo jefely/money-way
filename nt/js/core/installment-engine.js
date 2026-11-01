@@ -43,11 +43,49 @@ export function dayInMonth(month, day) {
 
 /**
  * 单条分期的宏观状态。
- * @param {{inst:{periods:number,firstMonth:string,principal:number,interest:number}}} scheduled
- * @param {string} targetMonth 'YYYY-MM'
+ *
+ * 两种数据形状都认：
+ *   · inst.cells = { '2026-08': { p, i } } —— 每期手填（单文件版的形状）
+ *   · inst = { periods, firstMonth, principal, interest } —— 引擎按均摊推算
+ * 有 cells 就以 cells 为准（期数 = 填了几格、首月 = 最早那格），否则走均摊。
+ *
+ * @param {{inst:object}} scheduled
+ * @param {string} targetMonth 'YYYY-MM'（给了就带出当月那期的 perPeriod）
  */
 export function computeInstallment(scheduled, targetMonth) {
   const inst = (scheduled && scheduled.inst) || {};
+  const cells = inst.cells && typeof inst.cells === 'object' ? inst.cells : null;
+  const months = cells ? Object.keys(cells).sort() : [];
+
+  if (months.length) {
+    let sumP = 0;
+    let sumI = 0;
+    for (const m of months) {
+      sumP += Number(cells[m].p) || 0;
+      sumI += Number(cells[m].i) || 0;
+    }
+    const c = targetMonth ? cells[targetMonth] : null;
+    const paid = targetMonth ? months.filter((m) => m < targetMonth).length : 0;
+
+    return {
+      periods: months.length,
+      firstMonth: months[0],
+      lastMonth: months[months.length - 1],
+      principal: round2(sumP),
+      interest: round2(sumI),
+      total: round2(sumP + sumI),
+      perPeriod: c ? round2((Number(c.p) || 0) + (Number(c.i) || 0)) : 0,
+      principalPer: c ? round2(Number(c.p) || 0) : 0,
+      interestPer: c ? round2(Number(c.i) || 0) : 0,
+      paidPeriods: paid,
+      remainingPeriods: months.length - paid,
+      remainingPrincipal: 0,
+      remainingInterest: 0,
+      finished: paid >= months.length,
+      hasCells: true,
+    };
+  }
+
   const periods = Math.max(0, Math.floor(Number(inst.periods) || 0));
   const firstMonth = String(inst.firstMonth || '');
   const principal = Number(inst.principal) || 0;
@@ -76,14 +114,20 @@ export function computeInstallment(scheduled, targetMonth) {
     remainingPrincipal: round2(principalPer * Math.max(0, periods - paid)),
     remainingInterest: round2(interestPer * Math.max(0, periods - paid)),
     finished: periods > 0 && paid >= periods,
+    hasCells: false,
   };
 }
 
 /**
  * 是否在 targetMonth 还款。
+ * 有 cells 时只看那一格填没填 —— 手填矩阵里空着的月份就是没有这笔。
  * @returns {boolean}
  */
 export function isDueInMonth(scheduled, targetMonth) {
+  const inst = (scheduled && scheduled.inst) || {};
+  if (inst.cells && typeof inst.cells === 'object' && Object.keys(inst.cells).length) {
+    return !!inst.cells[targetMonth];
+  }
   const st = computeInstallment(scheduled, targetMonth);
   if (!scheduled || !scheduled.inst || st.periods <= 0) return false;
   const elapsed = monthsBetween(st.firstMonth, targetMonth);

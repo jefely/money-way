@@ -170,6 +170,27 @@ export function createScheduled(patch = {}) {
       principal: Math.max(0, Number(patch.inst.principal) || 0),
       interest: Math.max(0, Number(patch.inst.interest) || 0),
     };
+
+    // 每期手填的本金 / 利息（单文件版的 cells 形状）：
+    //   { '2026-08': { p: 3151.88, i: 312.26 }, ... }
+    // 有它就以它为准（期数 = 填了几格、首月 = 最早那格），
+    // 没有就沿用上面的 periods/firstMonth 走引擎均摊 —— 两种数据可以并存。
+    if (patch.inst.cells && typeof patch.inst.cells === 'object') {
+      const cells = {};
+      for (const [raw, v] of Object.entries(patch.inst.cells)) {
+        const key = normalizeMonth(raw);
+        if (!key || !v) continue;
+        const p = Math.max(0, Number(v.p) || 0);
+        const i = Math.max(0, Number(v.i) || 0);
+        if (p || i) cells[key] = { p, i };
+      }
+      const months = Object.keys(cells).sort();
+      if (months.length) {
+        base.inst.cells = cells;
+        base.inst.firstMonth = months[0];
+        base.inst.periods = months.length;
+      }
+    }
   }
   return base;
 }
