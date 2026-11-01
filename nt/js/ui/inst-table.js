@@ -18,6 +18,7 @@ import { mountCellRange } from './cell-range.js';
 import { mountRangeBar } from './inst-range.js';
 import { mountAddForm } from './inst-add.js';
 import { paintHandles, syncFrozen } from './table-layout.js';
+import { mountScrollHint } from './scroll-hint.js';
 import { showUndo } from './undo-bar.js';
 import { money, moneyAlways } from '../core/format.js';
 import { clampDay, isDayGiven } from '../core/schema.js';
@@ -51,6 +52,15 @@ export function mountInstTable(ctx, tbody, opts) {
     if (saved && tbl) tbl.style.setProperty('--nt-inst-mw', saved);
   } catch (e) { /* 无痕模式读不到就算了 */ }
 
+  // 横向滚动指示条：移动端不显示原生滚动条，画一条细横条兜底
+  const scrollWrap = tbody.closest('.nt-tablewrap');
+  const scrollHint = mountScrollHint(tbody.closest('.nt-plan-inst'), scrollWrap);
+  if (scrollWrap) {
+    scrollWrap.addEventListener('scroll', () => {
+      if (scrollHint) scrollHint.sync();
+    }, { passive: true });
+  }
+
   // 月份范围工具条（起 / 止 / 自动）：追加在「添加」按钮后面，同一行
   const rangeBar = mountRangeBar(ctx, () => render());
   const addForm = mountAddForm(ctx, () => render());
@@ -82,6 +92,7 @@ export function mountInstTable(ctx, tbody, opts) {
     for (const row of list) paintRow(row, span);
     paintAddForm();
     summarize(list);
+    if (scrollHint) scrollHint.sync();
   }
 
   /**

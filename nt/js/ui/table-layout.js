@@ -27,23 +27,25 @@ const FROZEN_COUNT = {
   'nt-table-flow': 1,       // 序
   'nt-table-stats': 2,      // 序 + 第二列
   'nt-table-plan': 1,       // 序
-  'nt-table-inst': 2,       // 账户名称/分期金额 + 账单日/还款日（前两列横滚时都不动）
+  'nt-table-inst': 1,       // 账户名称（用户 2026-11-01：只冻第一列）
   'nt-table-accounts': 1,   // 简码（只此一列）
   'nt-table-query': 0,      // 不冻结
 };
 
 /**
- * 冻结偏移由 CSS 写死的表（当前只有设置页账户表）。
+ * 冻结偏移由 CSS 写死的表。
  *
- * 只冻结首列时 left 恒为 0，累加没有意义，反而会多一个出错点
+ * 只冻结前几列时 left 是常量，累加没有意义，反而会多一个出错点
  * （量到的宽度和 CSS 的 width 不一致 → 冻结列错位）。
- * 这张表由 shell.css 的
- *   `.nt-table-accounts .nt-th:nth-child(1) { left: 0 }`
- * 负责；syncFrozen 只做一件事：清掉历史遗留的内联 left。
+ * 手机首次渲染时经常量到 0 宽，算出来的 left 就是 0，
+ * 于是第 2 列直接叠在第 1 列上 —— 用户看到的就是「第二列没冻住」。
+ *
+ * 所以这两张表由 shell.css 的 nth-child left 负责；
+ * syncFrozen 只做一件事：清掉历史遗留的内联 left。
  *
  * 判据来自 TABLE-INTERACTION.md：CSS 产生值，JS 只消费。
  */
-const CSS_FROZEN = new Set(['nt-table-accounts']);
+const CSS_FROZEN = new Set(['nt-table-accounts', 'nt-table-inst']);
 
 const MIN_W = 30;
 const MAX_W = 600;

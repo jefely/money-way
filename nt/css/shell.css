@@ -338,7 +338,6 @@ body {
 .nt-table-flow .nt-th:nth-child(1),
 .nt-table-plan .nt-th:nth-child(1),
 .nt-table-inst .nt-th:nth-child(1),
-.nt-table-inst .nt-th:nth-child(2),
 .nt-table-stats .nt-th:nth-child(1),
 .nt-table-stats .nt-th:nth-child(2) {
   position: sticky;
@@ -348,7 +347,6 @@ body {
 .nt-table-flow .nt-cell:nth-child(1),
 .nt-table-plan .nt-cell:nth-child(1),
 .nt-table-inst .nt-cell:nth-child(1),
-.nt-table-inst .nt-cell:nth-child(2),
 .nt-table-stats .nt-cell:nth-child(1) {
   position: sticky;
   z-index: 4;
@@ -381,6 +379,18 @@ body {
   position: sticky;
   left: 0;
   z-index: 6;
+}
+
+/* 分期表：只冻结第一列「账户名称」，left 写死 0。
+   JS 测量在手机上不可靠（首次渲染量到 0 宽 → left 算错，看着像没冻住），
+   所以交给 CSS 常量。
+
+   :not([colspan]) 必须 —— 空状态行是跨列格，加 sticky 会整行跟着横滚。 */
+.nt-table-inst .nt-th:nth-child(1) { left: 0; }
+.nt-table-inst .nt-cell:nth-child(1):not([colspan]) {
+  left: 0;
+  background: var(--nt-row-bg, var(--nt-bg));
+  box-shadow: inset -1px 0 0 0 var(--nt-bg-line);
 }
 
 .nt-table-accounts .nt-cell:nth-child(1):not([colspan]) {
