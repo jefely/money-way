@@ -149,6 +149,7 @@ function enterCustomMode(tableEl) {
 
   // ② 再切模式、统一写入
   tableEl.classList.add('cols-custom');
+  const cols = [...tableEl.querySelectorAll('colgroup col')];
   let i = 0;
   for (const th of tableEl.querySelectorAll('thead .nt-th')) {
     const w = widths[i];
@@ -159,6 +160,10 @@ function enterCustomMode(tableEl) {
     th.style.minWidth = '0';
     th.style.maxWidth = 'none';
     if (w > 0) th.style.width = w + 'px';
+    // **col 也要写**：table-layout: fixed 下 col 的宽度优先于 th，
+    // 只改 th 的话拖动一点效果都没有（用户 2026-11-01「一二列调不窄」）。
+    const col = cols[i - 1];
+    if (col && w > 0) col.style.width = w + 'px';
   }
 
   // 不再写 table.style.width：`.nt-table.cols-custom { width: max-content }`
@@ -206,7 +211,10 @@ function startDrag(tableEl, grip, downEv, o) {
 
   const startX = downEv.clientX;
   const startW = Math.round(th.getBoundingClientRect().width);
-  const idx = [...tableEl.querySelectorAll('thead .nt-th')].indexOf(th);
+  const allThs = [...tableEl.querySelectorAll('thead .nt-th')];
+  const idx = allThs.indexOf(th);
+  // table-layout: fixed 认的是 col，所以目标列的 col 也要跟着改
+  const targetCol = [...tableEl.querySelectorAll('colgroup col')][idx] || null;
   const wrap = tableEl.closest('.nt-tablewrap');
   const prevOverflow = wrap ? wrap.style.overflowX : '';
 
@@ -230,8 +238,10 @@ function startDrag(tableEl, grip, downEv, o) {
       syncFrozen(tableEl);
       return;
     }
-    // 其余表：只改这一列的宽度，表宽由 `.cols-custom { width: max-content }` 跟着走
+    // 其余表：只改这一列的宽度，表宽由 `.cols-custom { width: max-content }` 跟着走。
+    // col 和 th 都写 —— col 决定实际列宽（fixed 布局），th 留着给不支持 col 的场合兜底。
     th.style.width = width + 'px';
+    if (targetCol) targetCol.style.width = width + 'px';
     syncFrozen(tableEl);
   };
 
