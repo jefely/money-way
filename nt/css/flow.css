@@ -797,6 +797,7 @@ dialog.nt-sync-zoom::backdrop {
 
 /* 同步弹窗：三个区块（二维码 / 同步码 / 接收） */
 .nt-sync-block {
+  position: relative;
   padding: 10px 0;
   border-bottom: 1px solid var(--nt-bg-line);
 }
@@ -806,6 +807,17 @@ dialog.nt-sync-zoom::backdrop {
 }
 .nt-sync-block:first-child {
   padding-top: 0;
+}
+
+/* 「存」：浮在「① 扫码同步」那一行的右上角空缺处，不占一行高度 */
+.nt-sync-save {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 30px;
+  height: 24px;
+  padding: 0 6px;
+  line-height: 1;
 }
 
 .nt-sync-title {

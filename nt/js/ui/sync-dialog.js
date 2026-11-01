@@ -118,10 +118,13 @@ function sectionWindow(ctx, base) {
   range.className = 'nt-sync-range';
   box.appendChild(range);
 
+  // 「存」按钮浮在右上角（「① 扫码同步」那一行的右边），不占一行高度（用户 2026-11-01）
   const save = document.createElement('button');
   save.type = 'button';
-  save.className = 'nt-btn nt-btn-sm';
-  save.textContent = '保存二维码图片';
+  save.className = 'nt-btn nt-btn-sm nt-sync-save';
+  save.textContent = '存';
+  save.title = '保存二维码图片';
+  save.setAttribute('aria-label', '保存二维码图片');
   save.addEventListener('click', savePng);
   box.appendChild(save);
 
