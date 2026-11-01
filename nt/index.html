@@ -205,13 +205,19 @@
             <table class="nt-table nt-table-inst">
 
               <thead>
+                <!-- 两行表头（照单文件版）：
+                     上行 = 账户名称 / 账单日 / 每月合计 + 每个月那一列的合计
+                     下行 = 分期金额 / 还款日 / 本息总计 + 月份标签
+                     月份列由 JS 动态生成，这里只放固定列 -->
+                <tr id="nt-inst-sum">
+                  <th class="nt-th nt-c-inst-name" scope="col">账户名称</th>
+                  <th class="nt-th nt-c-day" scope="col">账单日</th>
+                  <th class="nt-th nt-c-num" scope="col">每月合计</th>
+                </tr>
                 <tr id="nt-inst-head">
-                  <!-- 月份列由 JS 按 calcInstallmentMatrix 动态生成，这里只放固定列 -->
-                  <th class="nt-th nt-c-inst-name" scope="col" data-col="name">账户名称</th>
-                  <th class="nt-th nt-c-num" scope="col" data-col="principal">分期金额</th>
-                  <th class="nt-th nt-c-seq" scope="col" data-col="periods">期数</th>
-                  <th class="nt-th nt-c-day" scope="col" data-col="billDay">账单日</th>
-                  <th class="nt-th nt-c-day" scope="col" data-col="repayDay">还款日</th>
+                  <th class="nt-th nt-c-inst-name" scope="col" data-col="name">分期金额</th>
+                  <th class="nt-th nt-c-day" scope="col" data-col="billDay">还款日</th>
+                  <th class="nt-th nt-c-num" scope="col" data-col="total">本息总计</th>
                 </tr>
               </thead>
               <tbody id="nt-inst-body"></tbody>

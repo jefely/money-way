@@ -68,7 +68,7 @@ export function mountInstTable(ctx, tbody, opts) {
     const span = spanOf(list, state.installRange, todayMonth());
 
     rangeBar.render();
-    paintHead(span);
+    paintHead(span, list);
     tbody.textContent = '';
 
     for (const row of list) paintRow(row, span);
@@ -76,17 +76,31 @@ export function mountInstTable(ctx, tbody, opts) {
     summarize(list);
   }
 
-  function paintHead(span) {
+  /**
+   * 两行表头（照单文件版）：
+   *   上行 账户名称 | 账单日 | 每月合计 | 每个月那一列的合计
+   *   下行 分期金额 | 还款日 | 本息总计 | 月份标签
+   */
+  function paintHead(span, list) {
     const tr = document.getElementById('nt-inst-head');
-    if (!tr) return;
+    const sumTr = document.getElementById('nt-inst-sum');
+    if (!tr || !sumTr) return;
+
     while (tr.children.length > FIXED_COLS) tr.removeChild(tr.lastChild);
-    const ths = tr.querySelectorAll('.nt-th');
-    if (ths.length >= 3) {
-      ths[0].textContent = '账户 / 金额';
-      ths[1].textContent = '账单日 / 还款日';
-      ths[2].textContent = '本息合计';
-    }
+    while (sumTr.children.length > FIXED_COLS) sumTr.removeChild(sumTr.lastChild);
+
     for (const m of span) {
+      let total = 0;
+      for (const row of list) {
+        const c = cellsOf(row)[m];
+        if (c) total += (Number(c.p) || 0) + (Number(c.i) || 0);
+      }
+      const sumTh = document.createElement('th');
+      sumTh.className = 'nt-th nt-c-month nt-c-sum';
+      sumTh.scope = 'col';
+      sumTh.textContent = total ? moneyAlways(total) : '';
+      sumTr.appendChild(sumTh);
+
       const th = document.createElement('th');
       th.className = 'nt-th nt-c-month';
       th.scope = 'col';
