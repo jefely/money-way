@@ -63,12 +63,12 @@ function sectionWindow(ctx, base) {
   tip.textContent = '选截止日：一张码最多装 ' + MAX_COUNT + ' 笔。';
   box.appendChild(tip);
 
-  /* 年月：横排滚轮，宽度 = 二维码宽度（3 × 89.33 ≈ 268），左对齐 */
+  /* 年月：横排滚轮，宽度 = 二维码宽度（3 × 86.67 = 260），左对齐 */
   const monRow = document.createElement('div');
   monRow.className = 'nt-sync-monthrow';
   const monWheel = buildWheel({
     axis: 'x',
-    itemSize: 89.33,
+    itemSize: 86.67,
     visible: 3,
     labels: months,
     value: months.length,
@@ -114,8 +114,8 @@ function sectionWindow(ctx, base) {
   qrRow.appendChild(empty);
 
   const dayWheel = buildWheel({
-    // 8 格 × 33.5 = 268，和二维码上下同高（用户 2026-11-01）
-    itemSize: 33.5,
+    // 8 格 × 32.5 = 260，和二维码上下同高（用户 2026-11-01）
+    itemSize: 32.5,
     visible: 8,
     maxDay: monthDays(),
     value: day,

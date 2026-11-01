@@ -32,14 +32,17 @@ export function buildWheel(opts) {
   let drag = null;
 
   const SIZE = ITEM * VISIBLE;
-  const centerSize = Math.floor((VISIBLE - 1) / 2) * ITEM;
+  // 高亮框必须落在「正中那一格」的中点。
+  // 早先用 Math.floor((VISIBLE-1)/2)：偶数格时 8 格算成 3，而选中项中心在 3.5，
+  // 框就比数字高了半格 —— 手机上看到的就是「数字不落在框里」（用户 2026-11-01）。
+  const centerSize = ((VISIBLE - 1) / 2) * ITEM;
 
   const wrap = document.createElement('div');
   wrap.className = 'nt-sync-wheel' + (axis === 'x' ? ' h' : '');
   if (axis === 'x') {
     wrap.style.width = SIZE + 'px';
-    // 34 高：与右侧「存」按钮（34×34 正方形）同一行等高（用户 2026-11-01）
-    wrap.style.height = '34px';
+    // 30 高：与右侧「存」按钮（30×30 正方形）同一行等高（用户 2026-11-01）
+    wrap.style.height = '30px';
   } else {
     wrap.style.height = SIZE + 'px';
   }
@@ -153,6 +156,22 @@ export function buildWheel(opts) {
 
   wrap.addEventListener('pointerup', finish);
   wrap.addEventListener('pointercancel', finish);
+
+  // 鼠标滚轮：指针停在滚动条上时上下（横排则左右）滚，一格一格走。
+  // 80ms 内只认一次 —— 鼠标滚轮一次手势会连发好几个 wheel，不节流会直接跳过好几个月。
+  let wheelAt = 0;
+  wrap.addEventListener('wheel', (ev) => {
+    const d = axis === 'x'
+      ? (Math.abs(ev.deltaX) > Math.abs(ev.deltaY) ? ev.deltaX : ev.deltaY)
+      : ev.deltaY;
+    if (!d) return;
+    ev.preventDefault();
+    const now = Date.now();
+    if (now - wheelAt < 80) return;
+    wheelAt = now;
+    apply(index + (d > 0 ? 1 : -1), true);
+    emit();
+  }, { passive: false });
 
   fill();
   apply(index, false);

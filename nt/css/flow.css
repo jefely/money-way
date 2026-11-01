@@ -570,16 +570,13 @@ body.nt-col-resizing {
   gap: 8px;
 }
 
-/* 二维码占满「行宽 − 竖轮」，只受 380 与 52vh 兜住。
-   日轮 26 宽 + 8 gap，手机上二维码约 276。 */
+/* 二维码：**固定尺寸**，不跟随弹窗宽度（用户 2026-11-01：手机和电脑上显示要一致）。
+   固定之后年月条、日竖条、二维码三者都是 260，屏幕大小只影响四周留白。 */
 .nt-sync-qr {
   display: block;
-  flex: 1 1 auto;
-  width: 100%;
-  min-width: 0;
-  max-width: min(100%, 380px, 52vh);
-  aspect-ratio: 1 / 1;
-  height: auto;
+  flex: 0 0 260px;
+  width: 260px;
+  height: 260px;
   margin: 0;
   cursor: zoom-in;
   image-rendering: pixelated;
@@ -594,9 +591,8 @@ body.nt-col-resizing {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: calc(100% - 42px);
-  max-width: min(100%, 380px, 52vh);
-  aspect-ratio: 1 / 1;
+  width: 260px;
+  height: 260px;
   padding: 14px;
   box-sizing: border-box;
   border: 1px dashed var(--nt-bg-line);
@@ -611,8 +607,8 @@ body.nt-col-resizing {
 .nt-sync-wheel {
   position: relative;
   flex: 0 0 auto;
-  /* 竖条宽度 = 「存」按钮边长（34），右侧一列上下同宽（用户 2026-11-01） */
-  width: 34px;
+  /* 竖条宽度 = 「存」按钮边长（30），右侧一列上下同宽（用户 2026-11-01） */
+  width: 30px;
   overflow: hidden;
   border: 0;
   border-radius: var(--nt-radius);
@@ -812,10 +808,13 @@ dialog.nt-sync-zoom::backdrop {
 /* 「存」：占住年月条右侧那块空缺，和滚轮同一行、靠右。
    样式照抄滚轮（玻璃 + 内阴影、无外框），让它看起来是滚轮的一部分而不是另一个按钮。 */
 .nt-sync-save {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
   margin-left: auto;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   line-height: 1;
   border: 0;
