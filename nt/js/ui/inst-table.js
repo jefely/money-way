@@ -130,7 +130,9 @@ export function mountInstTable(ctx, tbody, opts) {
       const th = document.createElement('th');
       th.className = 'nt-th nt-c-month';
       th.scope = 'col';
-      th.textContent = '还款月' + m;
+      // 表头就是月份本身（2026-10），和单文件版导出的账本一致；
+      // 早先写的「还款月2026-10」太长，手机上一个月占掉两倍宽度
+      th.textContent = m;
       tr.appendChild(th);
     }
 
