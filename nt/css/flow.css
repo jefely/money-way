@@ -809,15 +809,40 @@ dialog.nt-sync-zoom::backdrop {
   padding-top: 0;
 }
 
-/* 「存」：浮在「① 扫码同步」那一行的右上角空缺处，不占一行高度 */
+/* 「存」：占住年月条右侧那块空缺，和滚轮同一行、靠右。
+   样式照抄滚轮（玻璃 + 内阴影、无外框），让它看起来是滚轮的一部分而不是另一个按钮。 */
 .nt-sync-save {
-  position: absolute;
-  top: 0;
-  right: 0;
-  min-width: 30px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  width: 24px;
   height: 24px;
-  padding: 0 6px;
+  padding: 0;
   line-height: 1;
+  border: 0;
+  border-radius: var(--nt-radius);
+  background: color-mix(in srgb, var(--nt-bg-soft) 55%, transparent);
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.28),
+    inset 0 -2px 8px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 1px var(--nt-bg-line);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: var(--nt-text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+[data-theme="dark"] .nt-sync-save,
+[data-theme="alt2"] .nt-sync-save {
+  box-shadow:
+    inset 0 2px 10px rgba(0, 0, 0, 0.65),
+    inset 0 -2px 10px rgba(0, 0, 0, 0.65),
+    inset 0 0 0 1px var(--nt-bg-line);
+}
+
+.nt-sync-save:active {
+  transform: translateY(1px);
 }
 
 .nt-sync-title {
