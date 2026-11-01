@@ -137,33 +137,46 @@ function isUnifiedMonth(tableEl, th) {
 
 /**
  * 进「自定义列宽」模式：把当前各列的实际宽度固化成内联样式。
+ *
+ * 注意：表头可能是**两行**（分期表就是），所以列序号必须按「同一行里的位置」算，
+ * 不能拿 `thead .nt-th` 的全局下标去索引 colgroup ——
+ * 那样第二行从第 1 列开始就全部错位，col 找不到，拖了等于没拖。
  */
 function enterCustomMode(tableEl) {
   if (tableEl.classList.contains('cols-custom')) return;
 
-  // ① 先把所有列的宽度量完（边量边设会让后面的测量被前面的改动污染）
-  const widths = [];
-  for (const th of tableEl.querySelectorAll('thead .nt-th')) {
-    widths.push(Math.round(th.getBoundingClientRect().width));
-  }
+  const cols = [...tableEl.querySelectorAll('colgroup col')];
+  const headRows = [...tableEl.querySelectorAll('thead tr')];
+
+  // ① 先把每列宽度量完（边量边设会让后面的测量被前面的改动污染）。
+  //    量第一行就够：同一列在各行的宽度本来就一样。
+  const widths = (headRows[0] ? [...headRows[0].children] : []).map(
+    (th) => Math.round(th.getBoundingClientRect().width),
+  );
 
   // ② 再切模式、统一写入
   tableEl.classList.add('cols-custom');
-  const cols = [...tableEl.querySelectorAll('colgroup col')];
-  let i = 0;
-  for (const th of tableEl.querySelectorAll('thead .nt-th')) {
+  for (let i = 0; i < widths.length; i += 1) {
     const w = widths[i];
-    i += 1;
-    // 统一宽度的月份列跳过：内联 width 会盖住 CSS 变量，拖一个就不灵了
-    if (isUnifiedMonth(tableEl, th)) continue;
-    // 内联清掉 min/max：CSS 里给冻结列写死的 max-width 会钳住拖出来的宽度
-    th.style.minWidth = '0';
-    th.style.maxWidth = 'none';
-    if (w > 0) th.style.width = w + 'px';
+    if (!(w > 0)) continue;
+    const col = cols[i];
+
+    // 每一行的这一列都要写（两行表头都要跟）
+    for (const tr of headRows) {
+      const th = tr.children[i];
+      if (!th) continue;
+      if (isUnifiedMonth(tableEl, th)) continue;
+      // 内联清掉 min/max：CSS 里给冻结列写死的 max-width 会钳住拖出来的宽度
+      th.style.minWidth = '0';
+      th.style.maxWidth = 'none';
+      th.style.width = w + 'px';
+    }
+
     // **col 也要写**：table-layout: fixed 下 col 的宽度优先于 th，
     // 只改 th 的话拖动一点效果都没有（用户 2026-11-01「一二列调不窄」）。
-    const col = cols[i - 1];
-    if (col && w > 0) col.style.width = w + 'px';
+    if (col && !isUnifiedMonth(tableEl, headRows[0] && headRows[0].children[i])) {
+      col.style.width = w + 'px';
+    }
   }
 
   // 不再写 table.style.width：`.nt-table.cols-custom { width: max-content }`
@@ -211,10 +224,11 @@ function startDrag(tableEl, grip, downEv, o) {
 
   const startX = downEv.clientX;
   const startW = Math.round(th.getBoundingClientRect().width);
-  const allThs = [...tableEl.querySelectorAll('thead .nt-th')];
-  const idx = allThs.indexOf(th);
+  // 列序号按**这一行里的位置**算：表头可能是两行，用全局下标会错位
+  const row = th.parentNode;
+  const idx = row ? [...row.children].indexOf(th) : -1;
   // table-layout: fixed 认的是 col，所以目标列的 col 也要跟着改
-  const targetCol = [...tableEl.querySelectorAll('colgroup col')][idx] || null;
+  const targetCol = idx >= 0 ? ([...tableEl.querySelectorAll('colgroup col')][idx] || null) : null;
   const wrap = tableEl.closest('.nt-tablewrap');
   const prevOverflow = wrap ? wrap.style.overflowX : '';
 
@@ -240,8 +254,15 @@ function startDrag(tableEl, grip, downEv, o) {
     }
     // 其余表：只改这一列的宽度，表宽由 `.cols-custom { width: max-content }` 跟着走。
     // col 和 th 都写 —— col 决定实际列宽（fixed 布局），th 留着给不支持 col 的场合兜底。
+    // 同一列在**每一行表头**里都要写，否则两行宽度会分叉（表头和数据错开）。
     th.style.width = width + 'px';
     if (targetCol) targetCol.style.width = width + 'px';
+    if (idx >= 0) {
+      for (const tr of tableEl.querySelectorAll('thead tr')) {
+        const other = tr.children[idx];
+        if (other && other !== th) other.style.width = width + 'px';
+      }
+    }
     syncFrozen(tableEl);
   };
 
