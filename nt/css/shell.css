@@ -338,6 +338,7 @@ body {
 .nt-table-flow .nt-th:nth-child(1),
 .nt-table-plan .nt-th:nth-child(1),
 .nt-table-inst .nt-th:nth-child(1),
+.nt-table-inst .nt-th:nth-child(2),
 .nt-table-stats .nt-th:nth-child(1),
 .nt-table-stats .nt-th:nth-child(2) {
   position: sticky;
@@ -347,6 +348,7 @@ body {
 .nt-table-flow .nt-cell:nth-child(1),
 .nt-table-plan .nt-cell:nth-child(1),
 .nt-table-inst .nt-cell:nth-child(1),
+.nt-table-inst .nt-cell:nth-child(2),
 .nt-table-stats .nt-cell:nth-child(1) {
   position: sticky;
   z-index: 4;
@@ -673,9 +675,19 @@ body.nt-col-resizing .nt-tablewrap {
    月份列宽走 CSS 变量：拖任意一个月份列的分隔条，**所有月份列一起变**。 */
 
 .nt-table-inst { min-width: 480px; }
+
+/* 列宽必须写在 **col** 上：`table-layout: fixed` 下 col 的宽度优先于 th，
+   只给 th 写宽度而 colgroup 里的 col 是空的，列宽会退回平分 ——
+   表现就是表头两行和数据的列错位（2026-11-01 用户截图）。
+   th 那几行留着，是给还没 colgroup 的旧表兜底。 */
+.nt-table-inst col:nth-child(1) { width: 110px; }
+.nt-table-inst col:nth-child(2) { width: 96px; }
+.nt-table-inst col:nth-child(3) { width: 100px; }
+.nt-table-inst col.nt-c-month { width: var(--nt-inst-mw, 86px); }
+
 .nt-table-inst .nt-th:nth-child(1) { width: 110px; min-width: 110px; max-width: 110px; }
-.nt-table-inst .nt-th:nth-child(2) { width: 96px; }
-.nt-table-inst .nt-th:nth-child(3) { width: 100px; }
+.nt-table-inst .nt-th:nth-child(2) { width: 96px; min-width: 96px; max-width: 96px; }
+.nt-table-inst .nt-th:nth-child(3) { width: 100px; min-width: 100px; max-width: 100px; }
 .nt-table-inst .nt-th.nt-c-month { width: var(--nt-inst-mw, 86px); }
 
 /* ---------- 账户设置（10 列：简码 · 序 · 类型 · 分类 · 名称 · 期初 · 账单日 · 还款日 · 上移 · 删除） ---------- */

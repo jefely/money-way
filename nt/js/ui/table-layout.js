@@ -27,7 +27,7 @@ const FROZEN_COUNT = {
   'nt-table-flow': 1,       // 序
   'nt-table-stats': 2,      // 序 + 第二列
   'nt-table-plan': 1,       // 序
-  'nt-table-inst': 1,       // 账户名称
+  'nt-table-inst': 2,       // 账户名称/分期金额 + 账单日/还款日（前两列横滚时都不动）
   'nt-table-accounts': 1,   // 简码（只此一列）
   'nt-table-query': 0,      // 不冻结
 };
@@ -67,8 +67,11 @@ export function syncFrozen(tableEl) {
   const n = FROZEN_COUNT[cls];
   if (!n) return;
 
+  // 表头可能是**两行**（分期表就是：上行每月合计、下行月份标签）
   const ths = [...tableEl.querySelectorAll('thead .nt-th')];
   const rows = [...tableEl.querySelectorAll('tbody tr')];
+  // 每一行的前 n 列都要各自写 left，否则下面那行不跟着冻
+  const headRows = [...tableEl.querySelectorAll('thead tr')];
 
   // 只冻结首列、偏移由 CSS 写死：清一次内联 left 就够，不再逐帧量宽度。
   // 这一步是「纯 CSS 冻结」的开关 —— 表头和数据行都必须清，
@@ -85,11 +88,15 @@ export function syncFrozen(tableEl) {
   }
 
   let left = 0;
-  for (let i = 0; i < Math.min(n, ths.length); i += 1) {
-    const th = ths[i];
-    const w = Math.round(th.getBoundingClientRect().width);
+  for (let i = 0; i < n; i += 1) {
+    const first = headRows[0] && headRows[0].children[i];
+    if (!first) break;
+    const w = Math.round(first.getBoundingClientRect().width);
 
-    th.style.left = left + 'px';
+    for (const tr of headRows) {
+      const th = tr.children[i];
+      if (th) th.style.left = left + 'px';
+    }
     for (const tr of rows) {
       const td = tr.children[i];
       // 跨列单元格（比如「还没有流水」那行的 colspan=7）不能加 sticky left，

@@ -59,13 +59,29 @@
   min-width: 62px;
 }
 
-/* 让分期表横向滚动，否则 9 列会被压成竖排字 */
+/* 让分期表横向滚动，否则 9 列会被压成竖排字。
+   滚动条**常显**：电脑上 overlay 滚动条平时是隐形的，
+   不悬停根本不知道这张表还能横着拖（用户 2026-11-01）。 */
 .nt-plan-inst .nt-tablewrap {
-  overflow-x: auto;
+  overflow-x: scroll;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--nt-bg-line) transparent;
 }
 .nt-plan-inst .nt-tablewrap::-webkit-scrollbar {
-  height: 6px;
+  height: 10px;
+}
+.nt-plan-inst .nt-tablewrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+.nt-plan-inst .nt-tablewrap::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 5px;
+  background-clip: content-box;
+  background-color: var(--nt-text-light);
+}
+.nt-plan-inst .nt-tablewrap::-webkit-scrollbar-thumb:hover {
+  background-color: var(--nt-text-muted);
 }
 
 /* ===== 分期表列宽 =====
