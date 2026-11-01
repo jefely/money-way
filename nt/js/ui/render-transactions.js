@@ -36,8 +36,12 @@ export const CLASS = {
   action: 'nt-cell-action',
 };
 
-/** 一次渲染 / 追加多少条 */
-const BATCH = 200;
+/** 首次渲染多少条（用户 2026-11-01：100 条就够，重建范围越小切页越快） */
+const FIRST = 100;
+/** 每次再加载多少条 */
+const STEP = 60;
+/** 视口两端各留多少条缓冲就触发加载 */
+const BUFFER = 40;
 /** 末尾常驻空行：直接在最下面连续录入（用户 2026-10-29） */
 const BLANK_ROWS = 40;
 
@@ -77,8 +81,9 @@ function setInput(tr, field, value) {
 
 let currentRows = [];
 let currentTbody = null;
-/** 从末尾往前显示多少条（往上滚 / 点「更早」时增加） */
-let shown = BATCH;
+/** 已渲染的窗口 [winStart, winEnd)（下标，针对 currentRows） */
+let winStart = 0;
+let winEnd = 0;
 
 /**
  * 行内编辑后同步这一行的「展示快照」。
@@ -235,17 +240,16 @@ function renderAll(tbody) {
   if (!tbody || !rowTpl || !newTpl) return 0;
 
   const rows = currentRows;
-  const start = Math.max(0, rows.length - shown);
   const frag = document.createDocumentFragment();
 
-  if (start > 0) {
-    frag.appendChild(moreRow(start, () => {
-      shown = Math.min(rows.length, shown + BATCH);
+  if (winStart > 0) {
+    frag.appendChild(moreRow(winStart, () => {
+      winStart = Math.max(0, winStart - STEP);
       renderAll(currentTbody);
     }));
   }
 
-  for (let i = start; i < rows.length; i += 1) {
+  for (let i = winStart; i < winEnd; i += 1) {
     frag.appendChild(dataRow(rows[i], i, rowTpl));
   }
   for (let k = 0; k < BLANK_ROWS; k += 1) {
@@ -254,22 +258,47 @@ function renderAll(tbody) {
 
   tbody.replaceChildren(frag);
   syncFrozen(tbody.closest('table'));
-  return rows.length - start;
+  return winEnd - winStart;
 }
 
-/** 滚到顶自动往更早接一批（只绑一次） */
+/**
+ * 滚动时保持两端缓冲（只绑一次）。
+ *
+ * 用户 2026-11-01：窗口后面或前面小于 40 条时，加载更多 60 条。
+ * 往下这一侧平时不会触发 —— 打开即定位到最新，后面没有数据了；
+ * 留着是因为「窗口没到头」的情况确实存在（比如以后加筛选）。
+ */
 function bindMore(tbody) {
   const wrap = tbody.closest('.nt-tablewrap');
   if (!wrap || wrap.dataset.more === '1') return;
   wrap.dataset.more = '1';
+
+  let ticking = false;
   wrap.addEventListener('scroll', () => {
-    if (wrap.scrollTop > 40) return;
-    if (shown >= currentRows.length) return;
-    const before = wrap.scrollHeight;
-    shown = Math.min(currentRows.length, shown + BATCH);
-    renderAll(tbody);
-    // 往前接了一批之后保持视觉位置：新内容撑高的部分补回 scrollTop
-    wrap.scrollTop = Math.max(0, wrap.scrollHeight - before + 40);
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      ticking = false;
+      const rowH = (tbody.querySelector('tr') || { getBoundingClientRect: () => ({ height: 32 }) })
+        .getBoundingClientRect().height || 32;
+      const top = wrap.scrollTop;
+      const bottom = top + wrap.clientHeight;
+      const firstVisible = Math.floor(top / rowH) - (winStart > 0 ? 1 : 0); // 顶上那行「更早」也要算
+      const lastVisible = Math.ceil(bottom / rowH) - (winStart > 0 ? 1 : 0);
+      const total = winEnd - winStart;
+      const beforeH = wrap.scrollHeight;
+
+      if (firstVisible < BUFFER && winStart > 0) {
+        winStart = Math.max(0, winStart - STEP);
+        renderAll(tbody);
+        // 前面插进来一批：把新增高度补回 scrollTop，视觉上内容不动
+        wrap.scrollTop = top + (wrap.scrollHeight - beforeH);
+      } else if (total - lastVisible < BUFFER && winEnd < currentRows.length) {
+        winEnd = Math.min(currentRows.length, winEnd + STEP);
+        renderAll(tbody);
+        wrap.scrollTop = top;
+      }
+    });
   }, { passive: true });
 }
 
@@ -283,7 +312,10 @@ function bindMore(tbody) {
 export function renderRows(tbody, rows, opts) {
   currentRows = rows || [];
   currentTbody = tbody;
-  if (!(opts && opts.keepShown)) shown = Math.min(BATCH, currentRows.length) || BATCH;
+  if (!(opts && opts.keepShown)) {
+    winEnd = currentRows.length;
+    winStart = Math.max(0, winEnd - FIRST);
+  }
   bindMore(tbody);
   bindDrafts(tbody);
   const shownRows = renderAll(tbody);
@@ -320,7 +352,10 @@ export function promoteRow(tbody, tr, row) {
 
   if (k >= 0) clearBlankDraft(k);
 
+  // 新行已经插进 DOM 了：窗口要把它算进去，否则下一次按窗口重建会把它丢掉
+  const atEnd = winEnd === currentRows.length;
   currentRows.push(row);
+  if (atEnd) winEnd = currentRows.length;
   syncFrozen(tbody.closest('table'));
   return true;
 }
