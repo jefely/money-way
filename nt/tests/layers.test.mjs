@@ -93,6 +93,21 @@ test('两层半径：环厚为 0 时不产生负半径', () => {
   assert.ok(r.nodeBand >= 0);
 });
 
+test('★ 外圈细线的粗细与间距可调（面板「环图·几何」）', () => {
+  const base = ringRadii(2000, 1800);              // 环厚 200
+  assert.ok(Math.abs(base.typeBand - 20) < 1e-6, '默认占环厚 10%');
+  assert.ok(Math.abs(base.r2 - 1980) < 1e-6);
+
+  const thick = ringRadii(2000, 1800, { typeWidth: 0.2 });
+  assert.ok(Math.abs(thick.typeBand - 40) < 1e-6, '0.2 → 40');
+
+  const gap = ringRadii(2000, 1800, { typeGap: 0.1 });
+  assert.ok(Math.abs(gap.r2 - gap.r1 - 20) < 1e-6, '间距 = 环厚 × 0.1');
+  // 间距再大也不能把节点环顶出细线外面去
+  const huge = ringRadii(2000, 1800, { typeWidth: 0.5, typeGap: 0.9 });
+  assert.ok(huge.r1 <= huge.r2 && huge.r0 >= 0);
+});
+
 /* ---------- ② 三层配色 ---------- */
 
 test('外层：每个类型一个固定色，同类永远同色', () => {

@@ -33,23 +33,37 @@ const BAND = { type: 0.1, node: 0.9 };
 
 /**
  * 两层同心环的半径。
+ *
  * @param {number} rOut 最外沿
  * @param {number} rIn  最内沿（= R_connect，连线从这里射出）
+ * @param {{typeWidth?:number, typeGap?:number}} [opts]
+ *        typeWidth 外圈细线占环厚的比例（默认 0.1）
+ *        typeGap   细线与节点环之间的空隙，同样是**环厚的比例**（默认 0）
+ *        两个都在面板「环图·几何」里可调（2026-11 用户要求）。
  * @returns {{r3:number,r2:number,r1:number,r0:number,typeBand:number,catBand:number,nodeBand:number}}
  */
-export function ringRadii(rOut, rIn) {
+export function ringRadii(rOut, rIn, opts) {
   const out = Number(rOut) || 0;
   const inn = Number(rIn) || 0;
   const thick = Math.max(1, out - inn);
-  const typeBand = thick * BAND.type;
-  const nodeBand = thick - typeBand;
+  const clamp01 = (v, d) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.min(0.9, Math.max(0, n)) : d;
+  };
+  const tw = clamp01(opts && opts.typeWidth, BAND.type);
+  const tg = clamp01(opts && opts.typeGap, 0);
+  const typeBand = thick * tw;
+  // 节点环的外沿：细线内沿再往里让出 typeGap；
+  // 上界受 r2 约束（再大的间距也不能把 r1 顶到细线外面去）
   const r2 = out - typeBand;
-  // r1 保留给「万一哪天要把分类圈加回来」的调用方，现在与 r2 重合
+  const r1 = Math.min(r2, Math.max(r2 - thick * tg, inn));
+  const nodeBand = Math.max(1, r1 - inn);
+  // r1 曾经是「分类与节点的分界」，分类圈撤掉后它就是节点环的外沿
   return {
     r3: out,
     r2,
-    r1: r2,
-    r0: r2 - nodeBand,
+    r1,
+    r0: Math.max(0, r1 - nodeBand),
     typeBand,
     catBand: 0,
     nodeBand,

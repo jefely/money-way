@@ -24,11 +24,11 @@ import { ACCOUNT_TYPE } from '../js/core/schema.js';
 
 /* ---------- ① SCHEMA 自洽 ---------- */
 
-test('环图参数共 36 项、五组，key / field / cssVar 都不重名', () => {
+test('环图参数共 38 项、五组，key / field / cssVar 都不重名', () => {
   // 数量是硬断言：加了参数就得同时改这里，防止「加了个面板项但没人记得测」
   // 2026-11：30 → 31「粒度模式」→ 33「漏斗宽头/细头」→ 35「默认/命中线宽比例」
-  //          → 36「变细起点比例」，分组 4 → 5（追踪单独成组）
-  assert.equal(MW_SCHEMA.length, 36);
+  //          → 36「变细起点比例」→ 38「外圈线厚/间距比例」，分组 4 → 5（追踪单独成组）
+  assert.equal(MW_SCHEMA.length, 38);
   assert.equal(MW_GROUPS.length, 5);
 
   for (const kind of ['key', 'field', 'cssVar']) {

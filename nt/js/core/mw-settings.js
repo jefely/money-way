@@ -31,6 +31,10 @@ export const MW_SCHEMA = [
   /* ---------- 环图·几何 ---------- */
   { key: '环半径', type: 'num', group: '环图·几何', def: 640, min: 200, max: 760, cssVar: '--nt-mw-rout', field: 'rOut' },
   { key: '环厚', type: 'num', group: '环图·几何', def: 80, min: 8, max: 200, cssVar: '--nt-mw-thick', field: 'thick' },
+  // 外圈那条细线（六大类节点类型）的粗细，以及它与内圈节点环之间的空隙。
+  // 两个都是**环厚的比例**：0.1 = 环厚的十分之一，0 = 贴死不留缝。
+  { key: '外圈线厚比例', type: 'num', group: '环图·几何', def: 0.1, min: 0.01, max: 0.5, cssVar: '--nt-mw-type-w', field: 'typeWidth' },
+  { key: '外圈线间距比例', type: 'num', group: '环图·几何', def: 0, min: 0, max: 0.3, cssVar: '--nt-mw-type-gap', field: 'typeGap' },
   { key: '扇区分界线宽', type: 'num', group: '环图·几何', def: 0.6, min: 0, max: 10, cssVar: '--nt-mw-sector-w', field: 'sectorW' },
   { key: '扇区分界线不透明度', type: 'num', group: '环图·几何', def: 0.28, min: 0, max: 1, cssVar: '--nt-mw-sector-op', field: 'sectorOp' },
   { key: '弧块描边宽', type: 'num', group: '环图·几何', def: 2.4, min: 0, max: 20, cssVar: '--nt-mw-ring-w', field: 'ringW' },

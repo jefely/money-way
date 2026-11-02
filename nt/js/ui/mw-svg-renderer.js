@@ -98,7 +98,9 @@ export function renderChart(data) {
 
   const { size, rOut, rIn } = chartSize(p);
   // 三层套娃的三条半径：r3 外沿 / r2 类型与分类的分界 / r1 分类与节点的分界 / r0 内沿（连线从这里射出）
-  const { r3, r2, r1, r0 } = ringRadii(rOut, rIn);
+  const { r3, r2, r1, r0 } = ringRadii(rOut, rIn, {
+    typeWidth: p.typeWidth, typeGap: p.typeGap,
+  });
   const U = RATIO;
   const cx = size / 2;
   const cy = size / 2;
@@ -194,7 +196,7 @@ export function renderChart(data) {
   // 内圈：节点弧块（可点）
   for (const b of blocks) {
     if (!(b.a2 - b.a1 > 1e-9)) continue;
-    parts.push(ringPath(r2, r0, b.a1, b.a2, nodeColorOf(b.acc), 'mw-ring', ` data-node="${esc(b.acc)}"`));
+    parts.push(ringPath(r1, r0, b.a1, b.a2, nodeColorOf(b.acc), 'mw-ring', ` data-node="${esc(b.acc)}"`));
   }
 
   // ④ 弧块文字：沿半径向外排（照单文件版）
