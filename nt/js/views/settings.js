@@ -85,17 +85,19 @@ export function mountSettings(section, ctx) {
     const equity = sum['权益类'] || 0;
     const income = sum['收入类'] || 0;
     const expense = sum['费用类'] || 0;
-    const diff = Math.round((asset + expense - liability - equity - income) * 100) / 100;
+    const cost = sum['成本类'] || 0;
+    const diff = Math.round((asset + cost + expense - liability - equity - income) * 100) / 100;
 
     NtModal.info('期初配平', (b) => {
       const kv = document.createElement('dl');
       kv.className = 'nt-kv';
       addKV(kv, '资产类', money(asset));
+      addKV(kv, '成本类', money(cost));
       addKV(kv, '负债类', money(liability));
       addKV(kv, '权益类', money(equity));
       addKV(kv, '收入类', money(income));
       addKV(kv, '费用类', money(expense));
-      addKV(kv, '资产 + 费用 − 负债 − 权益 − 收入', money(diff),
+      addKV(kv, '资产 + 成本 + 费用 − 负债 − 权益 − 收入', money(diff),
         Math.abs(diff) < 0.005 ? 'ok' : 'bad');
       b.appendChild(kv);
     });

@@ -16,10 +16,12 @@
 | `core/auth-manager.js` | （无界面）主密码校验/修改 |
 | `core/balance-calculator.js` | （无界面）余额计算 |
 | `core/bill-parse.js` | 三家账单（支付宝 / 微信支付 / 招商银行）的识别与解析 |
+| `core/calc-engine.js` | （无界面）计算引擎：余额 / 双式恒等 / 实物成本台账 |
 | `core/color.js` | （无界面）颜色转换 |
 | `core/crypto-engine.js` | （无界面）PBKDF2 + AES-GCM |
 | `core/csv.js` | CSV 解析（纯函数，Node 可跑） |
 | `core/date-query.js` | 日期筛选框的解析（纯函数，Node 可跑） |
+| `core/event-engine.js` | （无界面）事件引擎：节点 / 事件 / 双极性连线（事实层） |
 | `core/export-text.js` | 导出为纯文本（.txt 模板 / .csv） |
 | `core/flow-text.js` | （无界面）账本文本 ↔ state |
 | `core/format.js` | （无界面）金额/日期格式化 |
@@ -57,8 +59,10 @@
 | `core/xlsx-template.js` | 按「单文件版备份模板」组装 / 解析 4 张表（纯函数，Node 可跑） |
 | `core/xlsx-write.js` | xlsx 的 XML 生成（纯函数，Node 可跑） |
 | `core/xlsx-xml.js` | xlsx 的 XML 解析（纯函数，Node 可跑） |
+| `graph/mw-chord-shape.js` | 路径 tab → 连线几何（变宽线 / 漏斗形） |
 | `graph/mw-data-fetcher.js` | （无界面）路径图数据抓取 |
 | `graph/mw-depth.js` | （无界面）环图的链路层级 |
+| `graph/mw-layers.js` | 路径 tab → 三层套娃（类型 / 分类 / 实体）的几何与配色 |
 | `graph/mw-path-calculator.js` | （无界面）路径计算 |
 | `graph/mw-slot-calculator.js` | （无界面）槽位计算 |
 | `graph/path-tracer.js` | （无界面）路径追踪 |
@@ -96,6 +100,7 @@
 | `ui/mw-params.js` | 全局：环图参数（CSS 变量 → 数字） |
 | `ui/mw-svg-renderer.js` | 路径 tab / path.html → SVG 渲染 |
 | `ui/note-table.js` | 设置页的备注区（独立于账户的 A/B 区） |
+| `ui/path-debug.js` | 路径 tab → 追踪链诊断（页脚序号串 + ?debug=1 时的控制台明细） |
 | `ui/path-flow-table.js` | 路径页左栏的流水查询表 |
 | `ui/path-view.js` | 路径 tab |
 | `ui/pwa.js` | PWA 注册 |

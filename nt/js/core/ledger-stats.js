@@ -21,8 +21,8 @@
 
 import { isDebitType } from './schema.js';
 
-/** 统计页的类型分组顺序（与界面一致：先资产，最后费用） */
-export const STAT_TYPE_ORDER = ['资产类', '负债类', '收入类', '权益类', '费用类'];
+/** 统计页的类型分组顺序（与界面一致：先资产，最后费用；成本类跟在资产后面） */
+export const STAT_TYPE_ORDER = ['资产类', '成本类', '负债类', '收入类', '权益类', '费用类'];
 
 const EMPTY = {
   opening: 0, balance: 0, periodOut: 0, periodIn: 0,

@@ -109,6 +109,13 @@ export function paintFlowRows(host, o) {
   if (!host) return 0;
   const { txs, hits, focusId, nameOf, onPick } = o;
 
+  // 重画前先记住滚动位置。
+  // 为什么必须记：先把所有 .pw-flow-row 删掉，容器高度瞬间缩到只剩表头，
+  // 浏览器会把 scrollTop 钳到 0；再插回行时位置已经丢了 ——
+  // 表现就是「点一条记录，列表跳回顶部，下一条找不到」（用户 2026-11 反馈）。
+  const keepTop = host.scrollTop;
+  const keepLeft = host.scrollLeft;
+
   // 只清数据行：表头（.pw-frozen，含筛选行和列标行）现在住在 body 里，
   // 用 textContent='' 会把它们一起清掉 —— 表现就是「侧栏表头没了」。
   for (const n of [...host.querySelectorAll('.pw-flow-row, .pw-flow-empty')]) n.remove();
@@ -118,6 +125,7 @@ export function paintFlowRows(host, o) {
     p.className = 'pw-flow-empty';
     p.textContent = '没有命中的流水';
     host.appendChild(p);
+    host.scrollTop = keepTop;
     return 0;
   }
 
@@ -153,6 +161,9 @@ export function paintFlowRows(host, o) {
   }
 
   host.appendChild(frag);
+  // 把滚动位置放回去 —— 点选一条记录后列表不能自己跳走
+  host.scrollTop = keepTop;
+  host.scrollLeft = keepLeft;
   return seq;
 }
 

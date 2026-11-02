@@ -22,6 +22,65 @@ export const WEIGHT_MAP = {
   [ACCOUNT_TYPE.INCOME]: 1.0,
 };
 
+/**
+ * **固定线宽表（2026-11 用户定稿）** —— 除追踪模式外，全图一律用它，两头同宽。
+ *
+ * 取值按「**转出方**」的类型查（与线色同一个锚点：线色也取转出节点）。
+ * 单位是基准单位，渲染时 × RATIO。
+ *
+ *   负债 6   杠杆最粗（借钱、刷卡都是它在往外走）
+ *   资产 4   主动脉
+ *   收入 / 权益 / 成本 2.4   背景板与实物池
+ *   费用 1.2 最细（费用账户几乎不往外转，只有退款）
+ */
+export const FIXED_WIDTH = {
+  [ACCOUNT_TYPE.LIABILITY]: 6,
+  [ACCOUNT_TYPE.ASSET]: 4,
+  [ACCOUNT_TYPE.INCOME]: 2.4,
+  [ACCOUNT_TYPE.EQUITY]: 2.4,
+  [ACCOUNT_TYPE.COST]: 2.4,
+  [ACCOUNT_TYPE.EXPENSE]: 1.2,
+  '其它': 2.4,
+};
+
+/** 按类型取固定线宽；认不出的一律 2.4（不让线消失） */
+export function fixedWidthOf(type) {
+  const w = FIXED_WIDTH[type];
+  return Number.isFinite(w) ? w : 2.4;
+}
+
+/** 追踪模式的基础宽头 / 细头（用户定：保底宽头 6、细头 1.2，金额在宽头上叠加） */
+export const FUNNEL_WIDE = 6;
+export const FUNNEL_THIN = 1.2;
+
+/**
+ * **色块模式的线宽表（2026-11 用户定）** —— 取代原来的「离费用端几跳」层级档位。
+ *
+ * 点中一个弧块后，它那一圈线统一用**该弧块所属类型**的值：
+ *
+ *   负债 6 · 资产/收入 4.8 · 权益 3.6 · 成本 2.4 · 费用 1.2
+ *
+ * 数值与旧档位表 [6, 4.8, 3.6, 2.4, 1.2] 一样，但索引从「跳数」换成了「类型」——
+ * 跳数那套会让同一批线在不同焦点下忽粗忽细，按类型则是每个节点有自己的固定粗细。
+ *
+ * 表值即**最终线宽**，不再乘 pickBoost / pickExtra（那两个系数仍留在面板里，色块模式不再用）。
+ */
+export const BLOCK_WIDTH = {
+  [ACCOUNT_TYPE.LIABILITY]: 6,
+  [ACCOUNT_TYPE.ASSET]: 4.8,
+  [ACCOUNT_TYPE.INCOME]: 4.8,
+  [ACCOUNT_TYPE.EQUITY]: 3.6,
+  [ACCOUNT_TYPE.COST]: 2.4,
+  [ACCOUNT_TYPE.EXPENSE]: 1.2,
+  '其它': 2.4,
+};
+
+/** 按类型取色块模式线宽；认不出的一律 2.4 */
+export function blockWidthOf(type) {
+  const w = BLOCK_WIDTH[type];
+  return Number.isFinite(w) ? w : 2.4;
+}
+
 /** 1 倍线粗 相对「单位弧长」的比例 */
 export const UNIT_WIDTH_RATIO = 0.8;
 
@@ -65,14 +124,15 @@ export const PICK_SHRINK = 0.45;
  */
 export const STYLE_UP = {
   // 逆流：看转入方。越接近「钱真正花掉的地方」越粗。
+  // 成本类与资产同类：它是存货的前一站，还不是终点，所以给 3.6 而不是 6。
   colorBy: 'to',
-  traceWidth: { 费用: 6, 资产: 3.6, 负债: 2.4, 收入: 1.2, 权益: 1.2 },
+  traceWidth: { 费用: 6, 成本: 3.6, 资产: 3.6, 负债: 2.4, 收入: 1.2, 权益: 1.2 },
 };
 
 export const STYLE_DOWN = {
   // 顺流：看转出方。越接近「钱从哪来」越粗。
   colorBy: 'from',
-  traceWidth: { 收入: 6, 权益: 6, 负债: 4, 资产: 2.4, 费用: 1.2 },
+  traceWidth: { 收入: 6, 权益: 6, 负债: 4, 成本: 2.4, 资产: 2.4, 费用: 1.2 },
 };
 
 /** 追踪模式下非命中线 / 认不出类型的兜底线宽 */
@@ -164,18 +224,25 @@ export function categoryColor(colorIndex, colorKey) {
 
 /**
  * 一条线的样式。
+ *
+ * **线宽永远看转出方**（用户 2026-11：「线宽总是在转出节点这边」），
+ * 颜色同理 —— 两者同一个锚点，都取转出节点。
+ *
+ * 注意：基本视图已经不用这个权重公式了 —— 走 FIXED_WIDTH 固定线宽表。
+ * 这里保留是为了给 buildChord 一个默认值（path-view 会覆盖），以及给测试留个基准。
+ *
  * @param {{to_id:string, from_id:string}} link
  * @param {{byId:Map, colorKeyOf:(id:string)=>string, colorIndex:Map}} ctx
  * @param {number} unitArcLen 1 个细粒度单位的弧长（由 slot calculator 给）
- * @param {{colorBy?:'to'|'from'}} opts 颜色取哪一端的统计分类：
- *   逆流（默认）看转入方，顺流看转出方。**只影响颜色，不改线宽权重**。
+ * @param {{colorBy?:'to'|'from'}} opts 颜色取哪一端（历史参数，线宽不再受它影响）
  */
 export function calcLinkStyle(link, ctx, unitArcLen, opts) {
   const colorBy = opts && opts.colorBy === 'from' ? 'from' : 'to';
   const colorId = colorBy === 'from'
     ? (link && link.from_id)
     : (link && link.to_id);
-  const acc = ctx && ctx.byId ? ctx.byId.get(link && link.to_id) : null;
+  // 线宽：看**转出方**
+  const acc = ctx && ctx.byId ? ctx.byId.get(link && link.from_id) : null;
   const targetType = (acc && acc.type) || ACCOUNT_TYPE.ASSET;
   const weight = WEIGHT_MAP[targetType] || 1.0;
 
@@ -223,7 +290,7 @@ export function chordGeometry(cx, cy, rIn, aFrom, aTo, k = BEZIER_K) {
  * `fromType` / `toType` 都给出来，第 4 模式的线宽按方向选一端。
  */
 export function buildChord(input) {
-  const { txIdx, from_id, to_id, aFrom, aTo, cx, cy, rIn, ctx, unitArcLen, colorBy } = input;
+  const { txIdx, from_id, to_id, aFrom, aTo, cx, cy, rIn, ctx, unitArcLen, colorBy, amount } = input;
 
   const geo = chordGeometry(cx, cy, rIn, aFrom, aTo);
   const style = calcLinkStyle({ from_id, to_id }, ctx, unitArcLen, { colorBy });
@@ -249,6 +316,11 @@ export function buildChord(input) {
     from_id,
     to_id,
     depth,
+    /** 这一笔的发生金额：线宽的唯一样例来源（v4.0 §4.3） */
+    amount: Number(amount) || 0,
+    /** 两端在环上的角度：追踪模式要在转入端贴金额小字，渲染器靠它定位 */
+    aFrom,
+    aTo,
     path: { from: geo.from, c1: geo.c1, c2: geo.c2, to: geo.to },
     strokeWidth,
     strokeColor: style.strokeColor,

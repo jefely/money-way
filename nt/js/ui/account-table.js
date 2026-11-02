@@ -27,7 +27,7 @@ import { renderNotes } from './note-table.js';
 import * as NtModal from './modal.js';
 
 const FIELDS = ['type', 'category', 'code', 'name', 'opening', 'seq'];
-const TYPES = ['资产类', '负债类', '收入类', '权益类', '费用类'];
+const TYPES = ['资产类', '成本类', '负债类', '收入类', '权益类', '费用类'];
 
 /**
  * @param {object} ctx
@@ -401,7 +401,8 @@ export function mountAccountTable(ctx, tbody, opts) {
       total += b;
       byType[acc.type] = (byType[acc.type] || 0) + b;
     }
-    const text = `共 ${visible.length} 个账户 · 资产 ${money(byType['资产类'] || 0)} · 负债 ${money(byType['负债类'] || 0)}`;
+    // 成本类只在真的用到时才出现 —— 一个从没建过成本账户的账本，底部不该多一列 ¥0.00
+    const text = `共 ${visible.length} 个账户 · 资产 ${money(byType['资产类'] || 0)}${byType['成本类'] ? ` · 成本 ${money(byType['成本类'])}` : ''} · 负债 ${money(byType['负债类'] || 0)}`;
     if (o.onSummary) o.onSummary(text);
     ctx.setFooter(`${visible.length} 个账户 · ${(state.transactions || []).length} 笔流水`);
   }

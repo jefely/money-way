@@ -11,8 +11,9 @@
 
 import { renderChart, RATIO } from './mw-svg-renderer.js';
 import { MW_DEFAULTS } from '../core/mw-settings.js';
+import { ribbonGeometry } from '../graph/mw-chord-shape.js';
 import {
-  categoryColor, pointAt, DEPTH_WIDTHS, traceWidthOf,
+  categoryColor, pointAt, MIN_STROKE_WIDTH, MAX_STROKE_WIDTH,
 } from '../graph/mw-path-calculator.js';
 
 const el = (id) => document.getElementById(id);
@@ -26,63 +27,92 @@ const el = (id) => document.getElementById(id);
  * @param {(kind:string, value:any)=>void} onPick
  * @param {{mode?:string|null, dir?:'up'|'down', params?:object}} view
  *   mode：null 基本 / 'acc' 色块 / 'tx' 单线 / 'trace' 追踪
- *   dir ：逆流（up）看转入方、顺流（down）看转出方 —— **只影响颜色与第 4 模式线宽**
+ *   dir ：**本层不再使用**。方向现在只影响「选哪条链」（path.js 的 traceByAccount），
+ *         线色固定取转出节点、线宽固定查 FIXED_WIDTH，都与方向无关。
  *   params：环图参数（基准单位）；缺省用 MW_DEFAULTS
  */
 export function paintChart(host, data, hits, onPick, view) {
   const p = (view && view.params) || MW_DEFAULTS;
   const colorOf = (key) => categoryColor(data.colorIndex, key);
   const mode = (view && view.mode) || null;
-  const dir = view && view.dir === 'down' ? 'down' : 'up';
 
-  // 线宽照单文件版：
-  //   没追踪 → 全部统一 W_MID，基本模式再乘 baseK 细一级
-  //   追踪中 → 命中线用「离费用端几跳」的档位 × 命中加权 × 额外系数，其它线收细
-  //
-  // 注意：这里**没有**按笔数做密度补偿。曾经加过一版（250 笔时把线调细 0.6 倍），
-  // 但在 v0.50 把「图尺寸只由高度决定」修好之后，250 笔在侧栏收起时已经不糊了 ——
-  // 线宽恢复成单文件版的 2.4 才是一致的样子。
+  // 节点专属色：线色与内层弧块色都从这里来（v4.0 §4.2「温度计红泡」）
+  const nodeColorOf = data.nodeColorOf || ((id) => colorOf(data.colorKeyOf ? data.colorKeyOf(id) : ''));
+
+  // 追踪模式：漏斗（宽头 6 + 金额占比，细头 1.2）；
+  // 其余模式（基本 / 单线 / 色块）：**只有两档线宽** —— 单位弧长的 40% 与 80%。
+  const isTrace = mode === 'trace';
+  const unitArc = Number(data.unitArcLen) || 0;
+  const clampW = (v) => Math.min(MAX_STROKE_WIDTH, Math.max(MIN_STROKE_WIDTH, v));
+  // 「默认线宽」在这里是**整体粗细倍率**：2.4 是 1 倍（旧存档里的值就是 2.4，
+  // 所以升级后不会突然变粗细）。用户 2026-11 反馈它「调了没反应」—— 之前确实被比例制架空了。
+  const wScale = (Number(p.wMid) || MW_DEFAULTS.wMid) / MW_DEFAULTS.wMid;
+  const wDefault = clampW(unitArc * p.wDefault * wScale);
+  const wHit = clampW(unitArc * p.wHit * wScale);
+  let maxAmount = 0;
+  for (const c of data.chords) maxAmount = Math.max(maxAmount, Number(c.amount) || 0);
+  if (!(maxAmount > 0)) maxAmount = 1;
 
   const chords = data.chords.map((c) => {
     const hit = hits ? hits.has(c.txIdx) : false;
-    // 线宽按 RATIO 等比放大：画布从 1800 提到 6000，线还是 2.4px 就显得更细
-    // 四种模式的线宽互不干扰：
-    //   基本  → W_MID × baseK（细一级），不画遮罩
-    //   单线  → 命中 W_MID × 1.0（粗一级），其它同级但被遮罩盖住
-    //   色块  → 沿用层级档位（不动）
-    //   追踪  → 按方向取那一端的四个类型档（见 mw-path-calculator 的 STYLE_UP / STYLE_DOWN）
-    let strokeWidth = p.wMid * RATIO * p.baseK;
-    if (mode === 'tx') {
-      strokeWidth = p.wMid * RATIO * (hit ? 1 : p.baseK);
-    } else if (mode === 'trace') {
-      // 第 4 模式：逆流看**转入方**的类型（费用最粗 → 收入最细），
-      // 顺流看**转出方**的类型（收入·权益最粗 → 费用最细）。
-      // 非命中线压到最细一档，链才浮出来。
-      const endType = dir === 'down' ? c.fromType : c.toType;
-      strokeWidth = (hit ? traceWidthOf(endType, dir) : p.traceFloor) * RATIO;
-    } else if (hits) {
-      if (hit) {
-        const dep = Number.isFinite(c.depth) ? c.depth : DEPTH_WIDTHS.length - 1;
-        // 再 × 额外系数：用户反馈选中线还是偏粗，继续收细（默认 0.35）
-        strokeWidth = DEPTH_WIDTHS[Math.min(dep, DEPTH_WIDTHS.length - 1)]
-          * p.pickBoost * RATIO * p.pickExtra;
-      } else {
-        strokeWidth = p.wMid * p.pickShrink * RATIO;
-      }
+    // 线宽（2026-11 定稿）：除追踪模式外不再按类型、不再按跳数，就两个值
+    //   默认（没命中 / 非命中）= 单位弧长 × 「默认线宽比例」（默认 30%）
+    //   命中                      = 单位弧长 × 「命中线宽比例」（默认 60%）
+    // 上限 14 / 下限 0.4 是原有护栏：3 笔时单位弧长上千，不钳会糊死整张图。
+    let strokeWidth = wDefault;
+    if (isTrace) {
+      const ratio = Math.max(0, Math.min(1, (Number(c.amount) || 0) / maxAmount));
+      strokeWidth = (hit ? (p.funnelWide + ratio * p.funnelWide) : p.traceFloor) * RATIO;
+    } else if (hits && hit) {
+      strokeWidth = wHit;
     }
+
+    // 变宽线（漏斗）：**只在路径追踪的命中线上**启用。
+    // 其余模式等宽 —— 一圈几百条全做成漏斗只会让图更花。
+    // 「变细起点比例」控制前多少等宽（默认 0.7 = 后 30% 才收）。
+    // 虚拟流水（虚线）例外：虚线只能靠 stroke-dasharray 表达，填充的 ribbon 做不出来。
+    const ribbon = isTrace && hit && c.path && !c.dash
+      ? ribbonGeometry(
+        c.path.from, c.path.c1, c.path.c2, c.path.to,
+        strokeWidth, p.funnelThin * RATIO, p.funnelTaper,
+      )
+      : null;
+
     return {
       ...c,
+      // 线色**永远**等于转出节点的专属色（v4.0 §4.2）
+      strokeColor: nodeColorOf(c.from_id),
       // 命中线要在遮罩**之上**（单线模式用它浮出来）
       above: mode === 'tx' && hit,
+      ribbon,
       strokeWidth,
       opacity: !hits ? p.opGlobal : (hit ? p.opHit : p.opDim),
     };
   });
 
+  // 追踪模式：每条命中线的转入端贴**两组**文字（2026-11 用户要的）：
+  //   序号（资金路径上的第几步）→ 内弧线的**内方**
+  //   金额                       → 内弧线的**外方**
+  // 序号来自 view.traceSteps（graph/path-tracer 的 traceFlowPath）：
+  //   选中 = 0，向前（钱花到哪）= 1/2/3…，向后（钱从哪来）= -1/-2/-3…
+  const steps = (view && view.traceSteps) || null;
+  const labels = isTrace
+    ? data.chords
+      .filter((c) => hits && hits.has(c.txIdx) && Number.isFinite(c.aTo))
+      .map((c) => ({
+        a: c.aTo,
+        mark: steps && steps.has(c.txIdx) ? String(steps.get(c.txIdx)) : '',
+        amount: String(Math.round(Number(c.amount) || 0)),
+      }))
+    : [];
+
   host.innerHTML = renderChart({
     blocks: data.blocks,
     chords,
     sectors: data.sectors,
+    layers: data.layers,
+    labels,
+    nodeColorOf,
     pointAt,
     colorOf,
     params: p,

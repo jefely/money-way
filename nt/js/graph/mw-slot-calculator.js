@@ -25,13 +25,15 @@ import { ACCOUNT_TYPE } from '../core/schema.js';
 
 /**
  * 类型顺序：9 点钟起顺时针（照单文件版 mwDrawSvg 的 CAT_ORDER）
- *   权益 → 负债 → 费用 → 资产 → 收入 → 其它
+ *   权益 → 负债 → 费用 → 成本 → 资产 → 收入 → 其它
  * 之前这里是反的（收入在最前），整张图的弧块位置全错 —— 这是「计算不对」最直接的一条。
+ * 成本类（2026-11）贴着资产放：它在报表上最终结转到库存商品，两者是一段连续的路。
  */
 export const CAT_ORDER = [
   ACCOUNT_TYPE.EQUITY,     // 权益类
   ACCOUNT_TYPE.LIABILITY,  // 负债类
   ACCOUNT_TYPE.EXPENSE,    // 费用类
+  ACCOUNT_TYPE.COST,       // 成本类
   ACCOUNT_TYPE.ASSET,      // 资产类
   ACCOUNT_TYPE.INCOME,     // 收入类
   '其它',
@@ -71,6 +73,13 @@ export function computeSlots(txs, opts) {
     ? GAP_DEG
     : (Number.isFinite(Number(o.gapDeg)) ? Number(o.gapDeg) : GAP_DEG);
   const gapRad = (gapDeg * Math.PI) / 180;
+  /**
+   * 粒度模式：
+   *   count  —— 一笔流水占 2 个单位（转出端 + 转入端），每单位角相同（旧行为，默认）
+   *   amount —— 弧段按金额占比分配（用户 2026-11 加的第二套）
+   * 面板传 0/1，代码里也认 'count' / 'amount' 两个字面量。
+   */
+  const mode = (o.unitMode === 'amount' || Number(o.unitMode) >= 0.5) ? 'amount' : 'count';
 
   /* ---------- ① 两个键 ---------- */
 
@@ -139,15 +148,32 @@ export function computeSlots(txs, opts) {
   });
 
   /* ---------- ⑤ 分配角度（跨组加缝） ---------- */
+  //
+  // 两套粒度模式（用户 2026-11 定）：
+  //   count（默认）：一个槽位 = 一个固定单位角，公式在 unitDegree() 里
+  //   amount       ：槽位角度 ∝ 金额，两级分配 ——
+  //                  组角 ∝ 组金额；组内节点角 ∝ 节点金额；节点内各槽位均分
+  //                  组角合计 = 可用角，所以整圈就是「金额配置」本身
+  const spanOf = mode === 'amount' ? spansByAmount(slots, groupList, gapDeg) : null;
+  const useAmount = !!spanOf;
+
+  // 缝的位置：笔数模式按「类型|分类」留（每一类一条缝）；
+  // 金额模式按「类型」留 —— 类型内部跨分类不留缝，否则类型角会被缝吃掉，环就不满了。
+  const gapKeyOf = useAmount ? (sl) => sl.type : (sl) => sl.sortKey;
+
   let ang = START_ANG;
   let prevKey = null;
   for (const sl of slots) {
-    if (prevKey !== null && sl.sortKey !== prevKey) ang += gapRad;
+    const key = gapKeyOf(sl);
+    if (prevKey !== null && key !== prevKey) ang += gapRad;
+    const span = useAmount ? (spanOf.get(sl) || 0) : unit;
     sl.a1 = ang;
-    sl.a2 = ang + unit;
-    sl.mid = ang + unit / 2;
-    ang += unit;
-    prevKey = sl.sortKey;
+    sl.a2 = ang + span;
+    sl.mid = ang + span / 2;
+    sl.span = span;
+    sl.arcLen = span * R;
+    ang += span;
+    prevKey = key;
   }
 
   /* ---------- ⑥ 弧块：相邻同账户合并 ---------- */
@@ -196,6 +222,8 @@ export function computeSlots(txs, opts) {
     colorIndex,
     sortKeyOf,
     colorKeyOf,
+    // 实际生效的模式：请求 amount 但一分钱都没有时会退回 count，别让调用方误会
+    mode: useAmount ? 'amount' : 'count',
     unit,
     unitDeg: uDeg,
     unitArcLen,
@@ -206,8 +234,77 @@ export function computeSlots(txs, opts) {
   };
 }
 
-function makeSlot(x, txIdx, side, accountId, sortKeyOf, colorKeyOf, gRank) {
-  const accId = accountId || null;
+/**
+ * 金额粒度：每个槽位该占多少**弧度**（用户 2026-11 定的口径）。
+ *
+ *  ① **六大节点类型之间均分**，而且只分**出现过的**类型：
+ *     只出现一类 → 它占整圈；两类 → 各占一半；三类 → 各占三分之一。
+ *  ② **类型内按净额占比**：节点角 = 类型角 × (|该节点净额| ÷ 该类型内 |净额| 之和)，
+ *     净额 = 转入 − 转出（余额变动），不是收付合计。
+ *  ③ 节点内各槽位均分。
+ *
+ * 注意中间那一层「统计分类」**不参与角度分配**：它只管颜色和排序，
+ * 类型内部跨分类不再留缝（缝只留在类型之间），所以整圈永远是满的。
+ *
+ * 「净额」这个口径的代价要知道：中转账户（本月转入多少就转出多少）净额为 0，
+ * 弧段宽度就是 0 —— 它会在环上消失。那是「余额变动」视角的必然结果。
+ *
+ * ⚠️ 返回值必须和 count 模式的 `unit` 同量纲（弧度）。
+ * 这里曾经返回「度」并被直接加到弧度累加器上，一个块跨了 9731°（27 圈），
+ * SVG 的 A 命令碰到超 360° 的弧会把半径悄悄放大 —— 图上就是几个飘在外面的大圆环。
+ *
+ * @returns {Map<object, number>|null} null 表示没有可比金额（净额全为 0），调用方退回 count
+ */
+function spansByAmount(slots, groupList, gapDeg) {
+  const RAD = Math.PI / 180;
+
+  // ① 出现过的类型（顺序即 CAT_ORDER，由 slots 的排序决定）
+  const types = [];
+  const typeOfAcc = new Map();
+  for (const sl of slots) {
+    if (!sl.acc) continue;
+    typeOfAcc.set(sl.acc, sl.type);
+    if (types.indexOf(sl.type) < 0) types.push(sl.type);
+  }
+  if (!types.length) return null;
+
+  const availRad = Math.max(60, 360 - types.length * gapDeg) * RAD;
+  const typeRad = availRad / types.length;
+
+  // ② 净额 = 转入 − 转出
+  const net = new Map();
+  const accSlots = new Map();
+  for (const sl of slots) {
+    if (!sl.acc) continue;
+    const amt = Number(sl.amount) || 0;
+    net.set(sl.acc, (net.get(sl.acc) || 0) + (sl.side === 't' ? amt : -amt));
+    accSlots.set(sl.acc, (accSlots.get(sl.acc) || 0) + 1);
+  }
+
+  const typeNet = new Map();
+  for (const [acc, v] of net) {
+    const tp = typeOfAcc.get(acc);
+    typeNet.set(tp, (typeNet.get(tp) || 0) + Math.abs(v));
+  }
+
+  let totalNet = 0;
+  for (const v of typeNet.values()) totalNet += v;
+  if (!(totalNet > 0)) return null;
+
+  const spans = new Map();
+  for (const sl of slots) {
+    if (!sl.acc) { spans.set(sl, 0); continue; }
+    const n = Math.abs(net.get(sl.acc)) || 0;
+    const tsum = typeNet.get(sl.type) || 0;
+    const cnt = accSlots.get(sl.acc) || 1;
+    // 整个类型净额都是 0（钱进来又原样出去）→ 这一段宽度 0，环上留空
+    const accRad = tsum > 0 ? typeRad * (n / tsum) : 0;
+    spans.set(sl, accRad / cnt);
+  }
+  return spans;
+}
+
+function makeSlot(x, txIdx, side, accountId, sortKeyOf, colorKeyOf, gRank) {  const accId = accountId || null;
   const sortKey = accId ? sortKeyOf(accId) : '\u0000EMPTY';
   const parts = sortKey.split('|');
   return {

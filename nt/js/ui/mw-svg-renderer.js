@@ -20,6 +20,7 @@
  */
 
 import { MW_DEFAULTS, MW_SIZE } from '../core/mw-settings.js';
+import { ringRadii, typeColor } from '../graph/mw-layers.js';
 
 /**
  * 单文件版的基准画布是 1800（`SIZE = 1800`、`R_OUT = 640`、`THICK = 44`），
@@ -96,6 +97,8 @@ export function renderChart(data) {
   const p = d.params || MW_DEFAULTS;
 
   const { size, rOut, rIn } = chartSize(p);
+  // 三层套娃的三条半径：r3 外沿 / r2 类型与分类的分界 / r1 分类与节点的分界 / r0 内沿（连线从这里射出）
+  const { r3, r2, r1, r0 } = ringRadii(rOut, rIn);
   const U = RATIO;
   const cx = size / 2;
   const cy = size / 2;
@@ -110,10 +113,12 @@ export function renderChart(data) {
   // 放大就糊；对内部 <g> 变换是矢量重绘，放到多大都清晰。
   parts.push('<g class="mw-zoom">');
 
-  // ① 分类扇区的分界线（同类聚合、类间 0.8° 的视觉呈现）
+  // ① 分类分界线：从最外沿拉到最内沿的一条径向线（贯穿三层，边界才对得齐）
   for (const s of sectors) {
+    const p1 = pointAt(cx, cy, r3, s.a1);
+    const p2 = pointAt(cx, cy, r0, s.a1);
     parts.push(`<path class="mw-sector-line"`
-      + ` d="${arcPath(rOut, rIn, s.a1, s.a2, pointAt, cx, cy)}"`
+      + ` d="M ${f(p1[0])} ${f(p1[1])} L ${f(p2[0])} ${f(p2[1])}"`
       + ` fill="none" stroke="currentColor" stroke-width="${f(p.sectorW * U)}" stroke-opacity="${p.sectorOp}"/>`);
   }
 
@@ -127,15 +132,30 @@ export function renderChart(data) {
     const op = typeof c.opacity === 'number'
       ? c.opacity
       : (d.opacityOf ? d.opacityOf(c) : 0.2);
-    const dd = chordPath(c.path);
-    // 可见的那条线（细）
-    let out = `<path class="mw-chord" d="${dd}"`
-      + ` fill="none" stroke="${c.strokeColor}"`
-      + ` stroke-width="${c.strokeWidth}" stroke-opacity="${op}"`
-      + ` stroke-linecap="round" data-tx="${c.txIdx}"/>`;
+    const center = chordPath(c.path);
+
+    // 变宽线（v4.0 §4.3）：闭合填充的漏斗形，不能用 stroke。
+    // 前 70% 等宽、后 30% 收窄，所以是采样出来的点列（见 graph/mw-chord-shape.js）。
+    let out = '';
+    if (c.ribbon) {
+      const { left, right } = c.ribbon;
+      const seg = (pts) => pts.map((p) => ` L ${f(p[0])} ${f(p[1])}`).join('');
+      const dd = `M ${f(left[0][0])} ${f(left[0][1])}`
+        + seg(left.slice(1))
+        + seg(right.slice().reverse())
+        + ' Z';
+      out += `<path class="mw-chord" d="${dd}" fill="${c.strokeColor}"`
+        + ` fill-opacity="${op}" stroke="none" data-tx="${c.txIdx}"/>`;
+    } else {
+      const dash = c.dash ? ' stroke-dasharray="6 4"' : '';
+      out += `<path class="mw-chord" d="${center}"`
+        + ` fill="none" stroke="${c.strokeColor}"`
+        + ` stroke-width="${c.strokeWidth}" stroke-opacity="${op}"`
+        + ` stroke-linecap="round"${dash} data-tx="${c.txIdx}"/>`;
+    }
     // 一条透明的粗线盖在上面：线只有 1-2px，直接点很难点中。
     // pointer-events="stroke" 让它的整条描边都成为命中区。
-    out += `<path class="mw-hitarea" d="${dd}" fill="none" stroke="transparent"`
+    out += `<path class="mw-hitarea" d="${center}" fill="none" stroke="transparent"`
       + ` stroke-width="${f(Math.max(c.strokeWidth, p.hitBand * U))}"`
       + ` stroke-linecap="round" pointer-events="stroke" data-tx="${c.txIdx}"/>`;
     return out;
@@ -152,15 +172,29 @@ export function renderChart(data) {
 
   for (const c of above) parts.push(drawChord(c));
 
-  // ④ 弧块
-  // 分隔线：浅色主题纯白 / 深色主题纯黑，2.4×RATIO（约 0.45 显示像素）、75% 不透明。
-  // 早先用 0.9×RATIO，同分类的两个**同色**弧块挨在一起时几乎看不见分界。
+  // ④ 两层：外圈是类型（细线），内圈是节点弧块。
+  //    2026-11 去掉了中间的「分类圈」—— 分类在角度上本来就有 0.8° 的缝，
+  //    再画一圈同色系的带子等于把分类边界说两遍，还多出一整圈颜色。
+  //    宽度为 0 的块直接跳过：金额粒度下中转账户净额为 0，画出来是退化路径。
+  const layers = d.layers || { types: [], cats: [] };
+  const nodeColorOf = d.nodeColorOf || colorOf;
+  const ringPath = (ro, ri, a1, a2, fill, cls, attr) => `<path class="mw-ring ${cls}"`
+    + ` d="${arcPath(ro, ri, a1, a2, pointAt, cx, cy)}"`
+    + ` fill="${fill}" fill-opacity="1"`
+    + ` stroke="${isLightTheme() ? '#ffffff' : '#000000'}"`
+    + ` stroke-width="${f(p.ringW * U)}" stroke-opacity="${p.ringOp}"${attr}/>`;
+
+  // 外圈：类型固定色系，很薄（环厚的 10%），看上去就是贴着环的一条线
+  for (const t of layers.types) {
+    if (!(t.a2 - t.a1 > 1e-9)) continue;
+    parts.push(ringPath(r3, r2, t.a1, t.a2, typeColor(t.type), 'mw-ring-type',
+      ` data-type="${esc(t.type)}" pointer-events="none"`));
+  }
+
+  // 内圈：节点弧块（可点）
   for (const b of blocks) {
-    parts.push(`<path class="mw-ring" d="${arcPath(rOut, rIn, b.a1, b.a2, pointAt, cx, cy)}"`
-      + ` fill="${colorOf(b.colorKey)}" fill-opacity="1"`
-      + ` stroke="${isLightTheme() ? '#ffffff' : '#000000'}"`
-      + ` stroke-width="${f(p.ringW * U)}" stroke-opacity="${p.ringOp}"`
-      + ` data-node="${esc(b.acc)}"/>`);
+    if (!(b.a2 - b.a1 > 1e-9)) continue;
+    parts.push(ringPath(r2, r0, b.a1, b.a2, nodeColorOf(b.acc), 'mw-ring', ` data-node="${esc(b.acc)}"`));
   }
 
   // ④ 弧块文字：沿半径向外排（照单文件版）
@@ -174,6 +208,8 @@ export function renderChart(data) {
   for (const b of blocks) {
     const name = String(b.label || '');
     if (!name) continue;
+    // 0 宽的块没有标签位置，跳过（否则一堆标签叠在同一个点上）
+    if (!(b.a2 - b.a1 > 1e-9)) continue;
     // 标签 = 账户名 + 金额（金额由调用方格式化成字符串传进来，
     // 渲染器不引 core/format，保持「只拼字符串」的职责）
     const label = b.amountText ? `${name} ${b.amountText}` : name;
@@ -246,6 +282,36 @@ export function renderChart(data) {
   parts.push(`<circle class="mw-grab" cx="${cx}" cy="${cy}"`
     + ` r="${Math.round(rOut * p.grabRatio)}"`
     + ` fill="transparent" pointer-events="all"/>`);
+
+  // ⑥ 追踪模式的两组文字（2026-11）：以内弧线为基准聚拢
+  //     序号 → 弧线**内方**（圆里侧，anchor=end，从弧线向内长）
+  //     金额 → 弧线**外方**（环上，anchor=start，从弧线向外长）
+  //    朝向与环外的账户标签一致：沿半径向外辐射，下半圈翻过来。
+  const markGap = Math.max(16, (rOut - rIn) * 0.13);
+  const amountGap = Math.max(16, (rOut - rIn) * 0.12);
+  for (const lb of d.labels || []) {
+    if (!lb || !Number.isFinite(lb.a)) continue;
+    let theta = (lb.a * 180) / Math.PI - 90;
+    const upside = theta > 90 || theta < -90;
+    if (upside) theta += 180;
+    const rot = (x, y) => `rotate(${theta.toFixed(1)} ${f(x)} ${f(y)})`;
+
+    // 序号：内弧线内侧
+    const pin = pointAt(cx, cy, Math.max(1, rIn - markGap), lb.a);
+    parts.push(`<text class="mw-amount mw-seq" x="${f(pin[0])}" y="${f(pin[1])}"`
+      + ` text-anchor="${upside ? 'start' : 'end'}" dominant-baseline="middle"`
+      + ` font-size="${f(46)}" font-weight="700" fill="#ffffff" fill-opacity="0.92"`
+      + ` pointer-events="none" style="paint-order:stroke;stroke:#000;stroke-opacity:.55;stroke-width:5"`
+      + ` transform="${rot(pin[0], pin[1])}">${esc(lb.mark)}</text>`);
+
+    // 金额：内弧线外侧（压在环上）
+    const pout = pointAt(cx, cy, rIn + amountGap, lb.a);
+    parts.push(`<text class="mw-amount mw-sum" x="${f(pout[0])}" y="${f(pout[1])}"`
+      + ` text-anchor="${upside ? 'end' : 'start'}" dominant-baseline="middle"`
+      + ` font-size="${f(58)}" font-weight="700" fill="#ffffff" fill-opacity="0.95"`
+      + ` pointer-events="none" style="paint-order:stroke;stroke:#000;stroke-opacity:.5;stroke-width:5"`
+      + ` transform="${rot(pout[0], pout[1])}">${esc(lb.amount)}</text>`);
+  }
 
   parts.push('</g></svg>');
   return parts.join('');

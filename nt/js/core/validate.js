@@ -36,12 +36,16 @@ export function checkBalanced(transactions) {
 }
 
 /**
- * 会计恒等式：资产 + 费用 = 负债 + 权益 + 收入。
+ * 会计恒等式：资产 + 成本 + 费用 = 负债 + 权益 + 收入。
  *
  * 注意：早期只算「资产 − 负债 − 权益」，一记费用就必然不平 ——
  * 因为费用让资产减少，却没有对应的权益变动。
  * 完整的复式恒等式必须把损益类（费用、收入）算进来，
  * 写成「资产 + 费用 − 负债 − 权益 − 收入 = 0」。
+ *
+ * 2026-11 追加成本类：成本类科目（生产成本 / 制造费用 / 研发支出）是借方科目，
+ * 与资产同向。它在报表上最终结转到库存商品（资产）或主营业务成本（费用），
+ * 所以记在等号左边，公式变成「资产 + 成本 + 费用 − 负债 − 权益 − 收入 = 0」。
  *
  * @param {Array<{cat:string, balance:number}>} balances
  */
@@ -51,6 +55,7 @@ export function checkAccountingIdentity(balances) {
   let equity = 0;
   let income = 0;
   let expense = 0;
+  let cost = 0;
 
   for (const b of balances || []) {
     const v = toAmount(b && b.balance);
@@ -60,12 +65,13 @@ export function checkAccountingIdentity(balances) {
       case '权益类': equity += v; break;
       case '收入类': income += v; break;
       case '费用类': expense += v; break;
+      case '成本类': cost += v; break;
       default: break;
     }
   }
 
-  const diff = Math.round((asset + expense - liability - equity - income) * 100) / 100;
-  return { asset, liability, equity, income, expense, diff, ok: Math.abs(diff) < 0.005 };
+  const diff = Math.round((asset + cost + expense - liability - equity - income) * 100) / 100;
+  return { asset, liability, equity, income, expense, cost, diff, ok: Math.abs(diff) < 0.005 };
 }
 
 /** 账户性质是否属于「转入增加」的那一侧（给界面提示用）。 */

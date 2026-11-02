@@ -16,10 +16,11 @@ import {
   calcLinkStyle, categoryColor, WEIGHT_MAP, UNIT_WIDTH_RATIO, MAX_STROKE_WIDTH, MIN_STROKE_WIDTH,
   unitDegree as unitDegreeFromPath, chordGeometry, OPACITY, linkOpacity,
   traceWidthOf, TRACE_FLOOR, STYLE_UP, STYLE_DOWN, styleOf,
+  fixedWidthOf, FIXED_WIDTH, FUNNEL_WIDE, FUNNEL_THIN,
 } from '../js/graph/mw-path-calculator.js';
 import {
   traceUpstream, traceFromTx, traceByAccount,
-  extractLeverageLinks, hasCycle,
+  extractLeverageLinks, hasCycle, sideForType,
 } from '../js/graph/path-tracer.js';
 
 /* ---------- 造数据 ---------- */
@@ -118,35 +119,38 @@ test('★ 线宽权重：费用 4× / 资产 3× / 负债 2× / 权益 1×', () 
   assert.equal(WEIGHT_MAP[ACCOUNT_TYPE.EQUITY], 1.0);
 });
 
-test('★ 线宽 = 单位弧长 × 0.8 × 权重', () => {
+test('★ 线宽 = 单位弧长 × 0.8 × 权重（权重取**转出方**）', () => {
   const unitArc = 10;   // 1 单位弧长 10px
-  const ctx = { byId, groupKeyOf: () => '费用类|餐饮', colorIndex: new Map([['费用类|餐饮', 0]]) };
+  const ctx = { byId, colorKeyOf: () => '餐饮', colorIndex: new Map([['餐饮', 0]]) };
 
-  const toFood = calcLinkStyle({ from_id: 'a_bank', to_id: 'a_food' }, ctx, unitArc);
-  assert.equal(toFood.weight, 4, '转入是费用类 → 4 倍');
-  assert.equal(toFood.strokeWidth, 14, '10 × 0.8 × 4 = 32，被上限 14 钳住（见 MAX_STROKE_WIDTH）');
+  // 银行卡（资产 3×）转出 → 餐饮
+  const outBank = calcLinkStyle({ from_id: 'a_bank', to_id: 'a_food' }, ctx, unitArc);
+  assert.equal(outBank.weight, 3, '转出是资产类 → 3 倍');
+  assert.equal(outBank.strokeWidth, 14, '10 × 0.8 × 3 = 24，被上限 14 钳住（见 MAX_STROKE_WIDTH）');
 
-  const toBank = calcLinkStyle({ from_id: 'a_salary', to_id: 'a_bank' }, ctx, unitArc);
-  assert.equal(toBank.weight, 3, '转入是资产类 → 3 倍');
-  assert.equal(toBank.strokeWidth, 14, '24 也被上限 14 钳住');
+  // 工资（收入 1×）转出
+  const outSalary = calcLinkStyle({ from_id: 'a_salary', to_id: 'a_bank' }, ctx, unitArc);
+  assert.equal(outSalary.weight, 1, '转出是收入类 → 1 倍');
+  assert.equal(outSalary.strokeWidth, 8, '10 × 0.8 × 1 = 8');
 
-  const toCard = calcLinkStyle({ from_id: 'a_bank', to_id: 'a_card' }, ctx, unitArc);
-  assert.equal(toCard.weight, 2, '转入是负债类 → 2 倍');
-  assert.equal(toCard.strokeWidth, 14, '16 也被上限钳住');
+  // 餐饮（费用 4×）转出（退款场景）
+  const outFood = calcLinkStyle({ from_id: 'a_food', to_id: 'a_bank' }, ctx, unitArc);
+  assert.equal(outFood.weight, 4, '转出是费用类 → 4 倍');
+  assert.equal(outFood.strokeWidth, 14, '32 也被上限钳住');
 
   assert.equal(UNIT_WIDTH_RATIO, 0.8);
 });
 
 test('★ 线宽上限：单位很少时不会糊成一片', () => {
   const ctx = { byId, colorKeyOf: () => '餐饮', colorIndex: new Map([['餐饮', 0]]) };
-  // 3 笔时单位弧长约 620px → 原始算出来 4×1984px，比画布还粗
+  // 3 笔时单位弧长约 620px → 原始算出来 3×1488px，比画布还粗
   const big = calcLinkStyle({ from_id: 'a_bank', to_id: 'a_food' }, ctx, 620);
   assert.equal(big.strokeWidth, MAX_STROKE_WIDTH, '必须被钳到上限');
   assert.equal(big.clamped, true);
 
   // 真实数据（几百笔）单位弧长只有几 px，不会触发上限
   const small = calcLinkStyle({ from_id: 'a_bank', to_id: 'a_food' }, ctx, 2);
-  assert.equal(small.strokeWidth, 6.4, '2 × 0.8 × 4 = 6.4，不受影响');
+  assert.equal(small.strokeWidth, 4.8, '2 × 0.8 × 3 = 4.8，不受影响');
   assert.equal(small.clamped, false);
 });
 
@@ -156,14 +160,16 @@ test('线宽下限：极小单位也能看见', () => {
   assert.equal(tiny.strokeWidth, MIN_STROKE_WIDTH);
 });
 
-test('线宽：由「转入方」决定，不是转出方', () => {
-  const ctx = { byId, groupKeyOf: () => '资产类|储蓄', colorIndex: new Map() };
-  // 资产 → 费用：应按费用算（4×），不按转出的资产算（3×）
+test('★ 线宽：由「转出方」决定 —— 线宽总是在转出节点这边', () => {
+  const ctx = { byId, colorKeyOf: () => '', colorIndex: new Map() };
+  // 资产 → 费用：按转出的资产算（3×），不按转入的费用算（4×）
   const a = calcLinkStyle({ from_id: 'a_bank', to_id: 'a_food' }, ctx, 10);
-  assert.equal(a.weight, 4);
-  // 费用 → 资产：应按资产算（3×）
+  assert.equal(a.weight, 3);
+  assert.equal(a.targetType, ACCOUNT_TYPE.ASSET);
+  // 费用 → 资产：按转出的费用算（4×）
   const b = calcLinkStyle({ from_id: 'a_food', to_id: 'a_bank' }, ctx, 10);
-  assert.equal(b.weight, 3);
+  assert.equal(b.weight, 4);
+  assert.equal(b.targetType, ACCOUNT_TYPE.EXPENSE);
 });
 
 /* ---------- 颜色绑定 ---------- */

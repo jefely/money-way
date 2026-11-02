@@ -9,11 +9,12 @@
 
 import { balanceOf } from '../core/balance-calculator.js';
 import { validate, issuesOf } from '../core/validator.js';
+import { checkAccountingIdentity } from '../core/validate.js';
 import { money } from '../core/format.js';
 import { shareBlock } from '../ui/share-block.js';
 import { mountThanksWall } from '../ui/thanks-wall.js';
 
-const TYPES = ['资产类', '负债类', '收入类', '权益类', '费用类'];
+const TYPES = ['资产类', '成本类', '负债类', '收入类', '权益类', '费用类'];
 
 export function mountValidate(section, ctx) {
   const caps = section.querySelector('#nt-validate-caps');
@@ -72,22 +73,19 @@ export function mountValidate(section, ctx) {
       sum[acc.type] = (sum[acc.type] || 0) + v;
       count[acc.type] = (count[acc.type] || 0) + 1;
     }
-    const asset = sum['资产类'] || 0;
-    const liability = sum['负债类'] || 0;
-    const equity = sum['权益类'] || 0;
-    const income = sum['收入类'] || 0;
-    const expense = sum['费用类'] || 0;
-    const diff = Math.round((asset + expense - liability - equity - income) * 100) / 100;
+    // 恒等式只有一处定义（core/validate.js），这里只负责摆出来
+    const idt = checkAccountingIdentity(TYPES.map((t) => ({ cat: t, balance: sum[t] || 0 })));
+    const diff = idt.diff;
 
     const identityRows = TYPES.map((t) => [`${t}（${count[t] || 0} 个）`, money(sum[t] || 0)]);
     identityRows.push([
-      '资产 + 费用 − 负债 − 权益 − 收入',
+      '资产 + 成本 + 费用 − 负债 − 权益 − 收入',
       money(diff),
       Math.abs(diff) < 0.005 ? 'ok' : 'bad',
     ]);
     host.appendChild(card(
       '② 会计恒等式',
-      '资产 + 费用 = 负债 + 权益 + 收入。期初余额成对录入时这里应为 0。',
+      '资产 + 成本 + 费用 = 负债 + 权益 + 收入。期初余额成对录入时这里应为 0。',
       Math.abs(diff) < 0.005,
       identityRows,
     ));

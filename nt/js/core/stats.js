@@ -6,8 +6,8 @@
  * 必须能在 Node 下直接跑测试。
  */
 
-/** 账户性质 → 借贷方向。资产类/费用类 = 借增贷减（debit），其余相反。 */
-export const DEBIT_CATS = ['资产类', '费用类'];
+/** 账户性质 → 借贷方向。资产类/费用类/成本类 = 借增贷减（debit），其余相反。 */
+export const DEBIT_CATS = ['资产类', '费用类', '成本类'];
 
 export function isDebit(acc) {
   return DEBIT_CATS.includes(acc && acc.cat);

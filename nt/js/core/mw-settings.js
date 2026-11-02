@@ -19,7 +19,7 @@
  * 上下限由 core/settings.js 的 normalize 强制，填错只会被钳住，不会把图调坏。
  */
 
-export const MW_GROUPS = ['环图·几何', '环图·标签', '环图·线', '环图·规则'];
+export const MW_GROUPS = ['环图·几何', '环图·标签', '环图·线', '环图·追踪', '环图·规则'];
 
 /**
  * 每项：key（面板/导出用的中文键）、group、def、min、max、cssVar、field。
@@ -30,7 +30,7 @@ export const MW_GROUPS = ['环图·几何', '环图·标签', '环图·线', '�
 export const MW_SCHEMA = [
   /* ---------- 环图·几何 ---------- */
   { key: '环半径', type: 'num', group: '环图·几何', def: 640, min: 200, max: 760, cssVar: '--nt-mw-rout', field: 'rOut' },
-  { key: '环厚', type: 'num', group: '环图·几何', def: 44, min: 8, max: 200, cssVar: '--nt-mw-thick', field: 'thick' },
+  { key: '环厚', type: 'num', group: '环图·几何', def: 80, min: 8, max: 200, cssVar: '--nt-mw-thick', field: 'thick' },
   { key: '扇区分界线宽', type: 'num', group: '环图·几何', def: 0.6, min: 0, max: 10, cssVar: '--nt-mw-sector-w', field: 'sectorW' },
   { key: '扇区分界线不透明度', type: 'num', group: '环图·几何', def: 0.28, min: 0, max: 1, cssVar: '--nt-mw-sector-op', field: 'sectorOp' },
   { key: '弧块描边宽', type: 'num', group: '环图·几何', def: 2.4, min: 0, max: 20, cssVar: '--nt-mw-ring-w', field: 'ringW' },
@@ -50,17 +50,40 @@ export const MW_SCHEMA = [
 
   /* ---------- 环图·线 ---------- */
   { key: '默认线宽', type: 'num', group: '环图·线', def: 2.4, min: 0, max: 30, cssVar: '--nt-mw-w-mid', field: 'wMid' },
-  { key: '全局透明度', type: 'num', group: '环图·线', def: 0.52, min: 0, max: 1, cssVar: '--nt-mw-op-global', field: 'opGlobal' },
-  { key: '命中透明度', type: 'num', group: '环图·线', def: 0.95, min: 0, max: 1, cssVar: '--nt-mw-op-hit', field: 'opHit' },
-  { key: '压暗透明度', type: 'num', group: '环图·线', def: 0.25, min: 0, max: 1, cssVar: '--nt-mw-op-dim', field: 'opDim' },
+  // 除追踪模式外，线宽只有一个来源：**单位弧长 × 比例**。
+  // 默认值 22%，命中（点中那一条 / 点中弧块那一圈）32% —— 用户 2026-11 定稿。
+  { key: '默认线宽比例', type: 'num', group: '环图·线', def: 0.2, min: 0, max: 2, cssVar: '--nt-mw-w-default', field: 'wDefault' },
+  { key: '命中线宽比例', type: 'num', group: '环图·线', def: 0.32, min: 0, max: 2, cssVar: '--nt-mw-w-hit', field: 'wHit' },
+  { key: '全局透明度', type: 'num', group: '环图·线', def: 0.8, min: 0, max: 1, cssVar: '--nt-mw-op-global', field: 'opGlobal' },
+  { key: '命中透明度', type: 'num', group: '环图·线', def: 0.9, min: 0, max: 1, cssVar: '--nt-mw-op-hit', field: 'opHit' },
+  { key: '压暗透明度', type: 'num', group: '环图·线', def: 0.2, min: 0, max: 1, cssVar: '--nt-mw-op-dim', field: 'opDim' },
   { key: '命中带宽度', type: 'num', group: '环图·线', def: 14, min: 2, max: 80, cssVar: '--nt-mw-hit-band', field: 'hitBand' },
   { key: '遮罩不透明度', type: 'num', group: '环图·线', def: 0.55, min: 0, max: 1, cssVar: '--nt-mw-mask-op', field: 'maskOp' },
-  { key: '圆心把手比例', type: 'num', group: '环图·线', def: 0.25, min: 0, max: 0.8, cssVar: '--nt-mw-grab-ratio', field: 'grabRatio' },
+  { key: '圆心把手比例', type: 'num', group: '环图·线', def: 0.4, min: 0, max: 0.8, cssVar: '--nt-mw-grab-ratio', field: 'grabRatio' },
+  // 漏斗线（只在**路径追踪**的命中线上启用，见 ui/path-view.js）：
+  //   宽头 = 漏斗宽头 + 金额占比 × 漏斗宽头（最大的一笔拿到两倍宽头）
+  //   细头 = 漏斗细头
+  // 其余模式走「单位弧长 × 比例」两档线宽，两头同宽。
+  { key: '漏斗宽头', type: 'num', group: '环图·追踪', def: 4, min: 0, max: 30, cssVar: '--nt-mw-funnel-wide', field: 'funnelWide' },
+  { key: '漏斗细头', type: 'num', group: '环图·追踪', def: 1.2, min: 0, max: 30, cssVar: '--nt-mw-funnel-thin', field: 'funnelThin' },
+  // 变细从这条线的百分之多少开始：0.5 = 前半段等宽、后半段一路收到细头；
+  // 调到 1 就是全程等宽（不收尖），调到 0.2 就是从两成处开始慢慢收。
+  // 2026-11 从 0.7 调到 0.5 —— 0.7 时只有最后三成收窄，短线上一眼看不出来。
+  { key: '变细起点比例', type: 'num', group: '环图·追踪', def: 0.5, min: 0, max: 1, cssVar: '--nt-mw-funnel-taper', field: 'funnelTaper' },
+
+  /* ---------- 环图·追踪（2026-11 从「线」「规则」里独立出来） ----------
+     追踪模式有自己的一套视觉：漏斗、链深、非命中压暗。
+     单独成组之后，面板上一个标签就能看全，不用在两组之间来回找。 */
+  // 追踪深度：单侧最多追几跳。**0 = 不限**（靠已访问集合自然终止）。
+  // 2026-11 默认从 12 提到 50 —— 12 跳在真实账本里常常把链截断在半路。
+  { key: '追踪深度', type: 'num', group: '环图·追踪', def: 60, min: 0, max: 500, cssVar: '--nt-mw-trace-depth', field: 'traceDepth' },
+  { key: '追踪非命中线宽', type: 'num', group: '环图·追踪', def: 1.2, min: 0, max: 20, cssVar: '--nt-mw-trace-floor', field: 'traceFloor' },
 
   /* ---------- 环图·规则 ---------- */
   { key: '分类间隙角', type: 'num', group: '环图·规则', def: 0.8, min: 0, max: 10, cssVar: '--nt-mw-gap-deg', field: 'gapDeg' },
-  { key: '追踪深度', type: 'num', group: '环图·规则', def: 12, min: 1, max: 60, cssVar: '--nt-mw-trace-depth', field: 'traceDepth' },
-  { key: '追踪非命中线宽', type: 'num', group: '环图·规则', def: 1.2, min: 0, max: 20, cssVar: '--nt-mw-trace-floor', field: 'traceFloor' },
+  // 0 = 按流水笔数分弧段（每笔占 2 个单位）；1 = 按金额占比分弧段。
+  // 两套模式都保留：笔数看的是「钱动了多少次」，金额看的是「钱有多少」。
+  { key: '粒度模式（0笔数 1金额）', type: 'num', group: '环图·规则', def: 0, min: 0, max: 1, cssVar: '--nt-mw-unit-mode', field: 'unitMode' },
   { key: '命中加权', type: 'num', group: '环图·规则', def: 1.35, min: 1, max: 5, cssVar: '--nt-mw-pick-boost', field: 'pickBoost' },
   { key: '命中收缩', type: 'num', group: '环图·规则', def: 0.45, min: 0, max: 1, cssVar: '--nt-mw-pick-shrink', field: 'pickShrink' },
   { key: '命中额外系数', type: 'num', group: '环图·规则', def: 0.35, min: 0, max: 3, cssVar: '--nt-mw-pick-extra', field: 'pickExtra' },

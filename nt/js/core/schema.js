@@ -11,13 +11,14 @@
  * 纯定义 + 纯函数：不碰 DOM / 存储，Node 可测。
  */
 
-/** 五种账户类型 */
+/** 六种账户类型（成本类 2026-11 追加，与资产类同向） */
 export const ACCOUNT_TYPE = {
   ASSET: '资产类',
   LIABILITY: '负债类',
   EQUITY: '权益类',
   INCOME: '收入类',
   EXPENSE: '费用类',
+  COST: '成本类',
 };
 
 export const ALL_ACCOUNT_TYPES = [
@@ -26,10 +27,11 @@ export const ALL_ACCOUNT_TYPES = [
   ACCOUNT_TYPE.EQUITY,
   ACCOUNT_TYPE.INCOME,
   ACCOUNT_TYPE.EXPENSE,
+  ACCOUNT_TYPE.COST,
 ];
 
-/** 借增贷减的类型：资产类、费用类。其余相反。 */
-export const DEBIT_TYPES = [ACCOUNT_TYPE.ASSET, ACCOUNT_TYPE.EXPENSE];
+/** 借增贷减的类型：资产类、费用类、成本类。其余相反。 */
+export const DEBIT_TYPES = [ACCOUNT_TYPE.ASSET, ACCOUNT_TYPE.EXPENSE, ACCOUNT_TYPE.COST];
 
 export function isDebitType(type) {
   return DEBIT_TYPES.includes(type);
@@ -81,7 +83,8 @@ export function makeId(prefix) {
 
 /**
  * 造一个账户。
- * @param {{id?:string,code?:string,name?:string,type?:string,category?:string,isHidden?:boolean}} patch
+ * @param {{id?:string,code?:string,name?:string,type?:string,category?:string,
+ *          isHidden?:boolean,originalCost?:number,itemStatus?:string}} patch
  */
 export function createAccount(patch = {}) {
   const rawType = String(patch.type == null ? '' : patch.type).trim();
@@ -104,6 +107,16 @@ export function createAccount(patch = {}) {
   // 用 clampDay 兜底会把「没填」变成 1 号 —— 那是在替用户编数据。
   if (isDayGiven(patch.billDay)) acc.billDay = clampDay(patch.billDay);
   if (isDayGiven(patch.repayDay)) acc.repayDay = clampDay(patch.repayDay);
+
+  // 成本类 = 实物成本池（v4.1 §2.3）。选了成本类，就自动是 physical，
+  // 不用用户再想一遍「这个账户算不算实物」。
+  // 原值不填也能用：calc-engine 会拿「累计转入」当原值推断出来。
+  if (acc.type === ACCOUNT_TYPE.COST) {
+    acc.nature = 'physical';
+    const cost = Number(patch.originalCost);
+    if (Number.isFinite(cost) && cost > 0) acc.originalCost = Math.round(cost * 100) / 100;
+    acc.itemStatus = patch.itemStatus === 'disposed' ? 'disposed' : 'active';
+  }
 
   return acc;
 }

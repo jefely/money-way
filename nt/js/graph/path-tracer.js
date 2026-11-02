@@ -106,21 +106,159 @@ export function traceFromTx(links, txIndex, opts) {
 }
 
 /**
- * 某个账户**直接相连**的线（点弧块用，**不递归**），按方向取这一侧：
+ * 点弧块时看哪一侧的线（2026-11 用户定，取代原来的「逆流 / 顺流」开关）：
  *
- *   dir='up'   流入它的线（to_id === id）—— 逆流：看它的钱从哪些账户来
- *   dir='down' 从它流出的线（from_id === id）—— 顺流：看它的钱去了哪些账户
+ *   收入类 / 权益类          只看**转出**（钱从这来，关心它往哪去）
+ *   资产类 / 负债类 / 成本类  转入与转出**都看**（中转站，两头都是它的故事）
+ *   费用类                   只看**转入**（钱花到这，关心它从哪来）
  *
- * 颜色永远取当前方向的锚点端（逆流=转入方、顺流=转出方），
- * 而这一端就是弧块本身 —— 所以两种方向下，这一圈线都是**该弧块自己的颜色**。
+ * 放在这一层而不是 views/path.js：纯数据、可被 Node 直接测。
  */
-export function traceByAccount(links, accountId, dir) {
+export const ACC_SIDE = {
+  收入类: 'out',
+  权益类: 'out',
+  资产类: 'both',
+  负债类: 'both',
+  成本类: 'both',
+  费用类: 'in',
+};
+
+/** 类型 → 看哪一侧；认不出的类型按中转站处理（两头都看，至少不会漏线） */
+export function sideForType(type) {
+  return ACC_SIDE[type] || 'both';
+}
+
+/**
+ * **资金路径追踪（2026-11 用户定的新逻辑）** —— 沿着钱走过的路，一步一步往前走。
+ *
+ * 选中第 E0 笔（from0 → to0）：
+ *
+ *   **向前**（正序号）
+ *     to0 在 E0 **之后**第一次作为**转出节点**的那笔 → 记 1
+ *     （记 1 那笔的转入节点，在它之后第一次作为转出节点的那笔 → 记 2，以此类推）
+ *
+ *   **向后**（负序号）—— **汇聚追踪**
+ *     from0 在 E0 **之前**、所有以它为**转入节点**的记录 → 全部记 -1
+ *     （这些记录的转出节点，在它们各自之前、以该节点为转入节点的所有记录 → 全部记 -2，以此类推）
+ *
+ * 注意两个方向不对称：
+ *   · **向后是汇聚**：同一个账户的钱可能来自很多处，所以那一层要**全收**；
+ *   · **向前是单线**：只认「第一次作为转出节点」的那一笔（用户原话「1 2 3 4 不用，因为这是汇聚追踪」）。
+ *
+ * 与旧版 `traceFromTx`（把上游所有线都收进一个集合）的区别：
+ * 两个方向都用 `steps` 记下序号，所以链上每一笔都有明确的前后位置。
+ *
+ * `links` 的顺序就是发生顺序（录入顺序），前后都按这个下标走。
+ *
+ * @param {Array} links 图的流水列表
+ * @param {number} txIndex 选中那笔在 links 里的下标
+ * @param {{maxDepth?:number}} [opts] 单侧最大跳数（面板「追踪深度」）
+ * @returns {{linkIndices:number[], steps:Map<number,number>}}
+ *          steps：流水下标 → 序号（选中 = 0，向前 1/2/3…，向后 -1/-2/-3…）
+ */
+export function traceFlowPath(links, txIndex, opts) {
+  const list = links || [];
+  const start = Math.floor(Number(txIndex));
+  // 0 / 不传 / 非数字 = **不限跳数**：每一跳都要先占一个新下标，
+  // 所以 `steps` 天然保证终止，最坏也就 n 跳。
+  const rawDepth = Number(opts && opts.maxDepth);
+  const depth = rawDepth > 0 ? Math.floor(rawDepth) : Infinity;
+  // 「同一个节点」的判定。默认按 ID 严格相等；调用方可以传入更宽松的谓词
+  // （path.js 会把**同名不同 ID** 的账户当成同一个 —— 账本里合并/迁移留下的重名账户
+  // 否则会让追踪在这里断掉，用户看到的就是「这笔明明转进同一个钱包却没被追到」）。
+  const same = (opts && typeof opts.sameAccount === 'function')
+    ? opts.sameAccount
+    : (a, b) => a === b;
+  const steps = new Map();
+  const linkIndices = [];
+  if (!Number.isFinite(start) || !list[start]) return { linkIndices, steps };
+
+  const take = (idx, step) => {
+    if (steps.has(idx)) return false;
+    steps.set(idx, step);
+    linkIndices.push(idx);
+    return true;
+  };
+
+  take(start, 0);
+
+  // 向前（单线）：转入节点 → 之后第一次作为转出方
+  let cur = start;
+  for (let step = 1; step <= depth; step += 1) {
+    const node = list[cur] && list[cur].to_id;
+    if (!node) break;
+    let next = -1;
+    for (let k = cur + 1; k < list.length; k += 1) {
+      const t = list[k];
+      if (t && t.from_id && same(t.from_id, node) && !steps.has(k)) { next = k; break; }
+    }
+    if (next < 0) break;
+    take(next, step);
+    cur = next;
+  }
+
+  // 向后：**两轮**（2026-11-03 用户重新梳理）
+  //
+  //   第一轮（链，每层只找一条）
+  //     E-1 = 选中那笔「转出节点」作为**转入**的、之前最近一条记录
+  //     E-2 = E-1 的「转出节点」作为转入的、在 E-1 之前的最近一条
+  //     E-3 = E-2 的「转出节点」作为转入的、在 E-2 之前的最近一条 ……
+  //
+  //   第二轮（补齐，同层同号）
+  //     每一层把「转入账户 == 该层代表记录的转入账户」的其它记录也标成同一层
+  //     （只补这一层代表记录**之前**的，不会把未来的记录拉进来）
+  let boundary = start;
+  let node = list[start] && list[start].from_id;
+  const chain = [];
+  for (let level = 1; level <= depth && node; level += 1) {
+    let found = -1;
+    for (let k = boundary - 1; k >= 0; k -= 1) {
+      const t = list[k];
+      // 关键字是**最近**一条（下标最大），不是最早
+      if (t && t.to_id && same(t.to_id, node)) { found = k; break; }
+    }
+    if (found < 0) break;
+    chain.push({ idx: found, node, level });
+    boundary = found;
+    node = list[found].from_id;
+  }
+
+  for (const c of chain) {
+    take(c.idx, -c.level);
+    for (let k = c.idx - 1; k >= 0; k -= 1) {
+      const t = list[k];
+      if (t && t.to_id && same(t.to_id, c.node)) take(k, -c.level);
+    }
+  }
+
+  linkIndices.sort((a, b) => a - b);
+  return { linkIndices, steps };
+}
+
+/**
+ * 某个账户**直接相连**的线（点弧块用，**不递归**）。
+ *
+ * `side` 决定看哪一侧（2026-11 起由**节点类型**决定，不再有方向开关）：
+ *
+ *   'in'   流入它的线（to_id === id）    —— 费用类是终点，只看钱从哪来
+ *   'out'  从它流出的线（from_id === id） —— 收入/权益是源头，只看钱往哪去
+ *   'both' 两侧都算                       —— 资产/负债/成本是中转站，两头都是它的故事
+ *
+ * 兼容旧调用：'up' 等价于 'in'，'down' 等价于 'out'。
+ */
+export function traceByAccount(links, accountId, side) {
   const id = String(accountId || '');
+  const mode = side === 'both'
+    ? 'both'
+    : (side === 'down' || side === 'out' ? 'out' : 'in');
   const out = [];
   for (let i = 0; i < (links || []).length; i++) {
     const l = links[i];
     if (!l) continue;
-    if (dir === 'down' ? l.from_id === id : l.to_id === id) out.push(i);
+    const ok = mode === 'both'
+      ? (l.from_id === id || l.to_id === id)
+      : (mode === 'out' ? l.from_id === id : l.to_id === id);
+    if (ok) out.push(i);
   }
   return out;
 }
@@ -140,7 +278,8 @@ export function extractLeverageLinks(links, byId) {
     const a = byId && byId.get(l.from_id);
     const b = byId && byId.get(l.to_id);
     if (!a || !b) continue;
-    const movable = (t) => t === '资产类' || t === '负债类';
+    // 成本类和资产类、负债类一样是「可以在中间倒手」的类型（存货 / 在产品）
+    const movable = (t) => t === '资产类' || t === '负债类' || t === '成本类';
     if (movable(a.type) && movable(b.type)) keep.push(i);
   }
   return keep;

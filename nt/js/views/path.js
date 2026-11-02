@@ -14,8 +14,9 @@ import { computeSlots } from '../graph/mw-slot-calculator.js';
 import { matchAccount } from '../core/query-engine.js';
 import { dateInRange } from '../core/date-query.js';
 import { money } from '../core/format.js';
-import { buildChord, styleOf } from '../graph/mw-path-calculator.js';
-import { traceFromTx, traceByAccount } from '../graph/path-tracer.js';
+import { buildChord } from '../graph/mw-path-calculator.js';
+import { buildArcs, nodeColor } from '../graph/mw-layers.js';
+import { traceFlowPath, traceByAccount, sideForType } from '../graph/path-tracer.js';
 import { computeDepths } from '../graph/mw-depth.js';
 import { chartSize } from '../ui/mw-svg-renderer.js';
 import { readMwParams, onLayoutChange } from '../ui/mw-params.js';
@@ -26,35 +27,20 @@ import {
 } from '../ui/path-flow-table.js';
 import { mountChartGestures } from '../ui/chart-gestures.js';
 import { saveTableColWidth } from '../ui/col-save.js';
+import { traceSeqText, logTraceChain } from '../ui/path-debug.js';
 
 export function mountPath(section, ctx) {
   const chartBox = section.querySelector('#pw-chart');
   const flowBody = section.querySelector('#pw-flow-body');
   const clearBtn = section.querySelector('#pw-clear');
-  const dirBox = section.querySelector('#pw-dir');
 
-  // 焦点只存「根」，不存算出来的链 —— 换方向 / 改筛选后重新算，两边永远一致。
-  //   { kind:'acc',   id }    点弧块：这个账户的来路 / 去路
+  // 焦点只存「根」，不存算出来的链 —— 改筛选后重新算，两边永远一致。
+  //   { kind:'acc',   id }    点弧块：按类型决定看哪一侧（见 ACC_SIDE）
   //   { kind:'tx',    txId }  点线：只看这一根
   //   { kind:'trace', txId }  点侧栏条目：这一笔的整条链
   let focus = null;
 
-  // 追踪方向：up = 逆流（谁把钱给它），down = 顺流（钱又流去哪）
-  let dir = 'up';
-
   let data = null;
-
-  /** 把方向画到那颗按钮上：**一个字** —— 「逆」= 逆流，「顺」= 顺流 */
-  function paintDir() {
-    if (!dirBox) return;
-    const now = dir === 'down' ? '顺流' : '逆流';
-    const next = dir === 'down' ? '逆流' : '顺流';
-    dirBox.textContent = dir === 'down' ? '顺' : '逆';
-    const tip = `追踪方向：${now}，点一下切到${next}`;
-    dirBox.setAttribute('aria-label', tip);
-    dirBox.setAttribute('aria-pressed', dir === 'down' ? 'true' : 'false');
-    dirBox.title = tip;
-  }
 
   // 工具条贴在左栏标题行上（左起、上下居中）：函数在 path-flow-table.js 里，
   // 它要在「切 tab / 收展侧栏 / 改窗口大小」后重新量一次标题行的实际位置。
@@ -64,16 +50,6 @@ export function mountPath(section, ctx) {
   // 展开 / 收起后标题行出现或消失，隔一拍再量一次
   const toggleBtn = section.querySelector('#pw-toggle');
   if (toggleBtn) toggleBtn.addEventListener('click', () => setTimeout(syncToolsTop, 0));
-
-  /** 换方向：**只换画法**（颜色取哪一端、第 4 模式线宽取哪一端），链不动 */
-  function setDir(next) {
-    dir = next === 'down' ? 'down' : 'up';
-    paintDir();
-    render();
-  }
-
-  if (dirBox) dirBox.addEventListener('click', () => setDir(dir === 'up' ? 'down' : 'up'));
-  paintDir();
 
   if (clearBtn) {
     clearBtn.addEventListener('click', () => { focus = null; render(); });
@@ -115,7 +91,9 @@ export function mountPath(section, ctx) {
     const accOf = (id) => index.byId.get(id) || null;
     // 半径与环厚都来自面板：computeSlots 只要外半径，内半径给渲染器用
     const box = chartSize(p);
-    const res = computeSlots(txs, { accOf, outerRadius: box.rOut, gapDeg: p.gapDeg });
+    const res = computeSlots(txs, {
+      accOf, outerRadius: box.rOut, gapDeg: p.gapDeg, unitMode: p.unitMode,
+    });
     const { slots, blocks, sectors, unitArcLen, colorIndex, colorKeyOf, unitDeg } = res;
 
     const byTx = new Map();
@@ -131,17 +109,17 @@ export function mountPath(section, ctx) {
     const gctx = { byId: index.byId, colorKeyOf, colorIndex, depthOf };
 
     // 弧块文字要显示账户名
-    // 每个账户在图里参与的金额合计（转出 + 转入），拼到标签后面
+    // 每个账户在图里的**净额**（转入 − 转出，取绝对值），与金额粒度的弧段口径一致：
+    // 用户 2026-11 定「同分类按净额占比分」，标签就不能再显示收付合计，否则又是两张皮。
     const amtOf = new Map();
     for (const t of txs) {
-      for (const id of [t.from_id, t.to_id]) {
-        if (!id) continue;
-        amtOf.set(id, (amtOf.get(id) || 0) + (Number(t.amount) || 0));
-      }
+      const amt = Number(t.amount) || 0;
+      if (t.from_id) amtOf.set(t.from_id, (amtOf.get(t.from_id) || 0) - amt);
+      if (t.to_id) amtOf.set(t.to_id, (amtOf.get(t.to_id) || 0) + amt);
     }
     for (const b of blocks) {
       b.label = nameOf(b.acc);
-      const amt = amtOf.get(b.acc) || 0;
+      const amt = Math.abs(amtOf.get(b.acc) || 0);
       // 取整 + 不要千位分隔符（只要 ¥ 和数字）
       b.amountText = amt
         ? money(Math.round(amt)).replace(/\.00$/, '').replace(/,/g, '')
@@ -149,14 +127,15 @@ export function mountPath(section, ctx) {
     }
 
     const chords = [];
-    // 颜色取哪一端由「那套样式规则」决定：逆流看转入方，顺流看转出方
-    const colorBy = styleOf(dir).colorBy;
+    // 颜色不再分方向：线色永远取**转出节点**的专属色（path-view 里覆盖 strokeColor）。
+    // colorBy 仍传 'from'，只是为了让 buildChord 的默认值与最终结果一致。
     for (const [txIdx, pair] of byTx) {
       if (!pair.f || !pair.t || pair.f.empty || pair.t.empty) continue;
       chords.push(buildChord({
         txIdx,
         from_id: txs[txIdx].from_id,
         to_id: txs[txIdx].to_id,
+        amount: txs[txIdx].amount,
         aFrom: pair.f.mid,
         aTo: pair.t.mid,
         cx,
@@ -164,13 +143,39 @@ export function mountPath(section, ctx) {
         rIn: box.rIn,
         ctx: gctx,
         unitArcLen,
-        colorBy,
+        colorBy: 'from',
       }));
     }
 
+    // 三层套娃：外层类型 / 中层分类（角度是内层的聚合视图，不另算）
+    const layers = buildArcs(slots);
+
+    // 节点专属色：**按类型分组、按类型内总数均匀分布色相**。
+    // 关键不再是「相邻拉开」，而是「同类型任意两个都拉开」——
+    // 资产类内部有互转，隔得远的两个节点线也会交叉，颜色太近就分不清。
+    const accIds = [...new Set(txs.flatMap((t) => [t.from_id, t.to_id]).filter(Boolean))]
+      .sort((a, b) => (nameOf(a) < nameOf(b) ? -1 : nameOf(a) > nameOf(b) ? 1 : 0));
+    const byType = new Map();
+    for (const id of accIds) {
+      const acc = ctx.getIndex().byId.get(id);
+      const t = (acc && acc.type) || '其它';
+      if (!byType.has(t)) byType.set(t, []);
+      byType.get(t).push(id);
+    }
+    const nodeIdx = new Map();
+    let typeSeq = 0;
+    for (const ids of byType.values()) {
+      ids.forEach((id, i) => nodeIdx.set(id, { i, n: ids.length, off: typeSeq * 37 }));
+      typeSeq += 1;
+    }
+
     return {
-      empty: false, txs, range, sliced, blocks, sectors, chords,
+      empty: false, txs, range, sliced, blocks, sectors, chords, layers,
       colorIndex, unitArcLen, unitDeg, params: p,
+      nodeColorOf: (id) => {
+        const c = nodeIdx.get(id) || { i: 0, n: 1, off: 0 };
+        return nodeColor(c.i, c.n, c.off);
+      },
     };
   }
 
@@ -202,15 +207,17 @@ export function mountPath(section, ctx) {
   }
 
   /** 当前焦点在图上命中的连线下标（data.txs 下标集）；null = 没有焦点 */
+  let traceSteps = new Map();
   function hitsFor(f) {
     if (!f || !data || data.empty) return null;
     const idxOf = (id) => data.txs.findIndex((t) => t && t.id === id);
 
     if (f.kind === 'acc') {
-      // 点弧块：只取当前方向的那一侧，不递归。
-      // 逆流 = 流入它的线（看来源）；顺流 = 从它流出的线（看去向）。
-      // 颜色取当前方向的锚点端，也就是它自己 → 这一圈线全是它的颜色。
-      return new Set(traceByAccount(data.txs, f.id, dir));
+      // 点弧块：**按类型**决定看哪一侧（sideForType），不再有方向开关。
+      // 中转站（资产/负债/成本）两头都看，源头（收入/权益）只看转出，终点（费用）只看转入。
+      const acc = ctx.getIndex().byId.get(f.id);
+      const side = sideForType(acc && acc.type);
+      return new Set(traceByAccount(data.txs, f.id, side));
     }
     if (f.kind === 'tx') {
       // 模式 2（点单线）：**只点亮这一根**。
@@ -219,12 +226,25 @@ export function mountPath(section, ctx) {
       return i < 0 ? null : new Set([i]);
     }
     if (f.kind === 'trace') {
-      // 模式 4（点侧栏条目）：支出倒推链，**两个方向看到的是同一批线**。
-      // 深度上限来自面板（默认 12 跳）：倒卡成环时靠 visited 切断，
-      // 这个值只决定「多远的上游还算这条链」。
+      // 模式 4（点侧栏条目）：**资金路径**（2026-11）。
+      // 「同一个节点」按 ID 判等，**同名账户也算同一个** —— 账本合并/迁移会留下
+      // 名字一样但 ID 不同的账户，严格按 ID 匹配时追踪会在那里断掉，
+      // 用户看到的就是「这笔明明转进同一个钱包却没被追到」。
       const i = idxOf(f.txId);
+      if (i < 0) return null;
       const maxDepth = data.params ? data.params.traceDepth : undefined;
-      return i < 0 ? null : new Set(traceFromTx(data.txs, i, { maxDepth }).linkIndices);
+      // 名字为「—」表示账户表里根本没有它（断链），不能拿它当匹配依据，
+      // 否则两个不存在的账户会被当成同一个节点。
+      const nameOk = (id) => {
+        const n = nameOf(id);
+        return n && n !== '—' ? n : '';
+      };
+      const path = traceFlowPath(data.txs, i, {
+        maxDepth,
+        sameAccount: (a, b) => a === b || (!!nameOk(a) && nameOk(a) === nameOk(b)),
+      });
+      traceSteps = path.steps;
+      return new Set(path.linkIndices);
     }
     return null;
   }
@@ -325,7 +345,9 @@ export function mountPath(section, ctx) {
 
     // 四种模式的线宽在 paintChart 里各自独立：
     //   mode=null 基本模式 / 'acc' 点色块 / 'tx' 点单线 / 'trace' 侧栏追踪
-    // dir 只影响颜色（取哪一端）与 trace 模式的线宽（取哪一端）
+    // 方向开关已取消（2026-11）：线色永远取转出节点，点弧块看哪一侧由类型决定。
+    // 色块模式的线宽按「被点弧块的类型」查表，所以要把它的类型传下去。
+    const focusAcc = focus && focus.kind === 'acc' ? ctx.getIndex().byId.get(focus.id) : null;
     paintChart(chartBox, data, emptyChain ? null : hits, (kind, value) => {
       if (kind === 'acc') {
         const same = focus && focus.kind === 'acc' && focus.id === value;
@@ -338,7 +360,9 @@ export function mountPath(section, ctx) {
         focus = same ? null : { kind: 'tx', txId: tx.id };
       }
       render();
-    }, { mode: focus ? focus.kind : null, dir, params: p });
+    }, {
+      mode: focus ? focus.kind : null, params: p, focusType: focusAcc ? focusAcc.type : '', traceSteps,
+    });
 
     // 手势要在 paintChart **之后**挂：svg 是 paintChart 里才创建的。
     //
@@ -369,19 +393,22 @@ export function mountPath(section, ctx) {
     });
 
     // 图的参数压成一行放页脚（和其它页一样在屏幕底部），左栏不再占一块高度给统计。
-    // 方向放在最前面：它现在只表示「这条链按哪一端着色 / 取线宽」。
-    const dirText = dir === 'down' ? '顺流' : '逆流';
+    // 方向开关已取消：点弧块看哪一侧由类型决定，页脚把这件事说清楚即可。
     const focusName = focus && focus.kind === 'acc' ? ' · ' + nameOf(focus.id) : '';
     const emptyHint = emptyChain
-      ? (focus && focus.kind === 'acc'
-        ? (dir === 'down' ? ' · 没有从它流出的线' : ' · 没有流入它的线')
-        : ' · 没有相连的线')
+      ? (focus && focus.kind === 'acc' ? ' · 这个节点没有相连的线' : ' · 没有相连的线')
       : '';
-    ctx.setFooter(`路径追踪 · ${dirText}${focusName}${emptyHint}`
+    ctx.setFooter(`路径追踪${focusName}${emptyHint}`
       + ` · ${data.txs.length} 笔 · ${data.blocks.length} 块`
       + ` · ${data.unitDeg.toFixed(3)}°/单位 · ${data.unitArcLen.toFixed(2)}px/弧长`
       + (data.sliced.folded ? ` · 折叠 ${data.sliced.folded}` : '')
-      + (hitIds ? ` · 已高亮 ${hitIds.size}` : ''));
+      + (hitIds ? ` · 已高亮 ${hitIds.size}` : '')
+      + (focus && focus.kind === 'trace' ? traceSeqText(traceSteps) : ''));
+
+    if (typeof location !== 'undefined' && String(location.search).includes('debug=1')
+        && focus && focus.kind === 'trace') {
+      logTraceChain(data.txs, traceSteps, nameOf);
+    }
   }
 
   // 界面参数面板改了环图参数 → 立刻重排这张图（订阅里已先让参数缓存失效）。

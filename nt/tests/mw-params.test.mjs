@@ -24,15 +24,18 @@ import { ACCOUNT_TYPE } from '../js/core/schema.js';
 
 /* ---------- ① SCHEMA 自洽 ---------- */
 
-test('环图参数共 30 项、四组，key / field / cssVar 都不重名', () => {
-  assert.equal(MW_SCHEMA.length, 30);
-  assert.equal(MW_GROUPS.length, 4);
+test('环图参数共 36 项、五组，key / field / cssVar 都不重名', () => {
+  // 数量是硬断言：加了参数就得同时改这里，防止「加了个面板项但没人记得测」
+  // 2026-11：30 → 31「粒度模式」→ 33「漏斗宽头/细头」→ 35「默认/命中线宽比例」
+  //          → 36「变细起点比例」，分组 4 → 5（追踪单独成组）
+  assert.equal(MW_SCHEMA.length, 36);
+  assert.equal(MW_GROUPS.length, 5);
 
   for (const kind of ['key', 'field', 'cssVar']) {
     const set = new Set(MW_SCHEMA.map((s) => s[kind]));
     assert.equal(set.size, MW_SCHEMA.length, `${kind} 有重名`);
   }
-  assert.equal(new Set(MW_SCHEMA.map((s) => s.group)).size, 4);
+  assert.equal(new Set(MW_SCHEMA.map((s) => s.group)).size, 5);
   assert.ok(MW_SCHEMA.every((s) => s.group.startsWith('环图')));
   assert.ok(MW_SCHEMA.every((s) => s.type === 'num'));
 });
@@ -111,13 +114,14 @@ test('默认参数的 CSS 值与 MW_DEFAULTS 一致（两处不会漂）', () =>
 
 /* ---------- ④ 派生：尺寸 ---------- */
 
-test('★ 默认参数 → 画布 6000 / 外径 2133 / 内径 1986', () => {
+test('★ 默认参数 → 画布 6000 / 外径 2133 / 内径 1866', () => {
   assert.equal(BASE_SIZE, 1800);
   assert.equal(MW_SIZE, 6000);
   assert.ok(Math.abs(RATIO - 6000 / 1800) < 1e-12);
 
+  // 环厚 80（2026-11 定稿）：外层只有环厚的 10%，太薄的话那条类型线会看不见
   const box = chartSize(MW_DEFAULTS);
-  assert.deepEqual(box, { size: 6000, rOut: 2133, rIn: 1986 });
+  assert.deepEqual(box, { size: 6000, rOut: 2133, rIn: 1866 });
 });
 
 test('环厚超过环半径时 rIn 兜底为 1，不会出现负半径', () => {

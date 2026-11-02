@@ -118,6 +118,7 @@ node nt/tools/probe.mjs http://127.0.0.1:8080/nt/index.html "document.querySelec
 | [UI-PARAMS.md](UI-PARAMS.md) | **界面参数**：`?debug=1` 面板里每个旋钮的 key / 组 / 默认值 |
 | [TABLE-INTERACTION.md](TABLE-INTERACTION.md) | **表格交互的坑**：拖动、冻结、列宽、`max-width` 钳制、`pointercancel` |
 | [MONEYWAY-SPEC.md](MONEYWAY-SPEC.md) | **路径图设计**：线宽权重、颜色绑定、单位角公式、反序溯源 |
+| [EVENT-MODEL.md](EVENT-MODEL.md) | **事件模型（v4.1 落地）**：多对多连线、成本类=实物池、双式恒等、与 v4.1 的三处冲突裁决 |
 | [JS-MAP.md](JS-MAP.md) | **JS 文件 → 界面位置**（由 `tools/js-map.mjs` 生成，门禁校验，不要手改） |
 | [TESTING-NOTES.md](TESTING-NOTES.md) | **探针的坑**：transition / blob import / hidden 三处误判 |
 | [REFACTOR-CHECKLIST.md](../REFACTOR-CHECKLIST.md) | 16 个模块的进度与验收标准 |

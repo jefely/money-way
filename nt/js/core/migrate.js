@@ -32,6 +32,7 @@ const KNOWN_TYPES = [
   ACCOUNT_TYPE.EQUITY,
   ACCOUNT_TYPE.INCOME,
   ACCOUNT_TYPE.EXPENSE,
+  ACCOUNT_TYPE.COST,
 ];
 
 /** 老结构里的 cat 转成新 type；认不出的按资产类处理 */

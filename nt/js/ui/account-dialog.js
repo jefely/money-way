@@ -10,7 +10,7 @@
 
 import * as NtModal from './modal.js';
 
-export const TYPES = ['资产类', '负债类', '权益类', '收入类', '费用类'];
+export const TYPES = ['资产类', '成本类', '负债类', '权益类', '收入类', '费用类'];
 
 /**
  * @param {{
