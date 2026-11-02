@@ -85,6 +85,30 @@ test('★ 第二层从 -1 那条继续往前，换成它的转出账户', () => 
   assert.equal(r.steps.get(0), -2);
 });
 
+test('★ 向前也叠加第二层，但转出额超过选中金额就停', () => {
+  const txs = [
+    { id: 't0', from_id: 's', to_id: 'b', amount: 100 },   // 选中
+    { id: 't1', from_id: 'b', to_id: 'f', amount: 30 },    // 第一次转出 → 1（代表）
+    { id: 't2', from_id: 'b', to_id: 'g', amount: 30 },    // 同转出账户 → 1（叠加）
+    { id: 't3', from_id: 'b', to_id: 'h', amount: 60 },    // 30+30+60 > 100 → 停止叠加
+  ];
+  const r = traceFlowPath(txs, 0);
+  assert.equal(r.steps.get(0), 0);
+  assert.equal(r.steps.get(1), 1, '代表记录');
+  assert.equal(r.steps.get(2), 1, '同一转出账户，叠加');
+  assert.equal(r.steps.has(3), false, '累计超上限，停止叠加');
+});
+
+test('向前第二层不会误伤：刚好等于上限仍然收', () => {
+  const txs = [
+    { id: 't0', from_id: 's', to_id: 'b', amount: 100 },   // 选中
+    { id: 't1', from_id: 'b', to_id: 'f', amount: 40 },    // 代表
+    { id: 't2', from_id: 'b', to_id: 'g', amount: 60 },    // 40+60 = 100，等于上限
+  ];
+  const r = traceFlowPath(txs, 0);
+  assert.equal(r.steps.get(2), 1, '等于上限仍然收');
+});
+
 test('★ 第二轮金额累计：超过选中那笔的发生额就停止追踪', () => {
   const txs = [
     { id: 't0', from_id: 'a', to_id: 'w', amount: 60 },   // 更早的一笔
@@ -110,15 +134,15 @@ test('金额累计不会误伤：刚好等于上限仍然收', () => {
   assert.equal(r.steps.get(1), -1, '40 + 60 = 100，等于上限，仍然收');
 });
 
-test('向前**不汇聚**：只认第一次作为转出节点的那一笔', () => {
+test('向前第二层的第二笔受金额上限约束（超了就不收）', () => {
   const txs = [
-    { id: 'a', from_id: 's', to_id: 'b', amount: 1 },   // 选中
-    { id: 'b', from_id: 'b', to_id: 'f', amount: 2 },   // 第一次：1
-    { id: 'c', from_id: 'b', to_id: 'g', amount: 3 },   // 第二次：不收
+    { id: 'a', from_id: 's', to_id: 'b', amount: 1 },   // 选中（金额很小）
+    { id: 'b', from_id: 'b', to_id: 'f', amount: 2 },   // 第一次转出：1
+    { id: 'c', from_id: 'b', to_id: 'g', amount: 3 },   // 同转出账户，但 2+3 > 1
   ];
   const r = traceFlowPath(txs, 0);
   assert.equal(r.steps.get(1), 1);
-  assert.equal(r.steps.has(2), false, '第二笔转出不属于这条路径');
+  assert.equal(r.steps.has(2), false, '2 + 3 = 5 > 1，超过上限');
 });
 
 test('★ 同名不同 ID 的账户也算同一个节点（合并/迁移留下的重名）', () => {
