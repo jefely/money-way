@@ -40,8 +40,18 @@ test('环图参数共 39 项、五组，key / field / cssVar 都不重名', () =
   assert.ok(MW_SCHEMA.every((s) => s.type === 'num'));
 });
 
-test('每项默认值都落在自己的 min/max 内（默认值本身不该被钳）', () => {
-  for (const s of MW_SCHEMA) {
+test('★ 旧默认值跟着新默认走（老存档不会卡在旧值上）', () => {
+  // v1.210 改过这两项的默认值：环厚 80 → 60、追踪字号 52 → 46
+  const r = normalize({ 环厚: 80, 追踪字号: 52 }, 'dark');
+  assert.equal(r['环厚'], 60, '旧默认 80 应该跟到 60');
+  assert.equal(r['追踪字号'], 46, '旧默认 52 应该跟到 46');
+  // 用户自己调过的、不等于旧默认的值必须原样保留
+  const r2 = normalize({ 环厚: 90, 追踪字号: 70 }, 'dark');
+  assert.equal(r2['环厚'], 90);
+  assert.equal(r2['追踪字号'], 70);
+});
+
+test('每项默认值都落在自己的 min/max 内（默认值本身不该被钳）', () => {  for (const s of MW_SCHEMA) {
     assert.ok(Number.isFinite(s.def), `${s.key} 默认值不是数`);
     assert.ok(s.min <= s.def && s.def <= s.max, `${s.key} 默认 ${s.def} 不在 [${s.min}, ${s.max}]`);
   }

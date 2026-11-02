@@ -260,10 +260,25 @@ export const THEME_DEFAULTS = THEME_IDS.reduce((acc, id) => {
  * @param {string} [theme]
  * @returns {object} 完整设置
  */
+/**
+ * 改了默认值的项：老存档里如果**还留着旧默认**，就跟着新默认走。
+ *
+ * 为什么需要它：这些参数一律由 normalize 从存档读，存档里有值就不会用 def ——
+ * 于是「把默认值改小」对已经打开过页面的人完全不生效，面板上还是旧数字。
+ * 只在值**恰好等于旧默认**时才迁移，用户自己调过的其它值原样保留。
+ */
+const LEGACY_DEFAULT = {
+  环厚: { 80: 60 },        // v1.210：80 → 60
+  追踪字号: { 52: 46 },    // v1.210：52 → 46
+};
+
 export function normalize(raw, theme) {
   const out = { ...(THEME_DEFAULTS[theme] || THEME_DEFAULTS.dark) };
   for (const s of SCHEMA) {
-    const v = raw ? raw[s.key] : undefined;
+    let v = raw ? raw[s.key] : undefined;
+    // 旧默认值迁移（见 LEGACY_DEFAULT）
+    const mig = LEGACY_DEFAULT[s.key];
+    if (mig && v != null && mig[String(v)] !== undefined) v = mig[String(v)];
 
     // 列宽：每表一份。旧存档没有这些键时，从旧的那一份「默认列宽」里按列名抽初值。
     if (s.type === 'cols') {
