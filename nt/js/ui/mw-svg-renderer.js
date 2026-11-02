@@ -299,7 +299,7 @@ export function renderChart(data) {
     const rot = (x, y) => `rotate(${theta.toFixed(1)} ${f(x)} ${f(y)})`;
 
     // 序号与金额用**同一个字号**（面板「环图·追踪 / 追踪字号」）
-    const fsTrace = f(p.traceFontSize || 52);
+    const fsTrace = f(p.traceFontSize || 46);
     // 序号：内弧线内侧
     const pin = pointAt(cx, cy, Math.max(1, rIn - markGap), lb.a);
     parts.push(`<text class="mw-amount mw-seq" x="${f(pin[0])}" y="${f(pin[1])}"`

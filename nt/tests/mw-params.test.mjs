@@ -114,14 +114,14 @@ test('默认参数的 CSS 值与 MW_DEFAULTS 一致（两处不会漂）', () =>
 
 /* ---------- ④ 派生：尺寸 ---------- */
 
-test('★ 默认参数 → 画布 6000 / 外径 2133 / 内径 1866', () => {
+test('★ 默认参数 → 画布 6000 / 外径 2133 / 内径 1933', () => {
   assert.equal(BASE_SIZE, 1800);
   assert.equal(MW_SIZE, 6000);
   assert.ok(Math.abs(RATIO - 6000 / 1800) < 1e-12);
 
-  // 环厚 80（2026-11 定稿）：外层只有环厚的 10%，太薄的话那条类型线会看不见
+  // 环厚 60（2026-11 用户定稿）：60 × 10/3 = 200 → 内径 2133 − 200 = 1933
   const box = chartSize(MW_DEFAULTS);
-  assert.deepEqual(box, { size: 6000, rOut: 2133, rIn: 1866 });
+  assert.deepEqual(box, { size: 6000, rOut: 2133, rIn: 1933 });
 });
 
 test('环厚超过环半径时 rIn 兜底为 1，不会出现负半径', () => {

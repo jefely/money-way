@@ -30,7 +30,7 @@ export const MW_GROUPS = ['环图·几何', '环图·标签', '环图·线', '�
 export const MW_SCHEMA = [
   /* ---------- 环图·几何 ---------- */
   { key: '环半径', type: 'num', group: '环图·几何', def: 640, min: 200, max: 760, cssVar: '--nt-mw-rout', field: 'rOut' },
-  { key: '环厚', type: 'num', group: '环图·几何', def: 80, min: 8, max: 200, cssVar: '--nt-mw-thick', field: 'thick' },
+  { key: '环厚', type: 'num', group: '环图·几何', def: 60, min: 8, max: 200, cssVar: '--nt-mw-thick', field: 'thick' },
   // 外圈那条细线（六大类节点类型）的粗细，以及它与内圈节点环之间的空隙。
   // 两个都是**环厚的比例**：0.1 = 环厚的十分之一，0 = 贴死不留缝。
   // 2026-11 用户实测调出 0.06 / 0.03 这一组，定为默认。
@@ -84,7 +84,7 @@ export const MW_SCHEMA = [
   { key: '追踪深度', type: 'num', group: '环图·追踪', def: 60, min: 0, max: 500, cssVar: '--nt-mw-trace-depth', field: 'traceDepth' },
   { key: '追踪非命中线宽', type: 'num', group: '环图·追踪', def: 1.2, min: 0, max: 20, cssVar: '--nt-mw-trace-floor', field: 'traceFloor' },
   // 环内那两组文字（正负序号 + 金额）用同一个字号，2026-11 用户要求统一
-  { key: '追踪字号', type: 'num', group: '环图·追踪', def: 52, min: 20, max: 120, cssVar: '--nt-mw-trace-font', field: 'traceFontSize' },
+  { key: '追踪字号', type: 'num', group: '环图·追踪', def: 46, min: 20, max: 120, cssVar: '--nt-mw-trace-font', field: 'traceFontSize' },
 
   /* ---------- 环图·规则 ---------- */
   { key: '分类间隙角', type: 'num', group: '环图·规则', def: 0.8, min: 0, max: 10, cssVar: '--nt-mw-gap-deg', field: 'gapDeg' },
