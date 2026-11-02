@@ -182,19 +182,55 @@ export function traceFlowPath(links, txIndex, opts) {
 
   take(start, 0);
 
-  // 向前（单线）：转入节点 → 之后第一次作为转出方
-  let cur = start;
-  for (let step = 1; step <= depth; step += 1) {
-    const node = list[cur] && list[cur].to_id;
-    if (!node) break;
-    let next = -1;
-    for (let k = cur + 1; k < list.length; k += 1) {
+  // 金额上限：选中那笔的发生额。向前、向后两个方向都按「消耗完它」来推进。
+  const cap = Math.abs(Number(list[start] && list[start].amount) || 0);
+
+  // 向前：**逐层推进，逐笔累加，消耗完为止**（2026-11-03，与向后同一套逻辑）
+  //
+  //   第 1 层：to0 之后**第一次**作为转出节点的那笔（代表）
+  //            + 同层补齐（转出账户相同的其它记录），一笔一笔累加
+  //   第 2 层：第 1 层代表的「转入账户」之后再第一次作为转出的那笔 + 补齐
+  //   …… 直到累计 ≥ 选中金额，或链断 / 到深度上限。
+  //
+  //   边界：本层补齐不越过**下一层代表**（时间往后），
+  //         再晚的同类记录属于另一段时间，不该算进这一层。
+  let fBoundary = start;
+  let fNode = list[start] && list[start].to_id;
+  let fAcc = 0;
+  for (let level = 1; level <= depth && fNode; level += 1) {
+    if (cap > 0 && fAcc >= cap) break;
+
+    // 这一层的代表：之后第一次作为转出方
+    let found = -1;
+    for (let k = fBoundary + 1; k < list.length; k += 1) {
       const t = list[k];
-      if (t && t.from_id && same(t.from_id, node) && !steps.has(k)) { next = k; break; }
+      if (t && t.from_id && same(t.from_id, fNode)) { found = k; break; }
     }
-    if (next < 0) break;
-    take(next, step);
-    cur = next;
+    if (found < 0) break;
+
+    // 先算下一层的代表，它同时是**这一层补齐的上界**
+    const nextNode = list[found] && list[found].to_id;
+    let ceil = list.length;
+    if (nextNode) {
+      for (let k = found + 1; k < list.length; k += 1) {
+        const t = list[k];
+        if (t && t.from_id && same(t.from_id, nextNode)) { ceil = k; break; }
+      }
+    }
+
+    take(found, level);
+    fAcc += Math.abs(Number(list[found] && list[found].amount) || 0);
+    if (cap > 0 && fAcc >= cap) { fBoundary = found; break; }
+
+    for (let k = found + 1; k < ceil; k += 1) {
+      const t = list[k];
+      if (!t || !t.from_id || !same(t.from_id, fNode)) continue;
+      take(k, level);
+      fAcc += Math.abs(Number(t.amount) || 0);
+      if (cap > 0 && fAcc >= cap) break;
+    }
+    fBoundary = found;
+    fNode = nextNode;
   }
 
   // 向后：**逐笔累加，够了就停**（2026-11-03 最终版）
@@ -209,7 +245,6 @@ export function traceFlowPath(links, txIndex, opts) {
   //   ① **补齐不越过下一层的代表**：-1 层最多扫到 -2 代表的位置为止，
   //      再早的同类记录属于另一段时间，不该算进这一层。
   //   ② 判据是「凑够没有」—— `total ≥ 选中金额` 就停，不是「超没超」。
-  const cap = Math.abs(Number(list[start] && list[start].amount) || 0);
   let boundary = start;
   let node = list[start] && list[start].from_id;
   let acc = 0;

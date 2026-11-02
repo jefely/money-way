@@ -117,15 +117,28 @@ test('★ 同层补齐的金额也计入累计', () => {
   assert.equal(r.steps.get(0), -1, '50 + 60 = 110 ≥ 100，这一层就够');
 });
 
-test('向前单线：只认第一次作为转出节点的那一笔', () => {
+test('★ 向前逐层推进：1 层不够就 2 层，直到消耗完选中金额', () => {
   const txs = [
-    { id: 'a', from_id: 's', to_id: 'b', amount: 100 },   // 选中
-    { id: 'b', from_id: 'b', to_id: 'f', amount: 30 },    // 第一次转出：1
-    { id: 'c', from_id: 'b', to_id: 'g', amount: 30 },    // 第二次转出：不收
+    { id: 't0', from_id: 's', to_id: 'b', amount: 100 },   // 选中
+    { id: 't1', from_id: 'b', to_id: 'f', amount: 40 },    // 1 代表
+    { id: 't2', from_id: 'b', to_id: 'g', amount: 30 },    // 1 同层补齐
+    { id: 't3', from_id: 'f', to_id: 'h', amount: 40 },    // 2：累计 110 ≥ 100
+  ];
+  const r = traceFlowPath(txs, 0);
+  assert.equal(r.steps.get(1), 1, '第 1 层代表');
+  assert.equal(r.steps.get(2), 1, '同层补齐，累计 70 < 100');
+  assert.equal(r.steps.get(3), 2, '不够，进第 2 层');
+});
+
+test('向前够了就停：第 1 层就消耗完，不进 2 层', () => {
+  const txs = [
+    { id: 't0', from_id: 's', to_id: 'b', amount: 100 },   // 选中
+    { id: 't1', from_id: 'b', to_id: 'f', amount: 100 },   // 1 代表，一层就够
+    { id: 't2', from_id: 'f', to_id: 'h', amount: 30 },    // 不该进链
   ];
   const r = traceFlowPath(txs, 0);
   assert.equal(r.steps.get(1), 1);
-  assert.equal(r.steps.has(2), false, '第二笔转出不属于这条路径');
+  assert.equal(r.steps.has(2), false, '已经消耗完，不再进第 2 层');
 });
 
 test('★ 同名不同 ID 的账户也算同一个节点（合并/迁移留下的重名）', () => {
@@ -154,9 +167,10 @@ test('成环不死循环（已标记的切断）', () => {
 });
 
 test('maxDepth 限制层数', () => {
-  const txs = [];
-  for (let i = 0; i < 10; i += 1) {
-    txs.push({ id: 't' + i, from_id: 'a' + i, to_id: 'a' + (i + 1), amount: 1 });
+  // 每笔 0.01，选中那笔 1 —— 金额上限不会先触发，测的是深度
+  const txs = [{ id: 'seed', from_id: 'a0', to_id: 'a1', amount: 1 }];
+  for (let i = 1; i < 10; i += 1) {
+    txs.push({ id: 't' + i, from_id: 'a' + i, to_id: 'a' + (i + 1), amount: 0.01 });
   }
   const r = traceFlowPath(txs, 0, { maxDepth: 3 });
   assert.equal(r.steps.size, 4, '0 和 1/2/3 共四条');
@@ -165,9 +179,9 @@ test('maxDepth 限制层数', () => {
 });
 
 test('★ maxDepth = 0 表示**不限**，一路追到底', () => {
-  const txs = [];
-  for (let i = 0; i < 10; i += 1) {
-    txs.push({ id: 't' + i, from_id: 'a' + i, to_id: 'a' + (i + 1), amount: 1 });
+  const txs = [{ id: 'seed', from_id: 'a0', to_id: 'a1', amount: 1 }];
+  for (let i = 1; i < 10; i += 1) {
+    txs.push({ id: 't' + i, from_id: 'a' + i, to_id: 'a' + (i + 1), amount: 0.01 });
   }
   const r = traceFlowPath(txs, 0, { maxDepth: 0 });
   assert.equal(r.steps.size, 10, '全部十笔都进链');
