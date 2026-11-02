@@ -223,11 +223,26 @@ export function traceFlowPath(links, txIndex, opts) {
     node = list[found].from_id;
   }
 
+  // 第二轮：同层补齐 + **金额累计判定**（2026-11 用户加）
+  //
+  //   每一层从代表记录往前补「转入同一账户」的记录，
+  //   累计金额一旦**超过选中条目的发生额**，就停止整条追踪。
+  //   道理：同一个账户的流入总额超过它流出的那一笔，说明已经追到另一个资金池了 ——
+  //   再往前补只会把不相干的流水拉进来。
+  const cap = Math.abs(Number(list[start] && list[start].amount) || 0);
+  let halted = false;
   for (const c of chain) {
+    if (halted) break;
     take(c.idx, -c.level);
+    // 这一层已经计入的金额，从代表记录自身起算
+    let sum = Math.abs(Number(list[c.idx] && list[c.idx].amount) || 0);
     for (let k = c.idx - 1; k >= 0; k -= 1) {
       const t = list[k];
-      if (t && t.to_id && same(t.to_id, c.node)) take(k, -c.level);
+      if (!t || !t.to_id || !same(t.to_id, c.node)) continue;
+      const amt = Math.abs(Number(t.amount) || 0);
+      if (cap > 0 && sum + amt > cap) { halted = true; break; }
+      take(k, -c.level);
+      sum += amt;
     }
   }
 
