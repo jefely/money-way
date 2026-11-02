@@ -88,9 +88,9 @@ test('★ 第二层从 -1 那条继续往前，换成它的转出账户', () => 
 test('★ 向前也叠加第二层，但转出额超过选中金额就停', () => {
   const txs = [
     { id: 't0', from_id: 's', to_id: 'b', amount: 100 },   // 选中
-    { id: 't1', from_id: 'b', to_id: 'f', amount: 30 },    // 第一次转出 → 1（代表）
-    { id: 't2', from_id: 'b', to_id: 'g', amount: 30 },    // 同转出账户 → 1（叠加）
-    { id: 't3', from_id: 'b', to_id: 'h', amount: 60 },    // 30+30+60 > 100 → 停止叠加
+    { id: 't1', from_id: 'b', to_id: 'f', amount: 30 },    // 第一次转出 → 1（代表，不占额度）
+    { id: 't2', from_id: 'b', to_id: 'g', amount: 60 },    // 同转出账户 → 1（累计 60）
+    { id: 't3', from_id: 'b', to_id: 'h', amount: 60 },    // 60+60 = 120 > 100 → 停止叠加
   ];
   const r = traceFlowPath(txs, 0);
   assert.equal(r.steps.get(0), 0);
@@ -99,17 +99,41 @@ test('★ 向前也叠加第二层，但转出额超过选中金额就停', () =
   assert.equal(r.steps.has(3), false, '累计超上限，停止叠加');
 });
 
-test('向前第二层不会误伤：刚好等于上限仍然收', () => {
+test('向前第二层不会误伤：累计刚好等于上限仍然收', () => {
   const txs = [
     { id: 't0', from_id: 's', to_id: 'b', amount: 100 },   // 选中
-    { id: 't1', from_id: 'b', to_id: 'f', amount: 40 },    // 代表
-    { id: 't2', from_id: 'b', to_id: 'g', amount: 60 },    // 40+60 = 100，等于上限
+    { id: 't1', from_id: 'b', to_id: 'f', amount: 40 },    // 代表，不占额度
+    { id: 't2', from_id: 'b', to_id: 'g', amount: 100 },   // 累计 100，等于上限
   ];
   const r = traceFlowPath(txs, 0);
   assert.equal(r.steps.get(2), 1, '等于上限仍然收');
 });
 
-test('★ 第二轮金额累计：超过选中那笔的发生额就停止追踪', () => {
+test('★ 代表记录不占额度：它比选中那笔大也不影响同层补齐', () => {
+  const txs = [
+    { id: 't0', from_id: 'o', to_id: 'w', amount: 500 },    // 同层的小额
+    { id: 't1', from_id: 'o', to_id: 'w', amount: 10000 },  // -1 代表，比选中那笔大
+    { id: 't2', from_id: 'w', to_id: 'b', amount: 4995 },   // 选中（金额比上游小）
+  ];
+  const r = traceFlowPath(txs, 2);
+  assert.equal(r.steps.get(1), -1, '代表记录');
+  assert.equal(r.steps.get(0), -1, '10000 + 500 > 4995，但按 10000 算就没超 —— 必须收进来');
+});
+
+test('★ 停止只作用于当前层：-1 超限不影响 -2', () => {
+  const txs = [
+    { id: 't0', from_id: 'q', to_id: 'o', amount: 900 },    // 其它应付的转入（-2 层）
+    { id: 't1', from_id: 'o', to_id: 'w', amount: 500 },    // -1 层的另一笔
+    { id: 't2', from_id: 'o', to_id: 'w', amount: 10000 },  // -1 代表
+    { id: 't3', from_id: 'w', to_id: 'b', amount: 4995 },   // 选中
+  ];
+  const r = traceFlowPath(txs, 3);
+  assert.equal(r.steps.get(2), -1, '-1 代表');
+  assert.equal(r.steps.get(1), -1, '-1 同层补齐');
+  assert.equal(r.steps.get(0), -2, '-1 层没超限时 -2 照常继续');
+});
+
+test('★ 第二轮金额累计：超过上限就停止补这一层', () => {
   const txs = [
     { id: 't0', from_id: 'a', to_id: 'w', amount: 60 },   // 更早的一笔
     { id: 't1', from_id: 'b', to_id: 'w', amount: 50 },   // 累计会超

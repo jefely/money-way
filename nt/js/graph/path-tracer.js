@@ -211,7 +211,8 @@ export function traceFlowPath(links, txIndex, opts) {
   for (const c of fChain) {
     if (fHalted) break;
     take(c.idx, c.level);
-    let acc = Math.abs(Number(list[c.idx] && list[c.idx].amount) || 0);
+    // 代表记录不占额度（同向后那一轮）
+    let acc = 0;
     for (let k = c.idx + 1; k < list.length; k += 1) {
       const t = list[k];
       if (!t || !t.from_id || !same(t.from_id, c.node)) continue;
@@ -248,23 +249,23 @@ export function traceFlowPath(links, txIndex, opts) {
     node = list[found].from_id;
   }
 
-  // 第二轮：同层补齐 + **金额累计判定**（2026-11 用户加）
+  // 第二轮：同层补齐 + **金额累计判定**（2026-11 用户加，随后修正）
   //
-  //   每一层从代表记录往前补「转入同一账户」的记录，
-  //   累计金额一旦**超过选中条目的发生额**，就停止整条追踪。
-  //   道理：同一个账户的流入总额超过它流出的那一笔，说明已经追到另一个资金池了 ——
-  //   再往前补只会把不相干的流水拉进来。（`cap` 在向前那一轮已经算好）
-  let halted = false;
+  //   每一层从代表记录往前补「转入同一账户」的记录，累计超过**选中那笔的发生额**就停。
+  //
+  //   两个容易写错的地方（2026-11-03 用户报「-2 累计的不够」就是这两条）：
+  //     ① **代表记录本身不占额度**：它是这一层的锚，一定收；把它算进累计时，
+  //        补任何一笔都会立刻超（own + amt > own），同层永远补不进第二条。
+  //     ② **停止只作用于当前层**：-1 超限不该把 -2、-3 一起掐掉，
+  //        每层是独立的，加起来超了只说明这一层到这里为止。
   for (const c of chain) {
-    if (halted) break;
     take(c.idx, -c.level);
-    // 这一层已经计入的金额，从代表记录自身起算
-    let sum = Math.abs(Number(list[c.idx] && list[c.idx].amount) || 0);
+    let sum = 0;
     for (let k = c.idx - 1; k >= 0; k -= 1) {
       const t = list[k];
       if (!t || !t.to_id || !same(t.to_id, c.node)) continue;
       const amt = Math.abs(Number(t.amount) || 0);
-      if (cap > 0 && sum + amt > cap) { halted = true; break; }
+      if (cap > 0 && sum + amt > cap) break;
       take(k, -c.level);
       sum += amt;
     }
