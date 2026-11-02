@@ -197,53 +197,39 @@ export function traceFlowPath(links, txIndex, opts) {
     cur = next;
   }
 
-  // 向后：**两轮**（2026-11-03 用户重新梳理）
+  // 向后：**逐层推进，累计凑够为止**（2026-11-03 用户最终确定）
   //
-  //   第一轮（链，每层只找一条）
-  //     E-1 = 选中那笔「转出节点」作为**转入**的、之前最近一条记录
-  //     E-2 = E-1 的「转出节点」作为转入的、在 E-1 之前的最近一条
-  //     E-3 = E-2 的「转出节点」作为转入的、在 E-2 之前的最近一条 ……
+  //   -1 = 选中那笔「转出节点」作为转入的、之前最近一条（+ 同层补齐）
+  //        累计这一层；**不够选中那笔的发生额就继续往下追**
+  //   -2 = -1 代表记录的「转出节点」作为转入的、更早的最近一条（+ 同层补齐）
+  //   ……
+  //   直到累计 ≥ 选中金额，或者链断 / 到深度上限。
   //
-  //   第二轮（补齐，同层同号）
-  //     每一层把「转入账户 == 该层代表记录的转入账户」的其它记录也标成同一层
-  //     （只补这一层代表记录**之前**的，不会把未来的记录拉进来）
+  // 这和「超过就停」是反的 —— 那条会让上游拆成几笔小额的账本在 -1 就断掉。
+  // 真实账本里一笔支出的来源往往散成好几笔，所以判据是「凑够没有」。
+  const cap = Math.abs(Number(list[start] && list[start].amount) || 0);
   let boundary = start;
   let node = list[start] && list[start].from_id;
-  const chain = [];
+  let acc = 0;
   for (let level = 1; level <= depth && node; level += 1) {
+    if (cap > 0 && acc >= cap) break;
+    // 第一轮：这一层的代表 = 最近一条
     let found = -1;
     for (let k = boundary - 1; k >= 0; k -= 1) {
       const t = list[k];
-      // 关键字是**最近**一条（下标最大），不是最早
       if (t && t.to_id && same(t.to_id, node)) { found = k; break; }
     }
     if (found < 0) break;
-    chain.push({ idx: found, node, level });
+    // 第二轮：代表 + 同层补齐，金额一起计入累计
+    take(found, -level);
+    acc += Math.abs(Number(list[found] && list[found].amount) || 0);
+    for (let k = found - 1; k >= 0; k -= 1) {
+      const t = list[k];
+      if (!t || !t.to_id || !same(t.to_id, node)) continue;
+      if (take(k, -level)) acc += Math.abs(Number(t.amount) || 0);
+    }
     boundary = found;
     node = list[found].from_id;
-  }
-
-  // 第二轮：同层补齐 + **金额累计判定**（2026-11 用户加）
-  //
-  //   每一层从代表记录往前补「转入同一账户」的记录，
-  //   累计金额一旦**超过选中条目的发生额**，就停止整条追踪。
-  //   道理：同一个账户的流入总额超过它流出的那一笔，说明已经追到另一个资金池了 ——
-  //   再往前补只会把不相干的流水拉进来。
-  const cap = Math.abs(Number(list[start] && list[start].amount) || 0);
-  let halted = false;
-  for (const c of chain) {
-    if (halted) break;
-    take(c.idx, -c.level);
-    // 这一层已经计入的金额，从代表记录自身起算
-    let sum = Math.abs(Number(list[c.idx] && list[c.idx].amount) || 0);
-    for (let k = c.idx - 1; k >= 0; k -= 1) {
-      const t = list[k];
-      if (!t || !t.to_id || !same(t.to_id, c.node)) continue;
-      const amt = Math.abs(Number(t.amount) || 0);
-      if (cap > 0 && sum + amt > cap) { halted = true; break; }
-      take(k, -c.level);
-      sum += amt;
-    }
   }
 
   linkIndices.sort((a, b) => a - b);

@@ -1,14 +1,15 @@
 /**
- * 资金路径追踪（2026-11-03 第二版：两轮）。
+ * 资金路径追踪（2026-11-03 定稿版）。
  *
  *   node --test nt/tests/flow-path.test.mjs
  *
- * 向后：
- *   第一轮（链，每层只找一条）
- *     E-1 = 选中那笔「转出节点」作为**转入**的、之前最近一条
- *     E-2 = E-1 的「转出节点」作为转入的、在 E-1 之前的最近一条 ……
- *   第二轮（补齐，同层同号）
- *     每层把「转入账户 == 该层代表记录的转入账户」的其它记录也标成同一层
+ * 向后：**逐层推进，累计凑够为止**
+ *   -1 = 选中那笔「转出节点」作为转入的、之前最近一条（+ 同层补齐）
+ *        累计这一层；不够选中那笔的发生额就继续往下追
+ *   -2 = -1 代表记录的「转出节点」作为转入的、更早的最近一条（+ 同层补齐）
+ *   …… 直到累计 ≥ 选中金额，或者链断 / 到深度上限
+ *
+ * 向前：单线（第一轮），每层只找第一次作为转出节点的那一笔
  */
 
 import { test } from 'node:test';
@@ -35,86 +36,66 @@ test('★ 选中中间一笔：向前 1，向后 -1', () => {
   const r = traceFlowPath(TX, 1);   // t1: 银行卡 → 餐饮
   assert.equal(r.steps.get(1), 0);
   assert.equal(r.steps.get(2), 1, '餐饮之后第一次转出 → 1');
-  assert.equal(r.steps.get(0), -1, '银行卡最近一次转入 → -1');
+  assert.equal(r.steps.get(0), -1, '银行卡之前最近一次转入 → -1');
 });
 
-test('★ 向后找的是**最近**一条，不是最早', () => {
+test('★ 从**最近**一条往上，不是最早', () => {
   const txs = [
     { id: 't0', from_id: 'p', to_id: 's', amount: 1 },      // p → 工资
     { id: 't1', from_id: 's', to_id: 'b', amount: 2 },      // 工资 → 银行卡（早）
     { id: 't2', from_id: 'q', to_id: 's', amount: 3 },      // q → 工资
     { id: 't3', from_id: 's', to_id: 'b', amount: 4 },      // 工资 → 银行卡（近，-1 代表）
-    { id: 't4', from_id: 'b', to_id: 't', amount: 100 },    // 选中（金额要够大）
+    { id: 't4', from_id: 'b', to_id: 't', amount: 100 },    // 选中
   ];
   const r = traceFlowPath(txs, 4);
-  assert.equal(r.steps.get(4), 0);
   assert.equal(r.steps.get(3), -1, '-1 的代表是最近那笔 t3');
   assert.equal(r.steps.get(1), -1, '同层补齐 t1');
-  // 关键：第二层从 t3 继续往前找「工资」的转入 → 命中 t2（不是 t0）
+  // 第二层从 t3 继续往前找「工资」的转入 → 命中 t2（不是 t0）
   assert.equal(r.steps.get(2), -2, '从最近的 -1 继续往前');
   assert.equal(r.steps.get(0), -2, 't0 与 t2 转入同一账户 → 同层补齐');
 });
 
-test('★ 第二轮补齐：转入账户相同的其它记录同层同号', () => {
+test('★★ 累加不够就继续追：-1 不够 → -2 → -3', () => {
   const txs = [
-    { id: 't0', from_id: 'o', to_id: 'w', amount: 500 },    // 其它应付 → 微信钱包
-    { id: 't1', from_id: 'b', to_id: 'w', amount: 999 },    // 招行储 → 微信钱包
-    { id: 't2', from_id: 'o', to_id: 'w', amount: 10000 },  // 其它应付 → 微信钱包（最近）
-    { id: 't3', from_id: 'w', to_id: 'b', amount: 20000 },  // 选中（金额要够大，别触发上限）
+    { id: 't0', from_id: 'a', to_id: 'b', amount: 20 },   // -3
+    { id: 't1', from_id: 'b', to_id: 'c', amount: 30 },   // -2
+    { id: 't2', from_id: 'c', to_id: 'z', amount: 40 },   // -1，只有 40
+    { id: 't3', from_id: 'z', to_id: 'w', amount: 100 },  // 选中
   ];
   const r = traceFlowPath(txs, 3);
   assert.equal(r.steps.get(3), 0);
-  // 第一轮：最近一条是 t2
-  assert.equal(r.steps.get(2), -1, '微信钱包最近一次转入');
-  // 第二轮：t0、t1 也是转入微信钱包 → 同层
-  assert.equal(r.steps.get(0), -1);
-  assert.equal(r.steps.get(1), -1);
+  assert.equal(r.steps.get(2), -1, '40 < 100，继续');
+  assert.equal(r.steps.get(1), -2, '累计 70 < 100，继续');
+  assert.equal(r.steps.get(0), -3, '累计 90，链到底');
 });
 
-test('★ 第二层从 -1 那条继续往前，换成它的转出账户', () => {
+test('★ 凑够就停：-1 一层就够，不再往下', () => {
   const txs = [
-    { id: 't0', from_id: 'p', to_id: 'o', amount: 1 },      // 客户 → 其它应付
-    { id: 't1', from_id: 'o', to_id: 'w', amount: 500 },    // 其它应付 → 微信钱包
-    { id: 't2', from_id: 'o', to_id: 'w', amount: 900 },    // 其它应付 → 微信钱包（最近 → -1）
-    { id: 't3', from_id: 'w', to_id: 'b', amount: 4995 },   // 选中
-  ];
-  const r = traceFlowPath(txs, 3);
-  assert.equal(r.steps.get(2), -1, '微信钱包最近一次转入');
-  assert.equal(r.steps.get(1), -1, '同层补齐');
-  // -1 的转出账户是「其它应付」，在 t2 之前找「其它应付」的转入 → t0
-  assert.equal(r.steps.get(0), -2);
-});
-
-test('★ 第二轮金额累计：超过选中那笔的发生额就停止追踪', () => {
-  const txs = [
-    { id: 't0', from_id: 'a', to_id: 'w', amount: 60 },   // 更早的一笔
-    { id: 't1', from_id: 'b', to_id: 'w', amount: 50 },   // 累计会超
-    { id: 't2', from_id: 'c', to_id: 'w', amount: 10 },   // 最近 → -1 代表
-    { id: 't3', from_id: 'w', to_id: 'x', amount: 100 },  // 选中
-  ];
-  const r = traceFlowPath(txs, 3);
-  assert.equal(r.steps.get(3), 0);
-  assert.equal(r.steps.get(2), -1, '代表记录：最近那条');
-  assert.equal(r.steps.get(1), -1, '10 + 50 = 60，没超 100');
-  assert.equal(r.steps.has(0), false, '60 + 60 = 120 > 100 → 停止，t0 不进链');
-});
-
-test('金额累计不会误伤：刚好等于上限仍然收', () => {
-  const txs = [
-    { id: 't0', from_id: 'a', to_id: 'w', amount: 40 },
-    { id: 't1', from_id: 'b', to_id: 'w', amount: 60 },
-    { id: 't2', from_id: 'w', to_id: 'x', amount: 100 },   // 选中
+    { id: 't0', from_id: 'a', to_id: 'b', amount: 20 },
+    { id: 't1', from_id: 'b', to_id: 'z', amount: 100 },   // -1，一层就够
+    { id: 't2', from_id: 'z', to_id: 'w', amount: 100 },   // 选中
   ];
   const r = traceFlowPath(txs, 2);
-  assert.equal(r.steps.get(0), -1, '40 没超');
-  assert.equal(r.steps.get(1), -1, '40 + 60 = 100，等于上限，仍然收');
+  assert.equal(r.steps.get(1), -1);
+  assert.equal(r.steps.has(0), false, '已经凑够，不再往下追');
 });
 
-test('向前**不汇聚**：只认第一次作为转出节点的那一笔', () => {
+test('★ 同层补齐的金额也计入累计', () => {
   const txs = [
-    { id: 'a', from_id: 's', to_id: 'b', amount: 1 },   // 选中
-    { id: 'b', from_id: 'b', to_id: 'f', amount: 2 },   // 第一次：1
-    { id: 'c', from_id: 'b', to_id: 'g', amount: 3 },   // 第二次：不收
+    { id: 't0', from_id: 'a', to_id: 'z', amount: 60 },   // -1 同层
+    { id: 't1', from_id: 'b', to_id: 'z', amount: 50 },   // -1 代表
+    { id: 't2', from_id: 'z', to_id: 'w', amount: 100 },  // 选中
+  ];
+  const r = traceFlowPath(txs, 2);
+  assert.equal(r.steps.get(1), -1);
+  assert.equal(r.steps.get(0), -1, '50 + 60 = 110 ≥ 100，这一层就够');
+});
+
+test('向前单线：只认第一次作为转出节点的那一笔', () => {
+  const txs = [
+    { id: 'a', from_id: 's', to_id: 'b', amount: 100 },   // 选中
+    { id: 'b', from_id: 'b', to_id: 'f', amount: 30 },    // 第一次转出：1
+    { id: 'c', from_id: 'b', to_id: 'g', amount: 30 },    // 第二次转出：不收
   ];
   const r = traceFlowPath(txs, 0);
   assert.equal(r.steps.get(1), 1);
