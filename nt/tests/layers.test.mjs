@@ -75,16 +75,17 @@ test('★ 追踪漏斗：基础宽头 6、细头 1.2，细头在转入端', () =
 
 /* ---------- ① 三层半径 ---------- */
 
-test('两层半径：外圈 10% 细线 + 内圈 90% 节点，取消分类圈', () => {
-  const r = ringRadii(2133, 1920);   // 默认参数：外径 2133，内径 1920
+test('两层半径：外圈细线 + 内圈节点，取消分类圈', () => {
+  // 显式传参测「结构与公式」，不依赖默认值（默认值另有测试钉住）
+  const r = ringRadii(2133, 1920, { typeWidth: 0.1, typeGap: 0 });
   assert.equal(r.r3, 2133);
   assert.ok(Math.abs(r.r0 - 1920) < 1e-9, `最内沿应回到 rIn，实际 ${r.r0}`);
   const thick = 2133 - 1920;
-  assert.ok(Math.abs(r.typeBand - thick * 0.1) < 1e-9, '外圈只占 10%，看上去是一条线');
+  assert.ok(Math.abs(r.typeBand - thick * 0.1) < 1e-9, '外圈占 10%，看上去是一条线');
   assert.equal(r.catBand, 0, '分类圈已取消');
   assert.ok(Math.abs(r.nodeBand - thick * 0.9) < 1e-9, '其余全给节点');
-  assert.ok(r.r3 > r.r2 && r.r2 > r.r0, '半径必须严格递减');
-  assert.equal(r.r1, r.r2, 'r1 与 r2 重合（分类圈的占位已归还给节点）');
+  assert.ok(r.r3 > r.r2 && r.r2 >= r.r1 && r.r1 > r.r0, '半径必须严格递减');
+  assert.equal(r.r1, r.r2, '间距为 0 时 r1 与 r2 重合');
 });
 
 test('两层半径：环厚为 0 时不产生负半径', () => {
@@ -94,9 +95,8 @@ test('两层半径：环厚为 0 时不产生负半径', () => {
 });
 
 test('★ 外圈细线的粗细与间距可调（面板「环图·几何」）', () => {
-  const base = ringRadii(2000, 1800);              // 环厚 200
-  assert.ok(Math.abs(base.typeBand - 20) < 1e-6, '默认占环厚 10%');
-  assert.ok(Math.abs(base.r2 - 1980) < 1e-6);
+  const base = ringRadii(2000, 1800, { typeWidth: 0.1 });   // 环厚 200
+  assert.ok(Math.abs(base.typeBand - 20) < 1e-6, '0.1 → 20');
 
   const thick = ringRadii(2000, 1800, { typeWidth: 0.2 });
   assert.ok(Math.abs(thick.typeBand - 40) < 1e-6, '0.2 → 40');
@@ -106,6 +106,12 @@ test('★ 外圈细线的粗细与间距可调（面板「环图·几何」）',
   // 间距再大也不能把节点环顶出细线外面去
   const huge = ringRadii(2000, 1800, { typeWidth: 0.5, typeGap: 0.9 });
   assert.ok(huge.r1 <= huge.r2 && huge.r0 >= 0);
+});
+
+test('外圈默认值：线厚 0.06 / 间距 0.03（2026-11 用户实测）', () => {
+  const r = ringRadii(2000, 1800);   // 环厚 200
+  assert.ok(Math.abs(r.typeBand - 12) < 1e-6, '200 × 0.06 = 12');
+  assert.ok(Math.abs(r.r2 - r.r1 - 6) < 1e-6, '间距 200 × 0.03 = 6');
 });
 
 /* ---------- ② 三层配色 ---------- */

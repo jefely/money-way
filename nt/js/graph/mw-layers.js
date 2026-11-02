@@ -29,7 +29,7 @@
  * 聚合后再画一圈同色系的分类带，等于把「分类边界」说两遍，还多出一整圈颜色。
  * 现在外层只留一条**细线**表示六大类型，其余全给节点弧块。
  */
-const BAND = { type: 0.1, node: 0.9 };
+const BAND = { type: 0.06, gap: 0.03, node: 0.91 };
 
 /**
  * 两层同心环的半径。
@@ -51,7 +51,7 @@ export function ringRadii(rOut, rIn, opts) {
     return Number.isFinite(n) ? Math.min(0.9, Math.max(0, n)) : d;
   };
   const tw = clamp01(opts && opts.typeWidth, BAND.type);
-  const tg = clamp01(opts && opts.typeGap, 0);
+  const tg = clamp01(opts && opts.typeGap, BAND.gap);
   const typeBand = thick * tw;
   // 节点环的外沿：细线内沿再往里让出 typeGap；
   // 上界受 r2 约束（再大的间距也不能把 r1 顶到细线外面去）
