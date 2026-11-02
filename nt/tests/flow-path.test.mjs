@@ -41,18 +41,18 @@ test('★ 选中中间一笔：向前 1，向后 -1', () => {
 
 test('★ 从**最近**一条往上，不是最早', () => {
   const txs = [
-    { id: 't0', from_id: 'p', to_id: 's', amount: 1 },      // p → 工资
-    { id: 't1', from_id: 's', to_id: 'b', amount: 2 },      // 工资 → 银行卡（早）
-    { id: 't2', from_id: 'q', to_id: 's', amount: 3 },      // q → 工资
-    { id: 't3', from_id: 's', to_id: 'b', amount: 4 },      // 工资 → 银行卡（近，-1 代表）
+    { id: 't0', from_id: 'p', to_id: 's', amount: 1 },      // p → 工资（-2 同层）
+    { id: 't1', from_id: 'q', to_id: 's', amount: 3 },      // q → 工资（-2 代表）
+    { id: 't2', from_id: 's', to_id: 'b', amount: 2 },      // 工资 → 银行卡（-1 同层）
+    { id: 't3', from_id: 's', to_id: 'b', amount: 4 },      // 工资 → 银行卡（-1 代表）
     { id: 't4', from_id: 'b', to_id: 't', amount: 100 },    // 选中
   ];
   const r = traceFlowPath(txs, 4);
   assert.equal(r.steps.get(3), -1, '-1 的代表是最近那笔 t3');
-  assert.equal(r.steps.get(1), -1, '同层补齐 t1');
-  // 第二层从 t3 继续往前找「工资」的转入 → 命中 t2（不是 t0）
-  assert.equal(r.steps.get(2), -2, '从最近的 -1 继续往前');
-  assert.equal(r.steps.get(0), -2, 't0 与 t2 转入同一账户 → 同层补齐');
+  assert.equal(r.steps.get(2), -1, '同层补齐 t2');
+  // 第二层从 t3 继续往前找「工资」的转入 → 命中 t1（不是 t0）
+  assert.equal(r.steps.get(1), -2, '从最近的 -1 继续往前');
+  assert.equal(r.steps.get(0), -2, 't0 与 t1 转入同一账户 → 同层补齐');
 });
 
 test('★★ 累加不够就继续追：-1 不够 → -2 → -3', () => {
@@ -78,6 +78,32 @@ test('★ 凑够就停：-1 一层就够，不再往下', () => {
   const r = traceFlowPath(txs, 2);
   assert.equal(r.steps.get(1), -1);
   assert.equal(r.steps.has(0), false, '已经凑够，不再往下追');
+});
+
+test('★★ 逐笔累加：够了立刻停，同层剩下的不再收', () => {
+  const txs = [
+    { id: 't0', from_id: 'a', to_id: 'w', amount: 50 },    // -1 第三笔
+    { id: 't1', from_id: 'b', to_id: 'w', amount: 60 },    // -1 第二笔
+    { id: 't2', from_id: 'c', to_id: 'w', amount: 70 },    // -1 代表
+    { id: 't3', from_id: 'w', to_id: 'z', amount: 100 },   // 选中
+  ];
+  const r = traceFlowPath(txs, 3);
+  assert.equal(r.steps.get(2), -1, '代表 70，不够');
+  assert.equal(r.steps.get(1), -1, '70 + 60 = 130 ≥ 100，收完就停');
+  assert.equal(r.steps.has(0), false, '已经够了，t0 不再收');
+});
+
+test('★ 本层补齐不越过下一层的代表', () => {
+  const txs = [
+    { id: 't0', from_id: 'p', to_id: 'w', amount: 500 },   // 更早的微信钱包转入
+    { id: 't1', from_id: 'a', to_id: 'o', amount: 30 },    // -2 代表
+    { id: 't2', from_id: 'o', to_id: 'w', amount: 40 },    // -1 代表
+    { id: 't3', from_id: 'w', to_id: 'z', amount: 100 },   // 选中
+  ];
+  const r = traceFlowPath(txs, 3);
+  assert.equal(r.steps.get(2), -1, '-1 代表');
+  assert.equal(r.steps.get(1), -2, '-2 代表');
+  assert.equal(r.steps.has(0), false, 't0 在 -2 代表之前，不属于 -1 层');
 });
 
 test('★ 同层补齐的金额也计入累计', () => {

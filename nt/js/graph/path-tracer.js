@@ -197,39 +197,57 @@ export function traceFlowPath(links, txIndex, opts) {
     cur = next;
   }
 
-  // 向后：**逐层推进，累计凑够为止**（2026-11-03 用户最终确定）
+  // 向后：**逐笔累加，够了就停**（2026-11-03 最终版）
   //
-  //   -1 = 选中那笔「转出节点」作为转入的、之前最近一条（+ 同层补齐）
-  //        累计这一层；**不够选中那笔的发生额就继续往下追**
-  //   -2 = -1 代表记录的「转出节点」作为转入的、更早的最近一条（+ 同层补齐）
-  //   ……
-  //   直到累计 ≥ 选中金额，或者链断 / 到深度上限。
+  //   每一层按时间从近往远**一笔一笔**收，每收一笔就判一次：
+  //     -1 的第一笔（代表）→ 够了吗？
+  //       不够 → -1 的第二笔（同转入账户）→ 够了吗？
+  //       不够 → -1 的第三笔 …
+  //     这一层收完还不 ` → 换 -2，同样一笔一笔来。
   //
-  // 这和「超过就停」是反的 —— 那条会让上游拆成几笔小额的账本在 -1 就断掉。
-  // 真实账本里一笔支出的来源往往散成好几笔，所以判据是「凑够没有」。
+  //   两个边界：
+  //   ① **补齐不越过下一层的代表**：-1 层最多扫到 -2 代表的位置为止，
+  //      再早的同类记录属于另一段时间，不该算进这一层。
+  //   ② 判据是「凑够没有」—— `total ≥ 选中金额` 就停，不是「超没超」。
   const cap = Math.abs(Number(list[start] && list[start].amount) || 0);
   let boundary = start;
   let node = list[start] && list[start].from_id;
   let acc = 0;
   for (let level = 1; level <= depth && node; level += 1) {
     if (cap > 0 && acc >= cap) break;
-    // 第一轮：这一层的代表 = 最近一条
+
+    // 这一层的代表：最近一条
     let found = -1;
     for (let k = boundary - 1; k >= 0; k -= 1) {
       const t = list[k];
       if (t && t.to_id && same(t.to_id, node)) { found = k; break; }
     }
     if (found < 0) break;
-    // 第二轮：代表 + 同层补齐，金额一起计入累计
+
+    // 先把下一层的代表算出来，它同时是**这一层补齐的下界**
+    const nextNode = list[found] && list[found].from_id;
+    let floor = -1;
+    if (nextNode) {
+      for (let k = found - 1; k >= 0; k -= 1) {
+        const t = list[k];
+        if (t && t.to_id && same(t.to_id, nextNode)) { floor = k; break; }
+      }
+    }
+
     take(found, -level);
     acc += Math.abs(Number(list[found] && list[found].amount) || 0);
-    for (let k = found - 1; k >= 0; k -= 1) {
+    if (cap > 0 && acc >= cap) { boundary = found; break; }
+
+    // 同层补齐：一笔一笔收、一笔一笔判，够了立刻走人
+    for (let k = found - 1; k > floor; k -= 1) {
       const t = list[k];
       if (!t || !t.to_id || !same(t.to_id, node)) continue;
-      if (take(k, -level)) acc += Math.abs(Number(t.amount) || 0);
+      take(k, -level);
+      acc += Math.abs(Number(t.amount) || 0);
+      if (cap > 0 && acc >= cap) break;
     }
     boundary = found;
-    node = list[found].from_id;
+    node = nextNode;
   }
 
   linkIndices.sort((a, b) => a - b);
