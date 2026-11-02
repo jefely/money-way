@@ -83,6 +83,8 @@ export const MW_SCHEMA = [
   // 2026-11 默认从 12 提到 50 —— 12 跳在真实账本里常常把链截断在半路。
   { key: '追踪深度', type: 'num', group: '环图·追踪', def: 60, min: 0, max: 500, cssVar: '--nt-mw-trace-depth', field: 'traceDepth' },
   { key: '追踪非命中线宽', type: 'num', group: '环图·追踪', def: 1.2, min: 0, max: 20, cssVar: '--nt-mw-trace-floor', field: 'traceFloor' },
+  // 环内那两组文字（正负序号 + 金额）用同一个字号，2026-11 用户要求统一
+  { key: '追踪字号', type: 'num', group: '环图·追踪', def: 52, min: 20, max: 120, cssVar: '--nt-mw-trace-font', field: 'traceFontSize' },
 
   /* ---------- 环图·规则 ---------- */
   { key: '分类间隙角', type: 'num', group: '环图·规则', def: 0.8, min: 0, max: 10, cssVar: '--nt-mw-gap-deg', field: 'gapDeg' },
