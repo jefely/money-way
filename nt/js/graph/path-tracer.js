@@ -216,8 +216,9 @@ export function traceFlowPath(links, txIndex, opts) {
             : (t && t.from_id && same(t.from_id, item.node));
           if (!hit) continue;
           const amt = Math.abs(Number(t.amount) || 0);
-          // 这一支的上限 = 它代表那一笔的金额；再加就超了说明追到别的资金池
-          if (item.limit > 0 && acc + amt > item.limit) break;
+          // **先收下这笔，再看够没够**（2026-11 用户报「之前的追踪没显示」）
+          // 上游一笔 1万、选中只有 4995 时，若先判「加了会超」就一笔都不收，
+          // 整条历史全空。正确语义是「超过的那笔也算进来，然后停」。
           take(k, back ? -level : level);
           acc += amt;
           const other = back ? t.from_id : t.to_id;

@@ -33,11 +33,20 @@ test('★ 向后树状：-1 收所有转入 A 的，累计到 A 的金额就停'
     { id: 't3', from_id: 'a', to_id: 'b', amount: 100 },   // 选中
   ];
   const r = traceFlowPath(txs, 3);
-  // 从最近往前：t2(20) → 20；t1(60) → 80；t0(30) 会让 110 > 100 → 停
+  // 从最近往前：t2(20) → 20；t1(60) → 80；t0(30) → 110，收下后超 100 → 停
   assert.equal(r.steps.get(3), 0);
   assert.equal(r.steps.get(2), -1);
   assert.equal(r.steps.get(1), -1);
-  assert.equal(r.steps.has(0), false, '再加 30 会超 100');
+  assert.equal(r.steps.get(0), -1, '超过的那笔也算进来，然后停');
+});
+
+test('★ 上游一笔就比选中大：也要收下（否则历史全空）', () => {
+  const txs = [
+    { id: 't0', from_id: 'o', to_id: 'w', amount: 10000 },
+    { id: 't1', from_id: 'w', to_id: 'z', amount: 4995 },  // 选中
+  ];
+  const r = traceFlowPath(txs, 1);
+  assert.equal(r.steps.get(0), -1, '1万 > 4995，但必须先收下');
 });
 
 test('★★ 每一支独立累计：上限是**该支代表那一笔**的金额，不是选中金额', () => {
@@ -52,22 +61,24 @@ test('★★ 每一支独立累计：上限是**该支代表那一笔**的金额
   assert.equal(r.steps.get(4), 0);
   assert.equal(r.steps.get(3), -1, 'D 支');
   assert.equal(r.steps.get(2), -1, 'E 支');
-  // E 支的上限 = 40：t1(20) 收下；t0(30) 会让这一支到 50 > 40 → 不收
+  // E 支的上限 = 40：t1(20) 收下；t0(30) 收到 50，超了 40 → 停
   assert.equal(r.steps.get(1), -2, 'E 支的上一层');
-  assert.equal(r.steps.has(0), false, 'E 支到 40 就停，不再往上');
+  assert.equal(r.steps.get(0), -2, 'E 支超过的那笔也收下');
 });
 
 test('★ 两支互不影响：D 支能继续走，E 支停住', () => {
   const txs = [
     { id: 't0', from_id: 'z', to_id: 'd', amount: 50 },    // D 支的上一层
-    { id: 't1', from_id: 'q', to_id: 'e', amount: 99 },    // E 支：一收就超
+    { id: 't1', from_id: 'q', to_id: 'e', amount: 99 },    // E 支：收下就超
     { id: 't2', from_id: 'e', to_id: 'a', amount: 40 },
     { id: 't3', from_id: 'd', to_id: 'a', amount: 60 },
     { id: 't4', from_id: 'a', to_id: 'b', amount: 150 },
   ];
   const r = traceFlowPath(txs, 4);
   assert.equal(r.steps.get(0), -2, 'D 支走到第二层');
-  assert.equal(r.steps.has(1), false, 'E 支第一笔就 99 > 40，收不了');
+  assert.equal(r.steps.get(1), -2, 'E 支那笔 99 > 40，收下后停在这一层');
+  // E 支因为第一笔就超了，不会再派生下一层分支
+  assert.ok(r.steps.get(1) === -2);
 });
 
 test('★ 向前树状：B 的每一笔转出各自展开，序号是层号', () => {
@@ -76,26 +87,26 @@ test('★ 向前树状：B 的每一笔转出各自展开，序号是层号', ()
     { id: 't1', from_id: 'b', to_id: 'f', amount: 40 },    // 1
     { id: 't2', from_id: 'b', to_id: 'g', amount: 30 },    // 1
     { id: 't3', from_id: 'f', to_id: 'h', amount: 40 },    // 2（F 支）
-    { id: 't4', from_id: 'g', to_id: 'i', amount: 80 },    // G 支：80 > 30，不收
+    { id: 't4', from_id: 'g', to_id: 'i', amount: 30 },    // 2（G 支）
   ];
   const r = traceFlowPath(txs, 0);
   assert.equal(r.steps.get(1), 1);
   assert.equal(r.steps.get(2), 1);
   assert.equal(r.steps.get(3), 2, 'F 支的下一层');
-  assert.equal(r.steps.has(4), false, 'G 支上限 30，80 太大');
+  assert.equal(r.steps.get(4), 2, 'G 支也各自展开');
 });
 
-test('向前累计到选中金额就停：多出的转出不收', () => {
+test('向前累计到选中金额就停：最后一笔收下后停', () => {
   const txs = [
     { id: 't0', from_id: 's', to_id: 'b', amount: 100 },   // 选中
     { id: 't1', from_id: 'b', to_id: 'f', amount: 60 },
     { id: 't2', from_id: 'b', to_id: 'g', amount: 30 },
-    { id: 't3', from_id: 'b', to_id: 'h', amount: 30 },    // 60+30+30 > 100
+    { id: 't3', from_id: 'b', to_id: 'h', amount: 30 },
   ];
   const r = traceFlowPath(txs, 0);
   assert.equal(r.steps.get(1), 1);
   assert.equal(r.steps.get(2), 1, '60 + 30 = 90，还够');
-  assert.equal(r.steps.has(3), false, '再加 30 超 100');
+  assert.equal(r.steps.get(3), 1, '90 + 30 = 120，收下这笔然后停');
 });
 
 test('★ 同名不同 ID 的账户也算同一个节点（合并/迁移留下的重名）', () => {
