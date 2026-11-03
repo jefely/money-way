@@ -302,11 +302,21 @@ export function renderChart(data) {
     const fsTrace = f(p.traceFontSize || 46);
     // 序号：内弧线内侧
     const pin = pointAt(cx, cy, Math.max(1, rIn - markGap), lb.a);
-    parts.push(`<text class="mw-amount mw-seq" x="${f(pin[0])}" y="${f(pin[1])}"`
-      + ` text-anchor="${upside ? 'start' : 'end'}" dominant-baseline="middle"`
-      + ` font-size="${fsTrace}" font-weight="700" fill="#ffffff" fill-opacity="0.92"`
-      + ` pointer-events="none" style="paint-order:stroke;stroke:#000;stroke-opacity:.55;stroke-width:5"`
-      + ` transform="${rot(pin[0], pin[1])}">${esc(lb.mark)}</text>`);
+    if (lb.isRoot) {
+      // 选中的那笔：▲ 跟着射线转，**永远指向环外**（v1.215 的 ▶ 是死的，
+      // 在左半边就指向圆心了 —— 用户截图里看到的「错乱」就是这个）
+      parts.push(`<text class="mw-amount mw-seq" x="${f(pin[0])}" y="${f(pin[1])}"`
+        + ` text-anchor="middle" dominant-baseline="central"`
+        + ` font-size="${fsTrace}" font-weight="700" fill="#ffffff" fill-opacity="0.92"`
+        + ` pointer-events="none" style="paint-order:stroke;stroke:#000;stroke-opacity:.55;stroke-width:5"`
+        + ` transform="${rot(pin[0], pin[1])}">${esc(lb.mark)}</text>`);
+    } else {
+      parts.push(`<text class="mw-amount mw-seq" x="${f(pin[0])}" y="${f(pin[1])}"`
+        + ` text-anchor="${upside ? 'start' : 'end'}" dominant-baseline="middle"`
+        + ` font-size="${fsTrace}" font-weight="700" fill="#ffffff" fill-opacity="0.92"`
+        + ` pointer-events="none" style="paint-order:stroke;stroke:#000;stroke-opacity:.55;stroke-width:5"`
+        + ` transform="${rot(pin[0], pin[1])}">${esc(lb.mark)}</text>`);
+    }
 
     // 金额：内弧线外侧（压在环上）
     const pout = pointAt(cx, cy, rIn + amountGap, lb.a);
