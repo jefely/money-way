@@ -94,19 +94,33 @@ export function paintChart(host, data, hits, onPick, view) {
   //   序号（资金路径上的第几步）→ 内弧线的**内方**
   //   金额                       → 内弧线的**外方**
   // 序号来自 view.traceSteps（graph/path-tracer 的 traceFlowPath）：
-  //   选中 = **▶**（不是数字，免得和同级的 0 混）
+  //   选中 = 一个**指向环外**的三角（按位置挑 ▲▼◀▶，不再旋转字体）
   //   同级兄弟（转入同一账户的其它记录）= 0
   //   向前（钱花到哪）= 1，向后（钱从哪来）= -1/-2/-3…
   const steps = (view && view.traceSteps) || null;
   const focusTxId = (view && view.focusTxId) || '';
   const rootIdx = focusTxId ? data.txs.findIndex((t) => t && t.id === focusTxId) : -1;
+  // 角度 0 = 正上方；三角永远指向环外，所以按象限挑一个
+  const outward = (a) => {
+    const deg = (((a * 180) / Math.PI) % 360 + 360) % 360;
+    if (deg < 45 || deg >= 315) return '▲';
+    if (deg < 135) return '▶';
+    if (deg < 225) return '▼';
+    return '◀';
+  };
   const labels = isTrace
     ? data.chords
       .filter((c) => hits && hits.has(c.txIdx) && Number.isFinite(c.aTo))
       .map((c) => {
         const n = steps && steps.has(c.txIdx) ? steps.get(c.txIdx) : null;
-        const mark = n == null ? '' : (n === 0 && c.txIdx === rootIdx ? '▶' : String(n));
-        return { a: c.aTo, mark, amount: String(Math.round(Number(c.amount) || 0)) };
+        const isRoot = n === 0 && c.txIdx === rootIdx;
+        const mark = isRoot ? outward(c.aTo) : (n == null ? '' : String(n));
+        return {
+          a: c.aTo,
+          mark,
+          amount: String(Math.round(Number(c.amount) || 0)),
+          left: Math.cos(c.aTo) < 0,
+        };
       })
     : [];
 

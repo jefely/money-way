@@ -285,36 +285,31 @@ export function renderChart(data) {
     + ` r="${Math.round(rOut * p.grabRatio)}"`
     + ` fill="transparent" pointer-events="all"/>`);
 
-  // ⑥ 追踪模式的两组文字（2026-11）：以内弧线为基准聚拢
-  //     序号 → 弧线**内方**（圆里侧，anchor=end，从弧线向内长）
-  //     金额 → 弧线**外方**（环上，anchor=start，从弧线向外长）
-  //    朝向与环外的账户标签一致：沿半径向外辐射，下半圈翻过来。
+  // ⑥ 追踪模式的两组文字（2026-11）
+  //     序号 → 弧线**内方**（圆里侧）     金额 → 弧线**外方**（环上）
+  //   **文字不旋转**：水平摆，只按左右半边换 anchor。
+  //   选中那笔的三角由 path-view 按位置挑 ▲▼◀▶，指向环外。
   const markGap = Math.max(16, (rOut - rIn) * 0.13);
   const amountGap = Math.max(16, (rOut - rIn) * 0.12);
   for (const lb of d.labels || []) {
     if (!lb || !Number.isFinite(lb.a)) continue;
-    let theta = (lb.a * 180) / Math.PI - 90;
-    const upside = theta > 90 || theta < -90;
-    if (upside) theta += 180;
-    const rot = (x, y) => `rotate(${theta.toFixed(1)} ${f(x)} ${f(y)})`;
-
     // 序号与金额用**同一个字号**（面板「环图·追踪 / 追踪字号」）
     const fsTrace = f(p.traceFontSize || 46);
-    // 序号：内弧线内侧
+    // 序号：内弧线内侧。左半边文字向左长、右半边向右长
     const pin = pointAt(cx, cy, Math.max(1, rIn - markGap), lb.a);
     parts.push(`<text class="mw-amount mw-seq" x="${f(pin[0])}" y="${f(pin[1])}"`
-      + ` text-anchor="${upside ? 'start' : 'end'}" dominant-baseline="middle"`
+      + ` text-anchor="${lb.left ? 'end' : 'start'}" dominant-baseline="middle"`
       + ` font-size="${fsTrace}" font-weight="700" fill="#ffffff" fill-opacity="0.92"`
       + ` pointer-events="none" style="paint-order:stroke;stroke:#000;stroke-opacity:.55;stroke-width:5"`
-      + ` transform="${rot(pin[0], pin[1])}">${esc(lb.mark)}</text>`);
+      + `>${esc(lb.mark)}</text>`);
 
     // 金额：内弧线外侧（压在环上）
     const pout = pointAt(cx, cy, rIn + amountGap, lb.a);
     parts.push(`<text class="mw-amount mw-sum" x="${f(pout[0])}" y="${f(pout[1])}"`
-      + ` text-anchor="${upside ? 'end' : 'start'}" dominant-baseline="middle"`
+      + ` text-anchor="${lb.left ? 'end' : 'start'}" dominant-baseline="middle"`
       + ` font-size="${fsTrace}" font-weight="700" fill="#ffffff" fill-opacity="0.95"`
       + ` pointer-events="none" style="paint-order:stroke;stroke:#000;stroke-opacity:.5;stroke-width:5"`
-      + ` transform="${rot(pout[0], pout[1])}">${esc(lb.amount)}</text>`);
+      + `>${esc(lb.amount)}</text>`);
   }
 
   parts.push('</g></svg>');
