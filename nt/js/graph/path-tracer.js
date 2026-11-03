@@ -182,108 +182,55 @@ export function traceFlowPath(links, txIndex, opts) {
 
   take(start, 0);
 
-  // 金额上限：选中那笔的发生额。向前、向后两个方向都按「消耗完它」来推进。
+  // 金额上限：选中那笔的发生额。两个方向的第一层都用它，往下一层换成「代表记录的金额」。
   const cap = Math.abs(Number(list[start] && list[start].amount) || 0);
 
-  // 向前：**逐层推进，逐笔累加，消耗完为止**（2026-11-03，与向后同一套逻辑）
+  // 两个方向共用一套**树状展开**（2026-11 用户按手绘图确定）：
   //
-  //   第 1 层：to0 之后**第一次**作为转出节点的那笔（代表）
-  //            + 同层补齐（转出账户相同的其它记录），一笔一笔累加
-  //   第 2 层：第 1 层代表的「转入账户」之后再第一次作为转出的那笔 + 补齐
-  //   …… 直到累计 ≥ 选中金额，或链断 / 到深度上限。
+  //   一层 = 上一层**每一笔**记录各自展开的一组
+  //     -1：所有转入 A 的记录，累计 > A 的金额就停
+  //     -2：-1 里**每一笔**各自的转入记录，累计 > 那一笔的金额就停
+  //     ……
+  //   每收一笔就派生下一层的一个分支（node = 它的另一端账户，limit = 它的金额）。
   //
-  //   边界：本层补齐不越过**下一层代表**（时间往后），
-  //         再晚的同类记录属于另一段时间，不该算进这一层。
-  let fBoundary = start;
-  let fNode = list[start] && list[start].to_id;
-  let fAcc = 0;
-  for (let level = 1; level <= depth && fNode; level += 1) {
-    if (cap > 0 && fAcc >= cap) break;
-
-    // 这一层的代表：之后第一次作为转出方
-    let found = -1;
-    for (let k = fBoundary + 1; k < list.length; k += 1) {
-      const t = list[k];
-      if (t && t.from_id && same(t.from_id, fNode)) { found = k; break; }
-    }
-    if (found < 0) break;
-
-    // 先算下一层的代表，它同时是**这一层补齐的上界**
-    const nextNode = list[found] && list[found].to_id;
-    let ceil = list.length;
-    if (nextNode) {
-      for (let k = found + 1; k < list.length; k += 1) {
-        const t = list[k];
-        if (t && t.from_id && same(t.from_id, nextNode)) { ceil = k; break; }
+  // 与旧版的差别：旧版一层只沿一个代表往下走，这里是**每个分支各自走**、各自累计。
+  const walk = (dir) => {
+    const back = dir < 0;
+    const seed = list[start] && (back ? list[start].from_id : list[start].to_id);
+    if (!seed) return;
+    const seen = new Set();
+    let frontier = [{ node: seed, limit: cap, boundary: start }];
+    for (let level = 1; level <= depth && frontier.length; level += 1) {
+      const next = [];
+      for (const item of frontier) {
+        const key = String(item.node);
+        if (seen.has(key)) continue;   // 同一账户只展开一次（防环）
+        seen.add(key);
+        let acc = 0;
+        // 向后往历史翻，向前往未来翻
+        const from = back ? item.boundary - 1 : item.boundary + 1;
+        const stepK = back ? -1 : 1;
+        for (let k = from; back ? k >= 0 : k < list.length; k += stepK) {
+          const t = list[k];
+          const hit = back ? (t && t.to_id && same(t.to_id, item.node))
+            : (t && t.from_id && same(t.from_id, item.node));
+          if (!hit) continue;
+          const amt = Math.abs(Number(t.amount) || 0);
+          // 这一支的上限 = 它代表那一笔的金额；再加就超了说明追到别的资金池
+          if (item.limit > 0 && acc + amt > item.limit) break;
+          take(k, back ? -level : level);
+          acc += amt;
+          const other = back ? t.from_id : t.to_id;
+          if (other) next.push({ node: other, limit: amt, boundary: k });
+          if (item.limit > 0 && acc >= item.limit) break;
+        }
       }
+      frontier = next;
     }
+  };
 
-    take(found, level);
-    fAcc += Math.abs(Number(list[found] && list[found].amount) || 0);
-    if (cap > 0 && fAcc >= cap) { fBoundary = found; break; }
-
-    for (let k = found + 1; k < ceil; k += 1) {
-      const t = list[k];
-      if (!t || !t.from_id || !same(t.from_id, fNode)) continue;
-      take(k, level);
-      fAcc += Math.abs(Number(t.amount) || 0);
-      if (cap > 0 && fAcc >= cap) break;
-    }
-    fBoundary = found;
-    fNode = nextNode;
-  }
-
-  // 向后：**逐笔累加，够了就停**（2026-11-03 最终版）
-  //
-  //   每一层按时间从近往远**一笔一笔**收，每收一笔就判一次：
-  //     -1 的第一笔（代表）→ 够了吗？
-  //       不够 → -1 的第二笔（同转入账户）→ 够了吗？
-  //       不够 → -1 的第三笔 …
-  //     这一层收完还不 ` → 换 -2，同样一笔一笔来。
-  //
-  //   两个边界：
-  //   ① **补齐不越过下一层的代表**：-1 层最多扫到 -2 代表的位置为止，
-  //      再早的同类记录属于另一段时间，不该算进这一层。
-  //   ② 判据是「凑够没有」—— `total ≥ 选中金额` 就停，不是「超没超」。
-  let boundary = start;
-  let node = list[start] && list[start].from_id;
-  let acc = 0;
-  for (let level = 1; level <= depth && node; level += 1) {
-    if (cap > 0 && acc >= cap) break;
-
-    // 这一层的代表：最近一条
-    let found = -1;
-    for (let k = boundary - 1; k >= 0; k -= 1) {
-      const t = list[k];
-      if (t && t.to_id && same(t.to_id, node)) { found = k; break; }
-    }
-    if (found < 0) break;
-
-    // 先把下一层的代表算出来，它同时是**这一层补齐的下界**
-    const nextNode = list[found] && list[found].from_id;
-    let floor = -1;
-    if (nextNode) {
-      for (let k = found - 1; k >= 0; k -= 1) {
-        const t = list[k];
-        if (t && t.to_id && same(t.to_id, nextNode)) { floor = k; break; }
-      }
-    }
-
-    take(found, -level);
-    acc += Math.abs(Number(list[found] && list[found].amount) || 0);
-    if (cap > 0 && acc >= cap) { boundary = found; break; }
-
-    // 同层补齐：一笔一笔收、一笔一笔判，够了立刻走人
-    for (let k = found - 1; k > floor; k -= 1) {
-      const t = list[k];
-      if (!t || !t.to_id || !same(t.to_id, node)) continue;
-      take(k, -level);
-      acc += Math.abs(Number(t.amount) || 0);
-      if (cap > 0 && acc >= cap) break;
-    }
-    boundary = found;
-    node = nextNode;
-  }
+  walk(1);    // 向前：往未来翻
+  walk(-1);   // 向后：往历史翻
 
   linkIndices.sort((a, b) => a - b);
   return { linkIndices, steps };
