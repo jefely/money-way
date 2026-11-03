@@ -286,30 +286,45 @@ export function renderChart(data) {
     + ` fill="transparent" pointer-events="all"/>`);
 
   // ⑥ 追踪模式的两组文字（2026-11）
-  //     序号 → 弧线**内方**（圆里侧）     金额 → 弧线**外方**（环上）
-  //   **文字不旋转**：水平摆，只按左右半边换 anchor。
-  //   选中那笔的三角由 path-view 按位置挑 ▲▼◀▶，指向环外。
+  //     序号 → 弧线**内方**；金额 → 弧线**外方**
+  //   文字**沿射线方向旋转**（和环外账户标签同一套规则）。
+  //   两处特别处理：
+  //     · 选中的三角：字符是 ▲，靠 rotate(theta) 转到「指向环外」
+  //     · 序号文字：多转 180°，让**负号贴环**那一端（`-2` 的 `-` 靠环）
   const markGap = Math.max(16, (rOut - rIn) * 0.13);
   const amountGap = Math.max(16, (rOut - rIn) * 0.12);
   for (const lb of d.labels || []) {
     if (!lb || !Number.isFinite(lb.a)) continue;
-    // 序号与金额用**同一个字号**（面板「环图·追踪 / 追踪字号」）
+    let theta = (lb.a * 180) / Math.PI - 90;
+    const upside = theta > 90 || theta < -90;
+    if (upside) theta += 180;
     const fsTrace = f(p.traceFontSize || 46);
-    // 序号：内弧线内侧。左半边文字向左长、右半边向右长
+    const rot = (x, y, extra) => `rotate(${(theta + (extra || 0)).toFixed(1)} ${f(x)} ${f(y)})`;
     const pin = pointAt(cx, cy, Math.max(1, rIn - markGap), lb.a);
-    parts.push(`<text class="mw-amount mw-seq" x="${f(pin[0])}" y="${f(pin[1])}"`
-      + ` text-anchor="${lb.left ? 'end' : 'start'}" dominant-baseline="middle"`
-      + ` font-size="${fsTrace}" font-weight="700" fill="#ffffff" fill-opacity="0.92"`
-      + ` pointer-events="none" style="paint-order:stroke;stroke:#000;stroke-opacity:.55;stroke-width:5"`
-      + `>${esc(lb.mark)}</text>`);
 
-    // 金额：内弧线外侧（压在环上）
+    if (lb.isRoot) {
+      // 选中：▲ 跟着射线转，永远指向环外
+      parts.push(`<text class="mw-amount mw-seq" x="${f(pin[0])}" y="${f(pin[1])}"`
+        + ` text-anchor="middle" dominant-baseline="central"`
+        + ` font-size="${fsTrace}" font-weight="700" fill="#ffffff" fill-opacity="0.92"`
+        + ` pointer-events="none" style="paint-order:stroke;stroke:#000;stroke-opacity:.55;stroke-width:5"`
+        + ` transform="${rot(pin[0], pin[1], 0)}">${esc(lb.mark)}</text>`);
+    } else {
+      // 序号：多转 180°，文字从环边往圆心写，第一个字符（负号）贴环
+      parts.push(`<text class="mw-amount mw-seq" x="${f(pin[0])}" y="${f(pin[1])}"`
+        + ` text-anchor="start" dominant-baseline="middle"`
+        + ` font-size="${fsTrace}" font-weight="700" fill="#ffffff" fill-opacity="0.92"`
+        + ` pointer-events="none" style="paint-order:stroke;stroke:#000;stroke-opacity:.55;stroke-width:5"`
+        + ` transform="${rot(pin[0], pin[1], 180)}">${esc(lb.mark)}</text>`);
+    }
+
+    // 金额：内弧线外侧（压在环上），方向仍朝外
     const pout = pointAt(cx, cy, rIn + amountGap, lb.a);
     parts.push(`<text class="mw-amount mw-sum" x="${f(pout[0])}" y="${f(pout[1])}"`
-      + ` text-anchor="${lb.left ? 'end' : 'start'}" dominant-baseline="middle"`
+      + ` text-anchor="${upside ? 'end' : 'start'}" dominant-baseline="middle"`
       + ` font-size="${fsTrace}" font-weight="700" fill="#ffffff" fill-opacity="0.95"`
       + ` pointer-events="none" style="paint-order:stroke;stroke:#000;stroke-opacity:.5;stroke-width:5"`
-      + `>${esc(lb.amount)}</text>`);
+      + ` transform="${rot(pout[0], pout[1], 0)}">${esc(lb.amount)}</text>`);
   }
 
   parts.push('</g></svg>');
