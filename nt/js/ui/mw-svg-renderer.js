@@ -285,37 +285,26 @@ export function renderChart(data) {
     + ` r="${Math.round(rOut * p.grabRatio)}"`
     + ` fill="transparent" pointer-events="all"/>`);
 
-  // ⑥ 追踪模式的两组文字（2026-11）：以内弧线为基准聚拢
-  //     序号 → 弧线**内方**（圆里侧，anchor=end，从弧线向内长）
-  //     金额 → 弧线**外方**（环上，anchor=start，从弧线向外长）
-  //    朝向与环外的账户标签一致：沿半径向外辐射，下半圈翻过来。
+  // ⑥ 追踪文字（2026-11 定稿）：**一行**、全部落在内弧线内侧，
+  //     内容是 `层数 金额`（如 `▶ 12000`、`-2 4500`）。
+  //     朝向与环外的账户标签一致：沿半径向外辐射，下半圈翻过来。
+  //     颜色不在 JS 里定 —— `fill="currentColor"` 由 CSS 的 .mw-amount 控制，
+  //     浅色主题自动换成黑字。
   const markGap = Math.max(16, (rOut - rIn) * 0.13);
-  const amountGap = Math.max(16, (rOut - rIn) * 0.12);
   for (const lb of d.labels || []) {
     if (!lb || !Number.isFinite(lb.a)) continue;
     let theta = (lb.a * 180) / Math.PI - 90;
     const upside = theta > 90 || theta < -90;
     if (upside) theta += 180;
-    const rot = (x, y) => `rotate(${theta.toFixed(1)} ${f(x)} ${f(y)})`;
-
-    // 序号与金额用**同一个字号**（面板「环图·追踪 / 追踪字号」）
-    const fsTrace = f(p.traceFontSize || 46);
-    // 序号：内弧线内侧
-    const pin = pointAt(cx, cy, Math.max(1, rIn - markGap), lb.a);
-    parts.push(`<text class="mw-amount mw-seq" x="${f(pin[0])}" y="${f(pin[1])}"`
-      + ` text-anchor="${upside ? 'start' : 'end'}" dominant-baseline="middle"`
-      + ` font-size="${fsTrace}" font-weight="700" fill="#ffffff" fill-opacity="0.92"`
-      + ` pointer-events="none" style="paint-order:stroke;stroke:#000;stroke-opacity:.55;stroke-width:5"`
-      + ` transform="${rot(pin[0], pin[1])}">${esc(lb.mark)}</text>`);
-
-    // 金额：内弧线外侧（压在环上）。**黑色**（2026-11 用户要），
-    // 描边改成白色低透明 —— 彩底上黑字本来就清楚，白边只在深色缝隙里兜底。
-    const pout = pointAt(cx, cy, rIn + amountGap, lb.a);
-    parts.push(`<text class="mw-amount mw-sum" x="${f(pout[0])}" y="${f(pout[1])}"`
-      + ` text-anchor="${upside ? 'end' : 'start'}" dominant-baseline="middle"`
-      + ` font-size="${fsTrace}" font-weight="700" fill="#000000" fill-opacity="0.92"`
-      + ` pointer-events="none" style="paint-order:stroke;stroke:#fff;stroke-opacity:.45;stroke-width:4"`
-      + ` transform="${rot(pout[0], pout[1])}">${esc(lb.amount)}</text>`);
+    const pt = pointAt(cx, cy, Math.max(1, rIn - markGap), lb.a);
+    // 左半边朝左长、右半边朝右长；下半圈文字翻过来时 anchor 也要跟着反
+    const anchor = lb.left !== upside ? 'start' : 'end';
+    parts.push(`<text class="mw-amount" x="${f(pt[0])}" y="${f(pt[1])}"`
+      + ` text-anchor="${anchor}" dominant-baseline="middle"`
+      + ` font-size="${f(p.traceFontSize || 46)}" font-weight="700" fill="currentColor"`
+      + ` pointer-events="none"`
+      + ` transform="rotate(${theta.toFixed(1)} ${f(pt[0])} ${f(pt[1])})"`
+      + `>${esc(lb.text)}</text>`);
   }
 
   parts.push('</g></svg>');

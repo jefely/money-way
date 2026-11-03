@@ -91,12 +91,11 @@ export function paintChart(host, data, hits, onPick, view) {
   });
 
   // 追踪模式：每条命中线的转入端贴**两组**文字（2026-11 用户要的）：
-  //   序号（资金路径上的第几步）→ 内弧线的**内方**
-  //   金额                       → 内弧线的**外方**
-  // 序号来自 view.traceSteps（graph/path-tracer 的 traceFlowPath）：
-  //   选中 = **▶**（不是数字，免得和同级的 0 混）
+  // 追踪文字：**一行**，`层数 金额`，全部落在内弧线内侧（2026-11 用户定）
+  //   选中那笔的标记按位置换成 ◀ / ▶（左半边朝左、右半边朝右）
   //   同级兄弟（转入同一账户的其它记录）= 0
   //   向前（钱花到哪）= 1，向后（钱从哪来）= -1/-2/-3…
+  // 颜色不在这里定：交给 CSS 的 .mw-amount，浅色主题自动换黑字。
   const steps = (view && view.traceSteps) || null;
   const focusTxId = (view && view.focusTxId) || '';
   const rootIdx = focusTxId ? data.txs.findIndex((t) => t && t.id === focusTxId) : -1;
@@ -105,8 +104,11 @@ export function paintChart(host, data, hits, onPick, view) {
       .filter((c) => hits && hits.has(c.txIdx) && Number.isFinite(c.aTo))
       .map((c) => {
         const n = steps && steps.has(c.txIdx) ? steps.get(c.txIdx) : null;
-        const mark = n == null ? '' : (n === 0 && c.txIdx === rootIdx ? '▶' : String(n));
-        return { a: c.aTo, mark, amount: String(Math.round(Number(c.amount) || 0)) };
+        const left = Math.cos(c.aTo) < 0;
+        const isRoot = n === 0 && c.txIdx === rootIdx;
+        const mark = isRoot ? (left ? '◀' : '▶') : (n == null ? '' : String(n));
+        const amount = String(Math.round(Number(c.amount) || 0));
+        return { a: c.aTo, text: mark ? `${mark} ${amount}` : amount, left };
       })
     : [];
 
