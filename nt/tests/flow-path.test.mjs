@@ -81,36 +81,44 @@ test('★ 两支互不影响：D 支能继续走，E 支停住', () => {
   assert.ok(r.steps.get(1) === -2);
 });
 
-test('★ 向前树状：B 的每一笔转出各自展开，序号是层号', () => {
+test('★★ 向前只追一层：不展开第二层', () => {
   const txs = [
     { id: 't0', from_id: 's', to_id: 'b', amount: 100 },   // 选中
     { id: 't1', from_id: 'b', to_id: 'f', amount: 40 },    // 1
     { id: 't2', from_id: 'b', to_id: 'g', amount: 30 },    // 1
-    { id: 't3', from_id: 'f', to_id: 'h', amount: 40 },    // 2（F 支）
-    { id: 't4', from_id: 'g', to_id: 'i', amount: 30 },    // 2（G 支）
+    { id: 't3', from_id: 'f', to_id: 'h', amount: 40 },    // 下游不展开
   ];
   const r = traceFlowPath(txs, 0);
   assert.equal(r.steps.get(1), 1);
   assert.equal(r.steps.get(2), 1);
-  assert.equal(r.steps.get(3), 2, 'F 支的下一层');
-  assert.equal(r.steps.get(4), 2, 'G 支也各自展开');
+  assert.equal(r.steps.has(3), false, '第二层不再追');
+});
+
+test('★ 向前最多 9 笔', () => {
+  const txs = [{ id: 't0', from_id: 's', to_id: 'b', amount: 1000 }];
+  for (let i = 1; i <= 12; i += 1) {
+    txs.push({ id: 't' + i, from_id: 'b', to_id: 'x' + i, amount: 5 });
+  }
+  const r = traceFlowPath(txs, 0);
+  const fwd = [...r.steps.values()].filter((v) => v === 1);
+  assert.equal(fwd.length, 9, '再多也只显示 9 笔');
 });
 
 test('★★ 同级兄弟簇：B 后续的其它流入也标 0', () => {
   const txs = [
-    { id: 't0', from_id: 'a', to_id: 'b', amount: 100 },   // 选中
-    { id: 't1', from_id: 'c', to_id: 'b', amount: 50 },    // 之后又有一笔转进 B
+    { id: 't0', from_id: 'a', to_id: 'b', amount: 100 },   // 选中（图上是 ▶）
+    { id: 't1', from_id: 'c', to_id: 'b', amount: 50 },    // 同级兄弟
     { id: 't2', from_id: 'b', to_id: 'f', amount: 80 },    // 下游：1
-    { id: 't3', from_id: 'd', to_id: 'b', amount: 20 },    // 再一笔转进 B
+    { id: 't3', from_id: 'd', to_id: 'b', amount: 20 },    // 同级兄弟
   ];
   const r = traceFlowPath(txs, 0);
-  assert.equal(r.steps.get(0), 0);
-  assert.equal(r.steps.get(1), 0, 'B 的其它流入 → 和选中同级');
-  assert.equal(r.steps.get(3), 0, '同样是同级');
-  assert.equal(r.steps.get(2), 1, '下游照旧是 1');
+  assert.equal(r.steps.get(0), 0, '选中也是 0（渲染层换成 ▶）');
+  assert.equal(r.steps.get(1), 0, '同级兄弟');
+  assert.equal(r.steps.get(3), 0, '同级兄弟');
+  assert.equal(r.steps.get(2), 1, '下游是 1');
 });
 
-test('向前累计到选中金额就停：最后一笔收下后停', () => {
+test('向前累计超选中金额就停', () => {
   const txs = [
     { id: 't0', from_id: 's', to_id: 'b', amount: 100 },   // 选中
     { id: 't1', from_id: 'b', to_id: 'f', amount: 60 },
@@ -148,25 +156,28 @@ test('成环不死循环（同一账户只展开一次）', () => {
   assert.equal(r.steps.get(0), 0);
 });
 
-test('maxDepth 限制层数', () => {
-  const txs = [{ id: 'seed', from_id: 'a0', to_id: 'a1', amount: 1000 }];
-  for (let i = 1; i < 10; i += 1) {
-    txs.push({ id: 't' + i, from_id: 'a' + i, to_id: 'a' + (i + 1), amount: 1 });
+test('maxDepth 限制层数（向后）', () => {
+  // 一笔 1000 后面接着 9 笔 10 —— 上限够用，测的是深度而不是金额
+  const txs = [];
+  for (let i = 0; i < 10; i += 1) {
+    txs.push({ id: 't' + i, from_id: 'a' + i, to_id: 'a' + (i + 1), amount: i === 9 ? 1000 : 10 });
   }
-  const r = traceFlowPath(txs, 0, { maxDepth: 3 });
-  assert.equal(r.steps.size, 4, '0 和 1/2/3 共四条');
-  assert.equal(r.steps.get(3), 3);
-  assert.equal(r.steps.has(4), false);
+  const r = traceFlowPath(txs, 9, { maxDepth: 3 });
+  assert.equal(r.steps.size, 4, '选中 + 3 层');
+  assert.equal(r.steps.get(8), -1);
+  assert.equal(r.steps.get(7), -2);
+  assert.equal(r.steps.get(6), -3);
+  assert.equal(r.steps.has(5), false, '第 4 层被深度截断');
 });
 
 test('★ maxDepth = 0 表示**不限**，一路追到底', () => {
-  const txs = [{ id: 'seed', from_id: 'a0', to_id: 'a1', amount: 1000 }];
-  for (let i = 1; i < 10; i += 1) {
-    txs.push({ id: 't' + i, from_id: 'a' + i, to_id: 'a' + (i + 1), amount: 1 });
+  const txs = [];
+  for (let i = 0; i < 10; i += 1) {
+    txs.push({ id: 't' + i, from_id: 'a' + i, to_id: 'a' + (i + 1), amount: i === 9 ? 1000 : 10 });
   }
-  const r = traceFlowPath(txs, 0, { maxDepth: 0 });
+  const r = traceFlowPath(txs, 9, { maxDepth: 0 });
   assert.equal(r.steps.size, 10, '全部十笔都进链');
-  assert.equal(r.steps.get(9), 9);
+  assert.equal(r.steps.get(0), -9);
 });
 
 test('空输入 / 越界不炸', () => {

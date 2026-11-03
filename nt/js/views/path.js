@@ -346,8 +346,6 @@ export function mountPath(section, ctx) {
     // 四种模式的线宽在 paintChart 里各自独立：
     //   mode=null 基本模式 / 'acc' 点色块 / 'tx' 点单线 / 'trace' 侧栏追踪
     // 方向开关已取消（2026-11）：线色永远取转出节点，点弧块看哪一侧由类型决定。
-    // 色块模式的线宽按「被点弧块的类型」查表，所以要把它的类型传下去。
-    const focusAcc = focus && focus.kind === 'acc' ? ctx.getIndex().byId.get(focus.id) : null;
     paintChart(chartBox, data, emptyChain ? null : hits, (kind, value) => {
       if (kind === 'acc') {
         const same = focus && focus.kind === 'acc' && focus.id === value;
@@ -361,7 +359,10 @@ export function mountPath(section, ctx) {
       }
       render();
     }, {
-      mode: focus ? focus.kind : null, params: p, focusType: focusAcc ? focusAcc.type : '', traceSteps,
+      // focusTxId：让渲染层知道哪一笔是「选中」的 —— 它在环上标 ▶，和同级的 0 区分开
+      mode: focus ? focus.kind : null, params: p, traceSteps,
+      focusType: focus && focus.kind === 'acc' ? (ctx.getIndex().byId.get(focus.id) || {}).type || '' : '',
+      focusTxId: focus && focus.txId ? focus.txId : '',
     });
 
     // 手势要在 paintChart **之后**挂：svg 是 paintChart 里才创建的。

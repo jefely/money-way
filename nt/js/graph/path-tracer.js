@@ -230,13 +230,28 @@ export function traceFlowPath(links, txIndex, opts) {
     }
   };
 
-  walk(1);    // 向前：往未来翻
-  walk(-1);   // 向后：往历史翻
+  // 向前：**只追一层**（2026-11 用户定）
+  //   下游是分岔的，展开多层会炸；一层内累计到超过选中金额就停，最多 9 笔。
+  const FWD_MAX = 9;
+  const fwdNode = list[start] && list[start].to_id;
+  if (fwdNode) {
+    let acc = 0;
+    let count = 0;
+    for (let k = start + 1; k < list.length && count < FWD_MAX; k += 1) {
+      const t = list[k];
+      if (!t || !t.from_id || !same(t.from_id, fwdNode)) continue;
+      take(k, 1);
+      acc += Math.abs(Number(t.amount) || 0);
+      count += 1;
+      if (cap > 0 && acc >= cap) break;
+    }
+  }
 
-  // **同级兄弟簇**（2026-11 用户加）：选中那笔的**转入账户**，
-  // 除了选中这一笔之外还有别的钱进来 —— 那些记录和选中**同级**（0），
-  // 单独成一簇。只标记、不展开：它们是「这笔钱还收到过什么」，
-  // 不是这条链的上下游。
+  walk(-1);   // 向后：往历史翻（树状展开，每一支独立累计）
+
+  // **同级兄弟簇**（2026-11 用户要的）：选中那笔的**转入账户**，
+  // 在选中之后还有别的钱进来时，那些记录和选中**同级**（0），单独成一簇。
+  // 只标记、不展开。选中自己在图上是 **▶**，所以「▶ 与 0」一眼能分清。
   const siblingNode = list[start] && list[start].to_id;
   if (siblingNode) {
     for (let k = start + 1; k < list.length; k += 1) {
