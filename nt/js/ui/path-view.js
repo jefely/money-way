@@ -94,7 +94,7 @@ export function paintChart(host, data, hits, onPick, view) {
   //   序号（资金路径上的第几步）→ 内弧线的**内方**
   //   金额                       → 内弧线的**外方**
   // 序号来自 view.traceSteps（graph/path-tracer 的 traceFlowPath）：
-  //   选中 = **▲**（渲染器把它转到「指向环外」，所以这里只放朝上的原始字符）
+  //   选中 = **▶**（不是数字，免得和同级的 0 混）
   //   同级兄弟（转入同一账户的其它记录）= 0
   //   向前（钱花到哪）= 1，向后（钱从哪来）= -1/-2/-3…
   const steps = (view && view.traceSteps) || null;
@@ -105,27 +105,10 @@ export function paintChart(host, data, hits, onPick, view) {
       .filter((c) => hits && hits.has(c.txIdx) && Number.isFinite(c.aTo))
       .map((c) => {
         const n = steps && steps.has(c.txIdx) ? steps.get(c.txIdx) : null;
-        const isRoot = n === 0 && c.txIdx === rootIdx;
-        return {
-          a: c.aTo,
-          isRoot,
-          mark: isRoot ? '▲' : (n == null ? '' : String(n)),
-          amount: String(Math.round(Number(c.amount) || 0)),
-        };
+        const mark = n == null ? '' : (n === 0 && c.txIdx === rootIdx ? '▶' : String(n));
+        return { a: c.aTo, mark, amount: String(Math.round(Number(c.amount) || 0)) };
       })
     : [];
-
-  // **抗重叠**：同一账户的几笔流水角度几乎一样，标签会叠成一坨
-  // （用户截图里看到的 `-0` 其实是 `-` 和 `0` 两笔压在一起）。
-  // 按角度排序后，和上一笔差不到 1° 的就往下错一层，渲染器按 rank 拉开半径。
-  const sorted = labels.slice().sort((x, y) => x.a - y.a);
-  let prevA = null;
-  let rank = 0;
-  for (const lb of sorted) {
-    rank = (prevA != null && Math.abs(lb.a - prevA) < 0.015) ? rank + 1 : 0;
-    lb.rank = rank;
-    prevA = lb.a;
-  }
 
   host.innerHTML = renderChart({
     blocks: data.blocks,
