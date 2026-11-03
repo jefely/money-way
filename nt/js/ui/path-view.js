@@ -115,6 +115,18 @@ export function paintChart(host, data, hits, onPick, view) {
       })
     : [];
 
+  // **抗重叠**：同一账户的几笔流水角度几乎一样，标签会叠成一坨
+  // （用户截图里看到的 `-0` 其实是 `-` 和 `0` 两笔压在一起）。
+  // 按角度排序后，和上一笔差不到 1° 的就往下错一层，渲染器按 rank 拉开半径。
+  const sorted = labels.slice().sort((x, y) => x.a - y.a);
+  let prevA = null;
+  let rank = 0;
+  for (const lb of sorted) {
+    rank = (prevA != null && Math.abs(lb.a - prevA) < 0.015) ? rank + 1 : 0;
+    lb.rank = rank;
+    prevA = lb.a;
+  }
+
   host.innerHTML = renderChart({
     blocks: data.blocks,
     chords,
