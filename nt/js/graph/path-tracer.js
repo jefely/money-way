@@ -233,6 +233,18 @@ export function traceFlowPath(links, txIndex, opts) {
   walk(1);    // 向前：往未来翻
   walk(-1);   // 向后：往历史翻
 
+  // **同级兄弟簇**（2026-11 用户加）：选中那笔的**转入账户**，
+  // 除了选中这一笔之外还有别的钱进来 —— 那些记录和选中**同级**（0），
+  // 单独成一簇。只标记、不展开：它们是「这笔钱还收到过什么」，
+  // 不是这条链的上下游。
+  const siblingNode = list[start] && list[start].to_id;
+  if (siblingNode) {
+    for (let k = start + 1; k < list.length; k += 1) {
+      const t = list[k];
+      if (t && t.to_id && same(t.to_id, siblingNode)) take(k, 0);
+    }
+  }
+
   linkIndices.sort((a, b) => a - b);
   return { linkIndices, steps };
 }

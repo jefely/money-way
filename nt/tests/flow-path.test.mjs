@@ -96,6 +96,20 @@ test('★ 向前树状：B 的每一笔转出各自展开，序号是层号', ()
   assert.equal(r.steps.get(4), 2, 'G 支也各自展开');
 });
 
+test('★★ 同级兄弟簇：B 后续的其它流入也标 0', () => {
+  const txs = [
+    { id: 't0', from_id: 'a', to_id: 'b', amount: 100 },   // 选中
+    { id: 't1', from_id: 'c', to_id: 'b', amount: 50 },    // 之后又有一笔转进 B
+    { id: 't2', from_id: 'b', to_id: 'f', amount: 80 },    // 下游：1
+    { id: 't3', from_id: 'd', to_id: 'b', amount: 20 },    // 再一笔转进 B
+  ];
+  const r = traceFlowPath(txs, 0);
+  assert.equal(r.steps.get(0), 0);
+  assert.equal(r.steps.get(1), 0, 'B 的其它流入 → 和选中同级');
+  assert.equal(r.steps.get(3), 0, '同样是同级');
+  assert.equal(r.steps.get(2), 1, '下游照旧是 1');
+});
+
 test('向前累计到选中金额就停：最后一笔收下后停', () => {
   const txs = [
     { id: 't0', from_id: 's', to_id: 'b', amount: 100 },   // 选中
