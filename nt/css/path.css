@@ -512,23 +512,6 @@
   fill: var(--nt-bg);
 }
 
-/* 追踪模式环内那行字（`层数 金额`，如 `▶ 12000`）。
-   颜色走 currentColor：深色主题白字、浅色主题黑字；描边取对比色，
-   压在任何底色上都读得出来。渲染器只写 class，不写死颜色。 */
-.mw-amount {
-  color: #ffffff;
-  paint-order: stroke;
-  stroke: #000000;
-  stroke-opacity: 0.55;
-  stroke-width: 5px;
-}
-
-[data-theme="light"] .mw-amount {
-  color: #000000;
-  stroke: #ffffff;
-  stroke-opacity: 0.75;
-}
-
 /* 拖动期间降渲染质量：250 条线 + 43 块 + 一堆标签，每帧全画会掉帧，
    表现就是「平移发涩、像是参数太慢」。
    松手立刻恢复（文字回来、抗锯齿回来）。 */

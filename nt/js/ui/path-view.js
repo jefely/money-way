@@ -91,29 +91,22 @@ export function paintChart(host, data, hits, onPick, view) {
   });
 
   // 追踪模式：每条命中线的转入端贴**两组**文字（2026-11 用户要的）：
-  // 追踪文字：**一行**，`层数 金额`，全部落在内弧线内侧（2026-11 用户定）
-  //   层数不用数字 —— 和金额的数字挨在一起会看混，改成**箭头**：
-  //     ← 上游一层、←← 两层…；→ 下游一层；· 同级兄弟；◀/▶ 选中的那笔
-  //   选中按位置换方向：左半边 ◀、右半边 ▶
-  // 颜色不在这里定：交给 CSS 的 .mw-amount，浅色主题自动换黑字。
+  //   序号（资金路径上的第几步）→ 内弧线的**内方**
+  //   金额                       → 内弧线的**外方**
+  // 序号来自 view.traceSteps（graph/path-tracer 的 traceFlowPath）：
+  //   选中 = **▶**（不是数字，免得和同级的 0 混）
+  //   同级兄弟（转入同一账户的其它记录）= 0
+  //   向前（钱花到哪）= 1，向后（钱从哪来）= -1/-2/-3…
   const steps = (view && view.traceSteps) || null;
   const focusTxId = (view && view.focusTxId) || '';
   const rootIdx = focusTxId ? data.txs.findIndex((t) => t && t.id === focusTxId) : -1;
-  const arrowOf = (n) => {
-    if (n === 0) return '·';
-    const k = Math.min(Math.abs(n), 8);   // 再深就只到 8 个，免得一串箭头比字还长
-    return (n > 0 ? '→' : '←').repeat(k);
-  };
   const labels = isTrace
     ? data.chords
       .filter((c) => hits && hits.has(c.txIdx) && Number.isFinite(c.aTo))
       .map((c) => {
         const n = steps && steps.has(c.txIdx) ? steps.get(c.txIdx) : null;
-        const left = Math.cos(c.aTo) < 0;
-        const isRoot = n === 0 && c.txIdx === rootIdx;
-        const mark = isRoot ? (left ? '◀' : '▶') : (n == null ? '' : arrowOf(n));
-        const amount = String(Math.round(Number(c.amount) || 0));
-        return { a: c.aTo, text: mark ? `${mark} ${amount}` : amount, left };
+        const mark = n == null ? '' : (n === 0 && c.txIdx === rootIdx ? '▶' : String(n));
+        return { a: c.aTo, mark, amount: String(Math.round(Number(c.amount) || 0)) };
       })
     : [];
 
