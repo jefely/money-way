@@ -178,7 +178,7 @@ export function mountFixedTable(ctx, tbody, opts) {
         if (fromRaw || toRaw) {
           ctx.setFooter(`固定收支还没建成：账户「${fromRaw || toRaw}」不在账本里`);
         } else {
-          ctx.setFooter('固定收支还没建成：转出 / 转入 至少填一个账户');
+          ctx.setFooter('固定收支还没建成：转出 / 转入 至少填一个节点');
         }
         return;
       }

@@ -190,7 +190,7 @@ function dataRow(r, i, rowTpl) {
 
   const seq = tr.querySelector('.' + CLASS.seq);
   if (seq && (r.mark === 'missing' || r.mark === 'untyped')) {
-    const tip = r.mark === 'missing' ? '未入账：缺转出或转入' : '未入账：账户还没定类型';
+    const tip = r.mark === 'missing' ? '缺转出或转入' : '节点还没定类型';
     seq.classList.add(r.mark === 'missing' ? 'nt-seq-missing' : 'nt-seq-untyped');
     seq.title = tip;
     seq.setAttribute('aria-label', tip);

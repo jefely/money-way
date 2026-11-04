@@ -29,10 +29,10 @@
       <input class="nt-cell-input" type="text" inputmode="numeric" data-field="date" aria-label="日期">
     </td>
     <td class="nt-cell nt-cell-from">
-      <input class="nt-cell-input" type="text" data-field="from" aria-label="转出账户">
+      <input class="nt-cell-input" type="text" data-field="from" aria-label="转出节点">
     </td>
     <td class="nt-cell nt-cell-to">
-      <input class="nt-cell-input" type="text" data-field="to" aria-label="转入账户">
+      <input class="nt-cell-input" type="text" data-field="to" aria-label="转入节点">
     </td>
     <td class="nt-cell nt-cell-amount">
       <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="amount" aria-label="金额">
@@ -57,10 +57,10 @@
       <input class="nt-cell-input" type="text" inputmode="numeric" data-field="date" aria-label="日期">
     </td>
     <td class="nt-cell nt-cell-from">
-      <input class="nt-cell-input" type="text" data-field="from" aria-label="转出账户">
+      <input class="nt-cell-input" type="text" data-field="from" aria-label="转出节点">
     </td>
     <td class="nt-cell nt-cell-to">
-      <input class="nt-cell-input" type="text" data-field="to" aria-label="转入账户">
+      <input class="nt-cell-input" type="text" data-field="to" aria-label="转入节点">
     </td>
     <td class="nt-cell nt-cell-amount">
       <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="amount" aria-label="金额">
@@ -193,7 +193,7 @@
   </tr>
 </template>
 
-<!-- 统计 · 汇总视图行：账户名称 | 序号 | 类型 | 分类 | 转出金额 | 转入金额 | 当前余额 | 历史转出 | 历史转入 | 历史结余 -->
+<!-- 统计 · 汇总视图行：节点名称 | 序号 | 类型 | 分类 | 转出金额 | 转入金额 | 当前余额 | 历史转出 | 历史转入 | 历史结余 -->
 <template id="tpl-stat-account">
   <tr class="nt-row">
     <td class="nt-cell" data-field="name"></td>
@@ -229,13 +229,13 @@
     </td>
     <td class="nt-cell nt-cell-seq" data-field="seq"></td>
     <td class="nt-cell">
-      <input class="nt-cell-input" type="text" data-field="type" aria-label="账户类型" autocomplete="off">
+      <input class="nt-cell-input" type="text" data-field="type" aria-label="节点类型" autocomplete="off">
     </td>
     <td class="nt-cell">
       <input class="nt-cell-input" type="text" data-field="category" aria-label="统计分类">
     </td>
     <td class="nt-cell">
-      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户名称">
+      <input class="nt-cell-input" type="text" data-field="name" aria-label="节点名称">
     </td>
     <td class="nt-cell nt-cell-num">
       <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="opening" aria-label="期初余额">
@@ -250,7 +250,7 @@
       <button class="nt-btn nt-btn-icon" type="button" data-act="up" aria-label="上移">↑</button>
     </td>
     <td class="nt-cell nt-cell-action nt-cell-edge">
-      <button class="nt-btn nt-btn-icon" type="button" data-act="del" aria-label="删除账户">×</button>
+      <button class="nt-btn nt-btn-icon" type="button" data-act="del" aria-label="删除节点">×</button>
     </td>
   </tr>
 </template>
@@ -265,13 +265,13 @@
       <input class="nt-cell-input nt-cell-input-seq" type="text" inputmode="numeric" data-field="seq" aria-label="序号">
     </td>
     <td class="nt-cell">
-      <input class="nt-cell-input" type="text" data-field="type" aria-label="账户类型" autocomplete="off">
+      <input class="nt-cell-input" type="text" data-field="type" aria-label="节点类型" autocomplete="off">
     </td>
     <td class="nt-cell">
       <input class="nt-cell-input" type="text" data-field="category" aria-label="统计分类">
     </td>
     <td class="nt-cell">
-      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户名称">
+      <input class="nt-cell-input" type="text" data-field="name" aria-label="节点名称">
     </td>
     <td class="nt-cell nt-cell-num">
       <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="opening" aria-label="期初余额">
@@ -304,10 +304,10 @@
       <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="numeric" maxlength="2" data-field="day" aria-label="日期">
     </td>
     <td class="nt-cell">
-      <input class="nt-cell-input" type="text" data-field="from" aria-label="转出账户">
+      <input class="nt-cell-input" type="text" data-field="from" aria-label="转出节点">
     </td>
     <td class="nt-cell">
-      <input class="nt-cell-input" type="text" data-field="to" aria-label="转入账户">
+      <input class="nt-cell-input" type="text" data-field="to" aria-label="转入节点">
     </td>
     <td class="nt-cell">
       <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="amount" aria-label="金额">
@@ -335,10 +335,10 @@
       <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="numeric" maxlength="2" data-field="day" aria-label="日期" placeholder="日期">
     </td>
     <td class="nt-cell">
-      <input class="nt-cell-input" type="text" data-field="from" aria-label="转出账户">
+      <input class="nt-cell-input" type="text" data-field="from" aria-label="转出节点">
     </td>
     <td class="nt-cell">
-      <input class="nt-cell-input" type="text" data-field="to" aria-label="转入账户">
+      <input class="nt-cell-input" type="text" data-field="to" aria-label="转入节点">
     </td>
     <td class="nt-cell">
       <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="amount" aria-label="金额" placeholder="金额">
@@ -358,7 +358,7 @@
   <tr class="nt-row">
     <td class="nt-cell nt-cell-seq" data-field="seq"></td>
     <td class="nt-cell">
-      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户" placeholder="简码/名称">
+      <input class="nt-cell-input" type="text" data-field="name" aria-label="节点" placeholder="简码/名称">
     </td>
     <td class="nt-cell">
       <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="principal" aria-label="本金">
@@ -386,7 +386,7 @@
 <template id="tpl-inst-new">
   <tr class="nt-row nt-row-new" data-new="1">
     <td class="nt-cell nt-c-inst-name">
-      <input class="nt-cell-input" type="text" data-field="name" aria-label="账户名称" placeholder="账户">
+      <input class="nt-cell-input" type="text" data-field="name" aria-label="节点名称" placeholder="节点">
     </td>
     <td class="nt-cell nt-cell-num">
       <input class="nt-cell-input nt-cell-input-num" type="text" inputmode="decimal" data-field="principal" aria-label="分期金额" placeholder="金额">
@@ -403,7 +403,7 @@
   </tr>
 </template>
 
-<!-- 设置 · 账户行：序 | 类型 | 分类 | 简码 | 账户名称 | 期初 | 删除 -->
+<!-- 设置 · 账户行：序 | 类型 | 分类 | 简码 | 节点名称 | 期初 | 删除 -->
 
 
 <!-- 设置 · 类型分组行（资产 / 负债 …，合计 = 该类型期初之和） -->
@@ -447,15 +447,14 @@
         <thead>
             <!-- 筛选行：每个框就在自己那一列的格子里，列宽一变它跟着变 -->
             <tr class="nt-query-filter-row">
-              <th class="nt-th"></th>
-              <th class="nt-th">
+              <th class="nt-th" colspan="2">
                 <input class="nt-qf" type="text" data-cond="dateRange" placeholder="日期 起~止" aria-label="日期范围">
               </th>
               <th class="nt-th">
-                <input class="nt-qf" type="text" data-cond="from" aria-label="转出账户">
+                <input class="nt-qf" type="text" data-cond="from" aria-label="转出节点">
               </th>
               <th class="nt-th">
-                <input class="nt-qf" type="text" data-cond="to" aria-label="转入账户">
+                <input class="nt-qf" type="text" data-cond="to" aria-label="转入节点">
               </th>
               <th class="nt-th">
                 <input class="nt-qf" type="text" data-cond="amount" placeholder="金额" aria-label="金额">
@@ -467,8 +466,8 @@
             <tr>
               <th class="nt-th nt-c-seq" scope="col" data-col="seq">序</th>
               <th class="nt-th nt-c-date" scope="col" data-col="date">日期</th>
-              <th class="nt-th" scope="col" data-col="from">转出账户</th>
-              <th class="nt-th" scope="col" data-col="to">转入账户</th>
+              <th class="nt-th" scope="col" data-col="from">转出节点</th>
+              <th class="nt-th" scope="col" data-col="to">转入节点</th>
               <th class="nt-th nt-c-amount" scope="col" data-col="amount">金额</th>
               <th class="nt-th" scope="col" data-col="note">备注</th>
             </tr>

@@ -141,12 +141,27 @@
   padding-right: 4px;
 }
 
-/* 筛选行：就长在表头里，每格宽度由列宽决定，拖动列宽时跟着变 */
+/* 筛选行和列标一起钉住。两行都是 sticky，top 必须错开，
+   否则列标盖住筛选框，一滚动就只剩表头。 */
+.nt-table-query thead .nt-th {
+  position: sticky;
+  background: var(--nt-bg);
+  z-index: 4;
+}
+
 .nt-query-filter-row .nt-th {
-  height: auto;
+  top: 0;
+  z-index: 5;
+  height: 34px;
   padding: 3px 3px;
   background: var(--nt-bg);
   font-weight: 400;
+}
+
+.nt-table-query thead tr:nth-child(2) .nt-th {
+  top: 34px;
+  z-index: 4;
+  background: var(--nt-th-bg, var(--nt-bg-soft));
 }
 
 .nt-qf {

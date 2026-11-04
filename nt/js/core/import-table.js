@@ -16,8 +16,8 @@ import { BILL_PRESETS } from './bill-parse.js';
 /** 通用表的列名关键词 */
 const GENERIC = {
   date: ['日期', '时间', 'date'],
-  from: ['转出', '转出账户', '付款', 'from'],
-  to: ['转入', '转入账户', '收款', 'to'],
+  from: ['转出节点', '转出', '转出账户', '付款', 'from'],
+  to: ['转入节点', '转入', '转入账户', '收款', 'to'],
   amount: ['金额', 'amount'],
   note: ['备注', '说明', '摘要', 'note'],
 };

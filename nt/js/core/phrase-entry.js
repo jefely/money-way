@@ -19,12 +19,12 @@ import { uniqueCode } from './import-apply.js';
 export const ENTRY_PROMPT = {
   idle: '事项和金额，例如：咖啡 50',
   'need-from': '哪里付的钱？例如：微信',
-  'need-to': '记到哪个账户？可以先空着',
+  'need-to': '记到哪个节点？可以先空着',
   posted: '已入账',
   note: '已记成草稿备注，没有猜金额',
   'need-amount': '金额是多少？',
   draft: '草稿已留下',
-  suggest: '有相近的账户，点一下即可',
+  suggest: '有相近的节点，点一下即可',
 };
 
 /** 失焦和 30 秒都不碰已写下的草稿。 */
@@ -62,6 +62,7 @@ function createTyped(state, name, typed) {
     type: typed.type,
     category: typed.category,
     isHidden: false,
+    fresh: true,
   };
   return { state: { ...state, accounts: [...(state.accounts || []), acc] }, id };
 }
@@ -150,7 +151,7 @@ export function applyPhrase(state, text, now) {
   const to = withHint(s, parsed.toHint);
   s = to.state;
   let toId = to.id;
-  if (!toId && parsed.note) {
+  if (parsed.note) {
     const mapped = mappingFor(s, parsed.note);
     if (mapped && (s.accounts || []).some((a) => a && a.id === mapped)) toId = mapped;
   }
@@ -234,6 +235,14 @@ function exactHint(state, text) {
   return { ...rows[0], id: null };
 }
 
+function joinNote(note, extra) {
+  const add = String(extra || '').trim();
+  const base = String(note || '').trim();
+  if (!add) return base;
+  if (base === add || base.includes(add)) return base;
+  return (base + ' ' + add).trim();
+}
+
 function amountOnly(text) {
   const m = String(text || '').trim().match(/^[¥￥]?\s*(\d+(?:\.\d+)?)(?:元|块钱|块|钱)?$/);
   if (!m) return null;
@@ -257,11 +266,15 @@ export function fillDraft(state, txId, text, opts) {
   }
   const force = !!(opts && opts.force);
   const hint = exactHint(state, raw) || (parsed.fromHint && !parsed.note ? parsed.fromHint : null);
-  if (!hint && !force) {
+  if (!hint) {
     const suggestions = suggestPhraseAccounts(state, raw);
-    if (suggestions.length) {
+    if (suggestions.length && !force) {
       return { state, tx, outcome: 'suggest', prompt: ENTRY_PROMPT.suggest, fly: [], suggestions };
     }
+    const note = joinNote(tx.note, raw);
+    if (!raw || note === String(tx.note || '')) return finish(state, tx, []);
+    const kept = updateTransaction(state, txId, { note });
+    return finish(kept, (kept.transactions || []).find((t) => t.id === txId), ['note']);
   }
   const side = !tx.from_id ? 'from_id' : 'to_id';
   let s = state;
@@ -270,19 +283,6 @@ export function fillDraft(state, txId, text, opts) {
     const got = withHint(s, hint);
     s = got.state;
     id = got.id;
-  }
-  if (!id) {
-    const got = ensureAccountByText(s, raw);
-    s = got.state;
-    id = got.id;
-    if (id) {
-      s = {
-        ...s,
-        accounts: (s.accounts || []).map((a) => (
-          a && a.id === id && !String(a.category || '').trim() ? { ...a, category: a.name } : a
-        )),
-      };
-    }
   }
   if (!id) return finish(s, tx, []);
   s = updateTransaction(s, txId, { [side]: id });

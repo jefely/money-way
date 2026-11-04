@@ -148,6 +148,8 @@ export function moneyOrBlank(v) {
 const LABEL_COL = {
   序: 'seq',
   日期: 'date',
+  转出节点: 'from',
+  转入节点: 'to',
   转出账户: 'from',
   转入账户: 'to',
   转出: 'out',
@@ -158,6 +160,7 @@ const LABEL_COL = {
   类型: 'type',
   分类: 'cat',
   简码: 'code',
+  节点名称: 'name',
   账户名称: 'name',
   当前结余: 'balance',
   期初: 'opening',

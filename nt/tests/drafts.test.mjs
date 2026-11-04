@@ -159,6 +159,18 @@ test('补上类型后，两端齐全的草稿自动入账；标记跟着变', ()
   assert.equal(balanceOf(s.accounts.find((a) => a.id === 'b'), s.transactions).balance, 50);
 });
 
+test('已入账但缺一端或金额无效，序号仍是缺端', () => {
+  let s = createState();
+  s = addAccount(s, { id: 'a', code: 'JH', name: '交行储8380', type: ACCOUNT_TYPE.ASSET, category: '储蓄' });
+  s = addTransaction(s, { date: '2026-09-18', from_id: 'a', to_id: null, amount: 2, note: '' });
+  const tx = s.transactions[s.transactions.length - 1];
+  assert.equal(tx.status, undefined);
+  assert.equal(isPosted(tx), true);
+  assert.equal(markerOf(tx, s.accounts), 'missing');
+  s = addTransaction(s, { date: '2026-09-18', from_id: 'a', to_id: 'a', amount: 0 });
+  assert.equal(markerOf(s.transactions[s.transactions.length - 1], s.accounts), 'missing');
+});
+
 test('缺一端是空心标记；删账户时清掉指向它的映射', () => {
   let s = createState();
   s = addAccount(s, { id: 'a', code: 'A', name: '甲', type: ACCOUNT_TYPE.ASSET, category: '储蓄' });

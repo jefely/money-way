@@ -7,7 +7,7 @@
  * 合计与余额全部来自 core 的纯函数，本文件不算钱。
  */
 
-import { addTransaction, updateTransaction, removeTransaction, nextSeq, removeBatch, restoreBatch, noteTextByCode, ensureAccountByText } from '../core/state-store.js';
+import { addTransaction, updateTransaction, removeTransaction, nextSeq, removeBatch, restoreBatch, noteTextByCode } from '../core/state-store.js';
 import { afterTxEdit } from '../core/draft-book.js';
 import { mountComposer } from '../ui/composer.js';
 import { createScheduled } from '../core/schema.js';
@@ -16,6 +16,7 @@ import { moneyOrBlank, normalizeTypedDate, todayIso } from '../core/format.js';
 import { fingerprintBag, takeIfNew, keysForIncoming } from '../core/import-dedupe.js';
 import { renderRows, patchRow, promoteRow } from '../ui/render-transactions.js';
 import { parseAccountInput, suggestAccounts as suggestByIndex, ensurePendingAccount } from '../core/account-resolver.js';
+import { endFromText, endsFromFields, joinHeld } from '../ui/flow-ends.js';
 import { bindRowEditing } from '../ui/row-editor.js';
 import { openAddDialog } from '../ui/add-dialog.js';
 import { openSyncDialog } from '../ui/sync-dialog.js';
@@ -290,10 +291,11 @@ export function mountFlow(section, ctx) {
     if (field === 'date') patch.date = normalizeTypedDate(value);
     else if (field === 'amount') patch.amount = normalizeAmountInput(value);
     else if (field === 'from' || field === 'to') {
-      // 流水只负责记录：认不出的文本自动建一个未分类账户（不拦录入）
-      let accId = resolvedId || (parseAccountInput(ctx.getIndex(), value).acc || {}).id || null;
-      if (!accId) { const r = ensureAccountByText(ctx.getState(), value); if (r.id) { ctx.setState(r.state); accId = r.id; } }
-      patch[field === 'from' ? 'from_id' : 'to_id'] = accId;
+      const tx = (ctx.getState().transactions || []).find((t) => t && t.id === id);
+      const hit = endFromText(ctx.getState(), ctx.getIndex(), value, resolvedId, tx && tx.note);
+      if (hit.state !== ctx.getState()) ctx.setState(hit.state);
+      if (hit.note !== (tx && tx.note || '')) patch.note = hit.note;
+      patch[field === 'from' ? 'from_id' : 'to_id'] = hit.id;
     } else {
       patch[field] = value;
     }
@@ -312,14 +314,9 @@ export function mountFlow(section, ctx) {
   function onCreate(fields, tr) {
     // 流水只负责记录（用户 2026-10-30）：转出/转入可以随便写，
     // 认不出的文本自动建一个未分类账户，不拦录入。
-    let s = ctx.getState();
-    const from = parseAccountInput(ctx.getIndex(), fields.from || '');
-    const to = parseAccountInput(ctx.getIndex(), fields.to || '');
-    let fromId = from.acc ? from.acc.id : null;
-    let toId = to.acc ? to.acc.id : null;
-    if (!fromId && fields.from) { const r = ensureAccountByText(s, fields.from); s = r.state; fromId = r.id; }
-    if (!toId && fields.to) { const r = ensureAccountByText(s, fields.to); s = r.state; toId = r.id; }
-    if (!fromId && !toId) return;   // 两边都空：不建单
+    const ends = endsFromFields(ctx.getState(), ctx.getIndex(), fields);
+    const s = ends.state;
+    if (!ends.fromId && !ends.toId) return;
 
     // 还没填金额 = 用户只是先把账户名写上了（自由录入：想在哪个空行写就在哪行写）。
     // 这时只把账户登记进设置表，不建一笔金额为空的流水。
@@ -329,10 +326,10 @@ export function mountFlow(section, ctx) {
 
     ctx.setState(addTransaction(s, {
       date: normalizeTypedDate(fields.date || todayIso()),
-      from_id: fromId,
-      to_id: toId,
+      from_id: ends.fromId,
+      to_id: ends.toId,
       amount: normalizeAmountInput(fields.amount || ''),
-      note: fields.note || '',
+      note: joinHeld(fields.note, ends.held),
       seq: nextSeq(s),
     }));
 

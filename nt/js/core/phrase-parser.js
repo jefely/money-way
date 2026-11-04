@@ -9,7 +9,7 @@
  */
 
 import { todayIso } from './format.js';
-import { accountLexicon } from './lexicon.js';
+import { accountLexicon, noteTarget } from './lexicon.js';
 
 const STOP = ['一个', '一笔', '块钱', '用', '买', '花', '付', '了', '的', '在', '从', '到', '给', '把', '去', '来', '和', '又'];
 
@@ -116,6 +116,15 @@ function takeAmount(text) {
   return { text: next, amount: Number.isFinite(amount) ? amount : null };
 }
 
+function stopBoundary(text, i, prot, stops) {
+  if (i >= text.length) return true;
+  const ch = text[i];
+  if (/\s/.test(ch) || /[，。！？、,.!?]/.test(ch)) return true;
+  if (prot.some((w) => text.startsWith(w, i))) return true;
+  if (stops.some((w) => text.startsWith(w, i))) return true;
+  return false;
+}
+
 function cleanNote(rest, protectedWords) {
   const prot = protectedWords.filter(Boolean).slice().sort((a, b) => b.length - a.length);
   const stops = STOP.slice().sort((a, b) => b.length - a.length);
@@ -124,7 +133,7 @@ function cleanNote(rest, protectedWords) {
   while (i < rest.length) {
     const p = prot.find((w) => rest.startsWith(w, i));
     if (p) { out += p; i += p.length; continue; }
-    const sw = stops.find((w) => rest.startsWith(w, i));
+    const sw = stops.find((w) => rest.startsWith(w, i) && stopBoundary(rest, i + w.length, prot, stops));
     if (sw) { i += sw.length; continue; }
     out += rest[i];
     i += 1;
@@ -201,7 +210,20 @@ export function parsePhrase(text, accounts, lexicon, now) {
     const note = cleanNote(amt.text, keys);
     const ends = assignEnds(matched.hits);
     const fromHint = hintOf(ends.fromHint);
-    const toHint = hintOf(ends.toHint);
+    let toHint = hintOf(ends.toHint);
+    if (!toHint && amt.amount != null) {
+      const link = noteTarget(dated.text, words);
+      if (link && link.nodeName) {
+        toHint = {
+          keyword: link.keyword,
+          accountName: link.nodeName,
+          type: link.type,
+          category: link.category,
+          role: 'expense',
+          id: null,
+        };
+      }
+    }
     const endN = (fromHint ? 1 : 0) + (toHint ? 1 : 0);
     let confidence = 'low';
     if (amt.amount != null && endN === 2) confidence = 'high';

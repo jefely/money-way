@@ -13,9 +13,8 @@ const HEURISTICS = [
 ];
 
 function fromRole(row) {
-  if (!row) return null;
+  if (!row || row.role === 'note' || row.kind === 'note') return null;
   if (row.role === 'payment') return { type: '资产类', category: row.category || '网络账户', via: 'lexicon' };
-  if (row.role === 'note') return { type: '费用类', category: row.category || '', via: 'lexicon' };
   if (row.type) return { type: row.type, category: row.category || '', via: 'lexicon' };
   return null;
 }
@@ -30,7 +29,9 @@ export function matchAccountName(name, lexicon = LEXICON) {
   const rows = (lexicon || []).filter((row) => row && row.keyword);
   rows.sort((a, b) => b.keyword.length - a.keyword.length);
   for (const row of rows) {
-    if (text === row.keyword || text.includes(row.keyword)) return fromRole(row);
+    if (text !== row.keyword && !text.includes(row.keyword)) continue;
+    const hit = fromRole(row);
+    if (hit) return hit;
   }
   return null;
 }
