@@ -195,7 +195,9 @@ function dataRow(r, i, rowTpl) {
     if (seq) {
       const dot = document.createElement('span');
       dot.className = 'nt-draft-mark';
-      dot.setAttribute('aria-hidden', 'true');
+      dot.title = mark === 'hollow' ? '草稿：还缺转出或转入' : '草稿：有账户还没定类型';
+      dot.setAttribute('role', 'img');
+      dot.setAttribute('aria-label', dot.title);
       seq.appendChild(dot);
     }
   }

@@ -930,6 +930,14 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   flex: none;
 }
 
+.nt-mark-legend {
+  margin: 0;
+  padding: 2px 12px 4px;
+  color: var(--nt-text-muted, #8a8478);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .nt-draft-mark {
   display: inline-block;
   width: 8px;
