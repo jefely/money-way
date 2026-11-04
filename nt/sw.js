@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）�?
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.220';
+const CACHE_NAME = 'nt-v1.221';
 
 const ASSETS = [
   './index.html',
@@ -118,6 +118,7 @@ const ASSETS = [
   './js/ui/color-picker.js',
   './js/ui/composer.js',
   './js/ui/fly-in.js',
+  './js/ui/flow-ends.js',
   './js/ui/debug-panel.js',
   './js/ui/debug-pip.js',
   './js/ui/debug-themes.js',
@@ -140,6 +141,7 @@ const ASSETS = [
   './js/ui/pwa.js',
   './js/ui/qr-canvas.js',
   './js/ui/render-transactions.js',
+  './js/ui/review-tip.js',
   './js/ui/reset-dialog.js',
   './js/ui/row-editor.js',
   './js/ui/share-block.js',

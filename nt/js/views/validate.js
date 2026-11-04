@@ -40,7 +40,7 @@ export function mountValidate(section, ctx) {
     else renderAbout();
 
     const state = ctx.getState();
-    ctx.setFooter(`${(state.transactions || []).length} 笔流水 · ${visibleCount(state)} 个账户 · 校验完成`);
+    ctx.setFooter(`${(state.transactions || []).length} 笔流水 · ${visibleCount(state)} 个节点 · 校验完成`);
   }
 
   function renderCheck() {
@@ -145,14 +145,15 @@ export function mountValidate(section, ctx) {
     // 「紫老头专属账本」自成一段，单独一个框（标题同样是紫色）
     host.appendChild(textBlock('紫老头的专属账本', [
       ' 用「NT = 直觉 + 思考」的习惯记账。',
-      ' 每一笔钱，都从一个账户转出、进入另一个账户。',
+      ' 每一笔钱都是一条边：从一个节点转出，进入另一个节点。',
+      ' 节点分成资产、负债、收入、费用、权益。余额是这个节点上的净流量。',
       ' 不用记「借 / 贷」，只回答「这笔钱从哪来，到哪去」。',
     ]));
 
     // ③ 简单开始
     host.appendChild(stepsBlock('简单开始', [
-      '设置页查看账户与简码，简码可修改。',
-      '简码填进「转出账户」和「转入账户」列。',
+      '设置页查看节点与简码，简码可修改。',
+      '简码填进「转出节点」和「转入节点」列。',
       '填入发生金额，一笔记录就完成了。',
       '当前日期自动生成，日期可修改。',
     ]));
@@ -167,7 +168,7 @@ export function mountValidate(section, ctx) {
     // ⑤ 三个时间区域
     host.appendChild(textBlock('记账的目的是不用记账', [
       ' 流水记录分为 [过去] [现在] [未来] 三个区域，',
-      ' 过去包含：期初余额，在账户设置页填写。',
+      ' 过去包含：期初余额，在节点设置页填写。',
       ' 现在包含：当前账本活跃流水记录，提供实时维护。',
       ' 未来包含：固定收支表预测写入记录，提供提前确认。',
       ' 分期记录：是固定收支的一部分，用于设置分期。',

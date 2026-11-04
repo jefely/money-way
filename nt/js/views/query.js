@@ -12,6 +12,7 @@ import { parseDateRange } from '../core/date-query.js';
 import { renderRows, renderEmpty } from '../ui/table.js';
 import { tpl } from '../ui/render-transactions.js';
 import { money, moneyAlways, shortDate } from '../core/format.js';
+import { markerOf } from '../core/draft-book.js';
 
 const NAMES = ['A', 'B', 'C'];
 
@@ -78,10 +79,11 @@ export function mountQuery(section, ctx) {
       to: nameOf(t.to_id),
       amount: money(t.amount),
       note: t.note || '',
+      tone: markerOf(t, state.accounts),
     }));
 
     if (!rows.length) renderEmpty(p.body, '没有命中的流水', 6);
-    else renderRows(p.body, rows, 'tpl-query-row');
+    else renderRows(p.body, rows, 'tpl-query-row', paintSeq);
 
     const t = queryTotals(hits);
     p.totalEl.textContent = moneyAlways(t.sum);
@@ -104,6 +106,15 @@ export function mountQuery(section, ctx) {
   }
 
   return { render };
+}
+
+function paintSeq(tr, row) {
+  if (!row || (row.tone !== 'missing' && row.tone !== 'untyped')) return;
+  const seq = tr.querySelector('[data-field="seq"]');
+  if (!seq) return;
+  const missing = row.tone === 'missing';
+  seq.classList.add(missing ? 'nt-seq-missing' : 'nt-seq-untyped');
+  seq.title = missing ? '缺转出或转入' : '节点还没定类型';
 }
 
 function hasCond(c) {

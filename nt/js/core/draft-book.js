@@ -46,13 +46,17 @@ export function promoteDrafts(state) {
  * @returns {'missing'|'untyped'|''}
  */
 export function markerOf(tx, accounts) {
-  if (!tx || isPosted(tx)) return '';
-  if (!tx.from_id || !tx.to_id) return 'missing';
+  if (!tx) return '';
   const map = byId(accounts);
-  const from = map.get(tx.from_id);
-  const to = map.get(tx.to_id);
-  const typed = (a) => a && String(a.type || '').trim();
-  if (!typed(from) || !typed(to)) return 'untyped';
+  const side = (id) => !!(id && map.get(id));
+  const amountOk = Number(tx.amount) > 0;
+  if (!side(tx.from_id) || !side(tx.to_id) || !amountOk) return 'missing';
+  if (isPosted(tx)) return '';
+  const typed = (id) => {
+    const a = map.get(id);
+    return a && String(a.type || '').trim();
+  };
+  if (!typed(tx.from_id) || !typed(tx.to_id)) return 'untyped';
   return 'missing';
 }
 

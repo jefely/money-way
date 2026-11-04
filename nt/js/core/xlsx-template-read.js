@@ -28,7 +28,7 @@ const SETTINGS_COLS = {
   code: ['简码'],
   type: ['类型'],
   category: ['分类'],
-  name: ['账户名称', '名称'],
+  name: ['节点名称', '账户名称', '名称'],
   opening: ['期初'],
   billDay: ['账单日'],
   repayDay: ['还款日'],
@@ -48,7 +48,7 @@ function findSettingsHead(rows) {
     const cells = (rows[i] || []).map(str);
     if (!cells.length) continue;
     const has = (kw) => cells.some((c) => c.includes(kw));
-    if (has('账户名称') && has('期初')) return i;
+    if ((has('节点名称') || has('账户名称')) && has('期初')) return i;
   }
   return -1;
 }
@@ -180,7 +180,8 @@ export function parseInstRows(rows) {
 
   let headIdx = -1;
   for (let i = 0; i < Math.min(rows.length, 6); i += 1) {
-    if (str((rows[i] || [])[0]) === '账户名称') { headIdx = i; break; }
+    const headName = str((rows[i] || [])[0]);
+    if (headName === '节点名称' || headName === '账户名称') { headIdx = i; break; }
   }
   if (headIdx < 0) headIdx = 1;          // 老格式：标题 + 表头
 

@@ -59,7 +59,7 @@ export function buildFlowSheet(state, nameOf) {
     {
       h: 26,
       kind: 'head',
-      cells: ['序', '日期', '转出账户', '转入账户', '金额', '备注', '状态'].map((t) => ({ v: t })),
+      cells: ['序', '日期', '转出节点', '转入节点', '金额', '备注', '状态'].map((t) => ({ v: t })),
     },
   ];
 
@@ -98,11 +98,11 @@ const ZONE_TEXT = {
  */
 export function buildSettingsSheet(state) {
   const rows = [
-    { h: 30, kind: 'title', cells: [{ v: '账户设置' }] },
+    { h: 30, kind: 'title', cells: [{ v: '节点设置' }] },
     {
       h: 26,
       kind: 'head',
-      cells: ['简码', '序', '类型', '分类', '账户名称', '期初', '账单日', '还款日']
+      cells: ['简码', '序', '类型', '分类', '节点名称', '期初', '账单日', '还款日']
         .map((t) => ({ v: t })),
     },
   ];
@@ -175,12 +175,12 @@ export function buildInstSheet(state, nowMonth) {
     {
       h: 20.1,
       kind: 'note',
-      cells: [{ v: '一个账户占两行：上一行本金、下一行利息。账户名 / 分期金额 / 账单日 / 还款日只写一次。' }],
+      cells: [{ v: '一个节点占两行：上一行本金、下一行利息。节点名 / 分期金额 / 账单日 / 还款日只写一次。' }],
     },
     {
       h: 26.1,
       kind: 'head',
-      cells: ['账户名称', '分期金额', '账单日', '还款日'].map((t) => ({ v: t }))
+      cells: ['节点名称', '分期金额', '账单日', '还款日'].map((t) => ({ v: t }))
         .concat(span.map((m) => ({ v: m, k: 'center' }))),
     },
   ];
@@ -226,7 +226,7 @@ export function buildFixedSheet(state, nameOf) {
     {
       h: 26,
       kind: 'head',
-      cells: ['序', '频率', '日期', '转出账户', '转入账户', '金额', '备注'].map((t) => ({ v: t })),
+      cells: ['序', '频率', '日期', '转出节点', '转入节点', '金额', '备注'].map((t) => ({ v: t })),
     },
   ];
 

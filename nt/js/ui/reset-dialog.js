@@ -23,16 +23,16 @@ export function openResetDialog(ctx) {
     build: (body) => {
       const hint = document.createElement('p');
       hint.className = 'nt-sync-hint';
-      hint.textContent = `当前 ${nAcc} 个账户、${nTx} 笔流水、${nPlan} 条计划。`
+      hint.textContent = `当前 ${nAcc} 个节点、${nTx} 笔流水、${nPlan} 条计划。`
         + '清空会删掉这些并回到设密码之前。'
-        + `只重置账户会换回内置的 ${SEED_ACCOUNTS.length} 个，流水和计划保留；`
+        + `只重置节点会换回内置的 ${SEED_ACCOUNTS.length} 个，流水和计划保留；`
         + '名字对得上的会接回去，对不上的要到校验页里改。';
       body.appendChild(hint);
 
       const bar = document.createElement('div');
       bar.className = 'nt-exp-bar';
       const wipe = modeBtn('清空整本', 'wipe');
-      const keep = modeBtn('只重置账户', 'keep');
+      const keep = modeBtn('只重置节点', 'keep');
       bar.appendChild(wipe);
       bar.appendChild(keep);
       body.appendChild(bar);

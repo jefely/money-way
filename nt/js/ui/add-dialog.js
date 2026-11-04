@@ -56,7 +56,7 @@ export function openAddDialog(ctx) {
     applyState(r.state);
     NtModal.closeAll();
     if (ctx.setFooter) {
-      const extra = r.created.length ? `，新建 ${r.created.length} 个账户` : '';
+      const extra = r.created.length ? `，新建 ${r.created.length} 个节点` : '';
       ctx.setFooter(`已添加 ${r.txAdded} 笔${extra}`);
     }
   }

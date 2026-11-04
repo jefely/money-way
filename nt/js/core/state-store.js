@@ -16,6 +16,7 @@ import {
 } from './schema.js';
 import { promoteDrafts, dropMappingsFor } from './draft-book.js';
 import { matchAccountName } from './account-match.js';
+import { noteTarget } from './lexicon.js';
 
 /** 建一本空账（带期初虚拟账户，但它 isHidden，不进 UI 列表） */export function createState() {
   return {
@@ -94,15 +95,22 @@ export function updateAccount(state, id, patch) {
  */
 export function ensureAccountByText(state, text) {
   const t = String(text || '').trim();
-  if (!t) return { state, id: null };
+  if (!t) return { state, id: null, held: '' };
 
   const norm = normalizeCode(t);
   const hit = (state.accounts || []).find(
     (a) => a && (a.name === t || (a.code && normalizeCode(a.code) === norm)),
   );
-  if (hit) return { state, id: hit.id };
+  if (hit) return { state, id: hit.id, held: '' };
 
   const guess = matchAccountName(t);
+  if (!guess) {
+    const link = noteTarget(t);
+    if (link && link.nodeName && link.nodeName !== t) {
+      const node = ensureAccountByText(state, link.nodeName);
+      return { state: node.state, id: node.id, held: t };
+    }
+  }
   const acc = {
     id: 'acc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     code: '',
@@ -113,7 +121,7 @@ export function ensureAccountByText(state, text) {
     fresh: true,
   };
   const next = { ...state, accounts: [...(state.accounts || []), acc] };
-  return { state: promoteDrafts(next), id: acc.id };
+  return { state: promoteDrafts(next), id: acc.id, held: '' };
 }
 
 /**

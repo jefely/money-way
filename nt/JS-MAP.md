@@ -102,6 +102,7 @@
 | `ui/export-dialog.js` | 导出对话框（.lz / .xlsx / .txt / .csv） |
 | `ui/file-io.js` | （未标注界面）本地文件读写（UI 层） |
 | `ui/fixed-table.js` | 固定收支表（表格内直接交互） |
+| `ui/flow-ends.js` | 流水格里的名字 → 节点 |
 | `ui/flow-model.js` | （无界面）流水视图模型 |
 | `ui/fly-in.js` | 流水 tab → 入账飞入 |
 | `ui/gate.js` | 锁屏 / 首次设密码 |
@@ -128,6 +129,7 @@
 | `ui/range-bar.js` | 单元格框选的工具条 |
 | `ui/render-transactions.js` | 流水 tab → 表格 tbody（分批追加，照单文件版） |
 | `ui/reset-dialog.js` | 设置 → 重置 |
+| `ui/review-tip.js` | 设置页 → 新增序号气泡 |
 | `ui/row-editor.js` | 流水 tab → 行内编辑 / 新增行 |
 | `ui/share-block.js` | 二维码分享区块 |
 | `ui/share-file.js` | 导出 / 分享加密备份文件 |

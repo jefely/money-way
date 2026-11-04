@@ -20,12 +20,14 @@ test('词库大约 150–200 个词，且关键字不重复', () => {
   }
 });
 
-test('咖啡 50：金额 50，备注咖啡，不建账户', () => {
+test('咖啡 50：金额 50，备注咖啡，转入节点是餐饮', () => {
   const r = parsePhrase('咖啡 50', [], LEXICON, NOW);
   assert.equal(r.amount, 50);
   assert.equal(r.note, '咖啡');
   assert.equal(r.fromHint, null);
-  assert.equal(r.toHint, null);
+  assert.equal(r.toHint && r.toHint.accountName, '餐饮');
+  assert.equal(r.toHint.type, '费用类');
+  assert.equal(r.toHint.category, '餐饮');
   assert.equal(r.confidence, 'partial');
 });
 
@@ -41,6 +43,7 @@ test('昨天用微信买咖啡50：日期、微信、咖啡、50', () => {
   assert.equal(r.amount, 50);
   assert.equal(r.fromHint && r.fromHint.accountName, '微信');
   assert.equal(r.fromHint.role, 'payment');
+  assert.equal(r.toHint && r.toHint.accountName, '餐饮');
   assert.equal(r.note, '咖啡');
 });
 
@@ -107,6 +110,15 @@ test('工资到微信：收入在转出，资产在转入', () => {
 test('50块 / ¥50', () => {
   assert.equal(parsePhrase('奶茶50块', [], LEXICON, NOW).amount, 50);
   assert.equal(parsePhrase('奶茶¥50', [], LEXICON, NOW).amount, 50);
+});
+
+test('对不上的碎片留在备注，不指向节点', () => {
+  const r = parsePhrase('的家伙 豆包不当 ZD', [], LEXICON, NOW);
+  assert.equal(r.fromHint, null);
+  assert.equal(r.toHint, null);
+  assert.ok(r.note.includes('的家伙'));
+  assert.ok(r.note.includes('豆包不当'));
+  assert.ok(r.note.includes('ZD'));
 });
 
 test('坏输入不抛', () => {

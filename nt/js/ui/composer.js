@@ -87,9 +87,6 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     const text = String(input.value || '').trim();
     if (!text || text.length > 8 || /\d/.test(text)) { hideSuggest(); return; }
     const items = suggestPhraseAccounts(h.getState(), text);
-    if (text && !items.some((s) => s.acc && s.acc.name === text)) {
-      items.unshift({ acc: { name: text, code: '新建', category: '新建分类' }, reason: 'create' });
-    }
     if (items.length) showSuggest(input, items, (acc) => { input.value = acc.name || ''; submit(true); });
     else hideSuggest();
   });

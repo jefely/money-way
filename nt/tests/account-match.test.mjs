@@ -6,6 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { matchAccountName } from '../js/core/account-match.js';
+import { noteTarget } from '../js/core/lexicon.js';
 import { createState, ensureAccountByText, updateAccount, addTransaction } from '../js/core/state-store.js';
 import { promoteDrafts } from '../js/core/draft-book.js';
 import { isPosted } from '../js/core/schema.js';
@@ -21,8 +22,12 @@ test('银行名、花呗、咖啡、工资按词库或启发式归类', () => {
   assert.equal(matchAccountName('花呗').category, '网贷');
   assert.equal(matchAccountName('白条').category, '网贷');
   assert.equal(matchAccountName('信用卡').category, '信用');
-  assert.equal(matchAccountName('咖啡').type, '费用类');
-  assert.equal(matchAccountName('咖啡').category, '餐饮');
+  assert.equal(matchAccountName('咖啡'), null, '咖啡是物品，不是节点');
+  assert.equal(noteTarget('咖啡').nodeName, '餐饮');
+  assert.equal(noteTarget('饮品').nodeName, '餐饮');
+  assert.equal(matchAccountName('餐饮').type, '费用类');
+  assert.equal(matchAccountName('地铁').category, '交通');
+  assert.equal(matchAccountName('日用品').type, '费用类');
   assert.equal(matchAccountName('工资').type, '收入类');
   assert.equal(matchAccountName('微信支付').type, '资产类');
   assert.equal(matchAccountName('微信支付').category, '网络账户');
@@ -47,12 +52,23 @@ test('自动建的账户带新增标记；改过就去掉；序列化后还在',
   assert.equal(edited.accounts.find((a) => a.id === made.id).fresh, undefined);
 });
 
+test('物品词不建同名节点，只落到分类节点', () => {
+  const made = ensureAccountByText(createState(), '咖啡');
+  assert.equal(made.held, '咖啡');
+  assert.ok(!made.state.accounts.some((a) => a.name === '咖啡' || a.name === '饮品'));
+  const node = made.state.accounts.find((a) => a.id === made.id);
+  assert.equal(node.name, '餐饮');
+  assert.equal(node.type, '费用类');
+  assert.equal(node.fresh, true);
+});
+
 test('两边都能归类时草稿直接入账', () => {
   let s = createState();
   const from = ensureAccountByText(s, '微信');
   s = from.state;
   const to = ensureAccountByText(s, '咖啡');
   s = to.state;
+  assert.equal(to.state.accounts.find((a) => a.id === to.id).name, '餐饮');
   s = promoteDrafts(addTransaction(s, {
     date: '2026-11-04', from_id: from.id, to_id: to.id, amount: 50, note: '咖啡', status: 'draft',
   }));

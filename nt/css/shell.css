@@ -317,10 +317,11 @@ body {
 .nt-table-stats .nt-row-total .nt-cell[colspan] {
   position: sticky;
   left: 0;
-  z-index: 5;
+  z-index: 6;
   text-align: left;
   padding-left: 10px;
   background: var(--nt-bg-soft);
+  background-clip: padding-box;
   box-shadow: inset -1px 0 0 0 var(--nt-bg-line);
 }
 
@@ -459,6 +460,22 @@ body {
 .nt-table-stats.is-sum .nt-cell:nth-child(1) {
   z-index: 5;
   background: var(--nt-bg-cell, var(--nt-bg));
+}
+
+/* 分类合计行的「转出金额」是该行第 2 个子格（第 1 格跨了序+分类）。
+   它会误中上面的「第 2 列冻结」，金额就盖住「资产类合计」。
+   金额格退回普通层，标题格用实色盖住冻结宽度。 */
+.nt-table-stats.is-cat .nt-row-total > .nt-cell:not([colspan]),
+.nt-table-stats.is-sum .nt-row-total > .nt-cell:nth-child(n + 2) {
+  position: static;
+  left: auto;
+  z-index: 0;
+  background: transparent;
+}
+
+.nt-table-stats .nt-row-total > .nt-cell[colspan] {
+  z-index: 7;
+  background-color: var(--nt-bg-soft);
 }
 
 /* 右边界：内描边，不占布局、不溢出（绝对定位伪元素会多出一条黑带） */
