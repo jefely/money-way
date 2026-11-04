@@ -9,7 +9,7 @@
 
 import { balanceOf } from '../core/balance-calculator.js';
 import { isPosted } from '../core/schema.js';
-import { validate, issuesOf } from '../core/validator.js';
+import { validate, issuesOf, errorCount } from '../core/validator.js';
 import { checkAccountingIdentity } from '../core/validate.js';
 import { money } from '../core/format.js';
 import { shareBlock } from '../ui/share-block.js';
@@ -98,11 +98,15 @@ export function mountValidate(section, ctx) {
     const res = validate({ transactions: txs, accounts: state.accounts || [] });
     const byCode = {};
     for (const it of res.issues || []) byCode[it.code] = (byCode[it.code] || 0) + 1;
-    const ok = (res.issues || []).length === 0;
+    // warn 不算失败：简码重复是允许的提示，不应把整张卡判成红。
+    const errs = errorCount(res);
+    const ok = errs === 0;
 
     const card3 = card(
       '③ 数据完整性',
-      ok ? '账户表里的名字和流水里的名字全部对得上。' : `发现 ${res.issues.length} 个问题，见下方计数。`,
+      ok
+        ? (res.issues || []).length ? '数据完整；简码重复已允许，见下方提示。' : '账户表里的名字和流水里的名字全部对得上。'
+        : `发现 ${errs} 个错误，见下方计数。`,
       ok,
       [
         ['单边流水（V1）', String(byCode.V1 || 0)],
@@ -110,7 +114,7 @@ export function mountValidate(section, ctx) {
         ['断链（V3）', String(byCode.V3 || 0)],
         ['自己转自己（V4）', String(byCode.V4 || 0)],
         ['日期非法（V5）', String(byCode.V5 || 0)],
-        ['简码问题（V7）', String(byCode.V7 || 0)],
+        ['简码提示（V7）', String(byCode.V7 || 0)],
       ],
     );
 

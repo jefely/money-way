@@ -166,7 +166,7 @@ export function mountInstTable(ctx, tbody, opts) {
     trP.className = 'nt-row nt-inst-main';
     trP.dataset.id = row.id;
     trP.appendChild(inputCell(row.id, 'name', acc ? acc.name : '', 'nt-c-inst-name'));
-    trP.appendChild(textCell(acc && acc.billDay ? acc.billDay : '', 'nt-cell-num'));
+    trP.appendChild(textCell(acc && acc.billDay ? acc.billDay : '', 'nt-cell-day'));
     trP.appendChild(textCell(moneyAlways(sumP), 'nt-cell-num'));
 
     const trI = document.createElement('tr');
@@ -185,7 +185,7 @@ export function mountInstTable(ctx, tbody, opts) {
     delBtn.setAttribute('aria-label', '删除这条分期');
     tdPrincipal.insertBefore(delBtn, tdPrincipal.firstChild);
     trI.appendChild(tdPrincipal);
-    trI.appendChild(textCell(acc && acc.repayDay ? acc.repayDay : '', 'nt-cell-num'));
+    trI.appendChild(textCell(acc && acc.repayDay ? acc.repayDay : '', 'nt-cell-day'));
     trI.appendChild(textCell(moneyAlways(sumI), 'nt-cell-num'));
 
     for (const m of span) {

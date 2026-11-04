@@ -30,14 +30,18 @@ export function paintChecks(input) {
   ) * 100) / 100;
 
   const brokenTx = (state.transactions || []).filter((t) => !t.from_id || !t.to_id).length;
-  const codesOk = index.duplicateCodes.length === 0 && index.missingCode.length === 0;
+  // 简码重复允许（2026-11 用户决定）：只提示，不算「有问题」；
+  // 只有缺失仍需要用户补。
+  const missing = index.missingCode.length;
+  const dups = index.duplicateCodes.length;
   const visibleCount = rows.filter((r) => !r.acc.isHidden).length;
 
   setText('nt-check-balanced', brokenTx === 0 ? '0 ✓' : `${brokenTx} 笔断链 ✗`);
   setText('nt-check-identity', Math.abs(diff) < 0.005 ? '0 ✓' : `${diff}  ✗`);
   setText('nt-check-detail',
     `${(state.transactions || []).length} 笔 · ${visibleCount} 账户`
-    + (codesOk ? '' : ` · 简码有问题：重复 ${index.duplicateCodes.length} / 缺失 ${index.missingCode.length}`));
+    + (missing ? ` · 缺少简码 ${missing}` : '')
+    + (dups ? ` · 简码重复 ${dups}（允许）` : ''));
 }
 
 export function setText(id, text) {

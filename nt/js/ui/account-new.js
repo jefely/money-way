@@ -75,7 +75,7 @@ export function bindNewRow(ctx, tr, zone, onCreated) {
     const type = get('type') || '资产类';
     const code = normalizeCode(get('code'));
     if (code && !isValidCode(code)) return;
-    if (code && (st.accounts || []).some((a) => normalizeCode(a.code) === code)) return;
+    // 简码重复允许（2026-11 用户决定）：新账户也照建，表格里标暗红。
 
     // 序号可以跳着填（如 63 → 100）；不填就「本区最大序号 + 1」
     const zoneAccounts = accountsOfZone(st.accounts, zone.key);

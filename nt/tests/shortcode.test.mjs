@@ -168,6 +168,18 @@ test('V7：缺简码 / 重复简码 / 长度不合法 都会报', () => {
   assert.equal(r.ok, false);
 });
 
+test('★ V7：重复简码允许（warn），不再把账本判成失败（2026-11 用户决定）', () => {
+  const dup = [
+    { id: 'a', code: 'AB', name: '甲', type: '资产类' },
+    { id: 'b', code: 'ab', name: '乙', type: '资产类' },
+  ];
+  const r = validate({ accounts: dup, transactions: [] });
+  const v7 = issuesOf(r, 'V7');
+  assert.equal(v7.length, 1);
+  assert.equal(v7[0].level, 'warn');
+  assert.equal(r.ok, true, '重复只是提示，不算错误');
+});
+
 test('V7：正常账户表不报错', () => {
   const r = validate({ accounts: accounts(), transactions: [] });
   assert.equal(issuesOf(r, 'V7').length, 0);

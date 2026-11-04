@@ -90,7 +90,8 @@ export function createAccount(patch = {}) {
   const rawType = String(patch.type == null ? '' : patch.type).trim();
   const acc = {
     id: patch.id || makeId('acc'),
-    // 简码只是「输入用的马甲」，但必须唯一且非空（由 V7 校验把关）
+    // 简码只是「输入用的马甲」：允许重复（2026-11 用户决定）。
+    // 非空 / 1~5 位仍由 V7 提示；按简码查找会取先出现的那个。
     code: normalizeCode(patch.code),
     name: String(patch.name || '').trim(),
     // 类型允许用户自己填（用户 2026-10-30）；不填时按资产类

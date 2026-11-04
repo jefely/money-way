@@ -190,8 +190,35 @@
   padding-right: 4px;
 }
 
-.nt-table-inst td.nt-cell-num,
-.nt-table-inst td:nth-child(8) {
+/* 金额列（每月合计 / 本息总计 / 月份格）右对齐；输入框也显式右对齐，
+   不依赖 input 对 text-align 的继承（手机浏览器有差异）。
+   账单日/还款日保持居中，见 shell.css 的分期对齐段。 */
+.nt-table-inst td.nt-cell-num {
+  text-align: right;
+  padding-right: 8px;
+}
+
+.nt-table-inst td.nt-cell-num .nt-cell-input {
+  text-align: right;
+}
+
+/* 第二行「分期金额」右对齐（第一格左侧还有删除按钮，留 18px 内边距） */
+.nt-table-inst tr.nt-inst-sub td:nth-child(1) .nt-cell-input {
+  text-align: right;
+}
+
+/* 第一行节点名称左对齐 */
+.nt-table-inst tr.nt-inst-main td:nth-child(1) .nt-cell-input {
+  text-align: left;
+}
+
+/* 账单日 / 还款日：数字居中（用户 2026-11 指定） */
+.nt-table-inst td.nt-cell-day {
+  text-align: center;
+}
+
+/* 表头上行每个月列的合计（¥ 数字）也跟着金额列右对齐 */
+.nt-table-inst .nt-th.nt-c-sum {
   text-align: right;
   padding-right: 8px;
 }

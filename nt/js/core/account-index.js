@@ -36,7 +36,8 @@ export function buildAccountIndex(accounts) {
     if (!code) {
       missingCode.push(a.id);
     } else if (byCode.has(code)) {
-      // 重复简码：保留先出现的那个，同时记下来交给 V7 报错
+      // 重复简码：允许（2026-11 用户决定），byCode 保留先出现的那个；
+      // 这里记一份给设置页标暗红、校验页提示。
       duplicateCodes.push(code);
     } else {
       byCode.set(code, a);

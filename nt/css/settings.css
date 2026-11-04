@@ -341,13 +341,20 @@
   padding-right: 8px;
 }
 
-/* 简码校验不通过：红字 + 红色波浪下划线（设置页账户表）。
-   V7：缺简码 / 长度字符不合法 / 重复 —— 具体原因写在 input.title 里。 */
+/* 简码不合法：亮红 + 红色波浪下划线（设置页账户表）。
+   V7：长度/字符不合法 —— 具体原因写在 input.title 里。 */
 .nt-table-accounts .nt-cell-input.nt-code-bad {
   color: var(--nt-bad) !important;
   font-weight: 800;
   text-decoration: underline wavy var(--nt-bad);
   text-underline-offset: 3px;
+}
+
+/* 重复简码：**允许**（用户 2026-11 决定），只标暗红，不拦保存。
+   和「不合法」的亮红 + 波浪线分开，避免看起来像同一类错误。 */
+.nt-table-accounts .nt-cell-input.nt-code-dup {
+  color: var(--nt-code-dup, #8b1e1e) !important;
+  font-weight: 800;
 }
 
 /* 空格子也要看得出来：红色内描边 + 「缺简码」占位符 */

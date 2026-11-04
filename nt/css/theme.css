@@ -66,6 +66,7 @@
   --nt-ok-bg: #e9f7ef;
   --nt-bad: #ef4444;
   --nt-bad-bg: #fdecec;
+  --nt-code-dup: #8b1e1e;
   --nt-warn: #b45309;
 
   /* 遮罩与阴影 */
@@ -135,6 +136,7 @@
   --nt-ok-bg: rgba(94, 233, 164, 0.12);
   --nt-bad: #ff9d9d;
   --nt-bad-bg: rgba(255, 157, 157, 0.12);
+  --nt-code-dup: #c46a6a;
   --nt-warn: #fdba74;
 
   --nt-backdrop: rgba(0, 0, 0, 0.62);
@@ -190,6 +192,7 @@
   --nt-ok-bg: #e9f7ef;
   --nt-bad: #dc2626;
   --nt-bad-bg: #fdecec;
+  --nt-code-dup: #8b1e1e;
   --nt-warn: #b45309;
 
   --nt-backdrop: rgba(42, 36, 24, 0.42);
@@ -239,6 +242,7 @@
   --nt-ok-bg: rgba(110, 231, 183, 0.12);
   --nt-bad: #ff9b9b;
   --nt-bad-bg: rgba(255, 155, 155, 0.12);
+  --nt-code-dup: #c46a6a;
   --nt-warn: #fdba74;
 
   --nt-backdrop: rgba(0, 0, 0, 0.62);

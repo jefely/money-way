@@ -645,10 +645,12 @@ body {
 .nt-table-accounts tbody td { text-align: center; }
 .nt-table-accounts tbody td:nth-child(6) { text-align: right; }
 
-/* 分期：名称左、金额右，其余中（这份表还没重新核对，先保持原样只补对齐） */
+/* 分期：第一行节点名称左、第二行分期金额右；账单日/还款日数字居中；
+   金额列（每月合计 / 本息总计 / 月份格）全部右对齐（用户 2026-11 指定）。 */
 .nt-table-inst tbody td { text-align: center; }
-.nt-table-inst tbody td:nth-child(1) { text-align: left; }
-.nt-table-inst tbody td:nth-child(2) { text-align: right; }
+.nt-table-inst tbody tr.nt-inst-main td:nth-child(1) { text-align: left; }
+.nt-table-inst tbody tr.nt-inst-sub td:nth-child(1) { text-align: right; }
+.nt-table-inst tbody td:nth-child(2) { text-align: center; }
 .nt-table-inst tbody td.nt-cell-num { text-align: right; }
 
 /* ============================================================

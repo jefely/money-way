@@ -22,7 +22,6 @@ import { bindTypePicker, promptType } from './type-picker.js';
 import { zoneCols, zoneHead } from './table-parts.js';
 import { normalizeCode, isValidCode } from '../core/schema.js';
 import { balanceOf } from '../core/balance-calculator.js';
-import { validate, issuesOf } from '../core/validator.js';
 import { renderNotes } from './note-table.js';
 import * as NtModal from './modal.js';
 import { bindReviewTips } from './review-tip.js';
@@ -57,28 +56,34 @@ export function mountAccountTable(ctx, tbody, opts) {
     if (filled !== state) { ctx.setState(filled); state = filled; ctx.saveNow(); }
     const visible = (state.accounts || []).filter((a) => a && !a.isHidden);
 
-    // 简码校验（V7）：**缺简码不标**（用户 2026-10-30：简码只是高频录入的快捷键，
-    // 空着不影响统计）；只有重复 / 长度字符不合法才标出来。
+    // 简码校验：缺简码不标（简码只是高频录入的快捷键，空着不影响统计）；
+    // 长度/字符不合法标亮红；**重复允许**（用户 2026-11 决定），两边标暗红。
     const badCodes = new Map();
-    for (const it of issuesOf(validate({ accounts: visible }), 'V7')) {
-      if (String(it.message || '').indexOf('缺少简码') >= 0) continue;
-      const id = it.ref && it.ref.accountId;
-      if (id) badCodes.set(id, it.message);
+    for (const a of visible) {
+      const c = normalizeCode(a.code);
+      if (c && !isValidCode(c)) badCodes.set(a.id, '简码「' + c + '」要 1–5 位，空格不算');
     }
 
-    // 重复简码两边都要标红：validator 只把「后出现」的那个报成 issue，
-    // 但用户看到一对其中的一个变红，会以为另一个没问题（2026-10-29）。
+    // 重复组：两边都标，title 写明「被谁占用」。
+    // 用**全部**账户分组（含隐藏的期初账户）：隐藏节点撞了码，可见的那一行也要标。
     const codeGroups = new Map();
-    for (const a of visible) {
+    for (const a of state.accounts || []) {
+      if (!a) continue;
       const c = normalizeCode(a.code);
       if (!c) continue;
       if (!codeGroups.has(c)) codeGroups.set(c, []);
       codeGroups.get(c).push(a);
     }
+    const dupCodes = new Map();
     for (const [code, list] of codeGroups) {
       if (list.length < 2) continue;
-      const names = list.map((a) => a.name || '(未命名)').join(' / ');
-      for (const a of list) badCodes.set(a.id, '简码「' + code + '」重复：' + names);
+      for (const a of list) {
+        const others = list
+          .filter((x) => x.id !== a.id)
+          .map((x) => x.name || '(未命名)')
+          .join(' / ');
+        dupCodes.set(a.id, '简码「' + code + '」已被「' + others + '」使用（允许重复）');
+      }
     }
 
     tbody.textContent = '';
@@ -125,14 +130,15 @@ export function mountAccountTable(ctx, tbody, opts) {
           }
         }
 
-        // 简码有问题 → 输入框标红（title 里写原因：缺失 / 不合法 / 和谁重复）
-        if (badCodes.has(acc.id)) {
-          const codeInput = tr.querySelector('[data-field="code"]');
-          if (codeInput) {
+        // 简码：不合法 → 亮红；重复 → 暗红（允许，只提示被谁占用）
+        const codeInput = tr.querySelector('[data-field="code"]');
+        if (codeInput) {
+          if (badCodes.has(acc.id)) {
             codeInput.classList.add('nt-code-bad');
             codeInput.title = badCodes.get(acc.id);
-            // 空格子没有字可标红，用占位符把「缺简码」直接写在格子里
-            // 简码是可选的高频录入快捷键：没有就不写占位提示（用户 2026-10-30）
+          } else if (dupCodes.has(acc.id)) {
+            codeInput.classList.add('nt-code-dup');
+            codeInput.title = dupCodes.get(acc.id);
           }
         }
 
@@ -219,7 +225,7 @@ export function mountAccountTable(ctx, tbody, opts) {
           clearTimeout(timer);
           timer = setTimeout(() => {
             timer = 0;
-            saveCodeQuietly(id, inp.value);
+            saveCodeQuietly(id, inp.value, inp);
           }, 800);
         });
         inp.addEventListener('blur', () => { clearTimeout(timer); timer = 0; });
@@ -261,6 +267,7 @@ export function mountAccountTable(ctx, tbody, opts) {
     }
 
     const patch = {};
+    let dupNames = [];
     if (field === 'type') {
       // 类型可以手填，也可以点格子弹候选（见 bindTypePicker）
       const t = String(v || '').trim();
@@ -274,23 +281,17 @@ export function mountAccountTable(ctx, tbody, opts) {
       patch.category = v;
     } else if (field === 'code') {
       const code = normalizeCode(v);
-      // 简码要合法且不与他人重复，否则还原（冲突会毁掉按简码查找）。
-      // 以前这里静默 render()，用户只看到「改了又变回去」——
-      // 页脚必须说清楚是哪一条规则没过（2026-11 用户报「简码修改不了」）。
+      // 长度/字符不合法仍然拒绝（会破坏输入解析）；**重复允许**（2026-11 用户决定）。
+      // 重复时照样保存，只把「被谁占用」写在页脚，并在格子上标暗红。
       if (code && !isValidCode(code)) {
         render();
         ctx.setFooter('简码没改：要 1–5 位，空格不算');
         return;
       }
-      const clash = (st.accounts || []).find(
-        (a) => a.id !== id && normalizeCode(a.code) === code,
-      );
-      if (code && clash) {
-        render();
-        ctx.setFooter('简码没改：「' + code + '」已被「' + (clash.name || '未命名') + '」使用');
-        return;
-      }
       patch.code = code;
+      dupNames = (st.accounts || [])
+        .filter((a) => a.id !== id && normalizeCode(a.code) === code)
+        .map((a) => a.name || '未命名');
     } else if (field === 'name') {
       if (!v) { render(); return; }
       // 空行草稿里写着旧名字的话跟着改 —— 否则那行一切回流水就会按旧名
@@ -304,7 +305,12 @@ export function mountAccountTable(ctx, tbody, opts) {
     ctx.saveNow();
     render();
     if (field === 'code') {
-      ctx.setFooter('简码已改为「' + (normalizeCode(v) || '空') + '」');
+      const shown = normalizeCode(v) || '空';
+      if (dupNames.length) {
+        ctx.setFooter('简码已改为「' + shown + '」· 已被「' + dupNames.join(' / ') + '」使用（允许重复，已标暗红）');
+      } else {
+        ctx.setFooter('简码已改为「' + shown + '」');
+      }
     }
   }
 
@@ -312,19 +318,33 @@ export function mountAccountTable(ctx, tbody, opts) {
    * 简码的静默保存：只更新 state + 落盘，不重画。
    *
    * 用于输入停手 800ms 的兜底 —— 页面重画会丢焦点，所以不能走 applyEdit。
-   * 非法/重复的值在这里一律不落库，等失焦时由 applyEdit 给出原因并还原。
+   * 长度不合法不落库；**重复允许**：照样落库，并在输入框上先标暗红、页脚提示。
    */
-  function saveCodeQuietly(id, raw) {
+  function saveCodeQuietly(id, raw, inp) {
     const st = ctx.getState();
     const acc = (st.accounts || []).find((a) => a.id === id);
     if (!acc) return;
     const code = normalizeCode(raw);
     if (code && !isValidCode(code)) return;
-    if (code && (st.accounts || []).some((a) => a.id !== id && normalizeCode(a.code) === code)) return;
-    if (normalizeCode(acc.code) === code) return;
 
-    ctx.setState(updateAccount(st, id, { code }));
-    ctx.saveNow();
+    const dupNames = (st.accounts || [])
+      .filter((a) => a.id !== id && normalizeCode(a.code) === code)
+      .map((a) => a.name || '未命名');
+
+    if (normalizeCode(acc.code) !== code) {
+      ctx.setState(updateAccount(st, id, { code }));
+      ctx.saveNow();
+    }
+
+    if (inp) {
+      inp.classList.toggle('nt-code-dup', dupNames.length > 0);
+      inp.title = dupNames.length
+        ? '简码「' + code + '」已被「' + dupNames.join(' / ') + '」使用（允许重复）'
+        : '';
+    }
+    if (dupNames.length) {
+      ctx.setFooter('简码「' + code + '」已被「' + dupNames.join(' / ') + '」使用（已保存，允许重复）');
+    }
   }
 
   function summarize(visible, state) {

@@ -20,7 +20,7 @@ export const RULES = {
   V4: '自己转自己：转出与转入相同',
   V5: '日期非法或缺失',
   V6: '会计恒等式不平：资产 + 成本 + 费用 − 负债 − 权益 − 收入 ≠ 0',
-  V7: `简码必须唯一且非空（${CODE_MIN_LEN}~${CODE_MAX_LEN} 位，任意字符）`,
+  V7: `简码要非空、${CODE_MIN_LEN}~${CODE_MAX_LEN} 位`,
 };
 
 /**
@@ -82,9 +82,11 @@ export function validate(input) {
       continue;
     }
     if (seenCodes.has(code)) {
+      // 重复**允许**（2026-11 用户决定）：只作为提示，不判账本失败。
+      // 按简码查找会取先出现的那个，所以仍值得在设置页标暗红。
       issues.push({
-        code: 'V7', level: LEVEL.ERROR,
-        message: `${RULES.V7}（简码「${code}」重复：${seenCodes.get(code)} 与 ${a.name}）`,
+        code: 'V7', level: LEVEL.WARN,
+        message: `${RULES.V7}（简码「${code}」重复：${seenCodes.get(code)} 与 ${a.name}；允许）`,
         ref: { accountId: a.id, duplicate: code },
       });
       continue;
@@ -100,7 +102,9 @@ export function validate(input) {
     }
   }
 
-  return { ok: issues.length === 0, issues, draftCount };
+  // warn 不算失败：例如「简码重复」现在是允许的提示（2026-11 用户决定）
+  const ok = !issues.some((x) => x.level === LEVEL.ERROR);
+  return { ok, issues, draftCount };
 }
 
 /** 只数错误（warn 不算失败） */
