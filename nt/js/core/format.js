@@ -27,6 +27,32 @@ export function moneyAlways(v) {
   return `${sign}¥${int.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}.${dec}`;
 }
 
+/** 今天，YYYY-MM-DD。now 只给测试注入。 */
+export function todayIso(now) {
+  const d = now instanceof Date ? now : new Date();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${dd}`;
+}
+
+/**
+ * 日期格输入。`:` / `：` 单独出现时表示今天。
+ * 6 位 YYMMDD、8 位 YYYYMMDD 都认；其余原样返回，空则今天。
+ */
+export function normalizeTypedDate(v, now) {
+  const s = String(v || '').trim();
+  if (s === ':' || s === '：') return todayIso(now);
+  const d = s.replace(/[^0-9]/g, '');
+  const clock = now instanceof Date ? now : new Date();
+  if (d.length === 8) return `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`;
+  if (d.length === 6) {
+    const yy = Number(d.slice(0, 2));
+    const full = yy > clock.getFullYear() % 100 ? 1900 + yy : 2000 + yy;
+    return `${full}-${d.slice(2, 4)}-${d.slice(4, 6)}`;
+  }
+  return s || todayIso(clock);
+}
+
 /** 输入框回填：0/空 → 空串（区分「没填」与「填了 0」）。 */
 export function moneyOrBlank(v) {
   if (v === '' || v == null) return '';

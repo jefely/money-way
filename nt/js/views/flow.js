@@ -10,7 +10,8 @@
 import { addTransaction, updateTransaction, removeTransaction, nextSeq, removeBatch, restoreBatch, noteTextByCode, ensureAccountByText } from '../core/state-store.js';
 import { createScheduled } from '../core/schema.js';
 import { buildFlowRows, buildFooterInfo } from '../ui/flow-model.js';
-import { moneyOrBlank } from '../core/format.js';
+import { moneyOrBlank, normalizeTypedDate, todayIso } from '../core/format.js';
+import { fingerprintBag, takeIfNew, keysForIncoming } from '../core/import-dedupe.js';
 import { renderRows, patchRow, promoteRow } from '../ui/render-transactions.js';
 import { parseAccountInput, suggestAccounts as suggestByIndex, ensurePendingAccount } from '../core/account-resolver.js';
 import { bindRowEditing } from '../ui/row-editor.js';
@@ -128,6 +129,8 @@ export function mountFlow(section, ctx) {
     let added = 0;
     let skipped = 0;
     let guessed = 0;
+    let dup = 0;
+    const bag = fingerprintBag(st.transactions);
 
     for (const it of res.items) {
       const amount = Math.abs(Number(it.amount) || 0);
@@ -164,13 +167,12 @@ export function mountFlow(section, ctx) {
       if (!dead && fromId && toId && fromId === toId) dead = true;
       if (dead) { skipped += 1; continue; }
 
-      st = addTransaction(st, {
-        date: it.date,
-        from_id: fromId,
-        to_id: toId,
-        amount,
-        note: it.note || it.item || it.party || '',
-      });
+      const note = it.note || it.item || it.party || '';
+      const billId = it.tradeNo ? String(it.tradeNo) : '';
+      const row = { date: it.date, from_id: fromId, to_id: toId, amount, note, billId };
+      if (!takeIfNew(bag, keysForIncoming(row))) { dup += 1; continue; }
+
+      st = addTransaction(st, row);
       added += 1;
       if (loose) guessed += 1;
     }
@@ -180,6 +182,7 @@ export function mountFlow(section, ctx) {
     render();
 
     ctx.setFooter(`导入 ${added} 笔`
+      + (dup ? `，跳过重复 ${dup} 笔` : '')
       + (guessed ? `，${guessed} 笔有一侧账户认不出（已挂到「待分类」，可在流水表里改）` : '')
       + (skipped ? `，跳过 ${skipped} 笔（金额为空或两端同账户）` : ''));
   }
@@ -195,6 +198,12 @@ export function mountFlow(section, ctx) {
         ? ` · 计划 ${stats.scheduled} 条`
         : ` · 固定 ${stats.fixed || 0} 条 · 分期 ${stats.inst || 0} 条`;
       ctx.setFooter(`已从备份恢复：账户 ${stats.accounts} 个 · 流水 ${stats.transactions} 笔${tail}`);
+    },
+    onRestore: (next) => {
+      ctx.setState(next);
+      ctx.saveNow();
+      render();
+      ctx.setFooter('已从加密备份恢复');
     },
   });
 
@@ -270,7 +279,7 @@ export function mountFlow(section, ctx) {
 
   function onEdit(id, field, value, resolvedId) {
     const patch = {};
-    if (field === 'date') patch.date = normalizeDateInput(value);
+    if (field === 'date') patch.date = normalizeTypedDate(value);
     else if (field === 'amount') patch.amount = normalizeAmountInput(value);
     else if (field === 'from' || field === 'to') {
       // 流水只负责记录：认不出的文本自动建一个未分类账户（不拦录入）
@@ -311,7 +320,7 @@ export function mountFlow(section, ctx) {
     if (!normalizeAmountInput(fields.amount || '')) { ctx.setState(s); ctx.save(); return; }
 
     ctx.setState(addTransaction(s, {
-      date: normalizeDateInput(fields.date || todayIso()),
+      date: normalizeTypedDate(fields.date || todayIso()),
       from_id: fromId,
       to_id: toId,
       amount: normalizeAmountInput(fields.amount || ''),
@@ -377,6 +386,8 @@ function bindToolbar(section, ctx, h) {
         const a = ctx.getIndex().byId.get(id);
         return a ? (a.name || '') : '';
       },
+      shareBackup: () => (ctx.shareBackup ? ctx.shareBackup() : Promise.reject(new Error('不能备份'))),
+      onBackedUp: () => { if (ctx.markBackup) ctx.markBackup(); },
     }));
   }
 
@@ -388,6 +399,8 @@ function bindToolbar(section, ctx, h) {
         setFooter: (t) => ctx.setFooter(t),
         onImport: (res) => { if (o.onImport) o.onImport(res); },
         onImportTemplate: (state, stats) => { if (o.onImportTemplate) o.onImportTemplate(state, stats); },
+        restoreBackup: (text, password) => (ctx.restoreBackup ? ctx.restoreBackup(text, password) : Promise.reject(new Error('不能恢复'))),
+        onRestore: (next) => { if (o.onRestore) o.onRestore(next); },
       });
     });
   }
@@ -396,26 +409,6 @@ function bindToolbar(section, ctx, h) {
   if (acc) acc.addEventListener('click', () => {
     if (ctx && ctx.openAccounts) ctx.openAccounts();
   });
-}
-
-/* ---------- 输入归一化 ---------- */
-
-function todayIso() {
-  const d = new Date(); const m = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${m}-${dd}`;
-}
-
-function normalizeDateInput(v) {
-  const s = String(v || '').trim();
-  const d = s.replace(/[^0-9]/g, '');
-  if (d.length === 8) return `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`;
-  if (d.length === 6) {
-    const yy = Number(d.slice(0, 2));
-    const full = yy > new Date().getFullYear() % 100 ? 1900 + yy : 2000 + yy;
-    return `${full}-${d.slice(2, 4)}-${d.slice(4, 6)}`;
-  }
-  return s || todayIso();
 }
 
 function normalizeAmountInput(v) {

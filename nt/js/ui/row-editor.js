@@ -43,6 +43,8 @@ export function bindRowEditing(tbody, h) {
       else if (isSuggestFor(input) || String(input.value).trim().length >= 2) hideSuggest();
     }
 
+    if (field === 'date') applyTodayShortcut(input);
+
     if (tr.dataset.new === '1') return;   // 新增行：等失焦（点其它格 / 点序号列）再建单
 
     const id = tr.dataset.id;
@@ -71,8 +73,14 @@ export function bindRowEditing(tbody, h) {
     if (ev.key === 'Enter') {
       ev.preventDefault();
       if (ACCOUNT_FIELDS.includes(field)) resolveField(tr, input);
+      if (field === 'date') applyTodayShortcut(input);
+      const next = nextSameField(tr, field);
       input.blur();
       h.onCommit();
+      if (next) {
+        next.focus();
+        try { next.select(); } catch (e) {}
+      }
     }
   });
 
@@ -189,4 +197,32 @@ export function bindRowEditing(tbody, h) {
     }
     hideSuggest();
   }
+}
+
+function todayIso() {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${dd}`;
+}
+
+/** 日期格里单独一个冒号 = 今天。中英文冒号都认。 */
+function applyTodayShortcut(input) {
+  const v = String(input.value || '').trim();
+  if (v === ':' || v === '：') input.value = todayIso();
+}
+
+/** 同一列的下一行输入框（跳过只读的虚拟行） */
+function nextSameField(tr, field) {
+  let n = tr.nextElementSibling;
+  while (n) {
+    if (n.dataset && n.dataset.virtual === '1') {
+      n = n.nextElementSibling;
+      continue;
+    }
+    const el = n.querySelector('[data-field="' + field + '"]');
+    if (el && !el.readOnly && !el.disabled) return el;
+    n = n.nextElementSibling;
+  }
+  return null;
 }

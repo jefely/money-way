@@ -44,6 +44,32 @@ export async function idbGet(key = 'state') {
   });
 }
 
+/**
+ * 比较并写入。expectedCipher 必须等于盘上当前密文（没有记录时两边都是空）。
+ * 不一致就什么都不写，返回 { ok:false }。同一事务里读再写，两个标签不会互相盖掉。
+ */
+export function idbCasPut(key, expectedCipher, value) {
+  return openDb().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const store = tx.objectStore(STORE);
+    let conflict = null;
+    const get = store.get(key);
+    get.onerror = () => reject(get.error);
+    get.onsuccess = () => {
+      const cur = get.result || null;
+      const curCipher = cur && cur.ciphertext ? String(cur.ciphertext) : '';
+      if (curCipher !== String(expectedCipher || '')) {
+        conflict = cur;
+        return;
+      }
+      store.put(value, key);
+    };
+    tx.oncomplete = () => resolve(conflict ? { ok: false, current: conflict } : { ok: true });
+    tx.onerror = () => reject(tx.error || new Error('写入失败'));
+    tx.onabort = () => reject(tx.error || new Error('写入被中断'));
+  }));
+}
+
 /** 写一条（覆盖）。 */
 export async function idbPut(key, value) {
   const db = await openDb();

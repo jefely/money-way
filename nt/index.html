@@ -168,6 +168,12 @@
                   aria-label="收起左侧信息栏">◀</button>
           <span class="pw-brand" id="pw-brand">Money Way</span>
         </div>
+        <details class="pw-help">
+          <summary>点弧块 / 点线 / 点左侧流水</summary>
+          <p class="pw-help-body">点弧块：看这一户直接相连的一侧。点线：只亮这一笔。点左侧流水：沿这笔钱追上下游。弦的颜色等于转出账户的弧色。平时每条线一样粗，是为了一次画下大量流水；只有追踪时，线宽才随金额变化。</p>
+          <div class="pw-legend" id="pw-legend"></div>
+        </details>
+        <div class="pw-tip" id="pw-tip" hidden></div>
       </section>
 
       <!-- ============ 固定：固定收支 + 分期 ============ -->
@@ -271,6 +277,10 @@
       </section>
     </main>
 
+    <div class="nt-backup-banner" id="nt-backup-banner" hidden>
+      <p>主屏幕里的账本只在这台手机上。系统清存储或很久不打开时可能丢掉。请到「导出」里点「分享加密备份」，存到网盘或文件。安卓和 iPhone 都用系统分享，文件要用账本密码才能打开。</p>
+      <button type="button" id="nt-backup-later">以后再说</button>
+    </div>
     <footer class="nt-footer" id="nt-footer"></footer>
   </div>
 

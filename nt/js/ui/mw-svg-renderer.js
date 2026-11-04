@@ -304,16 +304,16 @@ export function renderChart(data) {
     const pin = pointAt(cx, cy, Math.max(1, rIn - markGap), lb.a);
     parts.push(`<text class="mw-amount mw-seq" x="${f(pin[0])}" y="${f(pin[1])}"`
       + ` text-anchor="${upside ? 'start' : 'end'}" dominant-baseline="middle"`
-      + ` font-size="${fsTrace}" font-weight="700" fill="#ffffff" fill-opacity="0.92"`
-      + ` pointer-events="none" style="paint-order:stroke;stroke:#000;stroke-opacity:.55;stroke-width:5"`
+      + ` font-size="${fsTrace}" font-weight="700" fill="#1a1a1a" fill-opacity="1"`
+      + ` pointer-events="none" stroke="#ffffff" stroke-width="8" paint-order="stroke"`
       + ` transform="${rot(pin[0], pin[1])}">${esc(lb.mark)}</text>`);
 
     // 金额：内弧线外侧（压在环上）
     const pout = pointAt(cx, cy, rIn + amountGap, lb.a);
     parts.push(`<text class="mw-amount mw-sum" x="${f(pout[0])}" y="${f(pout[1])}"`
       + ` text-anchor="${upside ? 'end' : 'start'}" dominant-baseline="middle"`
-      + ` font-size="${fsTrace}" font-weight="700" fill="#ffffff" fill-opacity="0.95"`
-      + ` pointer-events="none" style="paint-order:stroke;stroke:#000;stroke-opacity:.5;stroke-width:5"`
+      + ` font-size="${fsTrace}" font-weight="700" fill="#1a1a1a" fill-opacity="1"`
+      + ` pointer-events="none" stroke="#ffffff" stroke-width="8" paint-order="stroke"`
       + ` transform="${rot(pout[0], pout[1])}">${esc(lb.amount)}</text>`);
   }
 
