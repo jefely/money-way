@@ -49,6 +49,27 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     }, 30000);
   }
 
+  /**
+   * 当前引导的那条草稿还在不在？
+   *
+   * 用户把自动生成的草稿行删掉后，openId 仍指着它，提示词就会一直停在
+   * 「哪里付的钱？」—— 看起来像没删掉。这里在每次流水重画后核对一次：
+   * 那条草稿已经不在了，就把引导归零，输入框回到「随手记一笔…」。
+   *
+   * 只核对 openId，不去猜「现在该引导哪一条」：同时有多条草稿时，
+   * 猜错比不猜更糟；删掉哪条就重新开始，下一句会重新建草稿。
+   */
+  function syncDraft() {
+    if (!openId) return;
+    const state = h.getState();
+    const still = (state.transactions || []).some(
+      (t) => t && t.id === openId && t.status === 'draft',
+    );
+    if (still) return;
+    openId = null;
+    input.placeholder = ENTRY_PROMPT.idle;
+  }
+
   function land(result) {
     h.setState(result.state);
     if (h.save) h.save();
@@ -100,5 +121,5 @@ export function mountComposer(section, ctx, rowHost, refresh) {
   });
 
   armIdle();
-  return { input, bar };
+  return { input, bar, syncDraft };
 }

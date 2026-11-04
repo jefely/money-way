@@ -35,7 +35,7 @@ export function mountFlow(section, ctx) {
   /** 上次渲染时的数据版本；切 tab 回来时用它判断要不要真的重画 */
   let renderedVer = -1;
 
-  mountComposer(section, ctx, body, () => render(true));
+  const composer = mountComposer(section, ctx, body, () => render(true));
   bindPlanRowActions(body, ctx, () => render(true));
 
   bindRowEditing(body, {
@@ -279,6 +279,8 @@ export function mountFlow(section, ctx) {
     renderRows(body, rows);
     if (!scrollInit) { scrollInit = true; scrollToLast(); }
     ctx.setFooter(footerText());
+    // 草稿行被删掉后，一句话输入条的引导也要跟着归零（用户 2026-11）
+    if (composer && typeof composer.syncDraft === 'function') composer.syncDraft();
   }
 
   function footerText() {
@@ -309,6 +311,8 @@ export function mountFlow(section, ctx) {
     ctx.setState(afterTxEdit(updateTransaction(ctx.getState(), id, patch), id, field));
     ctx.setFooter(footerText());
     ctx.save();
+    // 手动把草稿补全（或改回非草稿）时，一句话输入条的引导也要跟着归零
+    if (composer && typeof composer.syncDraft === 'function') composer.syncDraft();
   }
 
   function onCreate(fields, tr) {
