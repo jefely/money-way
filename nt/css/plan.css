@@ -47,9 +47,10 @@
   height: 28px;
 }
 
-.nt-inst-month {
-  position: relative;
-}
+/* 月份表头：定位由 shell.css 的冻结段统一给（thead 吸顶 + 首列 left:0）。
+   这里**不要写 position** —— relative 会让 sticky 失效，
+   这正是 2026-11「年月行插进数据区」的原因。
+   删除按钮是行内元素，不需要定位上下文。 */
 
 .nt-inst-month-del {
   margin-left: 4px;
@@ -130,20 +131,12 @@
   background-color: var(--nt-text-muted);
 }
 
-/* 两行表头：第二行必须往下错开第一行的高度。
-   两行的 th 都是 position: sticky，若都写 top: 0 就会**钉在同一个位置**，
-   结果第一行被第二行完全盖住 —— 用户看到的就是「表头冻结不正常」。
-
-   这里**不要写 z-index**：一写就会把整行所有列拉到同一个层级，
-   冻结列就压不住后面滚过来的列，横向滚动时文字会叠在一起
-   （用户 2026-11-01：「第一列表头冻结了，但是在后方」）。
-   层级的分配统一交给 shell.css 的 nth-child 规则：冻结列 6 / 普通列 5。 */
-.nt-table-inst thead tr:nth-child(1) .nt-th {
-  top: 0;
-}
-.nt-table-inst thead tr:nth-child(2) .nt-th {
-  top: var(--nt-row-h, 32px);
-}
+/* 表头冻结**只在 shell.css 的「分期表冻结」里写一次**。
+   这里以前给两行 th 写 top、又给 .nt-inst-month 写 position: relative ——
+   后者把月份表头的 sticky 直接改成 relative，top 又变成相对下移，
+   月份标签就插进了数据区（2026-11 用户截图）。
+   plan.css 在 shell.css 之后加载，同特异度的规则会反过来覆盖冻结代码，
+   所以本文件**不再碰** thead / th 的 position、top、z-index。 */
 
 /* ===== 分期表列宽 =====
    实际宽度在 shell.css 的「分期」段里（3 固定 + 月份列走 --nt-inst-mw）。
@@ -238,7 +231,7 @@
   background: var(--nt-bg);
 }
 
-/* 冻结列要盖住后面滚过来的内容 —— 层级统一由 shell.css 的「分期」段分配
-   （表头 7 / 数据 5）。这里**不要再写 z-index: 4**：
-   plan.css 在 shell.css 之后加载，同特异度会让 4 反过来盖掉 7，
-   表现就是「第一列表头冻结了，却在后面」（用户 2026-11-01）。 */
+/* 冻结列的层级只由 shell.css 的「分期表冻结」分配
+   （thead 6 / 表头首列 2 / 数据首列 3）。这里**不要再写 z-index**：
+   plan.css 在 shell.css 之后加载，同特异度会反过来覆盖冻结层，
+   表现就是「第一列表头冻结了，却在数据后面」（用户 2026-11-01）。 */

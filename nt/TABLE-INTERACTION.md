@@ -153,6 +153,56 @@ th 上不许再写 width
 - `z-index` 分三层：普通格 `0`、表头 `2`、冻结列 `3~4`。层次错了会出现「滚动时表头被内容盖住」。
 - 表头背景必须不透明，否则透出下面的行。
 
+### 2.1 多行表头：吸顶加在 `<thead>`，不要给每个 `th` 写 top
+
+分期表是**两行表头**（合计行 + 月份行）。2026-11 之前把 sticky 写在每一个
+`th` 上，再给第二行一个 `top` 把它错开 —— 这条路有两个躲不掉的坑：
+
+1. **`top` 是一个要「量第一行多高」的数**。第一行实际 26px，而变量
+   `--nt-row-h` 是 32px，两行之间永远有一条 6px 缝，数据从缝里滚过去。
+2. **任何一条 `position: relative` 都会让那一格悄悄退出 sticky**。
+   `.nt-inst-month { position: relative }`（本意是给「删除」按钮做定位上下文）
+   把月份表头的 position 改成 relative，sticky 直接失效；而继承下来的
+   `top: 32px` 在 relative 下变成「相对下移 32px」——月份标签整行插进数据区，
+   这就是用户截图里的「表头冻结不正常」。
+
+正确做法和查询表的三行表头一样：**只让 `<thead>` 一个元素 sticky**。
+
+```css
+.nt-table-inst thead {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 6;                                  /* 压过整个 tbody */
+  background: var(--nt-bg);                    /* 必须是实底 */
+}
+.nt-table-inst thead .nt-th {
+  position: relative;                          /* 只给手柄做定位上下文 */
+  top: auto;
+  z-index: auto;
+}
+.nt-table-inst thead .nt-th:nth-child(1) {
+  position: sticky;
+  left: 0;
+  z-index: 2;                                  /* thead 内部：冻结列压住同行 */
+}
+.nt-table-inst .nt-cell:nth-child(1):not([colspan]) {
+  position: sticky;
+  left: 0;
+  z-index: 3;                                  /* 低于 thead 的 6 */
+}
+```
+
+**为什么这样就没有「第一行多高」这个问题**：两行是 thead 内部的普通行，
+一起被 thead 带着吸顶，行与行之间不可能出现缝；也不需要第二行 top。
+
+验证（390px 宽、纵向滚 600px 后量的实测值）：`thead.top` = 滚动容器 top；
+第一行 `bottom` = 第二行 `top`；月份 `th` 的 `top` = 第二行 `top`；
+首列 `th` / 数据格 `left` = 容器 `left`。
+
+**不要**给 `th` 写 `position: relative` 去错开多行表头 —— 理由同上。
+`th` 上需要绝对定位的装饰（`::before` 色膜）靠 sticky 自带的定位上下文就够了。
+
 ---
 
 ## 三、冻结列（横向滚动时保持可见）
@@ -958,6 +1008,8 @@ for m in st["matchedCSSRules"]:
 - 每条分期占 **2 行**：上行本金、下行利息
 - 月份列由 `paintHead()` 按 `calcInstallmentMatrix` 的跨度动态生成
 - `colgroup` 与表头**同步生成**
+- **表头吸顶由整块 `<thead>` 负责**（两行是一个整体，见 §2.1），
+  不给单个 `th` 写 `top`；首列横向冻结在 thead 内部用 `sticky left:0`，层级 2
 
 ### 账户设置 · 14 列 · 冻结简码
 

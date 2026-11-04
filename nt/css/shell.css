@@ -416,57 +416,66 @@ body {
 }
 
 /* ============================================================
-   分期表冻结（2026-11 重写，旧的散在三处、互相覆盖）
-   ============================================================
-   需求只有三条：
-     ① 两行表头**都**纵向冻结（上行 top:0，下行让出一个行高）
-     ② 第一列「账户名称 / 分期金额」横向冻结
-     ③ **冻结层永远在最上面**：表头 > 数据行，冻结列 > 同行其它列
+   分期表冻结（2026-11 第二次重写：整块 thead 吸顶）
+   ------------------------------------------------------------
+   上一版把 sticky 加在**每一个 th** 上，再给第二行写一个 top 把它
+   错开。这条路有两个天生缺陷：
 
-   z-index 五层（数字越大越上）：
-     9  上行 · 冻结列
-     8  上行 · 普通列
-     7  下行 · 冻结列
-     6  下行 · 普通列
-     4  冻结数据格（td/单元格）
-     0  普通数据格
+     ① 第二行的 top 只能猜一个数。第一行实际 26px 而 top 写的是
+        --nt-row-h（32px），两行之间永远露出一条 6px 的缝，数据行
+        从缝里滚过去；
+     ② 更致命的是 plan.css 里 `.nt-inst-month { position: relative }`
+        （本意是给「删除」按钮做定位上下文）。月份表头 th 的
+        position 被改成 relative，sticky **直接失效**；而继承下来的
+        top: 32px 在 relative 下变成「相对下移 32px」——月份标签就
+        整行插进了数据区（2026-11 用户截图）。
 
-   为什么上行整体高于下行：滚动时两行都吸在顶部，下行若与上行同层，
-   后渲染的会把「账户名称 / 每月合计 / 合计数字」整条盖掉
-   （2026-11 用户报「年月行显示在第三行、上下滚动会上下移动」）。
-   为什么下行冻结列(7)只比下行普通列(6)高一级：它只需要压住同行的普通列，
-   整行仍然在上行之下。 */
+   现在只让 **thead 这一个元素** sticky（查询表的三行表头就是这么做的，
+   已在实际页面验证过）：
+     · 两行表头是一个整体，一起吸顶 —— 不需要任何 top 偏移，
+       也就没有「第一行到底多高」这个需要量的数；
+     · th 不再各自 sticky，只保留 relative 给列宽手柄/删除按钮定位；
+     · 第一列在 thead 内部再 sticky left:0，管水平冻结；
+     · thead 的 z-index 一次压过整个 tbody（6 > 冻结数据格 3）。
+   ============================================================ */
 
-.nt-table-inst thead tr:nth-child(1) > .nt-th {
+.nt-table-inst thead {
+  position: -webkit-sticky;
+  position: sticky;
   top: 0;
-  z-index: 8;
-}
-.nt-table-inst thead tr:nth-child(1) > .nt-th:nth-child(1) {
-  z-index: 9;
-}
-.nt-table-inst thead tr:nth-child(2) > .nt-th {
-  top: var(--nt-row-h, 32px);
   z-index: 6;
-}
-.nt-table-inst thead tr:nth-child(2) > .nt-th:nth-child(1) {
-  z-index: 7;
+  /* 吸顶后下面滚过的行会从表头背后穿过，这里必须是实底 */
+  background: var(--nt-bg);
 }
 
-/* 第一列横向冻结：表头两行 + 数据格都钉在 left:0。
-   :not([colspan]) 必须有 —— 空状态行是跨列格，加 sticky 会整行跟着横滚。 */
-.nt-table-inst .nt-th:nth-child(1) {
+/* 表头的 th 不参与纵向 sticky：纵向交给 thead 整体。
+   relative 只做定位上下文 —— 列宽手柄是 absolute 子元素。 */
+.nt-table-inst thead .nt-th {
+  position: relative;
+  top: auto;
+  z-index: auto;
+}
+
+/* 第一列横向冻结：两行表头都钉在 left:0（sticky 本身就是定位元素，
+   手柄照样找得到上下文）。thead 已建立层叠上下文，所以 2 只在本层比。 */
+.nt-table-inst thead .nt-th:nth-child(1) {
   position: -webkit-sticky;
   position: sticky;
   left: 0;
+  z-index: 2;
   background: var(--nt-bg-soft);
+  box-shadow: inset -1px 0 0 0 var(--nt-bg-line);
 }
 
+/* 数据行第一列同样冻结。层级 3 低于 thead 的 6 —— 纵向滚过来时
+   数据格永远在表头下面，不会盖住标题。
+   :not([colspan]) 必须有 —— 空状态行是跨列格，加 sticky 会整行跟着横滚。 */
 .nt-table-inst .nt-cell:nth-child(1):not([colspan]) {
   position: -webkit-sticky;
   position: sticky;
   left: 0;
-  z-index: 4;
-  background: var(--nt-row-bg, var(--nt-bg));
+  z-index: 3;
+  background: var(--nt-bg-cell, var(--nt-bg));
   box-shadow: inset -1px 0 0 0 var(--nt-bg-line);
 }
 
@@ -489,7 +498,6 @@ body {
    偶数行的斑马纹由 flow.css 的规则覆盖，这里不用重复。 */
 .nt-table-flow .nt-cell:nth-child(1),
 .nt-table-plan .nt-cell:nth-child(1),
-.nt-table-inst .nt-cell:nth-child(1),
 .nt-table-stats .nt-cell:nth-child(1):not([colspan]),
 .nt-table-stats.is-cat .nt-cell:nth-child(2):not([colspan]),
 .nt-table-stats.is-sum .nt-cell:nth-child(1) {

@@ -47,6 +47,18 @@ button {
   cursor: pointer;
 }
 
+/* [hidden] 必须真的隐藏。
+   ------------------------------------------------------------
+   浏览器默认样式 `[hidden] { display: none }` 的优先级低于作者样式，
+   而 .nt-btn 写了 `display: inline-flex` —— 于是 `hidden = true` 的按钮
+   仍然看得见。「固定收支」页上那个「添加」就是这么冒出来的：
+   点它会把页面切到「分期」，同时 show() 重建空表单，再提交只会得到
+   「先填分期银行」（2026-11 用户实测）。
+   逐个元素补 [hidden] 规则的做法漏一个就复发，这里一次收口。 */
+[hidden] {
+  display: none !important;
+}
+
 /* 无障碍：只给读屏看的文字 */
 .nt-visually-hidden {
   position: absolute;
