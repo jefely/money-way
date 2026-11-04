@@ -38,6 +38,19 @@ test('★ 三段切分：过去 / 现在 / 未来', () => {
   assert.equal(r.future[0].note, '未来');
 });
 
+test('每日固定只生成当天一条虚拟行（点 ▲ 才落账，不做 14 天预测）', () => {
+  const st = seed();
+  const daily = {
+    id: 'sd', isScheduled: true, freq: 'daily', day: 1,
+    from_id: 'a1', to_id: 'a2', amount: 5, note: '早餐',
+  };
+  const r = splitByTime(st.transactions, st.accounts, [daily], { targetDate: '2026-08-20' });
+  const mine = r.virtual.filter((v) => v.note === '早餐');
+  assert.equal(mine.length, 1);
+  assert.equal(mine[0].date, '2026-08-20');
+  assert.equal(mine[0].planKey, 'sd|2026-08-20');
+});
+
 test('★ 纯函数：调用前后 transactions 长度与内容都不变', () => {
   const st = seed();
   const before = JSON.stringify(st.transactions);

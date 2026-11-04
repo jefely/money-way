@@ -76,7 +76,7 @@ export function mountFixedTable(ctx, tbody, opts) {
         setCell(tr, 'seq', i + 1);
         const freqSel = tr.querySelector('[data-field="freq"]');
         if (freqSel) freqSel.value = row.freq === 'daily' ? 'daily' : 'monthly';
-        setCell(tr, 'day', row.day || '');
+        showDay(tr, row.freq, row.day);
         const view = row.inst ? installmentRowView(row, state.accounts) : null;
         const fromId = view ? view.fromId : row.from_id;
         setCell(tr, 'from', nameOf(fromId) || (pickSavingsAccount(state.accounts) || {}).name || '');
@@ -105,6 +105,24 @@ export function mountFixedTable(ctx, tbody, opts) {
     return a ? a.name : '';
   }
 
+  /**
+   * 日期格：每月可录入几号；每日不需要日期，显示横线且只读。
+   * 用户 2026-11：「选择每日，日期就变成横线，不可录入」。
+   */
+  function showDay(tr, freq, day) {
+    const inp = tr.querySelector('[data-field="day"]');
+    if (!inp) return;
+    if (freq === 'daily') {
+      inp.value = '—';
+      inp.readOnly = true;
+      inp.tabIndex = -1;
+      return;
+    }
+    inp.readOnly = false;
+    inp.removeAttribute('tabindex');
+    inp.value = day ? String(day) : '';
+  }
+
   function bindRow(tr, id) {
     const del = tr.querySelector('[data-act="del"]');
     if (del) {
@@ -114,7 +132,14 @@ export function mountFixedTable(ctx, tbody, opts) {
     for (const f of FIELDS) {
       const inp = tr.querySelector('[data-field="' + f + '"]');
       if (!inp) continue;
-      inp.addEventListener('change', () => applyEdit(id, f, inp.value));
+      inp.addEventListener('change', () => {
+        // 简码 → 节点名称：失焦/切下一格就回填，不必等整行保存后重绘
+        if ((f === 'from' || f === 'to') && String(inp.value || '').trim()) {
+          const r = parseAccountInput(ctx.getIndex(), inp.value);
+          if (r && r.acc) inp.value = r.display;
+        }
+        applyEdit(id, f, inp.value);
+      });
     }
   }
 
@@ -183,9 +208,10 @@ export function mountFixedTable(ctx, tbody, opts) {
         return;
       }
 
+      const isDaily = get('freq') === 'daily';
       const row = createScheduled({
-        freq: get('freq') === 'daily' ? 'daily' : 'monthly',
-        day: clampDay(get('day') || 1),
+        freq: isDaily ? 'daily' : 'monthly',
+        day: isDaily ? 1 : clampDay(get('day') || 1),
         from_id: fromId,
         to_id: toId,
         amount,
@@ -205,7 +231,29 @@ export function mountFixedTable(ctx, tbody, opts) {
       if (!inp) continue;
       // 延迟到本轮事件结束再判断：用户在一行里连着填几格时，
       // 前面的格子先触发 change；若立刻建行，后面填的会落在已脱离 DOM 的旧行上。
-      inp.addEventListener('change', () => { setTimeout(tryCreate, 0); });
+      inp.addEventListener('change', () => {
+        // 简码 → 节点名称：切到下一格就先回填，不必等整条规则建成后重绘
+        if ((f === 'from' || f === 'to') && String(inp.value || '').trim()) {
+          const r = parseAccountInput(ctx.getIndex(), inp.value);
+          if (r && r.acc) inp.value = r.display;
+        }
+        setTimeout(tryCreate, 0);
+      });
+    }
+
+    // 新行选择「每天」：日期立刻变横线且只读；切回每月时恢复之前填的几号
+    const freqSel = tr.querySelector('[data-field="freq"]');
+    const dayInp = tr.querySelector('[data-field="day"]');
+    if (freqSel && dayInp) {
+      freqSel.addEventListener('change', () => {
+        if (freqSel.value === 'daily') {
+          dayInp.dataset.prevDay = dayInp.value === '—' ? '' : dayInp.value;
+          showDay(tr, 'daily');
+        } else if (dayInp.value === '—') {
+          showDay(tr, 'monthly', dayInp.dataset.prevDay || '');
+          delete dayInp.dataset.prevDay;
+        }
+      });
     }
   }
 

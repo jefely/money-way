@@ -134,8 +134,11 @@ export function buildVirtualRepayments(installments, targetMonth, accounts) {
 }
 
 /**
- * 固定收支的未来发生（不含分期）。每月最多望 6 个月，每天只望 14 天。
- * 没有 isScheduled 且没有账户的裸对象不当成规则，避免把测试夹具拆成一堆虚拟行。
+ * 固定收支的未来发生（不含分期）。
+ *
+ * 每月最多望 6 个月；**每天只给当天一条**（用户 2026-11：每日固定只是方便
+ * 点 ▲ 添加流水，不是未来 14 天的预测）。没有 isScheduled 且没有账户的裸对象
+ * 不当成规则，避免把测试夹具拆成一堆虚拟行。
  */
 export function buildVirtualFixed(list, targetDate, accounts) {
   const out = [];
@@ -153,10 +156,9 @@ export function buildVirtualFixed(list, targetDate, accounts) {
     if (!s || s.inst || s.isScheduled !== true) continue;
     const sourceId = s.id || s.note || 'fixed';
     if (s.freq === 'daily') {
-      for (let i = 0; i < 14; i += 1) {
-        const date = shiftIso(start, i);
-        out.push(fixedRow(s, date, date, sourceId, nameOf));
-      }
+      // 每日固定：只显示今天这一次，点 ▲ 才落账；添加后这一条会被
+      // occurrenceTaken 过滤掉，第二天再出现。不做 14 天预测。
+      out.push(fixedRow(s, start, start, sourceId, nameOf));
       continue;
     }
     for (let i = 0; i < 6; i += 1) {
@@ -189,14 +191,6 @@ function fixedRow(s, date, key, sourceId, nameOf) {
     periodIndex: key,
     periods: '',
   };
-}
-
-function shiftIso(iso, days) {
-  const d = new Date(iso + 'T00:00:00');
-  d.setDate(d.getDate() + days);
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${m}-${day}`;
 }
 
 /**
