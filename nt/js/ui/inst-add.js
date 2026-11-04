@@ -108,6 +108,19 @@ export function mountAddForm(ctx, onAdded) {
       inp.setAttribute('data-add', key);
       inp.placeholder = ph;
       inp.setAttribute('aria-label', label);
+      // 节点名称这一格：**离开时把简码换成真实账户名**（2026-11 用户要的）。
+      // 只换显示、不动解析逻辑 —— 提交时 parseAccountInput 两种写法都认。
+      if (key === 'name') {
+        inp.addEventListener('change', () => {
+          const raw = String(inp.value || '').trim();
+          if (!raw) return;
+          const r = parseAccountInput(ctx.getIndex(), raw);
+          if (r && r.acc && r.display) {
+            inp.value = r.display;
+            inp.dataset.accId = r.acc.id;
+          }
+        });
+      }
       host.appendChild(inp);
     }
   }

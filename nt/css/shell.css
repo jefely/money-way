@@ -345,9 +345,9 @@ body {
   left: 0;
 }
 
+/* 分期表**不在这里**：它有两行表头，层级要单独排，见下面「分期表冻结」整段。 */
 .nt-table-flow .nt-th:nth-child(1),
 .nt-table-plan .nt-th:nth-child(1),
-.nt-table-inst .nt-th:nth-child(1),
 .nt-table-stats .nt-th:nth-child(1),
 .nt-table-stats.is-cat .nt-th:nth-child(2) {
   position: -webkit-sticky;   /* 老 Safari / 部分安卓 WebView 只认带前缀的 */
@@ -357,7 +357,6 @@ body {
 
 .nt-table-flow .nt-cell:nth-child(1),
 .nt-table-plan .nt-cell:nth-child(1),
-.nt-table-inst .nt-cell:nth-child(1),
 .nt-table-stats .nt-cell:nth-child(1):not([colspan]) {
   position: -webkit-sticky;
   position: sticky;
@@ -416,24 +415,57 @@ body {
   z-index: 6;
 }
 
-/* 分期表：只冻结第一列「账户名称」，left 写死 0。
-   JS 测量在手机上不可靠（首次渲染量到 0 宽 → left 算错，看着像没冻住），
-   所以交给 CSS 常量。
+/* ============================================================
+   分期表冻结（2026-11 重写，旧的散在三处、互相覆盖）
+   ============================================================
+   需求只有三条：
+     ① 两行表头**都**纵向冻结（上行 top:0，下行让出一个行高）
+     ② 第一列「账户名称 / 分期金额」横向冻结
+     ③ **冻结层永远在最上面**：表头 > 数据行，冻结列 > 同行其它列
 
-   :not([colspan]) 必须 —— 空状态行是跨列格，加 sticky 会整行跟着横滚。 */
-.nt-table-inst .nt-th:nth-child(1) { left: 0; }
-/* 冻结列必须压在**同行其它列**之上：横向滚动时后面的列会滑过来，
-   层级相同就按 DOM 顺序画，后面的列会盖住冻结列的文字
-   （用户 2026-11-01：「第一列表头冻结了，但是在后方」）。 */
-.nt-table-inst .nt-th:nth-child(1) { z-index: 7; }
-/* 两行表头都跟数据行一样高，第二行按这个高度错开（见 plan.css） */
-.nt-table-inst thead .nt-th,
-.nt-table-inst tbody .nt-cell {
-  height: var(--nt-row-h, 32px);
+   z-index 五层（数字越大越上）：
+     9  上行 · 冻结列
+     8  上行 · 普通列
+     7  下行 · 冻结列
+     6  下行 · 普通列
+     4  冻结数据格（td/单元格）
+     0  普通数据格
+
+   为什么上行整体高于下行：滚动时两行都吸在顶部，下行若与上行同层，
+   后渲染的会把「账户名称 / 每月合计 / 合计数字」整条盖掉
+   （2026-11 用户报「年月行显示在第三行、上下滚动会上下移动」）。
+   为什么下行冻结列(7)只比下行普通列(6)高一级：它只需要压住同行的普通列，
+   整行仍然在上行之下。 */
+
+.nt-table-inst thead tr:nth-child(1) > .nt-th {
+  top: 0;
+  z-index: 8;
 }
-.nt-table-inst .nt-cell:nth-child(1):not([colspan]) {
+.nt-table-inst thead tr:nth-child(1) > .nt-th:nth-child(1) {
+  z-index: 9;
+}
+.nt-table-inst thead tr:nth-child(2) > .nt-th {
+  top: var(--nt-row-h, 32px);
+  z-index: 6;
+}
+.nt-table-inst thead tr:nth-child(2) > .nt-th:nth-child(1) {
+  z-index: 7;
+}
+
+/* 第一列横向冻结：表头两行 + 数据格都钉在 left:0。
+   :not([colspan]) 必须有 —— 空状态行是跨列格，加 sticky 会整行跟着横滚。 */
+.nt-table-inst .nt-th:nth-child(1) {
+  position: -webkit-sticky;
+  position: sticky;
   left: 0;
-  z-index: 5;
+  background: var(--nt-bg-soft);
+}
+
+.nt-table-inst .nt-cell:nth-child(1):not([colspan]) {
+  position: -webkit-sticky;
+  position: sticky;
+  left: 0;
+  z-index: 4;
   background: var(--nt-row-bg, var(--nt-bg));
   box-shadow: inset -1px 0 0 0 var(--nt-bg-line);
 }
@@ -763,23 +795,7 @@ body.nt-col-resizing .nt-tablewrap {
 .nt-table-inst .nt-th:nth-child(3) { width: 100px; min-width: 100px; max-width: 100px; }
 .nt-table-inst .nt-th.nt-c-month { width: var(--nt-inst-mw, 86px); }
 
-/* 分期表头是**两行**（上行合计 / 下行的本息总计 + 月份）。
-   两行都是 .nt-th，而 .nt-th 的默认 `top: 0` —— 不单独处理时
-   下行会整条压在上行上，滚动时只能看到「分期金额 / 本息总计 / 2026-08」，
-   上行「账户名称 / 每月合计 / 合计数字」被盖掉（2026-11 用户截图）。
-   所以第二行的 sticky 位置下移一个列标行高。
-   **z-index 也必须动**：上行是 5（普通列）/ 7（冻结列），下行只改 top 不改 z-index 时
-   两行仍然同为 5/7，后渲染的下行照样把上行盖住（2026-11 用户实测「没起作用」）。
-   下行取 4 / 5：高于普通 td（0）、与冻结 td 齐平（4 只在左边缘，不盖中间的列），
-   低于上行的 5 / 7。 */
-.nt-table-inst thead tr:nth-child(2) > .nt-th {
-  top: var(--nt-th-h, 26px);
-  z-index: 4;
-}
-
-.nt-table-inst thead tr:nth-child(2) > .nt-th:nth-child(1) {
-  z-index: 5;
-}
+/* 分期表两行表头的 sticky 层级见上面「分期表冻结」整段（约 300 行处）。 */
 
 /* ---------- 账户设置（10 列：简码 · 序 · 类型 · 分类 · 名称 · 期初 · 账单日 · 还款日 · 上移 · 删除） ---------- */
 

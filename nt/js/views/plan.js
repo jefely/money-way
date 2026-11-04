@@ -1,4 +1,4 @@
-﻿// 界面：固定 tab
+// 界面：固定 tab
 /**
  * 计划视图（固定收支 + 分期）
  * 层：第五层 · UI
@@ -29,7 +29,10 @@ export function mountPlan(section, ctx) {
   addBtn.textContent = '添加';
   addBtn.hidden = true;
   addBtn.addEventListener('click', () => {
-    show('inst');
+    // 只在**不在分期页**时才切过去：show() 会重建表单（清空输入框），
+    // 用户填好再点「添加」时若又重建一次，读到的就是空值 ——
+    // 表现是「点了添加没反应，只在页脚说先填分期银行」（2026-11 用户实测）。
+    if (cap !== 'inst') show('inst');
     instTable.submit();
   });
   caps.insertAdjacentElement('afterend', addBtn);
