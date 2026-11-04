@@ -15,8 +15,16 @@ import { normalizeMonth } from './schema.js';
 
 const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
-/** 最多铺多少个月份列（比任何分期都长，防止手滑填出个 9999-12） */
-export const MAX_MONTHS = 60;
+/**
+ * 最多铺多少个月份列。
+ *
+ * 这是**整张表**的上限，不是一条分期的期数上限（单文件版的分期工具栏
+ * 也是 120）。原来的 60 只够一条五年期分期，却不够「整个账本的历史 +
+ * 刚加的新分期」：最早那格在 2021-11、新加的分期从 2026-11 开始时，
+ * 从最早的月份数 60 格正好停在 2026-10，新记录的所有月份格落在窗口外，
+ * 整条变成空白（2026-11 用户实测「添加后没有具体分期」）。
+ */
+export const MAX_MONTHS = 120;
 
 /**
  * 这条分期的有效矩阵。
@@ -76,12 +84,15 @@ export function totalsOf(cells) {
 /**
  * 月份列的范围。
  *
- * 优先用用户设的起止月（range.from / range.to，'YYYY-MM'），
- * 没设就按现有分期的首月到最后一期自动算，并且至少含当月。
+ * 优先用起止月（range.from / range.to，'YYYY-MM'，nt 目前没有这个 UI）；
+ * 没设就按现有分期的首月到最后一期自动算。
+ * 超过 MAX_MONTHS 时保留**最新**的一段 —— 新加的分期必须在窗口里，
+ * 否则它整条月份格都会是空的（见上面 MAX_MONTHS 的注释）。
  *
  * @param {Array} rows 分期列表
  * @param {{from?:string, to?:string}} [range]
- * @param {string} nowMonth
+ * @param {string} nowMonth 一条分期都没有时用它兜底
+ * @param {string[]} [hidden] 用户点过「删除」的月份
  * @returns {string[]} 形如 ['2026-08', '2026-09', …]
  */
 export function spanOf(rows, range, nowMonth, hidden) {
@@ -114,10 +125,19 @@ export function spanOf(rows, range, nowMonth, hidden) {
   if (first > last) { const t = first; first = last; last = t; }
 
   const n = monthsBetween(first, last);
-  const count = Math.min(MAX_MONTHS, (Number.isFinite(n) ? n : 0) + 1);
+  const spanMonths = (Number.isFinite(n) ? n : 0) + 1;
+  const count = Math.min(MAX_MONTHS, spanMonths);
+
+  // 超上限时**保留最新的一头**。
+  // 从最早那格开始数会正好把刚加的分期甩出窗口：2021-11 起、加一条
+  // 2026-11 起的分期，60 格停在 2026-10 —— 新记录整条月份全空。
+  // 分期表最关心的是「现在和以后还要还多少」，所以截掉的是更早的历史；
+  // 只要窗口里还有那条分期的任何一格，它就不会变成空行。
+  const start = spanMonths > MAX_MONTHS ? addMonths(last, -(MAX_MONTHS - 1)) : first;
+
   const out = [];
   for (let k = 0; k < count; k += 1) {
-    const m = addMonths(first, k);
+    const m = addMonths(start, k);
     if (!skip.has(m)) out.push(m);
   }
   return out;

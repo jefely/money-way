@@ -7,7 +7,8 @@
  *   利息行  分期金额 | 还款日 | 本息合计（息） | 各月利息…
  *
  * 期数不再单独占一列 —— 它由「月份格里填了几格」推出来（core/installment-cells）。
- * 月份列的范围由表格上方的「起 / 止」两个输入决定；不填就按现有分期自动算。
+ * 月份列的范围由 spanOf 按现有分期的首末月自动算（上限 MAX_MONTHS）；
+ * 新增一条之后会把它的首月列滚进视野，避免新记录看起来「没有分期」。
  *
  * 不算钱：每期多少、合计多少全部来自 core/installment-cells。
  */
@@ -50,7 +51,50 @@ export function mountInstTable(ctx, tbody, opts) {
     if (saved && tbl) tbl.style.setProperty('--nt-inst-mw', saved);
   } catch (e) { /* 无痕模式读不到就算了 */ }
 
-  const addForm = mountAddForm(ctx, () => render());
+  const addForm = mountAddForm(ctx, (info) => {
+    render();
+    revealRow(info);
+  });
+
+  /**
+   * 新增之后把「这条分期铺到的第一格」滚进视野。
+   *
+   * 分期表可以宽到几十个月份列，用户又常常正停在表格最右边：
+   * 新记录若从下个月开始，格子全在当前视口之外，看起来就是
+   * 「记录只有名字和金额、没有具体分期」（2026-11 用户实测）。
+   * 这里只在新格子/新行确实不可见时才滚，避免每次添加都把表格拽走。
+   */
+  function revealRow(info) {
+    if (!info || !info.firstMonth) return;
+    const table = tbody.closest('table');
+    const wrap = tbody.closest('.nt-tablewrap');
+    if (!table || !wrap) return;
+
+    const wr = wrap.getBoundingClientRect();
+    const firstTh = document.querySelector(
+      '#nt-inst-head .nt-inst-month[data-month="' + info.firstMonth + '"]',
+    );
+    const frozen = table.querySelector('thead .nt-th:nth-child(1)');
+    const frozenW = frozen ? frozen.getBoundingClientRect().width : 0;
+
+    if (firstTh) {
+      const tr = firstTh.getBoundingClientRect();
+      const visLeft = wr.left + frozenW + 4;
+      const visRight = wr.right - 4;
+      if (tr.left < visLeft || tr.right > visRight) {
+        wrap.scrollLeft += Math.round(tr.left - visLeft);
+      }
+    }
+
+    const row = [...tbody.querySelectorAll('tr.nt-inst-main')]
+      .find((tr) => tr.dataset.id === info.id);
+    if (row) {
+      const rr = row.getBoundingClientRect();
+      if (rr.top < wr.top + 40 || rr.bottom > wr.bottom - 4) {
+        wrap.scrollTop += Math.round(rr.top - wr.top) - 60;
+      }
+    }
+  }
 
   function deleteRows(ids) {
     const r = removeBatch(ctx.getState(), 'scheduled', ids);
@@ -108,6 +152,7 @@ export function mountInstTable(ctx, tbody, opts) {
       const th = document.createElement('th');
       th.className = 'nt-th nt-c-month nt-inst-month';
       th.scope = 'col';
+      th.dataset.month = m;          // revealRow 靠它找「首月那一列」
       const label = document.createElement('span');
       label.textContent = m;
       const del = document.createElement('button');

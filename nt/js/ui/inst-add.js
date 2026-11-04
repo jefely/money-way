@@ -90,7 +90,9 @@ export function mountAddForm(ctx, onAdded) {
     const st = ctx.getState();
     ctx.setState({ ...st, scheduled: (st.scheduled || []).concat([row]) });
     ctx.saveNow();
-    if (onAdded) onAdded();
+    // 把新建的这条交给界面：它要滚到首月那一列，让用户立刻看见
+    // 「这条分期铺到了哪几个月」，而不是对着一行空月份格发懵。
+    if (onAdded) onAdded({ id: row.id, firstMonth: first });
     ctx.setFooter('已新增 1 条分期');
     return undefined;
   }
