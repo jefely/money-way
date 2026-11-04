@@ -7,8 +7,9 @@
  * 合计与余额全部来自 core 的纯函数，本文件不算钱。
  */
 
-import { addTransaction, updateTransaction, removeTransaction, nextSeq, removeBatch, restoreBatch, noteTextByCode } from '../core/state-store.js';
+import { addTransaction, updateTransaction, nextSeq, restoreBatch, noteTextByCode } from '../core/state-store.js';
 import { afterTxEdit } from '../core/draft-book.js';
+import { removeFlowTx, removeFlowBatch, unvoidKeys, markPlanHandled } from '../ui/plan-links.js';
 import { mountComposer } from '../ui/composer.js';
 import { createScheduled } from '../core/schema.js';
 import { buildFlowRows, buildFooterInfo } from '../ui/flow-model.js';
@@ -21,7 +22,7 @@ import { bindRowEditing } from '../ui/row-editor.js';
 import { openAddDialog } from '../ui/add-dialog.js';
 import { openSyncDialog } from '../ui/sync-dialog.js';
 import { splitByTime } from '../timeline/time-state.js';
-import { bindPlanRowActions, scrollPresent } from '../ui/plan-rows.js';
+import { bindPlanRowActions, scrollToLast as scrollLast } from '../ui/plan-rows.js';
 import { mountCellRange } from '../ui/cell-range.js';
 import { showUndo } from '../ui/undo-bar.js';
 import { openImportHub } from '../ui/import-hub.js';
@@ -92,7 +93,10 @@ export function mountFlow(section, ctx) {
       srcTxId: txId,
     });
 
-    ctx.setState({ ...st, scheduled: [...list, sched] });
+    // 源流水已代表当月这一期；标成已处理，否则自动到账会再补一笔。
+    let next = { ...st, scheduled: [...list, sched] };
+    next = markPlanHandled(next, sched.id, tx.date);
+    ctx.setState(next);
     ctx.save();
     render();
     ctx.setFooter(`已加入固定收支：每月 ${day} 号 · 可在「固定」页改频率或删除`);
@@ -218,8 +222,7 @@ export function mountFlow(section, ctx) {
   mountCellRange(flowTable, {
     onNotice: (t) => ctx.setFooter(t),
     onDeleteRows: (ids) => {
-      const before = ctx.getState();
-      const r = removeBatch(before, 'transactions', ids);
+      const r = removeFlowBatch(ctx.getState(), ids);
       ctx.setState(r.state);
       ctx.save();
       render();
@@ -227,29 +230,14 @@ export function mountFlow(section, ctx) {
       // 框选一次能删掉整片，误删的代价太大 —— 给 8 秒撤销
       showUndo(`已删除 ${r.removed.length} 笔流水`, () => {
         const s0 = ctx.getState();
-        ctx.setState(restoreBatch(s0, 'transactions', r.removed));
+        const restored = restoreBatch(s0, 'transactions', r.removed);
+        ctx.setState(unvoidKeys(restored, r.keys));
         ctx.saveNow();
         render();
         ctx.setFooter(`已恢复 ${r.removed.length} 笔流水`);
       });
     },
   });
-
-  /**
-   * 把最后一条有内容的行放到视口第 6 行（用户 2026-10-30 定）。
-   * 行高要量实际的：参数面板里能把每张表的行高调成别的值。
-   */
-  function scrollToLast() {
-    // 放到下一帧再量行高：切 tab 的那一刻表格刚从 hidden 变可见，
-    // 这时候读 getBoundingClientRect 会逼浏览器立刻把 240 行布局完（约 25ms 的同步阻塞）。
-    // 挪到 rAF 之后，布局本来就要做，读取不再额外卡一次点击。
-    requestAnimationFrame(() => {
-      const wrap = body.closest('.nt-tablewrap');
-      const first = body.querySelector('tr[data-id]') || body.querySelector('tr[data-new="1"]');
-      const rowH = first ? first.getBoundingClientRect().height || 34 : 34;
-      if (wrap) wrap.scrollTop = scrollPresent(body, rowH);
-    });
-  }
 
   function render(force) {
     const ver = typeof ctx.getVersion === 'function' ? ctx.getVersion() : -1;
@@ -258,7 +246,7 @@ export function mountFlow(section, ctx) {
     // 切 tab 回来就走这条：200 多行 DOM 重造一次约 45ms，而这时 DOM 本来就是对的
     // （用户 2026-11-01：从别的标签切回流水会卡，每次卡的时间差不多）。
     if (!force && ver >= 0 && ver === renderedVer && body.querySelector('tr')) {
-      if (!scrollInit) { scrollInit = true; scrollToLast(); }
+      if (!scrollInit) { scrollInit = true; scrollLast(body); }
       ctx.setFooter(footerText()); return;
     }
     renderedVer = ver;
@@ -277,7 +265,7 @@ export function mountFlow(section, ctx) {
     }
     const rows = buildFlowRows(st, virtual);
     renderRows(body, rows);
-    if (!scrollInit) { scrollInit = true; scrollToLast(); }
+    if (!scrollInit) { scrollInit = true; scrollLast(body); }
     ctx.setFooter(footerText());
     // 草稿行被删掉后，一句话输入条的引导也要跟着归零（用户 2026-11）
     if (composer && typeof composer.syncDraft === 'function') composer.syncDraft();
@@ -348,7 +336,12 @@ export function mountFlow(section, ctx) {
     return ctx.save();
   }
 
-  function onDelete(id) { ctx.setState(removeTransaction(ctx.getState(), id)); render(); ctx.save(); }
+  function onDelete(id) {
+    // 删掉自动到账的那一期 → 同时作废，避免下次自动补回来
+    ctx.setState(removeFlowTx(ctx.getState(), id));
+    render();
+    ctx.save();
+  }
 
   /**
    * 切回流水页时用：重置「已定位」标记并重渲染 —— 定位逻辑集中在 render 里，

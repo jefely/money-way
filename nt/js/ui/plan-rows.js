@@ -38,6 +38,22 @@ export function scrollPresent(body, rowH) {
   return Math.max(0, (present.length + more - 6) * rowH);
 }
 
+/**
+ * 把最后一条有内容的行放到视口第 6 行（用户 2026-10-30 定）。
+ * 行高要量实际的：参数面板里能把每张表的行高调成别的值。
+ */
+export function scrollToLast(body) {
+  // 放到下一帧再量行高：切 tab 的那一刻表格刚从 hidden 变可见，
+  // 这时候读 getBoundingClientRect 会逼浏览器立刻把 240 行布局完（约 25ms 的同步阻塞）。
+  // 挪到 rAF 之后，布局本来就要做，读取不再额外卡一次点击。
+  requestAnimationFrame(() => {
+    const wrap = body.closest('.nt-tablewrap');
+    const first = body.querySelector('tr[data-id]') || body.querySelector('tr[data-new="1"]');
+    const rowH = first ? first.getBoundingClientRect().height || 34 : 34;
+    if (wrap) wrap.scrollTop = scrollPresent(body, rowH);
+  });
+}
+
 export function bindPlanRowActions(tbody, ctx, render) {
   if (!tbody || tbody.dataset.planRows === '1') return;
   tbody.dataset.planRows = '1';

@@ -171,7 +171,9 @@ export const FREQ = { DAILY: 'daily', MONTHLY: 'monthly' };
  *   固定房租：{ freq:'monthly', day:25, from_id, to_id, amount:900 }
  *   分期还款：{ ...同上, inst:{ periods:12, firstMonth:'2026-08', principal:12000, interest:720 } }
  *
- * 它不产生真实流水，只是「规则」；未来的虚拟流水由 scheduler-engine 现算。
+ * 它本身只是「规则」：未来虚拟流水由 scheduler-engine 现算；
+ * **每月固定收支到期**另由 plan-occurrence.materializeDueFixed 落成真实流水，
+ * 每日固定收支不自动落账，必须点 ▲ 确认（2026-11 用户定）。
  */
 export function createScheduled(patch = {}) {
   const amount = Number(String(patch.amount == null ? 0 : patch.amount).replace(/[¥,\s]/g, ''));

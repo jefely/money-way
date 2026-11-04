@@ -9,7 +9,7 @@
  */
 
 import { createTransaction } from './schema.js';
-import { computeInstallment } from './installment-engine.js';
+import { computeInstallment, dayInMonth } from './installment-engine.js';
 
 export function planKey(sourceId, month) {
   const id = String(sourceId || '').trim();
@@ -36,6 +36,62 @@ export function occurrenceTaken(state, key) {
   if (!key) return false;
   if (((state && state.voidedPlans) || []).includes(key)) return true;
   return ((state && state.transactions) || []).some((t) => t && t.planKey === key);
+}
+
+/**
+ * 每月固定收支：到期后自动落成真实流水（用户 2026-11）。
+ *
+ * 规则：
+ *   · 只处理**每月**（daily 不自动，必须点 ▲）；
+ *   · 只处理**固定收支**（s.inst 分期仍走原表）；
+ *   · 必须是两端齐全、金额 > 0，否则不生成（避免造出无效流水）；
+ *   · 只补**当前月**这一期，不猜历史月份（固定收支没有开始月份，补历史会凭空造账）；
+ *   · 过了日期就按当月应发生日（如 31 号在 2 月落到月末）生成，不把日期改成今天；
+ *   · planKey 去重：已有流水或已作废的同一期不会再来一遍。
+ *
+ * 纯函数：不改入参，没有可生成项时原样返回（调用方可按 === 判断是否变了）。
+ *
+ * @param {object} state
+ * @param {string} today 'YYYY-MM-DD'
+ * @returns {object} 原 state 或带新增 transactions 的新 state
+ */
+export function materializeDueFixed(state, today) {
+  const base = state || {};
+  const day = String(today || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return base;
+  const month = day.slice(0, 7);
+  const scheduled = base.scheduled || [];
+  const transactions = base.transactions || [];
+  const additions = [];
+  let seq = nextSeq(base);
+
+  for (const s of scheduled) {
+    if (!s || !s.isScheduled || s.inst) continue;
+    if (s.freq === 'daily') continue;
+    if (!s.from_id || !s.to_id) continue;
+    const amount = Number(s.amount) || 0;
+    if (!(amount > 0)) continue;
+
+    const dueDay = dayInMonth(month, Number(s.day) || 1);
+    const date = `${month}-${String(dueDay).padStart(2, '0')}`;
+    if (!dueDay || date > day) continue;
+
+    const key = planKey(s.id, month);
+    if (!key || occurrenceTaken(base, key)) continue;
+    additions.push(createTransaction({
+      date,
+      from_id: s.from_id,
+      to_id: s.to_id,
+      amount,
+      note: s.note || '',
+      seq: seq++,
+      planKey: key,
+      planSourceId: s.id || '',
+    }));
+  }
+
+  if (!additions.length) return base;
+  return { ...base, transactions: transactions.concat(additions) };
 }
 
 export function visiblePlans(list, state) {

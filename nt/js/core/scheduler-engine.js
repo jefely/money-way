@@ -9,7 +9,9 @@
  *   getSchedulerSummary(list, accounts) 顶部那四个汇总数字
  *
  * 纯函数：不碰 DOM、不改入参、不写盘。
- * 虚拟流水带 isVirtual 标记，永远不会混进 state.transactions。
+ * 本模块只生成**虚拟流水**（isVirtual），永远不会写回 state.transactions；
+ * 每月固定收支到期另由 core/plan-occurrence.materializeDueFixed 落成真实流水，
+ * 每日固定收支不自动，必须点 ▲（2026-11 用户定）。
  */
 
 import { createScheduled, FREQ } from './schema.js';

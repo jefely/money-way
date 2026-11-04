@@ -125,6 +125,7 @@
 | `ui/path-flow-table.js` | 路径页左栏的流水查询表 |
 | `ui/path-legend.js` | 路径 tab → 图例 |
 | `ui/path-view.js` | 路径 tab |
+| `ui/plan-links.js` | 流水与固定收支期次的联动 |
 | `ui/plan-rows.js` | 流水 tab → 未来行的确认 / 作废 |
 | `ui/pwa.js` | PWA 注册 |
 | `ui/qr-canvas.js` | （未标注界面）把 QR 矩阵画到 canvas（UI 层） |

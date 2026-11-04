@@ -28,6 +28,8 @@ import { syncOpeningDates } from './core/ledger-stats.js';
 import { createState, addAccount } from './core/state-store.js';
 import { buildAccountIndex } from './core/account-index.js';
 import { ACCOUNT_TYPE } from './core/schema.js';
+import { materializeDueFixed } from './core/plan-occurrence.js';
+import { todayIso } from './core/format.js';
 import { mountFlow } from './views/flow.js';
 import { mountStats } from './views/stats.js';
 import { mountQuery } from './views/query.js';
@@ -67,12 +69,26 @@ let dataVersion = 0;
 
 /* ---------- state 与索引 ---------- */
 
-function setState(next) {
-  undo.note(state, next);
+function setState(next, opts) {
+  // 自动到账这类「系统补的」流水不进撤销栈：否则一撤销，下一次渲染又补回来，
+  // 用户会看到撤销键像失灵。opts.silent 只给自动动作使用。
+  if (!opts || !opts.silent) undo.note(state, next);
   state = next;
   dataVersion += 1;
   index = buildAccountIndex(state.accounts);
   updateDocTitle();
+}
+
+/**
+ * 每月固定收支到期自动落账（daily 不在此列，必须点 ▲）。
+ * 静默入栈 + 存盘；返回这次有没有新增。
+ */
+function autoPostFixed() {
+  const next = materializeDueFixed(state, todayIso());
+  if (next === state) return false;
+  setState(next, { silent: true });
+  scheduleSave();
+  return true;
 }
 
 function getVersion() { return dataVersion; }
@@ -93,6 +109,8 @@ function setFooter(text) {
 }
 
 function renderActive() {
+  // 每次进入/切回视图先把到期的每月固定收支补成真实流水。
+  autoPostFixed();
   const v = views[active];
   if (v && typeof v.render === 'function') v.render();
   syncAllFrozen();
@@ -301,9 +319,22 @@ function enterApp() {
   // 移动端后台恢复会把页面重置，光靠 tab 切换的 onShow 不够。
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
+    // 手机后台很常见：放着过夜/过了一个月，回来先补到期固定收支
+    if (autoPostFixed()) renderActive();
     if (active !== 'flow') return;
     if (views.flow && views.flow.focusEnd) views.flow.focusEnd();
   });
+
+  // 页面一直开着跨过零点/跨月：日期一变就补账并重画（后台标签会节流，
+  // 真正回来时 visibilitychange 还会再检查一次）。
+  let autoPostDay = todayIso();
+  setInterval(() => {
+    const d = todayIso();
+    if (d === autoPostDay) return;
+    autoPostDay = d;
+    if (autoPostFixed()) renderActive();
+    else renderActive();   // 日期变了，未来行的「今天/本月」也要跟着挪
+  }, 60000);
 
   // 界面参数调试面板：只在 ?debug=1 时出现，不影响正常用户
   if (new URLSearchParams(location.search).has('debug')) {
