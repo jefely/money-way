@@ -763,6 +763,17 @@ body.nt-col-resizing .nt-tablewrap {
 .nt-table-inst .nt-th:nth-child(3) { width: 100px; min-width: 100px; max-width: 100px; }
 .nt-table-inst .nt-th.nt-c-month { width: var(--nt-inst-mw, 86px); }
 
+/* 分期表头是**两行**（上行合计 / 下行的本息总计 + 月份）。
+   两行都是 .nt-th，而 .nt-th 的默认 `top: 0` —— 不单独处理时
+   下行会整条压在上行上，滚动时只能看到「分期金额 / 本息总计 / 2026-08」，
+   上行「账户名称 / 每月合计 / 合计数字」被盖掉（2026-11 用户截图）。
+   所以第二行的 sticky 位置下移一个列标行高。
+   z-index 不在这里写：第一列的冻结表头是 6，普通表头是 5，
+   沿用默认就正好「上行在上、下行在下」。 */
+.nt-table-inst thead tr:nth-child(2) > .nt-th {
+  top: var(--nt-th-h, 26px);
+}
+
 /* ---------- 账户设置（10 列：简码 · 序 · 类型 · 分类 · 名称 · 期初 · 账单日 · 还款日 · 上移 · 删除） ---------- */
 
 /* 同上：不再给表级 min-width。
