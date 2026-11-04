@@ -79,10 +79,28 @@ export function showSuggest(anchor, items, onPick) {
       row.appendChild(code);
       row.appendChild(name);
       row.appendChild(cat);
-      row.addEventListener('click', () => {
+
+      // 关键：在 **pointerdown** 里选中，而不是等 click。
+      // 手指/鼠标按下的默认动作会把焦点从输入框移走 → focusout 立刻
+      // resolveField() → hideSuggest()，气泡（连同这个按钮）先被隐藏，
+      // 随后的 click 只能落在 body 上 —— 用户看到的就是「点了没反应，
+      // 只是把输入的字解析了一下」（2026-11 用户报「候选点选失效」）。
+      // pointerdown 早于默认的 blur；preventDefault 再把焦点留在输入框。
+      let picked = false;
+      const pick = () => {
+        if (picked) return;
+        picked = true;
         if (_onPick) _onPick(acc);
         hideSuggest();
+      };
+      row.addEventListener('pointerdown', (ev) => {
+        if (ev.button !== 0 && ev.pointerType === 'mouse') return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        pick();
       });
+      // 键盘/辅助技术触发的合成 click 仍保留
+      row.addEventListener('click', pick);
       pop.appendChild(row);
     }
   }
