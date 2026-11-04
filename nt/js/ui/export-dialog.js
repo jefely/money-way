@@ -27,6 +27,7 @@ export function openExportDialog(h) {
 
   NtModal.open({
     title: '导出',
+    autoFocus: false,
     build: (body) => {
       /* ---------- 导出文件 ---------- */
       body.appendChild(sectionTitle('导出文件'));
@@ -35,12 +36,13 @@ export function openExportDialog(h) {
       fileBar.className = 'nt-exp-bar';
       fileBar.appendChild(btn('导出 .lz', () => doLz()));
       fileBar.appendChild(btn('导出 .xlsx', () => doXlsx()));
-      fileBar.appendChild(btn('分享加密备份', () => doShare()));
+      fileBar.appendChild(btn('导出加密备份', () => doShare()));
       body.appendChild(fileBar);
 
       const fileHint = document.createElement('p');
       fileHint.className = 'nt-sync-hint';
-      fileHint.textContent = '「分享加密备份」用账本密码加密，安卓和 iPhone 主屏幕都会打开系统分享，可存到网盘或文件。'
+      fileHint.textContent = '「导出加密备份」用账本密码加密，存成纯文本（NT账本-加密备份-日期.txt）。'
+        + '安卓和 iPhone 主屏幕都会打开系统分享，可存到网盘或文件。'
         + '.lz 只是压缩，不含密码，不要把它当备份传到别处。';
       body.appendChild(fileHint);
 
@@ -60,9 +62,8 @@ export function openExportDialog(h) {
         note.textContent = `已生成 TXT 模板：账户 ${(state.accounts || []).length} 个、`
           + `流水 ${(state.transactions || []).length} 笔。点「复制」带走。`;
       });
-      const encBtn = btn('生成加密文本', () => doEncText());
+      const encBtn = btn('生成密文', () => doEncText());
       const copyBtn = btn('复制', () => copyTa());
-      copyBtn.classList.add('nt-exp-main');
 
       copyBar.appendChild(csvBtn);
       copyBar.appendChild(txtBtn);
@@ -73,7 +74,7 @@ export function openExportDialog(h) {
       const ta = document.createElement('textarea');
       ta.className = 'nt-exp-out';
       ta.spellcheck = false;
-      ta.placeholder = '点「生成加密文本」得到可粘贴的密文，或生成 .csv / .txt。再点「复制」。';
+      ta.placeholder = '点「生成密文」得到可粘贴的密文，或生成 .csv / .txt。再点「复制」。';
       body.appendChild(ta);
 
       const note = document.createElement('p');
@@ -110,10 +111,10 @@ export function openExportDialog(h) {
         }
         try {
           ta.value = await h.encryptedBackupText();
-          note.textContent = '已生成加密备份文本（用账本密码才能解开）。点「复制」贴到微信。导入时粘贴这段并输入密码。';
+          note.textContent = '已生成密文（用账本密码才能解开）。点「复制」贴到微信或存成 .txt。导入时选这个文件，或把密文粘进导入框。';
           if (typeof h.onBackedUp === 'function') h.onBackedUp();
         } catch (e) {
-          note.textContent = '生成加密文本失败：' + ((e && e.message) || e);
+          note.textContent = '生成密文失败：' + ((e && e.message) || e);
         }
       }
 
@@ -136,7 +137,7 @@ export function openExportDialog(h) {
           const how = await h.shareBackup();
           if (how === 'cancelled') note.textContent = '已取消';
           else if (how === 'shared') note.textContent = '已打开系统分享。请存到网盘、文件或发给自己。';
-          else if (how === 'saved') note.textContent = '已保存加密备份。换机时用同一套账本密码恢复。';
+          else if (how === 'saved') note.textContent = '已保存加密备份（.txt）。换机时用同一套账本密码，在导入里选择这个文件。';
           else note.textContent = '已开始下载。若手机里找不到文件，请再点一次并在分享单里选「文件」或网盘。';
           if (how && how !== 'cancelled' && typeof h.onBackedUp === 'function') h.onBackedUp();
         } catch (e) {
@@ -158,7 +159,7 @@ export function openExportDialog(h) {
         }
       }
     },
-    actions: [{ label: '关闭', kind: 'ghost', close: true }],
+    actions: [],
   });
 }
 

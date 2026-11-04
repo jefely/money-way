@@ -18,6 +18,7 @@ import {
   parseSettingsRows, parseFlowRows, parseFixedRows, parseInstRows, stateFromTemplate,
 } from '../core/xlsx-template-read.js';
 import { readLzText, stateFromLzPayload } from '../core/lz-file.js';
+import { isBackupText } from '../core/backup-file.js';
 
 /**
  * 打开导入对话框。
@@ -29,7 +30,7 @@ export function openImportDialog(opts) {
 
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.xlsx,.csv,.txt,.tsv,.lz';
+  input.accept = '.xlsx,.csv,.txt,.tsv,.lz,.json';
   input.style.display = 'none';
   document.body.appendChild(input);
 
@@ -37,6 +38,20 @@ export function openImportDialog(opts) {
     const file = input.files && input.files[0];
     input.remove();
     if (!file) return;
+
+    let raw = '';
+    try { raw = await file.text(); } catch (e) { raw = ''; }
+    if (isBackupText(raw)) {
+      if (typeof o.onBackup === 'function') o.onBackup(raw);
+      else {
+        NtModal.open({
+          title: '导入失败',
+          body: '这是加密备份，当前不能恢复',
+          actions: [{ label: '关闭', kind: 'ghost', close: true }],
+        });
+      }
+      return;
+    }
 
     // .lz = 跨设备快照（LZ1/LZ0 + gzip(JSON)），与 xlsx 是两条完全不同的通道
     if (/\.lz$/i.test(file.name)) {
