@@ -178,6 +178,18 @@ function dataRow(r, i, rowTpl) {
     box.disabled = !!r.isOpening || !!r.isVirtual;
   }
 
+  const mark = r.mark === 'hollow' || r.mark === 'yellow' || r.mark === 'solid' ? r.mark : '';
+  if (mark) {
+    tr.classList.add('nt-mark-' + mark);
+    const seq = tr.querySelector('.' + CLASS.seq);
+    if (seq) {
+      const dot = document.createElement('span');
+      dot.className = 'nt-draft-mark';
+      dot.setAttribute('aria-hidden', 'true');
+      seq.appendChild(dot);
+    }
+  }
+
   if (r.isVirtual) {
     tr.classList.add('nt-row-virtual');
     tr.dataset.virtual = '1';

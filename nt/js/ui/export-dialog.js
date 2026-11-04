@@ -35,12 +35,13 @@ export function openExportDialog(h) {
       fileBar.className = 'nt-exp-bar';
       fileBar.appendChild(btn('导出 .lz', () => doLz()));
       fileBar.appendChild(btn('导出 .xlsx', () => doXlsx()));
+      fileBar.appendChild(btn('分享加密备份', () => doShare()));
       body.appendChild(fileBar);
 
       const fileHint = document.createElement('p');
       fileHint.className = 'nt-sync-hint';
-      fileHint.textContent = '生成的文件会下载到本机。.lz 是本程序自己的格式（带校验、体积小），'
-        + '.xlsx 可以直接用 Excel / WPS 打开。';
+      fileHint.textContent = '「分享加密备份」用账本密码加密，安卓和 iPhone 主屏幕都会打开系统分享，可存到网盘或文件。'
+        + '.lz 只是压缩，不含密码，不要把它当备份传到别处。';
       body.appendChild(fileHint);
 
       /* ---------- 复制内容 ---------- */
@@ -103,6 +104,23 @@ export function openExportDialog(h) {
         }
       }
 
+      async function doShare() {
+        if (typeof h.shareBackup !== 'function') {
+          note.textContent = '当前不能做加密备份';
+          return;
+        }
+        try {
+          const how = await h.shareBackup();
+          if (how === 'cancelled') note.textContent = '已取消';
+          else if (how === 'shared') note.textContent = '已打开系统分享。请存到网盘、文件或发给自己。';
+          else if (how === 'saved') note.textContent = '已保存加密备份。换机时用同一套账本密码恢复。';
+          else note.textContent = '已开始下载。若手机里找不到文件，请再点一次并在分享单里选「文件」或网盘。';
+          if (how && how !== 'cancelled' && typeof h.onBackedUp === 'function') h.onBackedUp();
+        } catch (e) {
+          note.textContent = '备份失败：' + ((e && e.message) || e);
+        }
+      }
+
       function doXlsx() {
         try {
           const sheets = buildTemplateSheets(state, {
@@ -145,6 +163,7 @@ function buildPayload(state) {
     v: 1,
     accounts: state.accounts || [],
     transactions: state.transactions || [],
+    mappings: state.mappings || {},
     exportedAt: new Date().toISOString(),
   };
 }

@@ -19,6 +19,7 @@ import { loadMergedSettings } from '../ui/debug-themes.js';
 import { mountDebugPanel } from '../ui/debug-panel.js';
 import { openAccountConfig } from '../ui/account-config.js';
 import { checkNewPassword } from '../core/vault-rekey.js';
+import { openResetDialog } from '../ui/reset-dialog.js';
 
 const ACT_LABEL = { password: '修改密码', config: '配置', layout: '布局' };
 
@@ -52,7 +53,7 @@ export function mountSettings(section, ctx) {
   function onAction(act) {
     if (act === 'balance') { showBalance(); return; }
     if (act === 'theme') { cycleTheme(); return; }
-    if (act === 'reset') { showReset(); return; }
+    if (act === 'reset') { openResetDialog(ctx); return; }
     if (act === 'layout') { showLayout(); return; }
     if (act === 'config') { openAccountConfig(ctx); return; }
     if (act === 'password') { showPassword(); return; }
@@ -131,17 +132,6 @@ export function mountSettings(section, ctx) {
     } catch (e) { /* 主题已经切过去，参数失败不应阻止切换 */ }
   }
 
-  function showReset() {
-    NtModal.open({
-      title: '重置',
-      body: '重置账本会清空全部数据（账户 + 流水），且不可恢复。',
-      actions: [
-        { label: '取消', kind: 'ghost', close: true },
-        { label: '重置账本（清空）', kind: 'danger', close: false, onClick: () => { doReset(); } },
-      ],
-    });
-  }
-
   /**
    * 修改主密码。
    *
@@ -216,14 +206,6 @@ export function mountSettings(section, ctx) {
       } finally {
         busy = false;
       }
-    }
-  }
-
-  async function doReset() {
-    try {
-      if (ctx.resetAll) await ctx.resetAll();
-    } catch (e) {
-      NtModal.info('重置失败', (b) => { b.textContent = e.message; });
     }
   }
 

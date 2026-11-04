@@ -6,6 +6,8 @@
  * 必须能在 Node 下直接跑测试。
  */
 
+import { isPosted } from './schema.js';
+
 /** 账户性质 → 借贷方向。资产类/费用类/成本类 = 借增贷减（debit），其余相反。 */
 export const DEBIT_CATS = ['资产类', '费用类', '成本类'];
 
@@ -64,6 +66,7 @@ export function aggregateBuckets(transactions, accounts, range) {
   };
 
   for (const t of transactions || []) {
+    if (!isPosted(t)) continue;
     const amt = toAmount(t && t.amount);
     const d = String((t && t.date) || '');
     if (!amt || !d) continue;

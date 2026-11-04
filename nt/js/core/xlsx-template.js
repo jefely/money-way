@@ -59,7 +59,7 @@ export function buildFlowSheet(state, nameOf) {
     {
       h: 26,
       kind: 'head',
-      cells: ['序', '日期', '转出账户', '转入账户', '金额', '备注'].map((t) => ({ v: t })),
+      cells: ['序', '日期', '转出账户', '转入账户', '金额', '备注', '状态'].map((t) => ({ v: t })),
     },
   ];
 
@@ -78,11 +78,12 @@ export function buildFlowSheet(state, nameOf) {
         { v: nameOf(t.to_id), k: 'center' },
         { v: Number(t.amount) || 0, k: 'num' },
         { v: t.note || '' },
+        { v: t.status === 'draft' ? '草稿' : '' },
       ],
     });
   }
 
-  return { rows, widths: [7, 13, 22, 22, 14, 32], freeze: 2 };
+  return { rows, widths: [7, 13, 22, 22, 14, 32, 10], freeze: 2 };
 }
 
 /** 模板里两个分区的文字（与备份文件一致，不改 ZONES 本身） */

@@ -246,8 +246,9 @@ export function computeSlots(txs, opts) {
  * 注意中间那一层「统计分类」**不参与角度分配**：它只管颜色和排序，
  * 类型内部跨分类不再留缝（缝只留在类型之间），所以整圈永远是满的。
  *
- * 「净额」这个口径的代价要知道：中转账户（本月转入多少就转出多少）净额为 0，
- * 弧段宽度就是 0 —— 它会在环上消失。那是「余额变动」视角的必然结果。
+ * 净额为 0 的中转账户不再消失：在所属类型里留一条至少约 1.2° 的细弧
+ * （类型里这种账户很多时，细弧合计不超过该类型角度的 35%）。
+ * 整个类型净额都是 0 时，这一段在类型内部均分，仍然看得见。
  *
  * ⚠️ 返回值必须和 count 模式的 `unit` 同量纲（弧度）。
  * 这里曾经返回「度」并被直接加到弧度累加器上，一个块跨了 9731°（27 圈），
@@ -289,17 +290,50 @@ function spansByAmount(slots, groupList, gapDeg) {
 
   let totalNet = 0;
   for (const v of typeNet.values()) totalNet += v;
+  // 一笔净额都没有：退回笔数模式，避免整圈被细弧规则拆碎
   if (!(totalNet > 0)) return null;
+
+  // 净额为 0 的账户至少留这么宽，保证弧块、标签和点击还在
+  const MIN_RAD = 1.2 * RAD;
+  const accRad = new Map();
+  for (const type of types) {
+    const ids = [];
+    for (const [acc, tp] of typeOfAcc) {
+      if (tp === type && ids.indexOf(acc) < 0) ids.push(acc);
+    }
+    if (!ids.length) continue;
+    const weights = ids.map((id) => Math.abs(net.get(id)) || 0);
+    const sumW = weights.reduce((s, w) => s + w, 0);
+    if (!(sumW > 0)) {
+      const each = typeRad / ids.length;
+      for (const id of ids) accRad.set(id, each);
+      continue;
+    }
+    let floors = weights.map((w) => (w > 0 ? 0 : MIN_RAD));
+    let floorSum = floors.reduce((s, w) => s + w, 0);
+    const cap = typeRad * 0.35;
+    if (floorSum > cap && floorSum > 0) {
+      const scale = cap / floorSum;
+      floors = floors.map((f) => f * scale);
+      floorSum = cap;
+    }
+    if (floorSum > typeRad) {
+      const scale = typeRad / floorSum;
+      floors = floors.map((f) => f * scale);
+      floorSum = typeRad;
+    }
+    const rest = typeRad - floorSum;
+    ids.forEach((id, i) => {
+      const share = weights[i] > 0 ? rest * (weights[i] / sumW) : 0;
+      accRad.set(id, floors[i] + share);
+    });
+  }
 
   const spans = new Map();
   for (const sl of slots) {
     if (!sl.acc) { spans.set(sl, 0); continue; }
-    const n = Math.abs(net.get(sl.acc)) || 0;
-    const tsum = typeNet.get(sl.type) || 0;
     const cnt = accSlots.get(sl.acc) || 1;
-    // 整个类型净额都是 0（钱进来又原样出去）→ 这一段宽度 0，环上留空
-    const accRad = tsum > 0 ? typeRad * (n / tsum) : 0;
-    spans.set(sl, accRad / cnt);
+    spans.set(sl, (accRad.get(sl.acc) || 0) / cnt);
   }
   return spans;
 }

@@ -124,11 +124,16 @@ export function createAccount(patch = {}) {
 /**
  * 造一笔流水。
  * 金额永远是正数（加减由账户类型决定，不是由符号决定）。
- * @param {{id?:string,date?:string,from_id?:string,to_id?:string,amount?:number|string,note?:string,seq?:number,opening?:boolean,inst?:object}} patch
+ *
+ * 渐进式草稿（完整规则见 EVENT-MODEL.md §九）：
+ *   · 只有 `status:'draft'` 才是草稿；缺 status = 已入账（旧数据）。
+ *   · 两端都在、且两个账户都有类型、金额 > 0，才从草稿变成已入账。
+ *   · 不新增第 7 种账户类型。认不出的词仍是空类型（U 区）。
+ * @param {{id?:string,date?:string,from_id?:string,to_id?:string,amount?:number|string,note?:string,seq?:number,opening?:boolean,inst?:object,status?:string}} patch
  */
 export function createTransaction(patch = {}) {
   const amount = Number(String(patch.amount == null ? 0 : patch.amount).replace(/[¥,\s]/g, ''));
-  return {
+  const tx = {
     id: patch.id || makeId('tx'),
     date: String(patch.date || ''),
     from_id: patch.from_id || null,
@@ -136,9 +141,17 @@ export function createTransaction(patch = {}) {
     amount: Number.isFinite(amount) ? Math.abs(amount) : 0,
     note: String(patch.note || ''),
     seq: Number(patch.seq) || 0,
+    ...(patch.billId ? { billId: String(patch.billId) } : {}),
     ...(patch.inst ? { inst: patch.inst } : {}),
     ...(patch.opening ? { opening: true } : {}),
   };
+  if (patch.status === 'draft') tx.status = 'draft';
+  return tx;
+}
+
+/** 缺 status 的旧流水算已入账。只有明确的 draft 不进余额 / 统计 / 环图 / 同步码。 */
+export function isPosted(tx) {
+  return !!tx && tx.status !== 'draft';
 }
 
 /* ---------- 计划流水（固定收支 + 分期，统一结构） ---------- */

@@ -10,7 +10,8 @@
 
 import { money, moneyAlways, moneyOrBlank, shortDate } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
-import { indexAccounts } from '../core/schema.js';
+import { indexAccounts, isPosted } from '../core/schema.js';
+import { markerOf } from '../core/draft-book.js';
 
 /**
  * 流水 → 渲染行。排序：seq 升序。
@@ -41,6 +42,7 @@ export function buildFlowRows(state, virtual) {
       isVirtual: true,
       isOpening: false,
       broken: false,
+      mark: '',
     };
   });
   return real.concat(virt);
@@ -79,6 +81,7 @@ function buildRealRows(state) {
     fixed: !t.opening && fixedTx.has(String(t.id)),
     // 断链提示：有 ID 但映射不到名字（账户被删过）
     broken: (!!t.from_id && !accMap.has(t.from_id)) || (!!t.to_id && !accMap.has(t.to_id)),
+    mark: markerOf(t, state.accounts),
   }));
 }
 
@@ -86,8 +89,12 @@ function buildRealRows(state) {
 export function buildFooterInfo(state) {
   const list = state.transactions || [];
   let total = 0;
-  for (const t of list) total += toAmount(t.amount);
-  return { count: list.length, totalText: moneyAlways(total) };
+  let drafts = 0;
+  for (const t of list) {
+    if (!isPosted(t)) { drafts += 1; continue; }
+    total += toAmount(t.amount);
+  }
+  return { count: list.length, totalText: moneyAlways(total), drafts };
 }
 
 /** 账户下拉选项（名字 + 分类，供补全用） */

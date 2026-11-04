@@ -11,6 +11,7 @@
 
 import * as NtModal from './modal.js';
 import { openImportDialog } from './import-dialog.js';
+import { isBackupText } from '../core/backup-file.js';
 
 const PLACEHOLDER = [
   '账户：',
@@ -75,6 +76,14 @@ export function openImportHub(opts) {
         }
       });
       bar.appendChild(paste);
+      if (typeof o.restoreBackup === 'function') {
+        const back = document.createElement('button');
+        back.type = 'button';
+        back.className = 'nt-btn nt-btn-sm';
+        back.textContent = '恢复加密备份';
+        back.addEventListener('click', () => pickBackup(o));
+        bar.appendChild(back);
+      }
       body.appendChild(bar);
 
       ta = document.createElement('textarea');
@@ -110,4 +119,60 @@ export function openImportHub(opts) {
   });
 
   return dlg;
+}
+
+function pickBackup(o) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.addEventListener('change', async () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const text = await file.text();
+    if (!isBackupText(text)) {
+      if (o.setFooter) o.setFooter('这不是加密备份（文件里应有 nt-backup）');
+      return;
+    }
+    askPassword(text, o);
+  });
+  input.click();
+}
+
+function askPassword(text, o) {
+  let pw = null;
+  let err = null;
+  NtModal.open({
+    title: '恢复加密备份',
+    build: (body) => {
+      const tip = document.createElement('p');
+      tip.className = 'nt-sync-hint';
+      tip.textContent = '用导出时的账本密码解开。解开后会替换当前这笔账。';
+      body.appendChild(tip);
+      pw = document.createElement('input');
+      pw.type = 'password';
+      pw.className = 'nt-input';
+      pw.setAttribute('aria-label', '账本密码');
+      body.appendChild(pw);
+      err = document.createElement('p');
+      err.className = 'nt-sync-hint';
+      body.appendChild(err);
+    },
+    actions: [
+      { label: '取消', kind: 'ghost', close: true },
+      {
+        label: '恢复',
+        kind: 'primary',
+        close: false,
+        onClick: async ({ close }) => {
+          try {
+            const state = await o.restoreBackup(text, pw ? pw.value : '');
+            close();
+            if (typeof o.onRestore === 'function') o.onRestore(state);
+          } catch (e) {
+            if (err) err.textContent = '解不开：密码不对，或文件已损坏';
+          }
+        },
+      },
+    ],
+  });
 }

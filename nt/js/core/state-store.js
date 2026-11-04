@@ -14,6 +14,7 @@ import {
   indexAccounts, findAccountByName, OPENING_ACCOUNT, OPENING_ACCOUNT_ID,
   normalizeCode, ALL_ACCOUNT_TYPES,
 } from './schema.js';
+import { promoteDrafts, dropMappingsFor } from './draft-book.js';
 
 /** 建一本空账（带期初虚拟账户，但它 isHidden，不进 UI 列表） */export function createState() {
   return {
@@ -26,6 +27,8 @@ import {
     settings: {},
     // 备注表（用户 2026-10-29）：{ id, code, type, text }，只用于统计分类与备注栏快速输入
     notes: [],
+    // 短语 → accountId。随账本加密，也进加密备份（渐进式记账学过的对应关系）
+    mappings: {},
     // 多账本：活动账本的数据在 accounts/transactions/scheduled；其余账本快照在 ledgers
     ledgers: {},
     ledgerNames: { main: '主账本' },
@@ -72,10 +75,11 @@ export function addAccount(state, patch) {
 }
 
 export function updateAccount(state, id, patch) {
-  return {
+  const next = {
     ...state,
     accounts: state.accounts.map((a) => (a.id === id ? createAccount({ ...a, ...patch }) : a)),
   };
+  return promoteDrafts(next);
 }
 
 /**
@@ -118,7 +122,8 @@ export function ensureAccountByText(state, text) {
  */
 export function removeAccount(state, id) {
   if (id === OPENING_ACCOUNT_ID) return state;
-  return { ...state, accounts: state.accounts.filter((a) => a.id !== id) };
+  const next = { ...state, accounts: state.accounts.filter((a) => a.id !== id) };
+  return dropMappingsFor(next, id);
 }
 
 /* ---------- 流水：增删改 ---------- */

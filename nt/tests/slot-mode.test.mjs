@@ -9,7 +9,8 @@
  *        节点角 = 可用角/组数 × (|节点净额| ÷ 组内净额绝对值之和)
  *        净额 = 转入 − 转出（余额变动），不是收付合计
  *
- * 净额口径的代价：中转账户（转入多少就转出多少）净额为 0，弧段宽度是 0，会在环上消失。
+ * 净额为 0 的中转账户留一条细弧，不再从环上消失。
+ * 整个类型净额都是 0 时，这一段在类型内部均分。
  */
 
 import { test } from 'node:test';
@@ -97,14 +98,19 @@ test('★ 金额粒度：只出现一类就占整圈，两类各占一半', () =
   assert.ok(Math.abs(each - (360 - 2 * GAP_DEG) * (Math.PI / 180) / 2) < 1e-9, '两类 = 各一半');
 });
 
-test('★ 金额粒度：净额为 0 的中转账户弧段宽度就是 0（这是净额口径的代价）', () => {
+test('★ 金额粒度：净额为 0 的中转账户仍留一条细弧', () => {
   // 现金转入 100 又转出 100 → 净额 0
   const txs = [tx('a_bank', 'a_cash', 100), tx('a_cash', 'a_food', 100)];
   const r = computeSlots(txs, { accOf, outerRadius: 640, unitMode: 1 });
   assert.equal(r.mode, 'amount');
-  assert.ok(Math.abs(spanOf(r, 'a_cash')) < 1e-12, '净额 0 → 弧段 0');
+  assert.ok(spanOf(r, 'a_cash') > 0.01, '净额 0 也要看得见');
+  assert.ok(spanOf(r, 'a_cash') < spanOf(r, 'a_bank'), '细弧比有净额的账户窄');
   assert.ok(spanOf(r, 'a_bank') > 0, '银行卡净额 −100，仍有弧段');
   assert.ok(spanOf(r, 'a_food') > 0, '餐饮净额 +100，仍有弧段');
+  const types = [...new Set(r.slots.filter((s) => s.acc).map((s) => s.type))];
+  const avail = (360 - types.length * GAP_DEG) * (Math.PI / 180);
+  const used = r.slots.reduce((sum, s) => sum + s.span, 0);
+  assert.ok(Math.abs(used - avail) < 1e-6, '细弧占的是类型内部的角度，整圈仍然铺满');
 });
 
 test('金额粒度：全部净额为 0 时退回笔数模式，不会把整圈压成 0', () => {
@@ -114,7 +120,7 @@ test('金额粒度：全部净额为 0 时退回笔数模式，不会把整圈�
   assert.ok(r.slots.every((s) => s.span > 0));
 });
 
-test('金额粒度：整个类型净额为 0 时这一段留空，不凭空造宽度', () => {
+test('金额粒度：整个类型净额为 0 时，类型内部均分，账户仍可见', () => {
   // 资产类里的两个账户互相转账（钱进来又原样出去）→ 该类型净额全 0
   const txs = [
     tx('a_bank', 'a_bank2', 100),
@@ -123,9 +129,10 @@ test('金额粒度：整个类型净额为 0 时这一段留空，不凭空造�
   ];
   const r = computeSlots(txs, { accOf, outerRadius: 640, unitMode: 1 });
   assert.equal(r.mode, 'amount');
-  assert.ok(Math.abs(spanOf(r, 'a_bank')) < 1e-12, '资产类整段留空');
-  assert.ok(Math.abs(spanOf(r, 'a_bank2')) < 1e-12, '资产类整段留空');
+  assert.ok(spanOf(r, 'a_bank') > 0.01, '资产类不再整段留空');
+  assert.ok(Math.abs(spanOf(r, 'a_bank') - spanOf(r, 'a_bank2')) < 1e-6, '同类型净额都是 0 时均分');
   assert.ok(spanOf(r, 'a_salary') > 0, '收入类照常');
+  assert.ok(spanOf(r, 'a_food') > 0, '费用类照常');
 });
 
 test('金额粒度：各段首尾相接，相邻槽位不会重叠或留空洞', () => {

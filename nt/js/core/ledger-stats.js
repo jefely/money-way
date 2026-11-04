@@ -19,7 +19,7 @@
  * 没有区间时（全部）区间即「全部流水」，历史恒为 0。
  */
 
-import { isDebitType } from './schema.js';
+import { isDebitType, isPosted } from './schema.js';
 
 /** 统计页的类型分组顺序（与界面一致：先资产，最后费用；成本类跟在资产后面） */
 export const STAT_TYPE_ORDER = ['资产类', '成本类', '负债类', '收入类', '权益类', '费用类'];
@@ -62,6 +62,7 @@ export function accountSummary(account, transactions, range) {
   let totalIn = 0;
 
   for (const t of transactions || []) {
+    if (!isPosted(t)) continue;
     const amt = Number((t && t.amount) || 0);
     if (!amt) continue;
     const d = String((t && t.date) || '');
@@ -187,7 +188,7 @@ export function openingOf(state, id) {
 export function openingDateFor(txs) {
   let first = '';
   for (const t of txs || []) {
-    if (!t || t.opening) continue;
+    if (!t || t.opening || t.status === 'draft') continue;
     const d = String(t.date || '').slice(0, 10);
     if (!d) continue;
     if (!first || d < first) first = d;

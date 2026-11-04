@@ -49,8 +49,10 @@ export async function readLzText(text) {
   return payload;
 }
 
-/** 账户类型：先认 type（本工程），再认 cat（单文件版），最后兜底资产类 */
+/** 账户类型：先认 type（本工程），再认 cat（单文件版），最后兜底资产类。
+ *  显式空串是 U 区未分类，不能被兜成资产类，否则草稿会在导入后误入账。 */
 function typeOf(a) {
+  if (a && a.type === '') return '';
   const t = str(a.type) || str(a.cat);
   if (!t) return '资产类';
   return t.endsWith('类') ? t : t + '类';
@@ -82,7 +84,14 @@ export function stateFromLzPayload(payload) {
       repayDay: a.repayDay || undefined,
     });
 
-    const acc = state.accounts[before];
+    let acc = state.accounts[before];
+    if (a.type === '') {
+      state = {
+        ...state,
+        accounts: state.accounts.map((x) => (x.id === acc.id ? { ...x, type: '' } : x)),
+      };
+      acc = state.accounts.find((x) => x.id === acc.id) || acc;
+    }
     if (a.id) idByOldId.set(String(a.id), acc.id);
     idByName.set(name, acc.id);
 
@@ -124,6 +133,7 @@ export function stateFromLzPayload(payload) {
       to_id: toId,
       amount,
       note: str(t.note),
+      ...(t.status === 'draft' ? { status: 'draft' } : {}),
     });
     count += 1;
   }
@@ -208,8 +218,12 @@ export function stateFromLzPayload(payload) {
     }));
   }
 
+  const mappings = p.mappings && typeof p.mappings === 'object' && !Array.isArray(p.mappings)
+    ? { ...p.mappings }
+    : {};
+
   return {
-    state: { ...state, scheduled },
+    state: { ...state, scheduled, mappings },
     stats: {
       accounts: idByName.size,
       transactions: count,
