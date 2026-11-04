@@ -9,6 +9,7 @@
 | `app.js` | 单页壳入口：门禁 → state → 7 视图装配 → tab 路由 |
 | `browser/db.js` | （无界面）IndexedDB 数据库封装 |
 | `browser/idb.js` | （无界面）IndexedDB 打开 |
+| `browser/install-id.js` | （无界面）本机安装号与见过的最大时间 |
 | `core/account-config.js` | （未标注界面）账户配置（纯函数） |
 | `core/account-index.js` | （无界面）账户索引 |
 | `core/account-order.js` | （未标注界面）数据基座：账户的分区、序号与排序（纯函数，无浏览器 API） |
@@ -24,6 +25,8 @@
 | `core/csv.js` | CSV 解析（纯函数，Node 可跑） |
 | `core/date-query.js` | 日期筛选框的解析（纯函数，Node 可跑） |
 | `core/draft-book.js` | （无界面）草稿入账与短语映射 |
+| `core/ed25519.js` | （无界面）Ed25519 验签（WebCrypto，缺失时用纯 JS） |
+| `core/entitlements.js` | （无界面）会员功能门闩 |
 | `core/event-engine.js` | （无界面）事件引擎：节点 / 事件 / 双极性连线（事实层） |
 | `core/export-text.js` | 导出为纯文本（.txt 模板 / .csv） |
 | `core/flow-text.js` | （无界面）账本文本 ↔ state |
@@ -34,18 +37,28 @@
 | `core/import-table.js` | 导入 Excel / CSV / 账单（纯逻辑，Node 可跑） |
 | `core/installment-cells.js` | 分期的「每期手填」矩阵（纯函数，Node 可跑） |
 | `core/installment-engine.js` | （无界面）分期引擎 |
+| `core/integrity-manifest.js` | （无界面）完整性清单的验签与哈希比对 |
 | `core/ledger-file.js` | （未标注界面）账本文件（纯函数） |
 | `core/ledger-stats.js` | （无界面）账本统计 |
 | `core/ledgers.js` | （无界面）多账本 create/switch/rename/remove |
 | `core/lexicon.js` | （无界面）渐进式记账词库 |
+| `core/license-codec.js` | （无界面）激活码载荷的编码（base32 + 校验位） |
+| `core/license-policy.js` | （无界面）激活码策略：档位、到期、设备名额、时钟 |
+| `core/license-pubkey.js` | （无界面）激活码发行公钥（只有公钥；私钥永不进仓库） |
+| `core/license-seal.js` | （无界面）开发用会员密封钥（公开，不是私钥） |
+| `core/license-verify.js` | （无界面）激活码验签 |
 | `core/lz-file.js` | .lz 快照文件（跨设备同步码）的解析与还原（纯函数，Node 可跑） |
 | `core/meta.js` | （未标注界面）项目地址（常量） |
 | `core/migrate.js` | （无界面）旧数据迁移 |
 | `core/mw-settings.js` | （无界面）环图参数 SCHEMA + 默认值 |
+| `core/official-origin.js` | （无界面）官方站点来源判断 |
 | `core/opening-migrator.js` | （无界面）期初迁移 |
 | `core/phrase-entry.js` | （无界面）一句话入账 |
 | `core/phrase-parser.js` | （无界面）一句话解析 |
 | `core/plan-occurrence.js` | （无界面）计划发生：确认到今天 / 作废一期 |
+| `core/premium-mask.js` | （无界面）用验过签的载荷解会员模块 |
+| `core/premium-open.js` | （无界面）打开会员占位功能（高级报表 / 环图导出） |
+| `core/premium-sealed.js` | （无界面）会员模块密文（开发密封钥；不是私钥） |
 | `core/qr-encode.js` | （未标注界面）QR 编码入口（纯函数） |
 | `core/qr-matrix.js` | （未标注界面）QR 矩阵构造（纯函数） |
 | `core/qr-rs.js` | （未标注界面）QR 里用到的有限域与纠错（纯函数） |
@@ -54,6 +67,7 @@
 | `core/scheduler-engine.js` | （无界面）排程引擎 |
 | `core/schema.js` | （无界面）数据结构定义 |
 | `core/settings.js` | （无界面）界面参数 SCHEMA + 主题默认值 |
+| `core/sha256.js` | （无界面）SHA-256 与字节拼接 |
 | `core/state-store.js` | （无界面）state 增删改 |
 | `core/stats.js` | （无界面）统计计算 |
 | `core/sync-code.js` | （未标注界面）跨设备同步码与二维码载荷（纯函数） |
@@ -111,12 +125,15 @@
 | `ui/inst-add.js` | 分期表上方的「新增」表单 |
 | `ui/inst-range.js` | 分期表上方的「月份范围」工具条 |
 | `ui/inst-table.js` | 分期表（表格内直接交互） |
+| `ui/integrity-runtime.js` | 设置 / 账本说明 → 文件完整性提示 |
 | `ui/layout-text.js` | 布局文本导出/导入 |
+| `ui/license-entry.js` | 设置 → 会员 / 激活 |
 | `ui/modal.js` | 全局 → 统一弹窗（<dialog>） |
 | `ui/mw-params.js` | 全局：环图参数（CSS 变量 → 数字） |
 | `ui/mw-svg-renderer.js` | 路径 tab / path.html → SVG 渲染 |
 | `ui/note-popover.js` | 流水 / 查询 → 长备注 |
 | `ui/note-table.js` | 设置页的备注区（独立于账户的 A/B 区） |
+| `ui/origin-note.js` | 账本说明 → 官方地址 |
 | `ui/path-debug.js` | 路径 tab → 追踪链诊断（页脚序号串 + ?debug=1 时的控制台明细） |
 | `ui/path-flow-table.js` | 路径页左栏的流水查询表 |
 | `ui/path-legend.js` | 路径 tab → 图例 |
@@ -145,6 +162,7 @@
 | `ui/update-check.js` | （未标注界面）版本更新（UI 层） |
 | `ui/xlsx-read.js` | xlsx 读取（ZIP 展开） |
 | `ui/xlsx-write.js` | xlsx 打包（ZIP 写入） |
+| `vendor/tweetnacl-verify.js` | （无界面）Ed25519 纯 JS 验签（TweetNaCl 1.0.3，公有领域） |
 | `views/flow.js` | 流水 tab |
 | `views/path.js` | 路径 tab |
 | `views/plan.js` | 固定 tab |

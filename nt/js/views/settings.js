@@ -20,6 +20,7 @@ import { mountDebugPanel } from '../ui/debug-panel.js';
 import { openAccountConfig } from '../ui/account-config.js';
 import { checkNewPassword } from '../core/vault-rekey.js';
 import { openResetDialog } from '../ui/reset-dialog.js';
+import { mountLicenseEntry } from '../ui/license-entry.js';
 
 const ACT_LABEL = { password: '修改密码', config: '配置', layout: '布局' };
 
@@ -35,6 +36,8 @@ export function mountSettings(section, ctx) {
   });
 
   bindActions();
+  // 会员按钮自己处理点击，放在 bindActions 之后，避免被占位分支接走。
+  mountLicenseEntry(section, ctx);
 
   function render() {
     table.render();

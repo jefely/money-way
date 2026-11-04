@@ -1,0 +1,8 @@
+# 离线激活码的私钥与发行密封钥。公钥可以进仓库，这些不行。
+nt-ed25519.pem
+nt-ed25519.priv
+nt-license-private.pem
+nt-license-private.key
+nt-seal.key
+*.ed25519.pem
+nt/dist/

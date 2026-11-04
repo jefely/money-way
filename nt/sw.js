@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）�?
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.218';
+const CACHE_NAME = 'nt-v1.219';
 
 const ASSETS = [
   './index.html',
@@ -191,6 +191,25 @@ const ASSETS = [
   './js/views/settings.js',
   './js/views/stats.js',
   './js/views/validate.js',
+  './integrity.json',
+  './js/browser/install-id.js',
+  './js/core/ed25519.js',
+  './js/core/entitlements.js',
+  './js/core/integrity-manifest.js',
+  './js/core/license-codec.js',
+  './js/core/license-policy.js',
+  './js/core/license-pubkey.js',
+  './js/core/license-seal.js',
+  './js/core/license-verify.js',
+  './js/core/official-origin.js',
+  './js/core/premium-mask.js',
+  './js/core/premium-open.js',
+  './js/core/premium-sealed.js',
+  './js/core/sha256.js',
+  './js/ui/integrity-runtime.js',
+  './js/ui/license-entry.js',
+  './js/ui/origin-note.js',
+  './js/vendor/tweetnacl-verify.js',
 ];
 
 self.addEventListener('install', (e) => {

@@ -14,6 +14,7 @@ import { checkAccountingIdentity } from '../core/validate.js';
 import { money } from '../core/format.js';
 import { shareBlock } from '../ui/share-block.js';
 import { mountThanksWall } from '../ui/thanks-wall.js';
+import { officialOriginNote } from '../ui/origin-note.js';
 
 const TYPES = ['资产类', '成本类', '负债类', '收入类', '权益类', '费用类'];
 
@@ -172,6 +173,8 @@ export function mountValidate(section, ctx) {
       ' 未来包含：固定收支表预测写入记录，提供提前确认。',
       ' 分期记录：是固定收支的一部分，用于设置分期。',
     ]));
+
+    host.appendChild(officialOriginNote());
   }
 
   function renderThanks() {

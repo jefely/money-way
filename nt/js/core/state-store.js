@@ -36,6 +36,8 @@ import { promoteDrafts, dropMappingsFor } from './draft-book.js';
     ledgerNames: { main: '主账本' },
     activeLedger: 'main',
     meta: { lastSync: '' },
+    // 离线激活码。随整本 state 加密进 IndexedDB，也进加密备份。没有 isPro。
+    license: null,
   };
 }
 
