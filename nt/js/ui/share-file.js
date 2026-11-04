@@ -1,4 +1,4 @@
-// 界面：导出 / 分享加密备份文件
+// 界面：导出加密备份文件
 /**
  * 把一份文本文件交给用户。
  * 层：第五层 · UI
@@ -18,7 +18,9 @@ import { downloadText } from './file-io.js';
  * @returns {Promise<'shared'|'saved'|'downloaded'|'cancelled'>}
  */
 export async function deliverTextFile(filename, text, mime) {
-  const type = mime || 'application/json';
+  const type = mime || 'text/plain';
+  const dot = String(filename || '').lastIndexOf('.');
+  const ext = dot >= 0 ? filename.slice(dot) : '.txt';
   const file = new File([text], filename, { type });
 
   if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
@@ -42,7 +44,7 @@ export async function deliverTextFile(filename, text, mime) {
     try {
       const handle = await picker.call(window, {
         suggestedName: filename,
-        types: [{ description: 'NT 加密备份', accept: { 'application/json': ['.json'] } }],
+        types: [{ description: 'NT 加密备份', accept: { [type]: [ext] } }],
       });
       const writable = await handle.createWritable();
       await writable.write(new Blob([text], { type }));

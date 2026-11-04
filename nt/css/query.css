@@ -130,7 +130,7 @@
 .nt-table-query tbody td:nth-child(5) { text-align: right; }
 .nt-table-query tbody td:nth-child(6) { text-align: left; }
 
-/* 表头与数据都不许换行：换行会把「转出账户」压成竖排单字 */
+/* 表头与数据都不许换行：换行会把「转出节点」压成竖排单字 */
 .nt-table-query .nt-th,
 .nt-table-query .nt-cell {
   white-space: nowrap;
@@ -141,12 +141,48 @@
   padding-right: 4px;
 }
 
-/* 筛选行：就长在表头里，每格宽度由列宽决定，拖动列宽时跟着变 */
-.nt-query-filter-row .nt-th {
+/* 标题、筛选、列名三行是一整块 thead，一起吸顶。
+   不能把 sticky 加在 th 上：格子的包含块是它所在的那一行，
+   各行会叠在同一个 top，筛选框就被列名和结果行切掉。
+   日期框 colspan=2，盖住「序」和「日期」两列。 */
+.nt-table-query thead {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  background: var(--nt-bg);
+}
+
+.nt-table-query thead .nt-th {
+  position: static;
+  top: auto;
+  left: auto;
+  z-index: auto;
   height: auto;
-  padding: 3px 3px;
+  background: var(--nt-bg);
+  background-clip: padding-box;
+}
+
+.nt-table-query .nt-query-head-row .nt-th {
+  padding: 0;
+  background: var(--nt-bg-soft);
+  overflow: visible;
+}
+
+.nt-query-filter-row .nt-th {
+  padding: 4px 3px;
   background: var(--nt-bg);
   font-weight: 400;
+  overflow: visible;
+}
+
+.nt-table-query .nt-query-cols .nt-th {
+  background: var(--nt-th-bg, var(--nt-bg-soft));
+  font-weight: 700;
+}
+
+.nt-table-query tbody .nt-cell {
+  position: static;
+  z-index: 0;
 }
 
 .nt-qf {

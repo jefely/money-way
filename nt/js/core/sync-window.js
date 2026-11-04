@@ -14,6 +14,7 @@
  */
 
 import { packForQr } from './sync-code.js';
+import { isPosted } from './schema.js';
 
 const DAY_MS = 86400000;
 
@@ -42,7 +43,7 @@ export async function fitWindow(state, opts) {
   const maxCount = Math.max(1, Number(o.maxCount) || 70);
 
   const txs = (state.transactions || []).filter(
-    (t) => t && !t.opening && t.date && String(t.date) <= until,
+    (t) => isPosted(t) && !t.opening && t.date && String(t.date) <= until,
   );
   if (!txs.length) {
     return { empty: true, from: until, until, days: 0, parts: [], count: 0 };

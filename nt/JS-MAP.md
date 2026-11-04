@@ -11,6 +11,7 @@
 | `browser/idb.js` | （无界面）IndexedDB 打开 |
 | `core/account-config.js` | （未标注界面）账户配置（纯函数） |
 | `core/account-index.js` | （无界面）账户索引 |
+| `core/account-match.js` | （无界面）新账户名 → 类型 / 分类 |
 | `core/account-order.js` | （未标注界面）数据基座：账户的分区、序号与排序（纯函数，无浏览器 API） |
 | `core/account-resolver.js` | （无界面）账户名/简码解析 |
 | `core/auth-manager.js` | （无界面）主密码校验/修改 |
@@ -23,6 +24,7 @@
 | `core/crypto-engine.js` | （无界面）PBKDF2 + AES-GCM |
 | `core/csv.js` | CSV 解析（纯函数，Node 可跑） |
 | `core/date-query.js` | 日期筛选框的解析（纯函数，Node 可跑） |
+| `core/draft-book.js` | （无界面）草稿入账与短语映射 |
 | `core/event-engine.js` | （无界面）事件引擎：节点 / 事件 / 双极性连线（事实层） |
 | `core/export-text.js` | 导出为纯文本（.txt 模板 / .csv） |
 | `core/flow-text.js` | （无界面）账本文本 ↔ state |
@@ -36,11 +38,15 @@
 | `core/ledger-file.js` | （未标注界面）账本文件（纯函数） |
 | `core/ledger-stats.js` | （无界面）账本统计 |
 | `core/ledgers.js` | （无界面）多账本 create/switch/rename/remove |
+| `core/lexicon.js` | （无界面）渐进式记账词库 |
 | `core/lz-file.js` | .lz 快照文件（跨设备同步码）的解析与还原（纯函数，Node 可跑） |
 | `core/meta.js` | （未标注界面）项目地址（常量） |
 | `core/migrate.js` | （无界面）旧数据迁移 |
 | `core/mw-settings.js` | （无界面）环图参数 SCHEMA + 默认值 |
 | `core/opening-migrator.js` | （无界面）期初迁移 |
+| `core/phrase-entry.js` | （无界面）一句话入账 |
+| `core/phrase-parser.js` | （无界面）一句话解析 |
+| `core/plan-occurrence.js` | （无界面）计划发生：确认到今天 / 作废一期 |
 | `core/qr-encode.js` | （未标注界面）QR 编码入口（纯函数） |
 | `core/qr-matrix.js` | （未标注界面）QR 矩阵构造（纯函数） |
 | `core/qr-rs.js` | （未标注界面）QR 里用到的有限域与纠错（纯函数） |
@@ -88,6 +94,7 @@
 | `ui/checks-view.js` | 校验 tab → 账本校验区 |
 | `ui/col-save.js` | 把某张表某列的宽度存进「用户设置」 |
 | `ui/color-picker.js` | 界面参数浮层 → 取色器 |
+| `ui/composer.js` | 流水 tab → 一句话输入条 |
 | `ui/datalists.js` | 共用的 datalist（类型候选） |
 | `ui/debug-panel.js` | ?debug=1 → 界面参数浮层 |
 | `ui/debug-pip.js` | ?debug=1 → 界面参数独立窗口（画中画） |
@@ -95,7 +102,9 @@
 | `ui/export-dialog.js` | 导出对话框（.lz / .xlsx / .txt / .csv） |
 | `ui/file-io.js` | （未标注界面）本地文件读写（UI 层） |
 | `ui/fixed-table.js` | 固定收支表（表格内直接交互） |
+| `ui/flow-ends.js` | 流水格里的名字 → 节点 |
 | `ui/flow-model.js` | （无界面）流水视图模型 |
+| `ui/fly-in.js` | 流水 tab → 入账飞入 |
 | `ui/gate.js` | 锁屏 / 首次设密码 |
 | `ui/global-undo.js` | 全局撤销快捷键 |
 | `ui/import-dialog.js` | 导入 Excel / CSV / 账单 |
@@ -114,14 +123,16 @@
 | `ui/path-flow-table.js` | 路径页左栏的流水查询表 |
 | `ui/path-legend.js` | 路径 tab → 图例 |
 | `ui/path-view.js` | 路径 tab |
+| `ui/plan-rows.js` | 流水 tab → 未来行的确认 / 作废 |
 | `ui/pwa.js` | PWA 注册 |
 | `ui/qr-canvas.js` | （未标注界面）把 QR 矩阵画到 canvas（UI 层） |
 | `ui/range-bar.js` | 单元格框选的工具条 |
 | `ui/render-transactions.js` | 流水 tab → 表格 tbody（分批追加，照单文件版） |
 | `ui/reset-dialog.js` | 设置 → 重置 |
+| `ui/review-tip.js` | 设置页 → 新增序号气泡 |
 | `ui/row-editor.js` | 流水 tab → 行内编辑 / 新增行 |
 | `ui/share-block.js` | 二维码分享区块 |
-| `ui/share-file.js` | 导出 / 分享加密备份文件 |
+| `ui/share-file.js` | 导出加密备份文件 |
 | `ui/suggest-popover.js` | 流水 tab / 查询 tab → 账户候选气泡 |
 | `ui/sync-dialog.js` | （未标注界面）同步弹窗（UI 层） |
 | `ui/sync-wheel.js` | 同步弹窗里的滚轮（日 / 年月共用） |

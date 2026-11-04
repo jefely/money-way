@@ -10,9 +10,15 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
+  background: var(--nt-bg);
+  color: var(--nt-text);
+}
+
+/* 第二套深色（data-theme=dark，暗黑 + 紫霓虹）才用这层紫。浅色、暖色、暗绿都不铺。 */
+[data-theme="dark"] .nt-gate-host {
   background:
     radial-gradient(900px 480px at 50% 0%, rgba(139, 108, 255, 0.22), transparent 62%),
-    linear-gradient(160deg, #221a3d 0%, #16112a 55%, #0d0a18 100%);
+    #0e0b16;
 }
 
 .nt-gate-host[hidden] {
@@ -23,10 +29,11 @@
   width: 100%;
   max-width: 320px;
   padding: 24px 22px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--nt-bg-line);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #f4f1ff;
+  background: var(--nt-bg-cell, var(--nt-bg));
+  color: var(--nt-text);
+  box-shadow: var(--nt-shadow-soft, none);
 }
 
 .nt-gate-title {
@@ -40,7 +47,7 @@
   margin: 0 0 14px;
   font-size: 12px;
   line-height: 1.65;
-  color: rgba(244, 241, 255, 0.6);
+  color: var(--nt-text-muted);
   text-align: center;
 }
 
@@ -53,14 +60,11 @@
 
 .nt-gate-input {
   height: 44px;
-  border-color: rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.08);
-  color: #f4f1ff;
   letter-spacing: 0.1em;
 }
 
 .nt-gate-input::placeholder {
-  color: rgba(244, 241, 255, 0.34);
+  color: var(--nt-text-light);
   letter-spacing: 0;
 }
 
@@ -70,9 +74,15 @@
   margin: -4px 0 0;
   font-size: 12px;
   line-height: 1.5;
-  color: rgba(244, 241, 255, 0.62);
+  color: var(--nt-text-muted);
   text-align: left;
   word-break: break-word;
+}
+
+.nt-gate-pw-hint-label {
+  display: inline-block;
+  margin-right: 6px;
+  color: var(--nt-text-light);
 }
 
 .nt-gate-pw-hint[hidden] {
@@ -101,7 +111,7 @@
   gap: 8px;
   font-size: 12px;
   line-height: 1.6;
-  color: rgba(244, 241, 255, 0.72);
+  color: var(--nt-text-muted);
   cursor: pointer;
 }
 

@@ -19,12 +19,13 @@ import { toAmount } from '../core/stats.js';
 import { addAccount, updateAccount, removeAccount, addTransaction, addNote, updateNote, removeNote, NOTE_TYPES, accountTypesOf } from '../core/state-store.js';
 import { accountsOfZone, orderBySeq, nextSeqFor, effectiveSeq, moveWithinType, withUndefinedAccounts } from '../core/account-order.js';
 import { bindTypePicker, promptType } from './type-picker.js';
-import { zoneCols } from './table-parts.js';
+import { zoneCols, zoneHead } from './table-parts.js';
 import { normalizeCode, isValidCode, OPENING_ACCOUNT_ID } from '../core/schema.js';
 import { balanceOf } from '../core/balance-calculator.js';
 import { validate, issuesOf } from '../core/validator.js';
 import { renderNotes } from './note-table.js';
 import * as NtModal from './modal.js';
+import { bindReviewTips } from './review-tip.js';
 
 const FIELDS = ['type', 'category', 'code', 'name', 'opening', 'seq'];
 const TYPES = ['资产类', '成本类', '负债类', '收入类', '权益类', '费用类'];
@@ -80,47 +81,8 @@ export function mountAccountTable(ctx, tbody, opts) {
       // 序号每个区域从 1 开始（用户 2026-10-29）
       let zoneSeq = 0;
 
-      // 区域标题行拆成两格（v1.73）：
-      //   ① 第 1 格住在**冻结的简码列**里，只放区号 A / B ——
-      //      横滚时它跟着首列不动，永远知道自己在哪个区（用户 2026-10-29 指定）；
-      //   ② 第 2 格吃剩下的 9 列，放长标题和极性说明。
-      // 64px 只够一个区号，所以长标题不能塞进第 1 格 ——
-      // 拆开之前整行是 colspan=10，跨列格不能 sticky（TABLE-INTERACTION §5.7），
-      // 一横滚标题就整行滑走。
-      {
-        const head = document.createElement('tr');
-        head.className = 'nt-zone-head ' + (zone.key === 'A' ? 'nt-zone-a' : zone.key === 'B' ? 'nt-zone-b' : 'nt-zone-u');
-
-        const tag = document.createElement('td');
-        tag.className = 'nt-cell nt-zone-cell nt-zone-tag';
-        tag.textContent = zone.key;
-
-        const td = document.createElement('td');
-        td.className = 'nt-cell nt-zone-cell';
-        td.colSpan = 9;
-
-        // flex 必须放在内层 div 上：直接设在 <td> 上会让它脱离表格布局，
-        // colspan 就不生效了（标题会被压成第一列的宽度）。
-        const inner = document.createElement('div');
-        inner.className = 'nt-zone-label';
-
-        const name = document.createElement('b');
-        // 「A 我的资产/日常支出」→「我的资产/日常支出」：区号已经在第 1 格里了
-        name.textContent = zone.label.replace(new RegExp('^' + zone.key + '\\s*'), '');
-
-        const hint = document.createElement('span');
-        hint.className = 'nt-zone-hint';
-        hint.textContent = zone.hint;
-
-        inner.appendChild(name);
-        inner.appendChild(hint);
-        td.appendChild(inner);
-        head.appendChild(tag);
-        head.appendChild(td);
-        // 列标行放在区域标题上方；第一个区域（A）直接沿用顶部冻结的 thead，不再重复画
-        if (zone.key !== 'A') frag.appendChild(zoneCols());
-        frag.appendChild(head);
-      }
+      if (zone.key !== 'A') frag.appendChild(zoneCols());
+      frag.appendChild(zoneHead(zone));
 
       if (!inZone.length) {
         const tr = document.createElement('tr');
@@ -128,7 +90,7 @@ export function mountAccountTable(ctx, tbody, opts) {
         const td = document.createElement('td');
         td.className = 'nt-cell';
         td.colSpan = 10;
-        td.textContent = '（这一类还没有账户）';
+        td.textContent = '（这一类还没有节点）';
         tr.appendChild(td);
         frag.appendChild(tr);
       }
@@ -141,9 +103,16 @@ export function mountAccountTable(ctx, tbody, opts) {
         zoneSeq += 1;
         // 斑马纹按**数据行序号**打类：区域标题行（A/B）不参与序号，
         // 用 nth-child 会被标题行挤得隔行错位（用户 2026-10-29 反馈）。
-        if (zoneSeq % 2 === 0) tr.classList.add('nt-row-even');
+        tr.classList.add(...[zoneSeq % 2 === 0 && 'nt-row-even', acc.fresh && 'nt-acc-fresh'].filter(Boolean));
         setCell(tr, 'code', acc.code || '');
         setCell(tr, 'seq', effectiveSeq(acc, zoneSeq));
+        if (acc.fresh) {
+          const seqCell = tr.querySelector('.nt-cell-seq');
+          if (seqCell) {
+            seqCell.classList.add('nt-seq-review');
+            seqCell.title = '新增，请核查';
+          }
+        }
 
         // 简码有问题 → 输入框标红（title 里写原因：缺失 / 不合法 / 和谁重复）
         if (badCodes.has(acc.id)) {
@@ -191,6 +160,7 @@ export function mountAccountTable(ctx, tbody, opts) {
     frag.appendChild(renderNotes(ctx, render));
 
     tbody.appendChild(frag);
+    bindReviewTips(tbody);
 
     summarize(visible, state);
   }
@@ -208,12 +178,12 @@ export function mountAccountTable(ctx, tbody, opts) {
         const nm = acc ? acc.name : '';
         // 流水是主表：设置表删账户只影响「账户怎么归类」，不许动流水（用户 2026-10-30）
         const ok = confirm('从设置表移除「' + nm + '」？\n\n'
-          + '流水不会被删除；引用它的流水会显示为空账户（校验里会提示断链）。');
+          + '流水不会被删除；引用它的流水会显示为空节点（校验里会提示断链）。');
         if (!ok) return;
         ctx.setState(removeAccount(ctx.getState(), id));
         ctx.saveNow();
         render();
-        ctx.setFooter('已移除账户（流水保留）');
+        ctx.setFooter('已移除节点（流水保留）');
       });
     }
 
@@ -370,7 +340,7 @@ export function mountAccountTable(ctx, tbody, opts) {
 
       ctx.saveNow();
       render();
-      ctx.setFooter('已新增账户');
+      ctx.setFooter('已新增节点');
     };
 
     for (const f of FIELDS) {
@@ -402,9 +372,9 @@ export function mountAccountTable(ctx, tbody, opts) {
       byType[acc.type] = (byType[acc.type] || 0) + b;
     }
     // 成本类只在真的用到时才出现 —— 一个从没建过成本账户的账本，底部不该多一列 ¥0.00
-    const text = `共 ${visible.length} 个账户 · 资产 ${money(byType['资产类'] || 0)}${byType['成本类'] ? ` · 成本 ${money(byType['成本类'])}` : ''} · 负债 ${money(byType['负债类'] || 0)}`;
+    const text = `共 ${visible.length} 个节点 · 资产 ${money(byType['资产类'] || 0)}${byType['成本类'] ? ` · 成本 ${money(byType['成本类'])}` : ''} · 负债 ${money(byType['负债类'] || 0)}`;
     if (o.onSummary) o.onSummary(text);
-    ctx.setFooter(`${visible.length} 个账户 · ${(state.transactions || []).length} 笔流水`);
+    ctx.setFooter(`${visible.length} 个节点 · ${(state.transactions || []).length} 笔流水`);
   }
 
   return { render };

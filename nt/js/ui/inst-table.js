@@ -15,7 +15,6 @@
 import { tpl } from './render-transactions.js';
 import { setCell as putCell, cellsOf, sumOf, spanOf } from '../core/installment-cells.js';
 import { mountCellRange } from './cell-range.js';
-import { mountRangeBar } from './inst-range.js';
 import { mountAddForm } from './inst-add.js';
 import { paintHandles, syncFrozen } from './table-layout.js';
 import { showUndo } from './undo-bar.js';
@@ -51,8 +50,6 @@ export function mountInstTable(ctx, tbody, opts) {
     if (saved && tbl) tbl.style.setProperty('--nt-inst-mw', saved);
   } catch (e) { /* 无痕模式读不到就算了 */ }
 
-  // 月份范围工具条（起 / 止 / 自动）：追加在「添加」按钮后面，同一行
-  const rangeBar = mountRangeBar(ctx, () => render());
   const addForm = mountAddForm(ctx, () => render());
 
   function deleteRows(ids) {
@@ -73,9 +70,8 @@ export function mountInstTable(ctx, tbody, opts) {
   function render() {
     const state = ctx.getState();
     const list = (state.scheduled || []).filter((s) => s && s.isScheduled && s.inst);
-    const span = spanOf(list, state.installRange, todayMonth());
+    const span = spanOf(list, null, todayMonth(), state.hiddenMonths);
 
-    rangeBar.render();
     paintHead(span, list);
     tbody.textContent = '';
 
@@ -86,7 +82,7 @@ export function mountInstTable(ctx, tbody, opts) {
 
   /**
    * 两行表头（照单文件版）：
-   *   上行 账户名称 | 账单日 | 每月合计 | 每个月那一列的合计
+   *   上行 分期银行 | 账单日 | 每月合计 | 每个月那一列的合计
    *   下行 分期金额 | 还款日 | 本息总计 | 月份标签
    */
   function paintHead(span, list) {
@@ -110,9 +106,26 @@ export function mountInstTable(ctx, tbody, opts) {
       sumTr.appendChild(sumTh);
 
       const th = document.createElement('th');
-      th.className = 'nt-th nt-c-month';
+      th.className = 'nt-th nt-c-month nt-inst-month';
       th.scope = 'col';
-      th.textContent = m;
+      const label = document.createElement('span');
+      label.textContent = m;
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'nt-inst-month-del';
+      del.textContent = '删除';
+      del.hidden = true;
+      del.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        dropMonth(m);
+      });
+      th.addEventListener('click', () => {
+        const show = del.hidden;
+        for (const b of tr.querySelectorAll('.nt-inst-month-del')) b.hidden = true;
+        del.hidden = !show;
+      });
+      th.appendChild(label);
+      th.appendChild(del);
       tr.appendChild(th);
       // 列宽手柄由 table-layout.paintHandles 统一补（这里再加一个会重叠）
     }
@@ -147,14 +160,14 @@ export function mountInstTable(ctx, tbody, opts) {
     trP.className = 'nt-row nt-inst-main';
     trP.dataset.id = row.id;
     trP.appendChild(inputCell(row.id, 'name', acc ? acc.name : '', 'nt-c-inst-name'));
-    trP.appendChild(inputCell(row.id, 'billDay', row.billDay || '', 'nt-cell-input-num'));
+    trP.appendChild(textCell(acc && acc.billDay ? acc.billDay : '', 'nt-cell-num'));
     trP.appendChild(textCell(moneyAlways(sumP), 'nt-cell-num'));
 
     const trI = document.createElement('tr');
     trI.className = 'nt-row nt-inst-sub';
     trI.dataset.id = row.id;
     trI.appendChild(inputCell(row.id, 'principal', moneyAlways(row.inst.principal), 'nt-cell-input-num'));
-    trI.appendChild(inputCell(row.id, 'day', row.day || '', 'nt-cell-input-num'));
+    trI.appendChild(textCell(acc && acc.repayDay ? acc.repayDay : '', 'nt-cell-num'));
     trI.appendChild(textCell(moneyAlways(sumI), 'nt-cell-num'));
 
     for (const m of span) {
@@ -270,7 +283,21 @@ export function mountInstTable(ctx, tbody, opts) {
     });
   }
 
-  /** 新增表单 + 月份范围：同一行（账户…总利息 [添加] 月份范围 起 止 自动） */
+  function dropMonth(month) {
+    const st = ctx.getState();
+    const hidden = (st.hiddenMonths || []).concat([month]);
+    const scheduled = (st.scheduled || []).map((row) => {
+      if (!row || !row.inst || !row.inst.cells) return row;
+      const cells = { ...row.inst.cells };
+      delete cells[month];
+      return { ...row, inst: { ...row.inst, cells } };
+    });
+    ctx.setState({ ...st, hiddenMonths: hidden, scheduled });
+    ctx.saveNow();
+    render();
+  }
+
+  /** 输入框一行。添加按钮在「分期」切换旁边。 */
   function paintAddForm() {
     let bar = document.getElementById('nt-inst-add');
     if (!bar) {
@@ -282,8 +309,6 @@ export function mountInstTable(ctx, tbody, opts) {
     }
     bar.textContent = '';
     addForm.render(bar);
-    // 月份范围跟在「添加」后面，和表单同一行
-    rangeBar.render(bar);
   }
 
   function summarize(list) {
@@ -303,7 +328,7 @@ export function mountInstTable(ctx, tbody, opts) {
     ctx.setFooter(`${list.length} 条分期`);
   }
 
-  return { render };
+  return { render, submit: () => addForm.submit() };
 
   function todayMonth() {
     const d = new Date();

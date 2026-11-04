@@ -15,6 +15,7 @@
 
 import { ledgerToText } from './flow-text.js';
 import { shortDate } from './format.js';
+import { isPosted } from './schema.js';
 
 /** 一张二维码里最多塞多少字节（留出 URL 前缀的余量） */
 export const QR_MAX_URL = 2600;
@@ -144,7 +145,7 @@ export function packPayload(state, txs, part, opts) {
     return a ? (a.code || a.name) : '';
   };
 
-  const lines = (txs || []).map((t) => {
+  const lines = (txs || []).filter((t) => isPosted(t)).map((t) => {
     const from = codeOf(t.from_id);
     const to = codeOf(t.to_id);
     if (from && !codeMap.has(from)) codeMap.set(from, nameOf(t.from_id));
@@ -153,7 +154,7 @@ export function packPayload(state, txs, part, opts) {
     return [ymdShort(t.date), from, to, trimAmount(t.amount), note].join(',');
   });
 
-  const dates = (txs || []).map((t) => String(t.date || '')).filter(Boolean).sort();
+  const dates = (txs || []).filter((t) => isPosted(t)).map((t) => String(t.date || '')).filter(Boolean).sort();
   const out = {
     v: 3,
     u: dates.length ? dates[dates.length - 1] : '',
@@ -235,6 +236,7 @@ export async function packForQr(state, opts) {
 
   const picked = (state.transactions || [])
     .filter((t) => {
+      if (!isPosted(t)) return false;
       const d = String(t.date || '');
       if (!d || t.opening) return false;
       if (until && d > until) return false;

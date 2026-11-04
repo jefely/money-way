@@ -54,6 +54,7 @@ export function toTxtText(state, h) {
   lines.push('', '流水');
 
   for (const t of state.transactions || []) {
+    if (t && t.status === 'draft') continue;
     lines.push([
       toYmdShort(t.date),
       codeOf(t.from_id),
@@ -78,6 +79,7 @@ export function toCsvText(state, h) {
   const rows = [['日期', '转出', '转入', '金额', '备注'].join('\t')];
 
   for (const t of state.transactions || []) {
+    if (t && t.status === 'draft') continue;
     rows.push([
       toYmdShort(t.date),
       codeOf(t.from_id),

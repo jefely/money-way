@@ -8,6 +8,12 @@
  */
 
 const KEY = 'nt_theme';
+const THEME_COLOR = {
+  light: '#ffffff',
+  dark: '#0e0b16',
+  alt1: '#faf6ef',
+  alt2: '#0a1410',
+};
 
 export const THEME = { LIGHT: 'light', DARK: 'dark', ALT1: 'alt1', ALT2: 'alt2' };
 const VALID = [THEME.LIGHT, THEME.DARK, THEME.ALT1, THEME.ALT2];
@@ -29,8 +35,7 @@ export function applyTheme(theme) {
   const t = VALID.includes(theme) ? theme : THEME.LIGHT;
   document.documentElement.setAttribute('data-theme', t);
   const meta = document.querySelector('meta[name="theme-color"]');
-  // 页头两主题统一深色，状态栏跟着走
-  if (meta) meta.setAttribute('content', '#14101f');
+  if (meta) meta.setAttribute('content', THEME_COLOR[t] || THEME_COLOR.light);
   return t;
 }
 

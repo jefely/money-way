@@ -29,9 +29,38 @@
   display: none;
 }
 
-/* 新增表单固定高度，表格吃掉剩下的 */
+/* 新增输入一行排开，窄屏可以横滑，不要把按钮撑得很高 */
 .nt-plan-inst .nt-inst-add {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
   flex: 0 0 auto;
+  overflow-x: auto;
+  margin-bottom: 8px;
+}
+
+.nt-plan-inst .nt-inst-add .nt-input {
+  flex: 1 1 72px;
+  min-width: 72px;
+  width: auto;
+  height: 28px;
+}
+
+.nt-inst-month {
+  position: relative;
+}
+
+.nt-inst-month-del {
+  margin-left: 4px;
+  padding: 0 4px;
+  height: 18px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 4px;
+  background: var(--nt-bg);
+  color: var(--nt-bad, #c62828);
+  font-size: 11px;
+  line-height: 16px;
 }
 
 .nt-plan-inst .nt-tablewrap {
@@ -113,7 +142,7 @@
   top: 0;
 }
 .nt-table-inst thead tr:nth-child(2) .nt-th {
-  top: 44px;
+  top: var(--nt-row-h, 32px);
 }
 
 /* ===== 分期表列宽 =====

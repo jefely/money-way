@@ -71,7 +71,14 @@ function mountLock(host, handlers) {
   // （不写「提示词：」前缀 —— 用户 2026-10-29 指定）。
   if (hintEl) {
     const hint = readPwHint().trim();
-    hintEl.textContent = hint;
+    hintEl.textContent = '';
+    if (hint) {
+      const label = document.createElement('span');
+      label.className = 'nt-gate-pw-hint-label';
+      label.textContent = '提示词';
+      hintEl.appendChild(label);
+      hintEl.appendChild(document.createTextNode(hint));
+    }
     hintEl.hidden = !hint;
   }
 

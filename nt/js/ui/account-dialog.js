@@ -63,7 +63,7 @@ function accRow(acc, o) {
   const code = input('nt-acc-code', acc.code, '简码', () => {
     Promise.resolve(o.onUpdate(acc.id, { code })).then(o.onRefresh);
   });
-  const name = input('nt-acc-name', acc.name, '账户名称', () => {
+  const name = input('nt-acc-name', acc.name, '节点名称', () => {
     Promise.resolve(o.onUpdate(acc.id, { name })).then(o.onRefresh);
   });
 
@@ -130,5 +130,5 @@ function addFlow(o) {
       return true;
     }, { placeholder: '如 ZHC' });
     return true;   // 先关掉名字弹窗，再开简码弹窗
-  }, { label: '账户名称', okLabel: '下一步' });
+  }, { label: '节点名称', okLabel: '下一步' });
 }

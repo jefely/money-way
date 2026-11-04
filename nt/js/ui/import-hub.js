@@ -42,8 +42,8 @@ export function openImportHub(opts) {
     build: (body) => {
       const tip = document.createElement('p');
       tip.className = 'nt-sync-hint';
-      tip.textContent = '选一个文件（Excel / CSV / 账单 / .lz 快照），'
-        + '或者把账本文本直接粘到下面，按「导入这段文本」合并进当前账本。';
+      tip.textContent = '选一个文件（Excel / CSV / 账单 / .lz 快照 / 加密备份），'
+        + '或者把账本文本直接粘到下面，按「导入文本内容」合并进当前账本。';
       body.appendChild(tip);
 
       const bar = document.createElement('div');
@@ -58,6 +58,7 @@ export function openImportHub(opts) {
         openImportDialog({
           onImport: o.onImport,
           onImportTemplate: o.onImportTemplate,
+          onBackup: (text) => askPassword(text, o),
         });
       });
       bar.appendChild(pick);
@@ -76,14 +77,6 @@ export function openImportHub(opts) {
         }
       });
       bar.appendChild(paste);
-      if (typeof o.restoreBackup === 'function') {
-        const back = document.createElement('button');
-        back.type = 'button';
-        back.className = 'nt-btn nt-btn-sm';
-        back.textContent = '恢复加密备份';
-        back.addEventListener('click', () => pickBackup(o));
-        bar.appendChild(back);
-      }
       body.appendChild(bar);
 
       ta = document.createElement('textarea');
@@ -95,12 +88,20 @@ export function openImportHub(opts) {
     actions: [
       { label: '取消', kind: 'ghost', close: true },
       {
-        label: '导入这段文本',
+        label: '导入文本内容',
         kind: 'primary',
         close: false,
         onClick: ({ close }) => {
           const text = String(ta && ta.value || '').trim();
           if (!text) return;
+          if (isBackupText(text)) {
+            if (typeof o.restoreBackup !== 'function') {
+              if (typeof o.setFooter === 'function') o.setFooter('这是加密备份，当前不能恢复');
+              return;
+            }
+            askPassword(text, o);
+            return;
+          }
           if (typeof o.mergeText !== 'function') return;
           let n = 0;
           try {
@@ -121,24 +122,11 @@ export function openImportHub(opts) {
   return dlg;
 }
 
-function pickBackup(o) {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json,application/json';
-  input.addEventListener('change', async () => {
-    const file = input.files && input.files[0];
-    if (!file) return;
-    const text = await file.text();
-    if (!isBackupText(text)) {
-      if (o.setFooter) o.setFooter('这不是加密备份（文件里应有 nt-backup）');
-      return;
-    }
-    askPassword(text, o);
-  });
-  input.click();
-}
-
 function askPassword(text, o) {
+  if (typeof o.restoreBackup !== 'function') {
+    if (typeof o.setFooter === 'function') o.setFooter('这是加密备份，当前不能恢复');
+    return;
+  }
   let pw = null;
   let err = null;
   NtModal.open({

@@ -56,7 +56,7 @@ export function openAddDialog(ctx) {
     applyState(r.state);
     NtModal.closeAll();
     if (ctx.setFooter) {
-      const extra = r.created.length ? `，新建 ${r.created.length} 个账户` : '';
+      const extra = r.created.length ? `，新建 ${r.created.length} 个节点` : '';
       ctx.setFooter(`已添加 ${r.txAdded} 笔${extra}`);
     }
   }
@@ -74,7 +74,9 @@ export function openAddDialog(ctx) {
     box.appendChild(head);
 
     const st = ctx.getState();
-    for (const l of listLedgers(st)) {
+    const ledgers = listLedgers(st);
+    const only = ledgers.length < 2;
+    for (const l of ledgers) {
       const row = document.createElement('div');
       row.className = 'nt-add-ledger';
 
@@ -96,11 +98,12 @@ export function openAddDialog(ctx) {
       del.type = 'button';
       del.className = 'nt-btn nt-btn-sm nt-add-del';
       del.textContent = '×';
-      del.title = '删除账本';
-      if (l.active) {
+      if (only) {
         del.classList.add('nt-add-del-off');
-        del.disabled = true;
+        del.setAttribute('aria-disabled', 'true');
+        del.title = '唯一账本不能删除';
       } else {
+        del.title = '删除账本';
         del.addEventListener('click', () => {
           applyState(removeLedger(ctx.getState(), l.id));
           reopen();
@@ -128,6 +131,10 @@ export function openAddDialog(ctx) {
     const nrow = document.createElement('div');
     nrow.className = 'nt-add-ledger-new';
 
+    const gap = document.createElement('span');
+    gap.className = 'nt-add-ledger-gap';
+    gap.setAttribute('aria-hidden', 'true');
+
     const nin = document.createElement('input');
     nin.className = 'nt-add-ledger-input';
     nin.placeholder = '输入新账本名称…';
@@ -150,6 +157,7 @@ export function openAddDialog(ctx) {
       reopen();
     });
 
+    nrow.appendChild(gap);
     nrow.appendChild(nin);
     nrow.appendChild(clear);
     nrow.appendChild(add);

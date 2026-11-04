@@ -17,13 +17,11 @@ const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
 /** 这批输入框的字段名与长度（顺序就是横排顺序） */
 const FIELDS = [
-  ['name', '账户', '84px'],
-  ['principal', '分期金额', '92px'],
-  ['periods', '期数', '52px'],
-  ['firstMonth', '首月 2611', '84px'],
-  ['billDay', '账单日', '60px'],
-  ['day', '还款日', '60px'],
-  ['interest', '总利息', '76px'],
+  ['name', '节点名称', '分期银行'],
+  ['principal', '分期金额', '分期金额'],
+  ['interest', '总利息', '总利息'],
+  ['periods', '期数', '期数'],
+  ['firstMonth', '首月', '首月'],
 ];
 
 /** '2611' / '2026-11' / '2026/11' → '2026-11'；认不出返回空串 */
@@ -59,9 +57,9 @@ export function mountAddForm(ctx, onAdded) {
     const num = (k) => Math.abs(Number(String(get(k)).replace(/[¥,\s]/g, '')) || 0);
 
     const name = get('name');
-    if (!name) return ctx.setFooter('分期还没建成：先填账户');
+    if (!name) return ctx.setFooter('分期还没建成：先填分期银行');
     const r = parseAccountInput(ctx.getIndex(), name);
-    if (!r || !r.acc) return ctx.setFooter(`分期还没建成：账户「${name}」不在账本里`);
+    if (!r || !r.acc) return ctx.setFooter(`分期还没建成：节点「${name}」不在账本里`);
 
     const principal = num('principal');
     const interest = num('interest');
@@ -82,8 +80,8 @@ export function mountAddForm(ctx, onAdded) {
     const row = createScheduled({
       to_id: r.acc.id,
       from_id: null,
-      day: clampDay(get('day') || 5),
-      billDay: get('billDay'),
+      day: clampDay(r.acc.repayDay || 5),
+      billDay: r.acc.billDay,
       note: '分期',
       amount: round2(principal + interest),
       inst: { periods, firstMonth: first, principal, interest, cells },
@@ -97,28 +95,26 @@ export function mountAddForm(ctx, onAdded) {
     return undefined;
   }
 
-  /** 追加到 host 末尾（不清空 host —— 月份范围控件接在后面） */
+  let barEl = null;
+
+  /** 只放输入框。添加按钮在「分期」切换旁边。 */
   function render(host) {
     if (!host) return;
-
-    for (const [key, ph, w] of FIELDS) {
+    barEl = host;
+    for (const [key, ph, label] of FIELDS) {
       const inp = document.createElement('input');
       inp.className = 'nt-input nt-input-sm';
       inp.type = 'text';
       inp.setAttribute('data-add', key);
       inp.placeholder = ph;
-      inp.setAttribute('aria-label', ph);
-      inp.style.width = w;
+      inp.setAttribute('aria-label', label);
       host.appendChild(inp);
     }
-
-    const go = document.createElement('button');
-    go.type = 'button';
-    go.className = 'nt-btn nt-btn-sm nt-btn-primary';
-    go.textContent = '添加';
-    go.addEventListener('click', () => add(host));
-    host.appendChild(go);
   }
 
-  return { render };
+  function submit() {
+    if (barEl) add(barEl);
+  }
+
+  return { render, submit };
 }

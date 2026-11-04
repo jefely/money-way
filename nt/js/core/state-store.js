@@ -14,6 +14,9 @@ import {
   indexAccounts, findAccountByName, OPENING_ACCOUNT, OPENING_ACCOUNT_ID,
   normalizeCode, ALL_ACCOUNT_TYPES,
 } from './schema.js';
+import { promoteDrafts, dropMappingsFor } from './draft-book.js';
+import { matchAccountName } from './account-match.js';
+import { noteTarget } from './lexicon.js';
 
 /** 建一本空账（带期初虚拟账户，但它 isHidden，不进 UI 列表） */export function createState() {
   return {
@@ -26,6 +29,10 @@ import {
     settings: {},
     // 备注表（用户 2026-10-29）：{ id, code, type, text }，只用于统计分类与备注栏快速输入
     notes: [],
+    // 短语 → accountId。随账本加密，也进加密备份（渐进式记账学过的对应关系）
+    mappings: {},
+    // 作废的计划发生：sourceId|月份，不删模板
+    voidedPlans: [],
     // 多账本：活动账本的数据在 accounts/transactions/scheduled；其余账本快照在 ledgers
     ledgers: {},
     ledgerNames: { main: '主账本' },
@@ -72,39 +79,49 @@ export function addAccount(state, patch) {
 }
 
 export function updateAccount(state, id, patch) {
-  return {
+  const next = {
     ...state,
     accounts: state.accounts.map((a) => (a.id === id ? createAccount({ ...a, ...patch }) : a)),
   };
+  return promoteDrafts(next);
 }
 
 /**
  * 录入流水时用的「文本 → 账户」兜底（用户 2026-10-30）：
- * 流水只负责记录，转出/转入可以随便写；认不出的文本自动建一个
- * type/category 都为空的账户（落在设置页的「未分类账户」区），
- * 之后用户慢慢补类型/分类即可 —— 不拦截录入，也不丢原文本。
+ * 流水只负责记录。能对上词库或银行/信用启发式的，直接写入类型和分类，
+ * 并打上 fresh（设置页显示「新增」）。对不上才留空类型。
  *
  * @returns {{state:object, id:string|null}}
  */
 export function ensureAccountByText(state, text) {
   const t = String(text || '').trim();
-  if (!t) return { state, id: null };
+  if (!t) return { state, id: null, held: '' };
 
   const norm = normalizeCode(t);
   const hit = (state.accounts || []).find(
     (a) => a && (a.name === t || (a.code && normalizeCode(a.code) === norm)),
   );
-  if (hit) return { state, id: hit.id };
+  if (hit) return { state, id: hit.id, held: '' };
 
+  const guess = matchAccountName(t);
+  if (!guess) {
+    const link = noteTarget(t);
+    if (link && link.nodeName && link.nodeName !== t) {
+      const node = ensureAccountByText(state, link.nodeName);
+      return { state: node.state, id: node.id, held: t };
+    }
+  }
   const acc = {
     id: 'acc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     code: '',
     name: t,
-    type: '',
-    category: '',
+    type: guess ? guess.type : '',
+    category: guess ? guess.category : '',
     isHidden: false,
+    fresh: true,
   };
-  return { state: { ...state, accounts: [...(state.accounts || []), acc] }, id: acc.id };
+  const next = { ...state, accounts: [...(state.accounts || []), acc] };
+  return { state: promoteDrafts(next), id: acc.id, held: '' };
 }
 
 /**
@@ -118,7 +135,8 @@ export function ensureAccountByText(state, text) {
  */
 export function removeAccount(state, id) {
   if (id === OPENING_ACCOUNT_ID) return state;
-  return { ...state, accounts: state.accounts.filter((a) => a.id !== id) };
+  const next = { ...state, accounts: state.accounts.filter((a) => a.id !== id) };
+  return dropMappingsFor(next, id);
 }
 
 /* ---------- 流水：增删改 ---------- */
