@@ -29,6 +29,7 @@ import { setOpening, bindNewRow } from './account-new.js';
 
 const FIELDS = ['type', 'category', 'code', 'name', 'opening', 'seq'];
 const TYPES = ['资产类', '成本类', '负债类', '收入类', '权益类', '费用类'];
+const BLANK_ROWS = 10;
 
 // 切到后台/关闭前，把正在编辑的简码用 blur 提交掉。
 // 手机键盘收起不一定触发 change；直接锁屏/切应用时，未失焦的输入会丢。
@@ -163,13 +164,16 @@ export function mountAccountTable(ctx, tbody, opts) {
         bindRow(tr, acc.id);
         frag.appendChild(tr);
       }
+    }
 
-      // 每个区域各自一个新增行（用户 2026-10-29）：整行留空，序号/类型都可手填
-      const newTpl = tpl('tpl-account-new');
-      if (newTpl) {
+    // 最下面固定 10 个空行：批量加节点时不用等每次重画（用户 2026-11）。
+    // 它们不绑定某个区，建行时按填写的类型决定归 A / B / U。
+    const newTpl = tpl('tpl-account-new');
+    if (newTpl) {
+      for (let k = 0; k < BLANK_ROWS; k += 1) {
         const tr = newTpl.cloneNode(true);
         frag.appendChild(tr);
-        bindNewRow(ctx, tr, zone, render);
+        bindNewRow(ctx, tr, null, render);
       }
     }
 

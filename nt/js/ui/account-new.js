@@ -8,7 +8,7 @@
  */
 
 import { addAccount, addTransaction, accountTypesOf } from '../core/state-store.js';
-import { accountsOfZone, nextSeqFor } from '../core/account-order.js';
+import { accountsOfZone, nextSeqFor, zoneKeyOf } from '../core/account-order.js';
 import { normalizeCode, isValidCode, OPENING_ACCOUNT_ID } from '../core/schema.js';
 import { toAmount } from '../core/stats.js';
 import { syncOpeningDates } from '../core/ledger-stats.js';
@@ -77,8 +77,10 @@ export function bindNewRow(ctx, tr, zone, onCreated) {
     if (code && !isValidCode(code)) return;
     // 简码重复允许（2026-11 用户决定）：新账户也照建，表格里标暗红。
 
-    // 序号可以跳着填（如 63 → 100）；不填就「本区最大序号 + 1」
-    const zoneAccounts = accountsOfZone(st.accounts, zone.key);
+    // 序号可以跳着填（如 63 → 100）；不填就「本区最大序号 + 1」。
+    // zone 为空 = 表格最下面那批公共空行：按类型决定归哪个区。
+    const zoneKey = (zone && zone.key) || zoneKeyOf({ type });
+    const zoneAccounts = accountsOfZone(st.accounts, zoneKey);
     const typed = parseInt(get('seq'), 10);
     const seq = Number.isFinite(typed) && typed > 0 ? typed : nextSeqFor(zoneAccounts);
 

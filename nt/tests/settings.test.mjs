@@ -198,7 +198,8 @@ test('每表尺寸也被钳制（行高 5 → 16，500 → 120）', () => {
   assert.equal(n['汇总表/数据行高'], 120);
 });
 
-test('★ 旧默认手柄宽度 14 跟到 7，用户自调值保留', () => {
-  assert.equal(normalize({ 手柄宽度: 14 }, 'dark')['手柄宽度'], 7);
+test('★ 列宽手柄命中区：7 跟到 14，用户自调值保留', () => {
+  assert.equal(normalize({ 手柄宽度: 7 }, 'dark')['手柄宽度'], 14);
   assert.equal(normalize({ 手柄宽度: 12 }, 'dark')['手柄宽度'], 12);
+  assert.equal(normalize({ 手柄宽度: 14 }, 'dark')['手柄宽度'], 14);
 });

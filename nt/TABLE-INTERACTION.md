@@ -435,7 +435,8 @@ col 写 44px  →  实际渲染 28px
 > 1. CSS 的 `--nt-handle-w` fallback 是 7px，但参数表 `settings.js` 里这项默认值是 14px；
 >    面板一启动就把 `:root` 写成 14px，CSS fallback 永远不生效。窄列（序 34~44px、金额 34~41px）
 >    右侧 14px 全落在透明命中区里，列标只能显示半个字。
->    现在参数默认值改成 7px，并用 `LEGACY_DEFAULT` 把旧存档里恰好是 14 的值迁到 7（自调值保留）。
+>    透明层去掉后命中区不再占字，**最终仍回到 14px**：旧存档里是 7 的自动迁到 14，
+>    自调的其它值保留。现在 14px 只是「th 右边缘的坐标判定」，列内没有任何遮挡。
 > 2. 固定表还有 **8px 单元格左右内边距 + 4px 输入框左右内边距**；列宽 34px 时只剩 10px 给文字，
 >    看起来就像「右边多出一块遮盖」。现在固定表收到 3px / 2px，优先把宽度还给文字。
 > 3. 序冻结只写了 `position: sticky`，没写 `left: 0`；`syncFrozen` 又按「CSS 负责 left」的约定
@@ -481,11 +482,11 @@ body.nt-col-resizing {
 }
 ```
 
-### 4.2 判定：th 右边缘 `--nt-handle-w`（默认 7px）
+### 4.2 判定：th 右边缘 `--nt-handle-w`（默认 14px）
 
 ```js
 const rect = th.getBoundingClientRect();
-const edge = Number(getComputedStyle(th).getPropertyValue('--nt-handle-w')) || 7;
+const edge = Number(getComputedStyle(th).getPropertyValue('--nt-handle-w')) || 14;
 if (ev.clientX < rect.right - edge) return;   // 不在右边缘，是普通点选
 ```
 
@@ -879,7 +880,7 @@ const onMove = (e) => {
 | 纵向边框 | `--nt-border-v-style` | `none` | |
 | 纵向边框线粗 | `--nt-border-v-width` | `1px` | |
 | 纵向边框颜色 | `--nt-border-v-color` | `#2a2438` | |
-| **手柄宽度** | `--nt-handle-w` | `7px` | 列宽手柄命中宽度（2026-11 由 14 收到 7，参数默认值同步） |
+| **手柄宽度** | `--nt-handle-w` | `14px` | 列宽手柄命中区宽度（透明层已移除，不占文字） |
 | **手柄颜色** | `--nt-handle-color` | `#5f5878` | 中线颜色 |
 
 ### 7.3 列标行（表头）

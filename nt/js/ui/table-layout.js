@@ -235,7 +235,7 @@ export function mountResize(tableEl, opts) {
 /** 右边缘命中宽度（px）；参数 --nt-handle-w 是唯一来源，限制在 4~20。 */
 function handleHitWidth(th) {
   const raw = parseFloat(getComputedStyle(th).getPropertyValue('--nt-handle-w'));
-  if (!Number.isFinite(raw)) return 7;
+  if (!Number.isFinite(raw)) return 14;
   return Math.min(20, Math.max(4, raw));
 }
 

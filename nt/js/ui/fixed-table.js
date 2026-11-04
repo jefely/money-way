@@ -16,10 +16,11 @@ import { showUndo } from './undo-bar.js';
 import { moneyAlways } from '../core/format.js';
 import { createScheduled, clampDay } from '../core/schema.js';
 import { parseAccountInput } from '../core/account-resolver.js';
-import { removeBatch, restoreBatch } from '../core/state-store.js';
+import { removeBatch, restoreBatch, ensureAccountByText } from '../core/state-store.js';
 import { installmentRowView, pickSavingsAccount } from '../core/plan-occurrence.js';
 
 const FIELDS = ['freq', 'day', 'from', 'to', 'amount', 'note'];
+const BLANK_ROWS = 10;
 
 /**
  * @param {object} ctx
@@ -92,9 +93,14 @@ export function mountFixedTable(ctx, tbody, opts) {
 
     const newTpl = tpl('tpl-sched-new');
     if (newTpl) {
-      const tr = newTpl.cloneNode(true);
-      tbody.appendChild(tr);
-      bindNewRow(tr);
+      // 末尾固定 10 个空行：批量录入时不用每次等一行重画（用户 2026-11）
+      const blanks = document.createDocumentFragment();
+      for (let k = 0; k < BLANK_ROWS; k += 1) {
+        const tr = newTpl.cloneNode(true);
+        blanks.appendChild(tr);
+        bindNewRow(tr);
+      }
+      tbody.appendChild(blanks);
     }
 
     summarize(list);
@@ -144,7 +150,7 @@ export function mountFixedTable(ctx, tbody, opts) {
   }
 
   function applyEdit(id, field, raw) {
-    const st = ctx.getState();
+    let st = ctx.getState();
     const list = (st.scheduled || []).slice();
     const i = list.findIndex((x) => x.id === id);
     if (i < 0) return;
@@ -156,12 +162,18 @@ export function mountFixedTable(ctx, tbody, opts) {
       row.freq = v === 'daily' ? 'daily' : 'monthly';
     } else if (field === 'day') {
       row.day = clampDay(v || 1);
-    } else if (field === 'from') {
+    } else if (field === 'from' || field === 'to') {
       const r = parseAccountInput(ctx.getIndex(), v);
-      row.from_id = r && r.acc ? r.acc.id : null;
-    } else if (field === 'to') {
-      const r = parseAccountInput(ctx.getIndex(), v);
-      row.to_id = r && r.acc ? r.acc.id : null;
+      if (r && r.acc) {
+        row[field + '_id'] = r.acc.id;
+      } else if (v) {
+        // 改规则时也能写新节点：补一个空类型账户，归到 U 未分类
+        const e = ensureAccountByText(st, v);
+        st = e.state;
+        row[field + '_id'] = e.id;
+      } else {
+        row[field + '_id'] = null;
+      }
     } else if (field === 'amount') {
       row.amount = Math.max(0, Number(v) || 0);
     } else if (field === 'note') {
@@ -192,19 +204,26 @@ export function mountFixedTable(ctx, tbody, opts) {
 
       const fromRaw = get('from');
       const toRaw = get('to');
+      let st = ctx.getState();
       const fromR = parseAccountInput(ctx.getIndex(), fromRaw);
       const toR = parseAccountInput(ctx.getIndex(), toRaw);
-      const fromId = fromR && fromR.acc ? fromR.acc.id : null;
-      const toId = toR && toR.acc ? toR.acc.id : null;
+      let fromId = fromR && fromR.acc ? fromR.acc.id : null;
+      let toId = toR && toR.acc ? toR.acc.id : null;
+
+      // 认不出的节点名不拦：和流水页一样补一个空类型的「未分类」节点
+      if (!fromId && fromRaw) {
+        const r = ensureAccountByText(st, fromRaw);
+        st = r.state;
+        fromId = r.id;
+      }
+      if (!toId && toRaw) {
+        const r = ensureAccountByText(st, toRaw);
+        st = r.state;
+        toId = r.id;
+      }
 
       if (!fromId && !toId) {
-        // 有金额但一个账户都没认出来 —— 说清楚为什么还没存上，
-        // 否则用户填了一行、页脚什么都没变，只会以为程序没反应
-        if (fromRaw || toRaw) {
-          ctx.setFooter(`固定收支还没建成：账户「${fromRaw || toRaw}」不在账本里`);
-        } else {
-          ctx.setFooter('固定收支还没建成：转出 / 转入 至少填一个节点');
-        }
+        ctx.setFooter('固定收支还没建成：转出 / 转入 至少填一个节点');
         return;
       }
 
@@ -219,7 +238,6 @@ export function mountFixedTable(ctx, tbody, opts) {
       });
 
       created = true;
-      const st = ctx.getState();
       ctx.setState({ ...st, scheduled: (st.scheduled || []).concat([row]) });
       ctx.saveNow();
       render();
@@ -229,17 +247,35 @@ export function mountFixedTable(ctx, tbody, opts) {
     for (const f of FIELDS) {
       const inp = tr.querySelector('[data-field="' + f + '"]');
       if (!inp) continue;
-      // 延迟到本轮事件结束再判断：用户在一行里连着填几格时，
-      // 前面的格子先触发 change；若立刻建行，后面填的会落在已脱离 DOM 的旧行上。
       inp.addEventListener('change', () => {
         // 简码 → 节点名称：切到下一格就先回填，不必等整条规则建成后重绘
         if ((f === 'from' || f === 'to') && String(inp.value || '').trim()) {
           const r = parseAccountInput(ctx.getIndex(), inp.value);
           if (r && r.acc) inp.value = r.display;
         }
-        setTimeout(tryCreate, 0);
+      });
+      // blur 不冒泡，单独挂：有些 WebView 的 focusout.relatedTarget 是 null，
+      // 用 activeElement 再判断一次焦点是否还在本行。
+      inp.addEventListener('blur', () => {
+        setTimeout(() => {
+          if (tr.contains(document.activeElement)) return;
+          tryCreate();
+        }, 0);
       });
     }
+
+    // 只有**离开这一行**才建规则：金额填完点到同行的备注，不算录完。
+    // 之前每个格子 change 都 tryCreate，金额一失焦就建行重画，备注还没写就没了。
+    tr.addEventListener('focusout', (ev) => {
+      const next = ev.relatedTarget;
+      if (next && tr.contains(next)) return;
+      setTimeout(() => {
+        // 有些浏览器（含手机 WebView）relatedTarget 是 null，但焦点其实还在本行：
+        // 再按 activeElement 兜一次，避免点到同行备注就被提前建行。
+        if (tr.contains(document.activeElement)) return;
+        tryCreate();
+      }, 0);
+    });
 
     // 新行选择「每天」：日期立刻变横线且只读；切回每月时恢复之前填的几号
     const freqSel = tr.querySelector('[data-field="freq"]');
