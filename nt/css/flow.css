@@ -560,31 +560,40 @@ body.nt-col-resizing {
   font: 12px/1.5 ui-monospace, Consolas, monospace;
   resize: vertical;
 }
-/* 同步弹窗：年月横排滚轮（左对齐，与二维码左边缘同一条线） */
-.nt-sync-monthrow {
+/* 年月、日都在二维码下面，横排，不占码的宽度。 */
+.nt-sync-pickers {
   display: flex;
-  justify-content: flex-start;
-  margin: 6px 0 8px;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: min(100%, 92vw);
+  margin-top: 8px;
 }
 
-/* 二维码 + 右侧日竖轮（竖向拖动，拇指在右边够得着）。
-   竖条紧跟二维码（gap 8），不贴容器右缘 —— 右侧那块留白是弹窗自己的边距。 */
-.nt-sync-qrrow {
-  position: relative;
+.nt-sync-monthrow,
+.nt-sync-dayrow {
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
+  margin: 0;
 }
 
-/* 二维码：**固定尺寸**，不跟随弹窗宽度（用户 2026-11-01：手机和电脑上显示要一致）。
-   固定之后年月条、日竖条、二维码三者都是 260，屏幕大小只影响四周留白。 */
+/* 二维码占满弹窗内容宽，正方形。静区画在码里（qr-canvas 四周 4 个模块）。 */
+.nt-sync-qrrow {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
 .nt-sync-qr {
   display: block;
-  flex: 0 0 260px;
-  width: 260px;
-  height: 260px;
+  width: 100%;
+  max-width: min(100%, 92vw);
+  aspect-ratio: 1 / 1;
+  height: auto;
   margin: 0;
+  background: #fff;
   cursor: zoom-in;
   image-rendering: pixelated;
 }
@@ -598,8 +607,10 @@ body.nt-col-resizing {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 260px;
-  height: 260px;
+  width: 100%;
+  max-width: min(100%, 92vw);
+  aspect-ratio: 1 / 1;
+  height: auto;
   padding: 14px;
   box-sizing: border-box;
   border: 1px dashed var(--nt-bg-line);
@@ -812,15 +823,13 @@ dialog.nt-sync-zoom::backdrop {
   padding-top: 0;
 }
 
-/* 「存」：占住年月条右侧那块空缺，和滚轮同一行、靠右。
-   样式照抄滚轮（玻璃 + 内阴影、无外框），让它看起来是滚轮的一部分而不是另一个按钮。 */
+/* 「存」跟在年月条后面，不占二维码的宽度。 */
 .nt-sync-save {
   display: flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  /* 紧跟年月条（同样留 8px），右缘正好和下面日竖条的右缘重合 */
-  margin-left: 8px;
+  margin-left: 0;
   width: 30px;
   height: 30px;
   padding: 0;
