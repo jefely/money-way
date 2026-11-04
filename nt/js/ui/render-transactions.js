@@ -188,18 +188,12 @@ function dataRow(r, i, rowTpl) {
     box.disabled = !!r.isOpening || !!r.isVirtual;
   }
 
-  const mark = r.mark === 'hollow' || r.mark === 'yellow' ? r.mark : '';
-  if (mark) {
-    tr.classList.add('nt-mark-' + mark);
-    const seq = tr.querySelector('.' + CLASS.seq);
-    if (seq) {
-      const dot = document.createElement('span');
-      dot.className = 'nt-draft-mark';
-      dot.title = mark === 'hollow' ? '草稿：还缺转出或转入' : '草稿：有账户还没定类型';
-      dot.setAttribute('role', 'img');
-      dot.setAttribute('aria-label', dot.title);
-      seq.appendChild(dot);
-    }
+  const seq = tr.querySelector('.' + CLASS.seq);
+  if (seq && (r.mark === 'missing' || r.mark === 'untyped')) {
+    const tip = r.mark === 'missing' ? '未入账：缺转出或转入' : '未入账：账户还没定类型';
+    seq.classList.add(r.mark === 'missing' ? 'nt-seq-missing' : 'nt-seq-untyped');
+    seq.title = tip;
+    seq.setAttribute('aria-label', tip);
   }
 
   if (r.isVirtual) decorateVirtualRow(tr);

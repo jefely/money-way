@@ -255,6 +255,17 @@
 /* 区域内的列标题行：B/备注各一份，A 沿用顶部冻结表头（用户 2026-10-29）。
    样式与 thead 的 .nt-th 一致；再叠一层**各主题自己的颜色**（伪元素 9% 不透明度，
    比直接改 background 稳，冻结首列也能叠到）——用户 2026-10-30。 */
+.nt-acc-fresh td:nth-child(5)::after {
+  content: '新增';
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: #f5d78e;
+  color: #6b4e00;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .nt-table-accounts tbody tr.nt-zone-cols > td.nt-cell {
   position: relative;
   background: var(--nt-th-bg, var(--nt-unit-bg, var(--nt-bg-soft)));

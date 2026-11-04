@@ -42,19 +42,18 @@ export function promoteDrafts(state) {
 }
 
 /**
- * 行首标记：hollow 缺端，yellow 有端但没类型，solid 已入账。
- * @returns {'hollow'|'yellow'|'solid'|''}
+ * 序号颜色：missing 缺端（红），untyped 有账户但没类型（黄），空串是已入账。
+ * @returns {'missing'|'untyped'|''}
  */
 export function markerOf(tx, accounts) {
-  if (!tx) return '';
-  if (isPosted(tx)) return 'solid';
-  if (!tx.from_id || !tx.to_id) return 'hollow';
+  if (!tx || isPosted(tx)) return '';
+  if (!tx.from_id || !tx.to_id) return 'missing';
   const map = byId(accounts);
   const from = map.get(tx.from_id);
   const to = map.get(tx.to_id);
   const typed = (a) => a && String(a.type || '').trim();
-  if (!typed(from) || !typed(to)) return 'yellow';
-  return 'hollow';
+  if (!typed(from) || !typed(to)) return 'untyped';
+  return 'missing';
 }
 
 export function learnMapping(state, phrase, accountId) {
