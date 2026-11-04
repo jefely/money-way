@@ -893,3 +893,21 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   -webkit-user-drag: none;
   user-drag: none;
 }
+
+.nt-note-pop {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 20;
+  max-height: 40vh;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 8px;
+  background: var(--nt-bg);
+  color: var(--nt-text);
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

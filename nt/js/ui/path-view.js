@@ -10,6 +10,9 @@
  */
 
 import { renderChart, RATIO } from './mw-svg-renderer.js';
+import { outgoingArcColor } from '../graph/mw-layers.js';
+import { paintLegend } from './path-legend.js';
+import { bindChartTip } from './chart-tip.js';
 import { MW_DEFAULTS } from '../core/mw-settings.js';
 import { ribbonGeometry } from '../graph/mw-chord-shape.js';
 import {
@@ -81,7 +84,8 @@ export function paintChart(host, data, hits, onPick, view) {
     return {
       ...c,
       // 线色**永远**等于转出节点的专属色（v4.0 §4.2）
-      strokeColor: nodeColorOf(c.from_id),
+      // 弦色 = 转出账户的弧色。基本模式线宽不随金额变（上万笔时要快），只有追踪模式才按金额变宽。
+      strokeColor: outgoingArcColor(nodeColorOf, c.from_id),
       // 命中线要在遮罩**之上**（单线模式用它浮出来）
       above: mode === 'tx' && hit,
       ribbon,
@@ -106,7 +110,7 @@ export function paintChart(host, data, hits, onPick, view) {
       .map((c) => {
         const n = steps && steps.has(c.txIdx) ? steps.get(c.txIdx) : null;
         const mark = n == null ? '' : (n === 0 && c.txIdx === rootIdx ? '▶' : String(n));
-        return { a: c.aTo, mark, amount: String(Math.round(Number(c.amount) || 0)) };
+        return { a: c.aTo, mark, amount: (Number(c.amount) || 0).toFixed(2) };
       })
     : [];
 
@@ -125,6 +129,13 @@ export function paintChart(host, data, hits, onPick, view) {
   });
 
   host.classList.toggle('has-focus', !!hits);
+  host.__chartModel = { txs: data.txs || [], blocks: data.blocks || [] };
+  bindChartTip(host);
+  paintLegend(document.getElementById('pw-legend'), {
+    blocks: data.blocks || [],
+    nodeColorOf,
+    onPick: (id) => onPick('acc', id),
+  });
 
   host.querySelectorAll('.mw-ring').forEach((node) => {
     node.addEventListener('click', () => {
@@ -154,6 +165,7 @@ export function paintEmpty(info) {
   el('pw-chart').innerHTML =
     '<div class="pw-empty">这段时间没有可画的流水<br>先在「流水」页记几笔'
     + '<br><small>' + detail + '</small></div>';
+  paintLegend(document.getElementById('pw-legend'), { blocks: [] });
   // 左栏现在把表头（.pw-frozen，含筛选行与列标行）也包在 #pw-flow-body 里，
   // 只能清数据行 —— 清空整个容器会把表头一起删掉。
   const body = el('pw-flow-body');

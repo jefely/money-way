@@ -85,6 +85,15 @@ function hsl(h, s, l) {
   return `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%)`;
 }
 
+/**
+ * 弦线颜色 = 转出节点的弧色。
+ * 两边必须走这一个函数，避免弧块用一套、弦又用分类色。
+ */
+export function outgoingArcColor(nodeColorOf, fromId) {
+  const colorOf = nodeColorOf || (() => '');
+  return colorOf(fromId);
+}
+
 /** 外层：类型固定色 */
 export function typeColor(type) {
   const c = TYPE_HSL[type] || TYPE_HSL['其它'];

@@ -13,7 +13,15 @@ import { loadTemplates } from './ui/render-transactions.js';
 import { bindTabs } from './ui/tabs.js';
 import { showGate, hideGate } from './ui/gate.js';
 import { openAccountsWith } from './ui/account-actions.js';
-import { hasVault, createVault, unlockVault, saveState, destroyVault, changeVaultPassword } from './browser/db.js';
+import { hasVault, createVault, unlockVault, saveState, destroyVault, changeVaultPassword, buildEncryptedBackup, restoreEncryptedBackup } from './browser/db.js';
+import { createUndo } from './core/undo-stack.js';
+import { resetAccountsKeepData } from './core/reset-book.js';
+import { exportBaseName } from './core/export-text.js';
+import { installUndoKeys } from './ui/global-undo.js';
+import { installBackupGuard, markBackupDone } from './ui/backup-guard.js';
+import { watchOtherTabs, tellOtherTabs } from './ui/tab-guard.js';
+import { deliverTextFile } from './ui/share-file.js';
+import { bindNotePopover } from './ui/note-popover.js';
 import * as NtModal from './ui/modal.js';
 import { migrate } from './core/migrate.js';
 import { syncOpeningDates } from './core/ledger-stats.js';
@@ -48,6 +56,7 @@ let index = buildAccountIndex(state.accounts);
 let views = {};
 let active = 'flow';
 let saveTimer = 0;
+const undo = createUndo(20);
 /**
  * 数据版本号：每次 setState 自增。
  *
@@ -59,6 +68,7 @@ let dataVersion = 0;
 /* ---------- state 与索引 ---------- */
 
 function setState(next) {
+  undo.note(state, next);
   state = next;
   dataVersion += 1;
   index = buildAccountIndex(state.accounts);
@@ -95,8 +105,9 @@ async function flushSave() {
   saveTimer = 0;
   try {
     await saveState(state);
+    tellOtherTabs();
   } catch (e) {
-    setFooter('保存失败：' + e.message);
+    setFooter('保存失败：' + ((e && e.message) || e));
   }
 }
 
@@ -175,6 +186,18 @@ function mountViews() {
       NtModal.closeAll();
       location.reload();
     },
+    resetAccounts: async () => {
+      setState(resetAccountsKeepData(getState()));
+      await flushSave();
+      renderActive();
+      setFooter('已重置账户。流水还在；对不上名字的请到校验页查看。');
+    },
+    shareBackup: async () => {
+      const text = await buildEncryptedBackup(getState());
+      return deliverTextFile(exportBaseName() + '.json', text, 'application/json');
+    },
+    markBackup: () => markBackupDone(Date.now()),
+    restoreBackup: (text, password) => restoreEncryptedBackup(text, password),
     // 换主密码：逻辑在 browser/db.js → core/vault-rekey.js，
     // 这里只把「当前内存 state」递过去（换完密码不会丢掉未保存的编辑）。
     changePassword: (oldPw, newPw) => changeVaultPassword(oldPw, newPw, getState()),
@@ -285,6 +308,25 @@ function enterApp() {
   if (new URLSearchParams(location.search).has('debug')) {
     mountDebugPanel({ getState, setState, save: flushSave });
   }
+
+  undo.checkpoint();
+  installUndoKeys({
+    onUndo: () => {
+      const prev = undo.pop();
+      if (!prev) { setFooter('没有可撤销的操作'); return; }
+      state = prev;
+      dataVersion += 1;
+      index = buildAccountIndex(state.accounts);
+      updateDocTitle();
+      undo.unlock();
+      renderActive();
+      scheduleSave();
+      setFooter('已撤销上一步');
+    },
+  });
+  installBackupGuard();
+  watchOtherTabs(setFooter);
+  bindNotePopover(document);
 }
 
 async function boot() {

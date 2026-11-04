@@ -611,3 +611,86 @@
 .mw-grab:active {
   cursor: grabbing;
 }
+
+.pw-help {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: 36px;
+  z-index: 6;
+  max-height: 42vh;
+  overflow: auto;
+  padding: 6px 10px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 8px;
+  background: var(--nt-bg);
+  color: var(--nt-text);
+}
+
+.pw-help summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pw-help-body {
+  margin: 6px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--nt-text-muted);
+}
+
+.pw-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 4px;
+}
+
+.pw-legend-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--nt-text);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+}
+
+.pw-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+.pw-legend-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pw-legend-row b {
+  font-variant-numeric: tabular-nums;
+  color: var(--nt-text-muted);
+}
+
+.pw-tip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 8;
+  max-width: 240px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--nt-text);
+  color: var(--nt-bg);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-line;
+  pointer-events: none;
+}

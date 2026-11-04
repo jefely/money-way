@@ -136,6 +136,7 @@ export function createTransaction(patch = {}) {
     amount: Number.isFinite(amount) ? Math.abs(amount) : 0,
     note: String(patch.note || ''),
     seq: Number(patch.seq) || 0,
+    ...(patch.billId ? { billId: String(patch.billId) } : {}),
     ...(patch.inst ? { inst: patch.inst } : {}),
     ...(patch.opening ? { opening: true } : {}),
   };

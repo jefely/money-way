@@ -9,13 +9,21 @@
  * 密钥来自 core/auth-manager（闭包持有），本文件不生成也不保存密钥。
  */
 
-import { encryptData, decryptData, randomSalt, bytesToBase64, base64ToBytes } from '../core/crypto-engine.js';
+import { encryptData, decryptData, deriveKey, randomSalt, bytesToBase64, base64ToBytes } from '../core/crypto-engine.js';
 import { getKey, createWith, unlock, isUnlocked, adoptKey } from '../core/auth-manager.js';
 import { rekeyVault } from '../core/vault-rekey.js';
-import { idbGet, idbPut, idbDel } from './idb.js';
+import { idbGet, idbPut, idbDel, idbCasPut } from './idb.js';
 import { SCHEMA_VERSION } from '../core/schema.js';
+import { packBackup, unpackBackup } from '../core/backup-file.js';
 
 export const VAULT_KEY = 'state';
+
+/** 本标签最后一次看见的密文。别的标签写过之后，这里对不上，就拒绝覆盖。 */
+let expectedCipher = '';
+
+export function noteCipher(cipher) {
+  expectedCipher = cipher ? String(cipher) : '';
+}
 
 /** 盘上有没有保险库 */
 export async function hasVault() {
@@ -43,6 +51,7 @@ export async function createVault(stateObj, password) {
     updatedAt: new Date().toISOString(),
   };
   await idbPut(VAULT_KEY, rec);
+  noteCipher(rec.ciphertext);
   return rec;
 }
 
@@ -54,6 +63,7 @@ export async function unlockVault(password) {
   const rec = await readVaultRecord();
   const res = await unlock(password, rec);
   if (!res.ok) return { ok: false, error: res.error };
+  noteCipher(rec && rec.ciphertext);
   try {
     return { ok: true, state: JSON.parse(res.plaintext) };
   } catch (e) {
@@ -77,7 +87,11 @@ export async function saveState(stateObj) {
     ciphertext: bytesToBase64(ciphertext),
     updatedAt: new Date().toISOString(),
   };
-  await idbPut(VAULT_KEY, rec);
+  const wrote = await idbCasPut(VAULT_KEY, expectedCipher, rec);
+  if (!wrote.ok) {
+    throw new Error('另一个窗口已经保存过。这次没有覆盖，请先刷新再改。');
+  }
+  noteCipher(rec.ciphertext);
   return rec;
 }
 
@@ -94,6 +108,7 @@ export async function loadState() {
 /** 销毁保险库（重置账本用，不可恢复）。 */
 export async function destroyVault() {
   await idbDel(VAULT_KEY);
+  noteCipher('');
 }
 
 /**
@@ -114,5 +129,31 @@ export async function changeVaultPassword(oldPassword, newPassword, stateObj) {
 
   await idbPut(VAULT_KEY, r.record);
   adoptKey(r.key);
+  noteCipher(r.record && r.record.ciphertext);
   return { ok: true };
+}
+
+/**
+ * 用当前内存里的钥匙把整本 state 封成加密备份。
+ * 不再跑一遍 PBKDF2，这样手机上点「分享」时还在同一次点击里。
+ */
+export async function buildEncryptedBackup(stateObj) {
+  if (!isUnlocked()) throw new Error('尚未解锁，不能备份');
+  const old = (await readVaultRecord()) || {};
+  if (!old.salt) throw new Error('还没有保险库');
+  const { iv, ciphertext } = await encryptData(getKey(), JSON.stringify(stateObj || {}));
+  return packBackup({
+    salt: old.salt,
+    iv: bytesToBase64(iv),
+    ciphertext: bytesToBase64(ciphertext),
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+/** 用用户输入的密码解开备份，返回 state。不写盘。 */
+export async function restoreEncryptedBackup(text, password) {
+  const env = unpackBackup(text);
+  const key = await deriveKey(password, base64ToBytes(env.salt));
+  const plain = await decryptData(key, base64ToBytes(env.iv), base64ToBytes(env.ciphertext));
+  return JSON.parse(plain);
 }

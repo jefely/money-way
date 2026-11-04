@@ -725,3 +725,37 @@ body.nt-col-resizing .nt-tablewrap {
 .nt-table-accounts .nt-th[data-col="up"]       { width: var(--nt-col-accounts-up, 40px); }
 .nt-table-accounts .nt-th[data-col="action"]   { width: var(--nt-col-accounts-action, 40px); }
 
+.nt-backup-banner {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: 28px;
+  z-index: 30;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 8px;
+  background: var(--nt-bg);
+  color: var(--nt-text);
+}
+
+.nt-backup-banner p {
+  margin: 0;
+  flex: 1 1 auto;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.nt-backup-banner button {
+  flex: 0 0 auto;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--nt-text);
+  font: inherit;
+}
+
