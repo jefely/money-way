@@ -115,6 +115,17 @@ test('失焦与超时不删除草稿', () => {
   assert.equal(kept.transactions[0].amount, 50);
 });
 
+test('发送时可以把没建过的分类名直接建成账户', () => {
+  const first = applyPhrase(createState(), '咖啡 50', NOW);
+  const hinted = fillDraft(first.state, first.tx.id, '微');
+  assert.equal(hinted.outcome, 'suggest');
+  const made = fillDraft(first.state, first.tx.id, '微', { force: true });
+  const acc = made.state.accounts.find((a) => a.name === '微');
+  assert.ok(acc);
+  assert.equal(acc.category, '微');
+  assert.equal(made.tx.from_id, acc.id);
+});
+
 test('候选里能看到模糊的支付账户', () => {
   const items = suggestPhraseAccounts(createState(), '薇信');
   assert.ok(items.some((s) => s.acc.name === '微信'));

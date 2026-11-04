@@ -8,6 +8,7 @@
  * 纯函数：只吃 state，不碰 DOM。
  */
 
+import { visiblePlans } from '../core/plan-occurrence.js';
 import { money, moneyAlways, moneyOrBlank, shortDate } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
 import { indexAccounts, isPosted } from '../core/schema.js';
@@ -22,19 +23,21 @@ import { markerOf } from '../core/draft-book.js';
  */
 export function buildFlowRows(state, virtual) {
   const real = buildRealRows(state);
-  if (!virtual || !virtual.length) return real;
+  const upcoming = visiblePlans(virtual, state);
+  if (!upcoming.length) return real;
 
   let n = real.length;
-  const virt = virtual.map((v) => {
+  const virt = upcoming.map((v) => {
     n += 1;
     return {
-      id: 'v_' + v.source + '_' + v.periodIndex,
+      id: 'v_' + String(v.planKey || v.source || n).replace(/\|/g, '_'),
       seq: n,
       date: v.date,
-      from: v.fromName || '分期还款',
+      from: v.fromName || '',
       to: v.toName || v.source || '',
       amount: v.amount,
-      note: `第 ${v.periodIndex}/${v.periods} 期`,
+      amountRaw: v.amount,
+      note: v.note || (v.periodIndex ? `第 ${v.periodIndex}/${v.periods} 期` : ''),
       dateEdit: shortDate(v.date),
       amountEdit: moneyOrBlank(v.amount),
       dateText: shortDate(v.date),
@@ -42,6 +45,11 @@ export function buildFlowRows(state, virtual) {
       isVirtual: true,
       isOpening: false,
       broken: false,
+      planKey: v.planKey || '',
+      sourceId: v.sourceId || '',
+      month: v.month || '',
+      fromId: v.fromId || null,
+      toId: v.toId || null,
       mark: '',
     };
   });
@@ -71,8 +79,7 @@ function buildRealRows(state) {
     to: nameOf(t.to_id),
     amount: t.amount,
     note: t.note,
-    // 期初行没有真实业务日期，显示成「期初」而不是 00-01-01
-    dateEdit: t.opening ? '' : shortDate(t.date),
+    dateEdit: shortDate(t.date),
     amountEdit: moneyOrBlank(t.amount),
     dateText: t.opening ? '期初' : shortDate(t.date),
     amountText: money(t.amount),

@@ -45,6 +45,7 @@
 | `core/opening-migrator.js` | （无界面）期初迁移 |
 | `core/phrase-entry.js` | （无界面）一句话入账 |
 | `core/phrase-parser.js` | （无界面）一句话解析 |
+| `core/plan-occurrence.js` | （无界面）计划发生：确认到今天 / 作废一期 |
 | `core/qr-encode.js` | （未标注界面）QR 编码入口（纯函数） |
 | `core/qr-matrix.js` | （未标注界面）QR 矩阵构造（纯函数） |
 | `core/qr-rs.js` | （未标注界面）QR 里用到的有限域与纠错（纯函数） |
@@ -120,6 +121,7 @@
 | `ui/path-flow-table.js` | 路径页左栏的流水查询表 |
 | `ui/path-legend.js` | 路径 tab → 图例 |
 | `ui/path-view.js` | 路径 tab |
+| `ui/plan-rows.js` | 流水 tab → 未来行的确认 / 作废 |
 | `ui/pwa.js` | PWA 注册 |
 | `ui/qr-canvas.js` | （未标注界面）把 QR 矩阵画到 canvas（UI 层） |
 | `ui/range-bar.js` | 单元格框选的工具条 |

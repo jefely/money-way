@@ -9,6 +9,7 @@
  */
 
 import { indexAccounts, isPosted } from './schema.js';
+import { syncPlanFromEdit } from './plan-occurrence.js';
 
 function byId(accounts) {
   return accounts instanceof Map ? accounts : indexAccounts(accounts);
@@ -73,10 +74,10 @@ export function mappingFor(state, phrase) {
 
 /** 格子里改了转入：记下「备注 → 账户」，再尝试把草稿入账。 */
 export function afterTxEdit(state, id, field) {
-  let next = state;
+  let next = syncPlanFromEdit(state, id);
   if (field === 'to') {
     const tx = ((state && state.transactions) || []).find((t) => t && t.id === id);
-    if (tx && tx.note && tx.to_id) next = learnMapping(state, tx.note, tx.to_id);
+    if (tx && tx.note && tx.to_id) next = learnMapping(next, tx.note, tx.to_id);
   }
   return promoteDrafts(next);
 }

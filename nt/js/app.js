@@ -196,6 +196,7 @@ function mountViews() {
       const text = await buildEncryptedBackup(getState());
       return deliverTextFile(exportBaseName() + '.json', text, 'application/json');
     },
+    encryptedBackupText: () => buildEncryptedBackup(getState()),
     markBackup: () => markBackupDone(Date.now()),
     restoreBackup: (text, password) => restoreEncryptedBackup(text, password),
     // 换主密码：逻辑在 browser/db.js → core/vault-rekey.js，

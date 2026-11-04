@@ -20,15 +20,30 @@ function hide() {
   if (pop) pop.hidden = true;
 }
 
+function noteText(el) {
+  if (!el) return '';
+  if ('value' in el && String(el.value || '').trim()) return String(el.value);
+  return String(el.textContent || '').trim();
+}
+
 function show(input) {
+  const text = noteText(input);
+  if (!text) { hide(); return; }
   const box = ensure();
-  box.textContent = input.value || '';
-  const r = input.getBoundingClientRect();
-  const width = Math.min(280, window.innerWidth - 16);
-  const left = Math.max(8, Math.min(r.right - width, window.innerWidth - width - 8));
-  box.style.width = width + 'px';
-  box.style.transform = `translate(${left}px, ${r.bottom + 4}px)`;
+  box.textContent = text;
   box.hidden = false;
+  const r = input.getBoundingClientRect();
+  const width = Math.min(280, Math.max(120, window.innerWidth - 16));
+  box.style.width = width + 'px';
+  box.style.transform = 'none';
+  const pw = box.offsetWidth || width;
+  const ph = box.offsetHeight || 32;
+  let left = r.right - pw;
+  left = Math.min(Math.max(8, left), Math.max(8, window.innerWidth - pw - 8));
+  let top = r.top + (r.height / 2) - (ph / 2);
+  top = Math.min(Math.max(8, top), Math.max(8, window.innerHeight - ph - 8));
+  box.style.left = left + 'px';
+  box.style.top = top + 'px';
 }
 
 export function bindNotePopover(root) {
@@ -36,7 +51,9 @@ export function bindNotePopover(root) {
   host.addEventListener('pointerup', (ev) => {
     const input = ev.target && ev.target.closest ? ev.target.closest('[data-field="note"]') : null;
     if (!input) { hide(); return; }
-    if (input.scrollWidth <= input.clientWidth + 1) { hide(); return; }
+    const text = noteText(input);
+    const clipped = input.scrollWidth > input.clientWidth + 1;
+    if (!text || (input.tagName === 'INPUT' && !clipped)) { hide(); return; }
     show(input);
   });
   host.addEventListener('keydown', (ev) => {

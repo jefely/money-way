@@ -22,15 +22,17 @@ export function mountComposer(section, ctx, rowHost, refresh) {
   input.className = 'nt-input nt-composer-input';
   input.type = 'text';
   input.setAttribute('aria-label', '一句话记账');
-  input.placeholder = ENTRY_PROMPT.idle;
+  input.placeholder = '草稿会留下';
   input.autocomplete = 'off';
+  input.enterKeyHint = 'send';
 
-  const hint = document.createElement('span');
-  hint.className = 'nt-composer-hint';
-  hint.textContent = '草稿会留下';
+  const send = document.createElement('button');
+  send.type = 'button';
+  send.className = 'nt-btn nt-btn-sm nt-composer-send';
+  send.textContent = '发送';
 
   bar.appendChild(input);
-  bar.appendChild(hint);
+  bar.appendChild(send);
 
   const vbar = section.querySelector('.nt-vbar');
   if (vbar && vbar.parentNode) vbar.parentNode.insertBefore(bar, vbar.nextSibling);
@@ -52,22 +54,21 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     if (h.save) h.save();
     if (refresh) refresh();
     flyParts(rowHost || section, input, result.tx && result.tx.id, result.fly);
-    hint.textContent = result.prompt || '';
     const done = result.outcome === 'posted' || result.outcome === 'note' || result.outcome === 'missing';
-    input.placeholder = done ? ENTRY_PROMPT.idle : (result.prompt || ENTRY_PROMPT.idle);
+    input.placeholder = done ? ENTRY_PROMPT.idle : (result.prompt || '草稿会留下');
     if (done) openId = null;
     else if (result.tx && result.tx.status === 'draft') openId = result.tx.id;
     if (result.outcome !== 'suggest') input.value = '';
     if (h.setFooter && result.prompt) h.setFooter(result.prompt);
   }
 
-  function submit() {
+  function submit(force) {
     const text = String(input.value || '').trim();
     if (!text) return;
     hideSuggest();
     const state = h.getState();
     const open = openId && (state.transactions || []).some((t) => t && t.id === openId && t.status === 'draft');
-    if (open) land(fillDraft(state, openId, text));
+    if (open) land(fillDraft(state, openId, text, { force: !!force }));
     else {
       openId = null;
       land(applyPhrase(state, text));
@@ -77,15 +78,19 @@ export function mountComposer(section, ctx, rowHost, refresh) {
   input.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Enter' || ev.isComposing) return;
     ev.preventDefault();
-    submit();
+    submit(true);
   });
+  send.addEventListener('click', () => submit(true));
 
   input.addEventListener('input', () => {
     armIdle();
     const text = String(input.value || '').trim();
     if (!text || text.length > 8 || /\d/.test(text)) { hideSuggest(); return; }
     const items = suggestPhraseAccounts(h.getState(), text);
-    if (items.length) showSuggest(input, items, (acc) => { input.value = acc.name || ''; submit(); });
+    if (text && !items.some((s) => s.acc && s.acc.name === text)) {
+      items.unshift({ acc: { name: text, code: '新建', category: '新建分类' }, reason: 'create' });
+    }
+    if (items.length) showSuggest(input, items, (acc) => { input.value = acc.name || ''; submit(true); });
     else hideSuggest();
   });
 

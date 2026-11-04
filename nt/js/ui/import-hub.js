@@ -101,6 +101,14 @@ export function openImportHub(opts) {
         onClick: ({ close }) => {
           const text = String(ta && ta.value || '').trim();
           if (!text) return;
+          if (isBackupText(text)) {
+            if (typeof o.restoreBackup !== 'function') {
+              if (typeof o.setFooter === 'function') o.setFooter('这是加密备份，当前不能恢复');
+              return;
+            }
+            askPassword(text, o);
+            return;
+          }
           if (typeof o.mergeText !== 'function') return;
           let n = 0;
           try {
