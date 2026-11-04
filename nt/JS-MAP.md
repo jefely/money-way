@@ -84,6 +84,7 @@
 | `ui/account-actions.js` | 设置 tab → 账户列表操作 |
 | `ui/account-config.js` | 账户配置导入导出 |
 | `ui/account-dialog.js` | 设置 tab → 新增/编辑账户弹窗 |
+| `ui/account-new.js` | 设置页 —— 新增账户行 / 期初 |
 | `ui/account-table.js` | 账户表（表格内直接编辑） |
 | `ui/add-dialog.js` | 流水工具条「添加/导入」→ 添加账本·流水 弹窗 |
 | `ui/apply-settings.js` | 全局：把界面参数写成 CSS 变量（主题/列宽） |

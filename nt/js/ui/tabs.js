@@ -19,6 +19,12 @@ export function bindTabs(opts) {
   let current = '';
 
   function show(name) {
+    // 切页前先把焦点交出去：隐藏一个获得焦点的 input **不保证**触发 change，
+    // 用户刚改的简码/备注会在切页时被旧值顶掉（2026-11 实测）。
+    // blur 会同步派发 change，让表格的 applyEdit 先落库。
+    const ae = document.activeElement;
+    if (ae && ae !== document.body && typeof ae.blur === 'function') ae.blur();
+
     const target = String(name || 'flow');
     current = target;
     for (const v of views) {

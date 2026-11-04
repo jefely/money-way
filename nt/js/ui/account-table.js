@@ -12,23 +12,34 @@
 
 import { tpl, renameBlankDraft } from './render-transactions.js';
 import { setCell, moneyOrBlank } from './table.js';
-import { openingOf, syncOpeningDates } from '../core/ledger-stats.js';
+import { openingOf } from '../core/ledger-stats.js';
 import { ZONES } from '../core/settings.js';
 import { money } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
-import { addAccount, updateAccount, removeAccount, addTransaction, addNote, updateNote, removeNote, NOTE_TYPES, accountTypesOf } from '../core/state-store.js';
-import { accountsOfZone, orderBySeq, nextSeqFor, effectiveSeq, moveWithinType, withUndefinedAccounts } from '../core/account-order.js';
+import { updateAccount, removeAccount, addNote, updateNote, removeNote, NOTE_TYPES, accountTypesOf } from '../core/state-store.js';
+import { accountsOfZone, orderBySeq, effectiveSeq, moveWithinType, withUndefinedAccounts } from '../core/account-order.js';
 import { bindTypePicker, promptType } from './type-picker.js';
 import { zoneCols, zoneHead } from './table-parts.js';
-import { normalizeCode, isValidCode, OPENING_ACCOUNT_ID } from '../core/schema.js';
+import { normalizeCode, isValidCode } from '../core/schema.js';
 import { balanceOf } from '../core/balance-calculator.js';
 import { validate, issuesOf } from '../core/validator.js';
 import { renderNotes } from './note-table.js';
 import * as NtModal from './modal.js';
 import { bindReviewTips } from './review-tip.js';
+import { setOpening, bindNewRow } from './account-new.js';
 
 const FIELDS = ['type', 'category', 'code', 'name', 'opening', 'seq'];
 const TYPES = ['资产类', '成本类', '负债类', '收入类', '权益类', '费用类'];
+
+// 切到后台/关闭前，把正在编辑的简码用 blur 提交掉。
+// 手机键盘收起不一定触发 change；直接锁屏/切应用时，未失焦的输入会丢。
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'hidden') return;
+    const ae = document.activeElement;
+    if (ae && ae.matches && ae.matches('input[data-field="code"]')) ae.blur();
+  });
+}
 
 /**
  * @param {object} ctx
@@ -152,7 +163,7 @@ export function mountAccountTable(ctx, tbody, opts) {
       if (newTpl) {
         const tr = newTpl.cloneNode(true);
         frag.appendChild(tr);
-        bindNewRow(tr, zone);
+        bindNewRow(ctx, tr, zone, render);
       }
     }
 
@@ -191,6 +202,28 @@ export function mountAccountTable(ctx, tbody, opts) {
       const inp = tr.querySelector('[data-field="' + f + '"]');
       if (!inp) continue;
       inp.addEventListener('change', () => applyEdit(id, f, inp.value));
+      if (f === 'code') {
+        // 手机键盘的「完成」若能发 Enter，就主动失焦提交；不依赖用户再点别处。
+        inp.setAttribute('enterkeyhint', 'done');
+        inp.addEventListener('keydown', (ev) => {
+          if (ev.key !== 'Enter') return;
+          ev.preventDefault();
+          inp.blur();
+        });
+
+        // 停手 800ms 就先静默落库一次（不重画，所以焦点和光标都在）。
+        // 手机键盘收起不保证触发 change；直接切应用/锁屏时，没失焦的输入
+        // 会跟着页面一起消失 —— 用户看到的就是「简码改了又变回去」。
+        let timer = 0;
+        inp.addEventListener('input', () => {
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            timer = 0;
+            saveCodeQuietly(id, inp.value);
+          }, 800);
+        });
+        inp.addEventListener('blur', () => { clearTimeout(timer); timer = 0; });
+      }
     }
   }
 
@@ -221,7 +254,7 @@ export function mountAccountTable(ctx, tbody, opts) {
     const v = String(raw || '').trim();
 
     if (field === 'opening') {
-      setOpening(id, toAmount(v));
+      setOpening(ctx, id, toAmount(v));
       ctx.saveNow();
       render();
       return;
@@ -241,10 +274,22 @@ export function mountAccountTable(ctx, tbody, opts) {
       patch.category = v;
     } else if (field === 'code') {
       const code = normalizeCode(v);
-      // 简码要合法且不与他人重复，否则还原（冲突会毁掉按简码查找）
-      if (code && !isValidCode(code)) { render(); return; }
-      const dup = (st.accounts || []).some((a) => a.id !== id && normalizeCode(a.code) === code);
-      if (code && dup) { render(); return; }
+      // 简码要合法且不与他人重复，否则还原（冲突会毁掉按简码查找）。
+      // 以前这里静默 render()，用户只看到「改了又变回去」——
+      // 页脚必须说清楚是哪一条规则没过（2026-11 用户报「简码修改不了」）。
+      if (code && !isValidCode(code)) {
+        render();
+        ctx.setFooter('简码没改：要 1–5 位，空格不算');
+        return;
+      }
+      const clash = (st.accounts || []).find(
+        (a) => a.id !== id && normalizeCode(a.code) === code,
+      );
+      if (code && clash) {
+        render();
+        ctx.setFooter('简码没改：「' + code + '」已被「' + (clash.name || '未命名') + '」使用');
+        return;
+      }
       patch.code = code;
     } else if (field === 'name') {
       if (!v) { render(); return; }
@@ -258,109 +303,28 @@ export function mountAccountTable(ctx, tbody, opts) {
     ctx.setState(updateAccount(st, id, patch));
     ctx.saveNow();
     render();
+    if (field === 'code') {
+      ctx.setFooter('简码已改为「' + (normalizeCode(v) || '空') + '」');
+    }
   }
 
-  /** 期初：改那条 opening 流水（没有就建一条） */
-  function setOpening(id, amount) {
+  /**
+   * 简码的静默保存：只更新 state + 落盘，不重画。
+   *
+   * 用于输入停手 800ms 的兜底 —— 页面重画会丢焦点，所以不能走 applyEdit。
+   * 非法/重复的值在这里一律不落库，等失焦时由 applyEdit 给出原因并还原。
+   */
+  function saveCodeQuietly(id, raw) {
     const st = ctx.getState();
-    let txs = (st.transactions || []).filter((t) => !(t.opening && t.to_id === id));
-    let s = { ...st, transactions: txs };
+    const acc = (st.accounts || []).find((a) => a.id === id);
+    if (!acc) return;
+    const code = normalizeCode(raw);
+    if (code && !isValidCode(code)) return;
+    if (code && (st.accounts || []).some((a) => a.id !== id && normalizeCode(a.code) === code)) return;
+    if (normalizeCode(acc.code) === code) return;
 
-    if (amount > 0) {
-      s = addTransaction(s, {
-        date: '2000-01-01',
-        from_id: OPENING_ACCOUNT_ID,
-        to_id: id,
-        amount,
-        note: '期初',
-        opening: true,
-        seq: 0,
-      });
-    }
-    // 期初日期统一对齐到「最早流水前一天 23:59:59」（用户 2026-10-30）
-    ctx.setState(syncOpeningDates(s));
-  }
-
-  function bindNewRow(tr, zone) {
-    let created = false;
-
-    const tryCreate = () => {
-      if (created || !tr.isConnected) return;
-
-      const get = (f) => {
-        const el = tr.querySelector('[data-field="' + f + '"]');
-        return el ? String(el.value || '').trim() : '';
-      };
-
-      const name = get('name');
-      if (!name) return;
-
-      const st = ctx.getState();
-      if ((st.accounts || []).some((a) => a.name === name)) {
-        // 重名不允许：账本里账户靠名字互相对上
-        return;
-      }
-
-      // 类型：选「其他…」弹输入框（新类型会进类型库）；空则按资产类
-      // 类型：空则按资产类；新类型会进类型库
-      const type = get('type') || '资产类';
-      const code = normalizeCode(get('code'));
-      if (code && !isValidCode(code)) return;
-      if (code && (st.accounts || []).some((a) => normalizeCode(a.code) === code)) return;
-
-      // 序号可以跳着填（如 63 → 100）；不填就「本区最大序号 + 1」
-      const zoneAccounts = accountsOfZone(st.accounts, zone.key);
-      const typed = parseInt(get('seq'), 10);
-      const seq = Number.isFinite(typed) && typed > 0 ? typed : nextSeqFor(zoneAccounts);
-
-      created = true;
-      let s = addAccount(st, {
-        name,
-        type,
-        category: get('category') || '未分类',
-        code: code || undefined,
-        seq,
-      });
-      ctx.setState(s);
-
-      const opening = toAmount(get('opening'));
-      if (opening > 0) {
-        const added = s.accounts[s.accounts.length - 1];
-        s = addTransaction(s, {
-          date: '2000-01-01',
-          from_id: OPENING_ACCOUNT_ID,
-          to_id: added.id,
-          amount: opening,
-          note: '期初',
-          opening: true,
-          seq: 0,
-        });
-        ctx.setState(s);
-      }
-
-      ctx.saveNow();
-      render();
-      ctx.setFooter('已新增节点');
-    };
-
-    for (const f of FIELDS) {
-      const inp = tr.querySelector('[data-field="' + f + '"]');
-      if (!inp) continue;
-      // 延迟到本轮结束：一行里连填几格时，后面的不能落在已脱离 DOM 的旧行上
-      inp.addEventListener('change', () => { setTimeout(tryCreate, 0); });
-    }
-
-    const typeInput = tr.querySelector('[data-field="type"]');
-    if (typeInput) {
-      bindTypePicker(typeInput, () => accountTypesOf(ctx.getState()), (v) => {
-        if (v === '__custom__') {
-          promptType((t) => { typeInput.value = t; setTimeout(tryCreate, 0); });
-          return;
-        }
-        typeInput.value = v;
-        setTimeout(tryCreate, 0);
-      });
-    }
+    ctx.setState(updateAccount(st, id, { code }));
+    ctx.saveNow();
   }
 
   function summarize(visible, state) {
