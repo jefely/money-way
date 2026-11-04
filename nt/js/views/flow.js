@@ -17,10 +17,10 @@ import { fingerprintBag, takeIfNew, keysForIncoming } from '../core/import-dedup
 import { renderRows, patchRow, promoteRow } from '../ui/render-transactions.js';
 import { parseAccountInput, suggestAccounts as suggestByIndex, ensurePendingAccount } from '../core/account-resolver.js';
 import { bindRowEditing } from '../ui/row-editor.js';
-import * as NtModal from '../ui/modal.js';
 import { openAddDialog } from '../ui/add-dialog.js';
 import { openSyncDialog } from '../ui/sync-dialog.js';
 import { splitByTime } from '../timeline/time-state.js';
+import { bindPlanRowActions, scrollPresent } from '../ui/plan-rows.js';
 import { mountCellRange } from '../ui/cell-range.js';
 import { showUndo } from '../ui/undo-bar.js';
 import { openImportHub } from '../ui/import-hub.js';
@@ -35,6 +35,7 @@ export function mountFlow(section, ctx) {
   let renderedVer = -1;
 
   mountComposer(section, ctx, body, () => render(true));
+  bindPlanRowActions(body, ctx, () => render(true));
 
   bindRowEditing(body, {
     onEdit,
@@ -245,7 +246,7 @@ export function mountFlow(section, ctx) {
       const wrap = body.closest('.nt-tablewrap');
       const first = body.querySelector('tr[data-id]') || body.querySelector('tr[data-new="1"]');
       const rowH = first ? first.getBoundingClientRect().height || 34 : 34;
-      if (wrap) wrap.scrollTop = Math.max(0, (body.querySelectorAll('tr[data-id]').length - 6) * rowH);
+      if (wrap) wrap.scrollTop = scrollPresent(body, rowH);
     });
   }
 
@@ -393,7 +394,7 @@ function bindToolbar(section, ctx, h) {
         const a = ctx.getIndex().byId.get(id);
         return a ? (a.name || '') : '';
       },
-      shareBackup: () => (ctx.shareBackup ? ctx.shareBackup() : Promise.reject(new Error('不能备份'))),
+      shareBackup: () => (ctx.shareBackup ? ctx.shareBackup() : Promise.reject(new Error('不能备份'))), encryptedBackupText: () => (ctx.encryptedBackupText ? ctx.encryptedBackupText() : Promise.reject(new Error('不能备份'))),
       onBackedUp: () => { if (ctx.markBackup) ctx.markBackup(); },
     }));
   }

@@ -22,6 +22,7 @@
  */
 
 import { syncFrozen } from './table-layout.js';
+import { decorateVirtualRow } from './plan-rows.js';
 
 export const CLASS = {
   row: 'nt-row',
@@ -84,6 +85,8 @@ let currentTbody = null;
 /** 已渲染的窗口 [winStart, winEnd)（下标，针对 currentRows） */
 let winStart = 0;
 let winEnd = 0;
+/** 现在段的行数（不含未来）。窗口只切这一段。 */
+let presentCount = 0;
 
 /**
  * 行内编辑后同步这一行的「展示快照」。
@@ -158,8 +161,15 @@ function dataRow(r, i, rowTpl) {
   if (i % 2 === 1) tr.classList.add('nt-row-even');
 
   setText(tr, CLASS.seq, String(r.seq));
+  if (r.planKey) tr.dataset.plan = r.planKey;
+  if (r.sourceId) tr.dataset.source = r.sourceId;
+  if (r.month) tr.dataset.month = r.month;
+  if (r.fromId) tr.dataset.fromId = r.fromId;
+  if (r.toId) tr.dataset.toId = r.toId;
+  if (r.amountRaw != null) tr.dataset.amount = String(r.amountRaw);
+
   if (r.isOpening) {
-    setInput(tr, 'date', String(r.date || '').slice(0, 10) || '—');
+    setInput(tr, 'date', r.dateEdit || '');
     const d = tr.querySelector('[data-field="date"]');
     if (d) d.readOnly = true;
     const act = tr.querySelector('.' + CLASS.action);
@@ -178,7 +188,7 @@ function dataRow(r, i, rowTpl) {
     box.disabled = !!r.isOpening || !!r.isVirtual;
   }
 
-  const mark = r.mark === 'hollow' || r.mark === 'yellow' || r.mark === 'solid' ? r.mark : '';
+  const mark = r.mark === 'hollow' || r.mark === 'yellow' ? r.mark : '';
   if (mark) {
     tr.classList.add('nt-mark-' + mark);
     const seq = tr.querySelector('.' + CLASS.seq);
@@ -190,13 +200,7 @@ function dataRow(r, i, rowTpl) {
     }
   }
 
-  if (r.isVirtual) {
-    tr.classList.add('nt-row-virtual');
-    tr.dataset.virtual = '1';
-    for (const inp of tr.querySelectorAll('input')) inp.readOnly = true;
-    const act2 = tr.querySelector('.' + CLASS.action);
-    if (act2) act2.textContent = '';
-  }
+  if (r.isVirtual) decorateVirtualRow(tr);
   return tr;
 }
 
@@ -246,12 +250,23 @@ function bindDrafts(tbody) {
 
 /* ---------- 渲染 ---------- */
 
+function splitPresent(rows) {
+  const present = [];
+  const future = [];
+  for (const r of rows || []) {
+    if (r && r.isVirtual) future.push(r);
+    else present.push(r);
+  }
+  return { present, future };
+}
+
 function renderAll(tbody) {
   const rowTpl = tpl('tpl-flow-row');
   const newTpl = tpl('tpl-flow-new');
   if (!tbody || !rowTpl || !newTpl) return 0;
 
-  const rows = currentRows;
+  const { present, future } = splitPresent(currentRows);
+  presentCount = present.length;
   const frag = document.createDocumentFragment();
 
   if (winStart > 0) {
@@ -261,16 +276,21 @@ function renderAll(tbody) {
     }));
   }
 
-  for (let i = winStart; i < winEnd; i += 1) {
-    frag.appendChild(dataRow(rows[i], i, rowTpl));
+  const end = Math.min(winEnd, present.length);
+  for (let i = winStart; i < end; i += 1) {
+    frag.appendChild(dataRow(present[i], i, rowTpl));
   }
+  // 空白自由录入行在「现在」和「未来」之间
   for (let k = 0; k < BLANK_ROWS; k += 1) {
     frag.appendChild(blankRow(newTpl, k));
+  }
+  for (let j = 0; j < future.length; j += 1) {
+    frag.appendChild(dataRow(future[j], present.length + j, rowTpl));
   }
 
   tbody.replaceChildren(frag);
   syncFrozen(tbody.closest('table'));
-  return winEnd - winStart;
+  return end - winStart;
 }
 
 /**
@@ -305,8 +325,8 @@ function bindMore(tbody) {
         renderAll(tbody);
         // 前面插进来一批：把新增高度补回 scrollTop，视觉上内容不动
         wrap.scrollTop = top + (wrap.scrollHeight - beforeH);
-      } else if (total - lastVisible < BUFFER && winEnd < currentRows.length) {
-        winEnd = Math.min(currentRows.length, winEnd + STEP);
+      } else if (total - lastVisible < BUFFER && winEnd < presentCount) {
+        winEnd = Math.min(presentCount, winEnd + STEP);
         renderAll(tbody);
         wrap.scrollTop = top;
       }
@@ -324,8 +344,9 @@ function bindMore(tbody) {
 export function renderRows(tbody, rows, opts) {
   currentRows = rows || [];
   currentTbody = tbody;
+  presentCount = splitPresent(currentRows).present.length;
   if (!(opts && opts.keepShown)) {
-    winEnd = currentRows.length;
+    winEnd = presentCount;
     winStart = Math.max(0, winEnd - FIRST);
   }
   bindMore(tbody);
@@ -365,9 +386,12 @@ export function promoteRow(tbody, tr, row) {
   if (k >= 0) clearBlankDraft(k);
 
   // 新行已经插进 DOM 了：窗口要把它算进去，否则下一次按窗口重建会把它丢掉
-  const atEnd = winEnd === currentRows.length;
-  currentRows.push(row);
-  if (atEnd) winEnd = currentRows.length;
+  const atEnd = winEnd >= presentCount;
+  let insertAt = currentRows.findIndex((r) => r && r.isVirtual);
+  if (insertAt < 0) insertAt = currentRows.length;
+  currentRows.splice(insertAt, 0, row);
+  presentCount += 1;
+  if (atEnd) winEnd = presentCount;
   syncFrozen(tbody.closest('table'));
   return true;
 }

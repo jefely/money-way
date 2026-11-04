@@ -146,6 +146,10 @@ export function createTransaction(patch = {}) {
     ...(patch.opening ? { opening: true } : {}),
   };
   if (patch.status === 'draft') tx.status = 'draft';
+  if (patch.planKey) {
+    tx.planKey = String(patch.planKey);
+    tx.planSourceId = String(patch.planSourceId || '');
+  }
   return tx;
 }
 

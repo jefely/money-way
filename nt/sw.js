@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）�?
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.217';
+const CACHE_NAME = 'nt-v1.218';
 
 const ASSETS = [
   './index.html',
@@ -135,6 +135,7 @@ const ASSETS = [
   './js/ui/path-flow-table.js',
   './js/ui/path-legend.js',
   './js/ui/path-view.js',
+  './js/ui/plan-rows.js',
   './js/ui/pwa.js',
   './js/ui/qr-canvas.js',
   './js/ui/render-transactions.js',
@@ -173,6 +174,7 @@ const ASSETS = [
   './js/core/lexicon.js',
   './js/core/phrase-entry.js',
   './js/core/phrase-parser.js',
+  './js/core/plan-occurrence.js',
   './js/core/xlsx-xml.js',
   './js/ui/range-bar.js',
   './js/ui/cell-range.js',

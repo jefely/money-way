@@ -17,6 +17,7 @@ import { moneyAlways } from '../core/format.js';
 import { createScheduled, clampDay } from '../core/schema.js';
 import { parseAccountInput } from '../core/account-resolver.js';
 import { removeBatch, restoreBatch } from '../core/state-store.js';
+import { installmentRowView, pickSavingsAccount } from '../core/plan-occurrence.js';
 
 const FIELDS = ['freq', 'day', 'from', 'to', 'amount', 'note'];
 
@@ -40,7 +41,13 @@ export function mountFixedTable(ctx, tbody, opts) {
    * 单行 × 与框选批量删走同一条路 —— 两个入口给不同待遇最容易长歪。
    */
   function deleteRows(ids) {
-    const r = removeBatch(ctx.getState(), 'scheduled', ids);
+    const st = ctx.getState();
+    const hitsInst = (st.scheduled || []).some((s) => s && s.inst && ids.includes(s.id));
+    if (hitsInst && typeof confirm === 'function') {
+      const ok = confirm('删除的是整条分期规则，不是只作废一期。未来行上的作废不会改模板。继续？');
+      if (!ok) return;
+    }
+    const r = removeBatch(st, 'scheduled', ids);
     ctx.setState(r.state);
     ctx.saveNow();
     render();
@@ -55,7 +62,7 @@ export function mountFixedTable(ctx, tbody, opts) {
 
   function render() {
     const state = ctx.getState();
-    const list = (state.scheduled || []).filter((s) => s && s.isScheduled && !s.inst);
+    const list = (state.scheduled || []).filter((s) => s && s.isScheduled);
 
     tbody.textContent = '';
 
@@ -70,10 +77,12 @@ export function mountFixedTable(ctx, tbody, opts) {
         const freqSel = tr.querySelector('[data-field="freq"]');
         if (freqSel) freqSel.value = row.freq === 'daily' ? 'daily' : 'monthly';
         setCell(tr, 'day', row.day || '');
-        setCell(tr, 'from', nameOf(row.from_id));
-        setCell(tr, 'to', nameOf(row.to_id));
-        setCell(tr, 'amount', moneyOrBlank(row.amount));
-        setCell(tr, 'note', row.note || '');
+        const view = row.inst ? installmentRowView(row, state.accounts) : null;
+        const fromId = view ? view.fromId : row.from_id;
+        setCell(tr, 'from', nameOf(fromId) || (pickSavingsAccount(state.accounts) || {}).name || '');
+        setCell(tr, 'to', nameOf(view ? view.toId : row.to_id));
+        setCell(tr, 'amount', moneyOrBlank(view ? view.amount : row.amount));
+        setCell(tr, 'note', view ? view.note : (row.note || ''));
 
         bindRow(tr, row.id);
         frag.appendChild(tr);

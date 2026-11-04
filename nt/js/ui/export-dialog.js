@@ -60,31 +60,20 @@ export function openExportDialog(h) {
         note.textContent = `已生成 TXT 模板：账户 ${(state.accounts || []).length} 个、`
           + `流水 ${(state.transactions || []).length} 笔。点「复制」带走。`;
       });
-      const copyBtn = btn('复制', async () => {
-        if (!ta.value) { note.textContent = '先点「生成 .csv」或「生成 .txt」'; return; }
-        let ok = false;
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(ta.value);
-            ok = true;
-          }
-        } catch (e) { /* 下面再兜底 */ }
-        if (!ok) {
-          try { ta.focus(); ta.select(); ok = document.execCommand('copy'); } catch (e) { /* 忽略 */ }
-        }
-        note.textContent = ok ? `已复制 ${ta.value.length} 个字符` : '复制失败，请长按文本框全选复制';
-      });
+      const encBtn = btn('生成加密文本', () => doEncText());
+      const copyBtn = btn('复制', () => copyTa());
       copyBtn.classList.add('nt-exp-main');
 
       copyBar.appendChild(csvBtn);
       copyBar.appendChild(txtBtn);
+      copyBar.appendChild(encBtn);
       copyBar.appendChild(copyBtn);
       body.appendChild(copyBar);
 
       const ta = document.createElement('textarea');
       ta.className = 'nt-exp-out';
       ta.spellcheck = false;
-      ta.placeholder = '点上面的「生成 .csv」或「生成 .txt」，内容会出现在这里，再点「复制」。';
+      ta.placeholder = '点「生成加密文本」得到可粘贴的密文，或生成 .csv / .txt。再点「复制」。';
       body.appendChild(ta);
 
       const note = document.createElement('p');
@@ -93,6 +82,40 @@ export function openExportDialog(h) {
       body.appendChild(note);
 
       /* ---------- 动作 ---------- */
+
+      async function copyTa() {
+        if (!ta.value) { note.textContent = '先生成内容'; return; }
+        let ok = false;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(ta.value);
+            ok = true;
+          }
+        } catch (e) { /* 华为等浏览器会拒绝 clipboard，下面用选中复制 */ }
+        if (!ok) {
+          try {
+            ta.focus();
+            ta.select();
+            if (ta.setSelectionRange) ta.setSelectionRange(0, ta.value.length);
+            ok = document.execCommand('copy');
+          } catch (e) { /* 忽略 */ }
+        }
+        note.textContent = ok ? `已复制 ${ta.value.length} 个字符` : '复制失败，请长按文本框全选复制';
+      }
+
+      async function doEncText() {
+        if (typeof h.encryptedBackupText !== 'function') {
+          note.textContent = '当前不能做加密备份';
+          return;
+        }
+        try {
+          ta.value = await h.encryptedBackupText();
+          note.textContent = '已生成加密备份文本（用账本密码才能解开）。点「复制」贴到微信。导入时粘贴这段并输入密码。';
+          if (typeof h.onBackedUp === 'function') h.onBackedUp();
+        } catch (e) {
+          note.textContent = '生成加密文本失败：' + ((e && e.message) || e);
+        }
+      }
 
       async function doLz() {
         try {

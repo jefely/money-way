@@ -855,9 +855,10 @@ dialog.nt-sync-zoom::backdrop {
 }
 
 /* 虚拟行（未来分期）：虚线 + 半透明，一眼分得清「计划」和「已发生」 */
-.nt-row-virtual .nt-cell-input {
-  color: var(--nt-text-muted);
-  font-style: italic;
+.nt-row-virtual .nt-cell-input,
+.nt-row-virtual .nt-cell {
+  color: #8a8478;
+  font-style: normal;
 }
 .nt-row-virtual {
   background-image: repeating-linear-gradient(
@@ -925,11 +926,8 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   height: 36px;
 }
 
-.nt-composer-hint {
+.nt-composer-send {
   flex: none;
-  max-width: 42%;
-  color: var(--nt-text-muted);
-  font-size: 12px;
 }
 
 .nt-draft-mark {

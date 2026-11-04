@@ -244,7 +244,7 @@ function amountOnly(text) {
 /**
  * 补当前这条草稿。模糊词只返回候选，不建账户。
  */
-export function fillDraft(state, txId, text) {
+export function fillDraft(state, txId, text, opts) {
   const tx = ((state && state.transactions) || []).find((t) => t && t.id === txId);
   if (!tx) return { state, tx: null, outcome: 'missing', prompt: '', fly: [], suggestions: [] };
   const raw = String(text || '').trim();
@@ -255,8 +255,9 @@ export function fillDraft(state, txId, text) {
     const s = updateTransaction(state, txId, { amount: money });
     return finish(s, (s.transactions || []).find((t) => t.id === txId), ['amount']);
   }
+  const force = !!(opts && opts.force);
   const hint = exactHint(state, raw) || (parsed.fromHint && !parsed.note ? parsed.fromHint : null);
-  if (!hint) {
+  if (!hint && !force) {
     const suggestions = suggestPhraseAccounts(state, raw);
     if (suggestions.length) {
       return { state, tx, outcome: 'suggest', prompt: ENTRY_PROMPT.suggest, fly: [], suggestions };
@@ -274,6 +275,14 @@ export function fillDraft(state, txId, text) {
     const got = ensureAccountByText(s, raw);
     s = got.state;
     id = got.id;
+    if (id) {
+      s = {
+        ...s,
+        accounts: (s.accounts || []).map((a) => (
+          a && a.id === id && !String(a.category || '').trim() ? { ...a, category: a.name } : a
+        )),
+      };
+    }
   }
   if (!id) return finish(s, tx, []);
   s = updateTransaction(s, txId, { [side]: id });

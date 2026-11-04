@@ -29,6 +29,8 @@ import { promoteDrafts, dropMappingsFor } from './draft-book.js';
     notes: [],
     // 短语 → accountId。随账本加密，也进加密备份（渐进式记账学过的对应关系）
     mappings: {},
+    // 作废的计划发生：sourceId|月份，不删模板
+    voidedPlans: [],
     // 多账本：活动账本的数据在 accounts/transactions/scheduled；其余账本快照在 ledgers
     ledgers: {},
     ledgerNames: { main: '主账本' },

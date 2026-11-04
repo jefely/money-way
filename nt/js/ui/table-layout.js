@@ -66,7 +66,8 @@ export function syncFrozen(tableEl) {
   if (!tableEl) return;
   const cls = [...tableEl.classList].find((c) => c in FROZEN_COUNT);
   if (!cls) return;
-  const n = FROZEN_COUNT[cls];
+  let n = FROZEN_COUNT[cls];
+  if (tableEl.classList.contains('is-sum')) n = 1;
   if (!n) return;
 
   // 表头可能是**两行**（分期表就是：上行每月合计、下行月份标签）
@@ -107,6 +108,19 @@ export function syncFrozen(tableEl) {
     }
 
     left += w;
+  }
+
+  const clearFrom = n;
+  for (const tr of headRows) {
+    for (let i = clearFrom; i < tr.children.length; i += 1) {
+      if (tr.children[i] && tr.children[i].style.left) tr.children[i].style.left = '';
+    }
+  }
+  for (const tr of rows) {
+    for (let i = clearFrom; i < tr.children.length; i += 1) {
+      const td = tr.children[i];
+      if (td && td.style.left) td.style.left = '';
+    }
   }
 }
 
