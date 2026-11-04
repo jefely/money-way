@@ -77,6 +77,22 @@ test('用户账户「微信支付」优先于词库里的微信', () => {
   assert.notEqual(r.note, '支付');
 });
 
+test('★ 简码紧跟金额：ZC50 = 简码 ZC + 50（2026-11 用户指定）', () => {
+  const accounts = [{ id: 'food', name: '早餐', code: 'ZC', type: '费用类', category: '餐饮', isHidden: false }];
+  const r = parsePhrase('ZC50', accounts, [], NOW);
+  assert.equal(r.amount, 50);
+  assert.equal(r.toHint && r.toHint.id, 'food');
+  assert.equal(r.toHint.accountName, '早餐');
+  assert.equal(r.note, '');
+  assert.equal(r.confidence, 'partial');
+});
+
+test('简码后紧跟金额也允许小写 / 元 / 小数', () => {
+  const accounts = [{ id: 'food', name: '早餐', code: 'ZC', type: '费用类', category: '餐饮', isHidden: false }];
+  assert.equal(parsePhrase('zc12.5元', accounts, [], NOW).amount, 12.5);
+  assert.equal(parsePhrase('zc12.5元', accounts, [], NOW).toHint.id, 'food');
+});
+
 test('花呗、支付宝、费用不被停用词拆开', () => {
   const hb = parsePhrase('花呗', [], LEXICON, NOW);
   assert.equal(hb.fromHint && hb.fromHint.accountName, '花呗');

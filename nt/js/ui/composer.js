@@ -22,7 +22,7 @@ export function mountComposer(section, ctx, rowHost, refresh) {
   input.className = 'nt-input nt-composer-input';
   input.type = 'text';
   input.setAttribute('aria-label', '一句话记账');
-  input.placeholder = '草稿会留下';
+  input.placeholder = ENTRY_PROMPT.idle;
   input.autocomplete = 'off';
   input.enterKeyHint = 'send';
 
@@ -55,7 +55,7 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     if (refresh) refresh();
     flyParts(rowHost || section, input, result.tx && result.tx.id, result.fly);
     const done = result.outcome === 'posted' || result.outcome === 'note' || result.outcome === 'missing';
-    input.placeholder = done ? ENTRY_PROMPT.idle : (result.prompt || '草稿会留下');
+    input.placeholder = done ? ENTRY_PROMPT.idle : (result.prompt || ENTRY_PROMPT.idle);
     if (done) openId = null;
     else if (result.tx && result.tx.status === 'draft') openId = result.tx.id;
     if (result.outcome !== 'suggest') input.value = '';

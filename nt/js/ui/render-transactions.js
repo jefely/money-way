@@ -43,8 +43,8 @@ const FIRST = 100;
 const STEP = 60;
 /** 视口两端各留多少条缓冲就触发加载 */
 const BUFFER = 40;
-/** 末尾常驻空行：直接在最下面连续录入（用户 2026-10-29） */
-const BLANK_ROWS = 40;
+/** 末尾常驻空行：直接在最下面连续录入（用户 2026-10-29；2026-11 改为 20 行） */
+const BLANK_ROWS = 20;
 
 /** 一次性把 templates.html 注入 <body>（每个 id 只注入一次）。 */
 export async function loadTemplates(url = './templates/templates.html') {

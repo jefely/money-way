@@ -18,7 +18,7 @@ import { uniqueCode } from './import-apply.js';
 import { normalizeCode } from './schema.js';
 
 export const ENTRY_PROMPT = {
-  idle: '事项和金额，例如：咖啡 50',
+  idle: '随手记一笔，草稿会留下。',
   'need-from': '哪里付的钱？例如：微信',
   'need-to': '记到哪个节点？可以先空着',
   posted: '已入账',

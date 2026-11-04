@@ -89,7 +89,12 @@ function matchOnce(text, items) {
       const end = idx + needle.length;
       if (item.boundary) {
         const before = idx === 0 || !/[A-Za-z0-9]/.test(text[idx - 1]);
-        const after = end >= text.length || !/[A-Za-z0-9]/.test(text[end]);
+        // 简码后面可以**紧跟金额**：ZC50 = 简码 ZC + 50（用户 2026-11 指定）。
+        // 纯数字简码不享受这条 —— 否则「50」里的 5 会被当成简码。
+        const afterCh = text[end];
+        const after = end >= text.length
+          || !/[A-Za-z0-9]/.test(afterCh)
+          || (/\d/.test(afterCh) && /[^0-9]/.test(item.key));
         if (!before || !after) { from = idx + 1; continue; }
       }
       const overlap = ranges.some((r) => idx < r.end && end > r.start);
