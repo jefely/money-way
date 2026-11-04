@@ -579,7 +579,7 @@ body.nt-col-resizing {
 .nt-sync-qrrow {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: flex-start;
   gap: 8px;
   width: 100%;
@@ -657,9 +657,13 @@ body.nt-col-resizing {
   display: none;
 }
 
-/* 水平滚轮（年月）：和竖轮同一套玻璃/内阴影，方向改成左右 */
+/* 水平滚轮（年月）：和竖轮同一套玻璃/内阴影，方向改成左右。
+   宽度吃满「内容区 − 存按钮 − 间距」；伸缩后由 sync-wheel 的 ResizeObserver
+   重新把选中月份放到正中（用户 2026-11：年月条要占满到存左边，留一条缝）。 */
 .nt-sync-wheel.h {
   width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .nt-sync-wheel.h .nt-sync-wheel-track {
@@ -830,9 +834,11 @@ dialog.nt-sync-zoom::backdrop {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  margin-left: auto;
+  /* 正方形：宽高都 34，和日竖条同宽；月条 flex 吃掉剩余宽度后，
+     这条右边自然只剩 monthrow 的 8px 缝。 */
+  margin-left: 0;
   width: 34px;
-  height: 30px;
+  height: 34px;
   padding: 0;
   line-height: 1;
   border: 0;

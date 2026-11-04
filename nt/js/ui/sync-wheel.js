@@ -32,17 +32,20 @@ export function buildWheel(opts) {
   let drag = null;
 
   const SIZE = ITEM * VISIBLE;
-  // 高亮框必须落在「正中那一格」的中点。
+  // 实际可视长度：横向条会被 flex 拉宽、纵向条会撑到二维码高度。
+  // 吸附 / 高亮都以真实长度为准，否则选中项不在条的正中。
+  let length = SIZE;
+  // 高亮框必须落在「正中那一格」的中点：
   // 早先用 Math.floor((VISIBLE-1)/2)：偶数格时 8 格算成 3，而选中项中心在 3.5，
   // 框就比数字高了半格 —— 手机上看到的就是「数字不落在框里」（用户 2026-11-01）。
-  const centerSize = ((VISIBLE - 1) / 2) * ITEM;
+  const centerAt = () => length / 2 - ITEM / 2;
 
   const wrap = document.createElement('div');
   wrap.className = 'nt-sync-wheel' + (axis === 'x' ? ' h' : '');
   if (axis === 'x') {
     wrap.style.width = SIZE + 'px';
-    // 30 高：与右侧「存」按钮（30×30 正方形）同一行等高（用户 2026-11-01）
-    wrap.style.height = '30px';
+    // 与右侧「存」按钮（34×34 正方形）同一行等高
+    wrap.style.height = '34px';
   } else {
     wrap.style.height = SIZE + 'px';
   }
@@ -57,19 +60,19 @@ export function buildWheel(opts) {
   const center = document.createElement('div');
   center.className = 'nt-sync-wheel-center';
   if (axis === 'x') {
-    center.style.left = centerSize + 'px';
+    center.style.left = centerAt() + 'px';
     center.style.top = '0';
     center.style.width = ITEM + 'px';
     center.style.height = '100%';
   } else {
-    center.style.top = centerSize + 'px';
+    center.style.top = centerAt() + 'px';
     center.style.left = '0';
     center.style.right = '0';
     center.style.height = ITEM + 'px';
   }
   wrap.appendChild(center);
 
-  const target = (i) => SIZE / 2 - ITEM / 2 - i * ITEM;
+  const target = (i) => length / 2 - ITEM / 2 - i * ITEM;
   const coord = (ev) => (axis === 'x' ? ev.clientX : ev.clientY);
 
   function paint(anim) {
@@ -176,10 +179,26 @@ export function buildWheel(opts) {
   fill();
   apply(index, false);
 
+  /** 容器尺寸变了（横向被 flex 拉宽 / 纵向撑到二维码高）：重新把选中格放正中。 */
+  function setLength(px) {
+    const n = Math.round(Number(px) || 0);
+    if (!(n > 0) || n === length) return;
+    length = n;
+    if (axis === 'x') center.style.left = centerAt() + 'px';
+    else center.style.top = centerAt() + 'px';
+    apply(index, false);
+  }
+
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => setLength(axis === 'x' ? wrap.clientWidth : wrap.clientHeight));
+    ro.observe(wrap);
+  }
+
   return {
     el: wrap,
     value() { return day; },
     setValue(v) { setValue(v, true); },
+    setLength,
     /** 切月份时重新限制天数（当前值超界就钳到月末） */
     setMaxDay(max) {
       maxDay = Math.max(1, Math.min(999, Number(max) || 1));

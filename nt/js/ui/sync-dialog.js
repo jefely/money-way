@@ -113,6 +113,11 @@ function sectionWindow(ctx, base) {
     onChange: (d) => { day = d; rebuild(); },
   });
   qrRow.appendChild(dayWheel.el);
+  // 日竖条撑满二维码这一行：上边正好在「存」下方 8px，下边到二维码底。
+  // 不能写 height:100%（父行高度是 auto，百分比会算成 0）；
+  // 清掉 builder 给的固定高度，靠 flex 的 align-self:stretch 撑开。
+  dayWheel.el.style.height = '';
+  dayWheel.el.style.alignSelf = 'stretch';
   box.appendChild(qrRow);
 
   const range = document.createElement('div');
