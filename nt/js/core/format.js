@@ -27,6 +27,16 @@ export function moneyAlways(v) {
   return `${sign}¥${int.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}.${dec}`;
 }
 
+/**
+ * 金额 → 取整后的 "¥16,500"（**不保留小数**；0 → ¥0）。
+ *
+ * 用在「分期金额」这种用户手填的本金格，以及环图/路径追踪的金额：
+ * 用户 2026-11 明确要求这些地方不要两位小数。存的值不动，只改显示。
+ */
+export function moneyInt(v) {
+  return moneyAlways(Math.round(Number(v) || 0)).replace(/\.00$/, '');
+}
+
 /** 今天，YYYY-MM-DD。now 只给测试注入。 */
 export function todayIso(now) {
   const d = now instanceof Date ? now : new Date();

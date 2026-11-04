@@ -47,8 +47,10 @@ export const MW_SCHEMA = [
   { key: '拥挤判定倍数', type: 'num', group: '环图·标签', def: 1.5, min: 0.5, max: 10, cssVar: '--nt-mw-crowded-k', field: 'crowdedK' },
   { key: '拥挤字号下限', type: 'num', group: '环图·标签', def: 18, min: 4, max: 60, cssVar: '--nt-mw-fs-crowd', field: 'fsCrowd' },
   { key: '标签外移', type: 'num', group: '环图·标签', def: 8, min: 0, max: 200, cssVar: '--nt-mw-label-gap', field: 'labelGap' },
-  { key: '锥形第一档', type: 'num', group: '环图·标签', def: 46, min: 0, max: 400, cssVar: '--nt-mw-cone-a', field: 'coneA' },
-  { key: '锥形第二档', type: 'num', group: '环图·标签', def: 115, min: 0, max: 400, cssVar: '--nt-mw-cone-b', field: 'coneB' },
+  // 环外标签的两档锥形长度：一短一长交替排（2026-11 用户定）
+  // 为解决环外文字压字：短尖减半 46 → 23，长尖加 50% 115 → 172.5。
+  { key: '锥形第一档', type: 'num', group: '环图·标签', def: 23, min: 0, max: 400, cssVar: '--nt-mw-cone-a', field: 'coneA' },
+  { key: '锥形第二档', type: 'num', group: '环图·标签', def: 172.5, min: 0, max: 400, cssVar: '--nt-mw-cone-b', field: 'coneB' },
   { key: '锥形半宽', type: 'num', group: '环图·标签', def: 5, min: 0, max: 60, cssVar: '--nt-mw-cone-half-w', field: 'coneHalfW' },
   { key: '锥形不透明度', type: 'num', group: '环图·标签', def: 0.5, min: 0, max: 1, cssVar: '--nt-mw-cone-op', field: 'coneOp' },
   { key: '锥底文字偏移', type: 'num', group: '环图·标签', def: 10, min: 0, max: 200, cssVar: '--nt-mw-cone-text-gap', field: 'coneTextGap' },

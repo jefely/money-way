@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 
 import { toAmount, computeAccountStats, aggregateBuckets, bucketOf } from '../js/core/stats.js';
 import { checkBalanced, checkAccountingIdentity } from '../js/core/validate.js';
-import { money, moneyAlways, moneyOrBlank, shortDate, isIsoDate } from '../js/core/format.js';
+import { money, moneyAlways, moneyInt, moneyOrBlank, shortDate, isIsoDate } from '../js/core/format.js';
 
 const ACC = [
   { id: 'a1', cat: '资产类', name: '招行储' },
@@ -103,6 +103,10 @@ test('format：金额 / 空值 / 短日期', () => {
   assert.equal(money(1400), '¥1,400.00');
   assert.equal(money(0), '—');
   assert.equal(moneyAlways(0), '¥0.00');
+  assert.equal(moneyInt(16500), '¥16,500');
+  assert.equal(moneyInt(16500.5), '¥16,501');
+  assert.equal(moneyInt(1234.56), '¥1,235');
+  assert.equal(moneyInt(0), '¥0');
   assert.equal(moneyOrBlank(0), '');
   assert.equal(moneyOrBlank(12.5), '¥12.50');
   // 六位 YYMMDD（与单文件版一致；带连字符的 26-08-30 是旧格式）

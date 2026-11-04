@@ -175,11 +175,17 @@ function shortDay(iso) {
   return String(iso || '');
 }
 
-/** 金额：去掉 ¥ 和千分位，窄栏里放得下 */
+/** 金额：去掉 ¥ 和千分位，窄栏里放得下；不保留两位小数（用户 2026-11） */
 function moneyShort(v) {
   const n = Number(v) || 0;
   const abs = Math.abs(n);
-  const txt = abs >= 10000 ? (abs / 10000).toFixed(1) + '万' : abs.toFixed(abs % 1 ? 2 : 0);
+  let txt;
+  if (abs >= 10000) {
+    const wan = (Math.round((abs / 10000) * 10) / 10).toString().replace(/\.0$/, '');
+    txt = wan + '万';
+  } else {
+    txt = String(Math.round(abs));
+  }
   return (n < 0 ? '-' : '') + txt;
 }
 

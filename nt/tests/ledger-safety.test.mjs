@@ -113,21 +113,22 @@ test('转出弧色就是弦色', () => {
   assert.notEqual(outgoingArcColor(colorOf, 'from'), colorOf('to'));
 });
 
-test('悬停文案：弧块给净额，弦给两端和两位小数', () => {
+test('悬停文案：弧块给净额，弦给两端和取整金额（不要两位小数）', () => {
   const model = {
-    blocks: [{ acc: 'a', label: '现金', type: '资产类', amountText: '0.00' }],
+    blocks: [{ acc: 'a', label: '现金', type: '资产类', amountText: '¥0' }],
     txs: [{ date: '2026-08-01', from_id: 'a', to_id: 'b', amount: 12.5, note: '午饭' }],
   };
   const arc = { classList: { contains: (c) => c === 'mw-ring' }, getAttribute: (k) => (k === 'data-node' ? 'a' : '') };
   assert.match(tipText(model, arc), /现金/);
-  assert.match(tipText(model, arc), /0\.00/);
+  assert.match(tipText(model, arc), /净额 ¥0/);
   const chord = {
     classList: { contains: (c) => c === 'mw-chord' },
     getAttribute: (k) => (k === 'data-tx' ? '0' : ''),
   };
   const text = tipText(model, chord);
   assert.match(text, /现金 → b/);
-  assert.match(text, /12\.50/);
+  assert.match(text, /13/);
+  assert.doesNotMatch(text, /12\.50/);
   assert.match(text, /午饭/);
 });
 

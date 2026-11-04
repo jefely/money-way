@@ -20,7 +20,7 @@ import { mountAddForm } from './inst-add.js';
 import { paintHandles, syncFrozen } from './table-layout.js';
 import { FIXED_COLS, applyFixedWidths, revealRow } from './inst-layout.js';
 import { showUndo } from './undo-bar.js';
-import { money, moneyAlways } from '../core/format.js';
+import { moneyAlways, moneyInt } from '../core/format.js';
 import { clampDay, isDayGiven } from '../core/schema.js';
 import { parseAccountInput } from '../core/account-resolver.js';
 import { removeBatch, restoreBatch } from '../core/state-store.js';
@@ -172,7 +172,7 @@ export function mountInstTable(ctx, tbody, opts) {
     const trI = document.createElement('tr');
     trI.className = 'nt-row nt-inst-sub';
     trI.dataset.id = row.id;
-    const tdPrincipal = inputCell(row.id, 'principal', moneyAlways(row.inst.principal), 'nt-cell-input-num');
+    const tdPrincipal = inputCell(row.id, 'principal', moneyInt(row.inst.principal), 'nt-cell-input-num');
     tdPrincipal.classList.add('nt-inst-principal-cell');
     // 删除按钮放在**第二行（分期金额行）开头靠左**，照单文件版：
     // 不单独占一列、不参与列宽，靠绝对定位压在格子左侧，输入框留出内边距。

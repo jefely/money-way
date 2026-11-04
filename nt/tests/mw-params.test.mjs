@@ -49,6 +49,14 @@ test('★ 旧默认值跟着新默认走（老存档不会卡在旧值上）', (
   const r2 = normalize({ 环厚: 90, 追踪字号: 70 }, 'dark');
   assert.equal(r2['环厚'], 90);
   assert.equal(r2['追踪字号'], 70);
+
+  // v1.236：短尖减半 46 → 23，长尖加 50% 115 → 172.5
+  const cones = normalize({ 锥形第一档: 46, 锥形第二档: 115 }, 'dark');
+  assert.equal(cones['锥形第一档'], 23);
+  assert.equal(cones['锥形第二档'], 172.5);
+  const custom = normalize({ 锥形第一档: 60, 锥形第二档: 130 }, 'dark');
+  assert.equal(custom['锥形第一档'], 60, '用户自调值不该被迁移');
+  assert.equal(custom['锥形第二档'], 130);
 });
 
 test('每项默认值都落在自己的 min/max 内（默认值本身不该被钳）', () => {  for (const s of MW_SCHEMA) {
@@ -182,7 +190,12 @@ test('字号上下限改了就立刻变（12/27 → 20/20）', () => {
   assert.ok(fixed.includes('font-size="66.7"'));
 });
 
-test('锥形两档改了会改变标签半径（46/115 → 100/100）', () => {
+test('★ 默认锥形：短尖 23、长尖 172.5（v1.236）', () => {
+  assert.equal(MW_DEFAULTS.coneA, 23);
+  assert.equal(MW_DEFAULTS.coneB, 172.5);
+});
+
+test('锥形两档改了会改变标签半径（100/100 两档同长）', () => {
   // 极窄的块 + 长名字 → 一定走锥形
   const narrow = { acc: 'a1', a1: 0, a2: 0.01, colorKey: '储蓄', label: '招行储蓄卡余额' };
   const base = { blocks: [narrow, { ...narrow, a1: 0.02, a2: 0.03 }], chords: [], sectors: [], pointAt, colorOf: () => '#123456' };

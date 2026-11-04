@@ -12,7 +12,7 @@ export function legendRows(blocks, nodeColorOf) {
     id: b.acc,
     name: b.label || b.acc,
     type: b.type || '',
-    amount: b.amountText || '0.00',
+    amount: b.amountText || '0',
     color: colorOf(b.acc),
   }));
 }

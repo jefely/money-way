@@ -110,7 +110,8 @@ export function paintChart(host, data, hits, onPick, view) {
       .map((c) => {
         const n = steps && steps.has(c.txIdx) ? steps.get(c.txIdx) : null;
         const mark = n == null ? '' : (n === 0 && c.txIdx === rootIdx ? '▶' : String(n));
-        return { a: c.aTo, mark, amount: (Number(c.amount) || 0).toFixed(2) };
+        // 追踪金额取整（用户 2026-11：环图/路径追踪不要两位小数）
+        return { a: c.aTo, mark, amount: String(Math.round(Number(c.amount) || 0)) };
       })
     : [];
 

@@ -270,6 +270,9 @@ export const THEME_DEFAULTS = THEME_IDS.reduce((acc, id) => {
 const LEGACY_DEFAULT = {
   环厚: { 80: 60 },        // v1.210：80 → 60
   追踪字号: { 52: 46 },    // v1.210：52 → 46
+  // v1.236：环外标签锥形，短尖减半、长尖加 50%（解决环外文字压字）
+  锥形第一档: { 46: 23 },
+  锥形第二档: { 115: 172.5 },
 };
 
 export function normalize(raw, theme) {

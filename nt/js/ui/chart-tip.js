@@ -54,7 +54,7 @@ export function tipText(model, el) {
     const id = el.getAttribute('data-node') || '';
     const b = blocks.find((x) => x && x.acc === id);
     if (!b) return '';
-    return `${b.label || id}\n${b.type || ''} · 净额 ${b.amountText || '0.00'}`;
+    return `${b.label || id}\n${b.type || ''} · 净额 ${b.amountText || '0'}`;
   }
 
   const chord = el.classList && (el.classList.contains('mw-chord') || el.classList.contains('mw-hitarea'));
@@ -62,7 +62,8 @@ export function tipText(model, el) {
   const idx = Number(el.getAttribute('data-tx'));
   const t = (model.txs || [])[idx];
   if (!t) return '';
-  const amt = (Number(t.amount) || 0).toFixed(2);
+  // 环图/路径追踪的金额一律取整显示（用户 2026-11：不要两位小数）
+  const amt = String(Math.round(Number(t.amount) || 0));
   const note = t.note ? `\n${t.note}` : '';
   return `${t.date || ''}\n${nameOf(t.from_id)} → ${nameOf(t.to_id)}\n${amt}${note}`;
 }
