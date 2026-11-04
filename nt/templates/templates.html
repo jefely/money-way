@@ -429,11 +429,6 @@
 <!-- 查询 · 一整段查询面板（A/B/C 各克隆一份，结构完全同构） -->
 <template id="tpl-query-panel">
   <article class="nt-query-panel">
-    <header class="nt-query-head">
-      <span class="nt-query-title"></span>
-      <button class="nt-btn nt-btn-sm" type="button" data-act="clear">清空</button>
-      <span class="nt-query-total" data-total></span>
-    </header>
     <div class="nt-tablewrap">
       <table class="nt-table nt-table-query">
         <colgroup>
@@ -445,25 +440,34 @@
           <col class="nt-c-q-note">
         </colgroup>
         <thead>
-            <!-- 筛选行：每个框就在自己那一列的格子里，列宽一变它跟着变 -->
+            <!-- 三行一起吸顶：标题、筛选、列名。吸顶加在 thead 上，不加在 th 上。 -->
+            <tr class="nt-query-head-row">
+              <th class="nt-th" colspan="6">
+                <div class="nt-query-head">
+                  <span class="nt-query-title"></span>
+                  <button class="nt-btn nt-btn-sm" type="button" data-act="clear">清空</button>
+                  <span class="nt-query-total" data-total></span>
+                </div>
+              </th>
+            </tr>
             <tr class="nt-query-filter-row">
-              <th class="nt-th" colspan="2">
+              <th class="nt-th nt-q-range" colspan="2">
                 <input class="nt-qf" type="text" data-cond="dateRange" placeholder="日期 起~止" aria-label="日期范围">
               </th>
               <th class="nt-th">
-                <input class="nt-qf" type="text" data-cond="from" aria-label="转出节点">
+                <input class="nt-qf" type="text" data-cond="from" placeholder="转出" aria-label="转出节点">
               </th>
               <th class="nt-th">
-                <input class="nt-qf" type="text" data-cond="to" aria-label="转入节点">
+                <input class="nt-qf" type="text" data-cond="to" placeholder="转入" aria-label="转入节点">
               </th>
               <th class="nt-th">
                 <input class="nt-qf" type="text" data-cond="amount" placeholder="金额" aria-label="金额">
               </th>
               <th class="nt-th">
-                <input class="nt-qf" type="text" data-cond="note" aria-label="备注">
+                <input class="nt-qf" type="text" data-cond="note" placeholder="备注搜索" aria-label="备注">
               </th>
             </tr>
-            <tr>
+            <tr class="nt-query-cols">
               <th class="nt-th nt-c-seq" scope="col" data-col="seq">序</th>
               <th class="nt-th nt-c-date" scope="col" data-col="date">日期</th>
               <th class="nt-th" scope="col" data-col="from">转出节点</th>
