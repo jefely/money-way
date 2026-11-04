@@ -64,6 +64,37 @@
   line-height: 16px;
 }
 
+/* 删除整条分期的按钮：位置照单文件版 —— 第二行（分期金额）第一格开头靠左。
+   绝对定位，不占列宽、不参与拖动；第一格本身是 sticky（已定位），
+   所以不用再给 td 写 position（写了反而会覆盖 sticky）。
+   输入框让出左侧 18px，数字再长也不会压到按钮。 */
+.nt-inst-del {
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  z-index: 1;
+  width: 18px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--nt-text-light, var(--nt-text-muted));
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+  transform: translateY(-50%);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.nt-inst-del:active {
+  color: var(--nt-bad, #c62828);
+}
+
+.nt-table-inst td.nt-inst-principal-cell .nt-cell-input {
+  padding-left: 18px;
+}
+
 .nt-plan-inst .nt-tablewrap {
   flex: 1 1 auto;
   min-height: 0;

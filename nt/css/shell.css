@@ -457,12 +457,15 @@ body {
 }
 
 /* 第一列横向冻结：两行表头都钉在 left:0（sticky 本身就是定位元素，
-   手柄照样找得到上下文）。thead 已建立层叠上下文，所以 2 只在本层比。 */
+   手柄照样找得到上下文）。thead 已建立层叠上下文，所以层级只在本层比。
+   **必须高于列宽手柄的 5**：表格横滚后，别人列的 handle 会滑到冻结列
+   底下，层级低了就抢走点击 —— 点「分期银行」的右边缘，实际拖的是
+   藏在下方的某一列，看起来就是「这两列怎么都拖不窄」（2026-11 用户实测）。 */
 .nt-table-inst thead .nt-th:nth-child(1) {
   position: -webkit-sticky;
   position: sticky;
   left: 0;
-  z-index: 2;
+  z-index: 10;
   background: var(--nt-bg-soft);
   box-shadow: inset -1px 0 0 0 var(--nt-bg-line);
 }

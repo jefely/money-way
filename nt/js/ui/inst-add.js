@@ -24,17 +24,65 @@ const FIELDS = [
   ['firstMonth', '首月', '首月'],
 ];
 
-/** '2611' / '2026-11' / '2026/11' → '2026-11'；认不出返回空串 */
+/**
+ * '2611' / '2026-11' / '261103' / '20261103' … → 'YYYY-MM'；认不出返回空串。
+ *
+ * 6 位有两种可能，单文件版（personal/index.html）已经定过口径：
+ *   · 前四位像公历年（1900–2099）且后两位是 1–12 → YYYYMM（202611 = 2026-11）
+ *   · 否则 → YYMMDD（261103 = 2026-11-03，取月份 = 2026-11）
+ * 之前这里一律按 YYYYMM 解，261103 就变成了「2611 年 3 月」——
+ * 用户 2026-11 报的正是这个。
+ */
 export function parseMonthText(raw) {
-  const v = String(raw || '').replace(/[^0-9-]/g, '').replace(/\//g, '-');
-  if (!v) return '';
-  if (/^\d{4}-\d{1,2}$/.test(v)) {
-    const [y, m] = v.split('-');
-    return y + '-' + String(Number(m)).padStart(2, '0');
+  const s = String(raw == null ? '' : raw).trim();
+  if (!s) return '';
+
+  const ok = (y, m) => {
+    const year = Number(y);
+    const month = Number(m);
+    if (!Number.isFinite(year) || year < 1900 || year > 2099) return '';
+    if (!Number.isFinite(month) || month < 1 || month > 12) return '';
+    return year + '-' + String(month).padStart(2, '0');
+  };
+
+  // ① 带分隔符：2026-11 / 2026-11-03 / 2026/11/3 / 2026.11 / 2026年11月3日 / 26-11-03
+  // 匹配到但年份/月份不合法时**不立刻判死**：2611-03 会被上面的 4 位年份
+  // 规则抓成「2611 年」，继续往下按 6 位 YYMMDD 解才是 2026-11-03。
+  const m4 = s.match(/^(\d{4})[-/.年](\d{1,2})(?:[-/.月](\d{1,2})日?)?$/);
+  const v4 = m4 ? ok(m4[1], m4[2]) : '';
+  if (v4) return v4;
+  const m2 = s.match(/^(\d{2})[-/.](\d{1,2})(?:[-/.](\d{1,2}))?$/);
+  const v2 = m2 ? ok('20' + m2[1], m2[2]) : '';
+  if (v2) return v2;
+
+  // ② 纯数字（中英文标点已在上一步处理，这里只剩数字）
+  const d = s.replace(/\D/g, '');
+  if (!d) return '';
+
+  if (d.length === 4) {
+    // 26 11 → 2026-11；2026（后两位不是月份）→ 2026-01
+    const a = Number(d.slice(0, 2));
+    const b = Number(d.slice(2, 4));
+    if (b >= 1 && b <= 12) return ok(2000 + a, b);
+    const year = Number(d);
+    if (year >= 1900 && year <= 2099) return ok(year, 1);
+    return '';
   }
-  const d = v.replace(/-/g, '');
-  if (d.length === 4) return '20' + d.slice(0, 2) + '-' + d.slice(2);
-  if (d.length === 6) return d.slice(0, 4) + '-' + d.slice(4);
+
+  if (d.length === 6) {
+    const yy = Number(d.slice(0, 4));
+    const mm = Number(d.slice(4, 6));
+    if (yy >= 1900 && yy <= 2099 && mm >= 1 && mm <= 12) return ok(yy, mm);
+
+    const y2 = Number(d.slice(0, 2));
+    const m2d = Number(d.slice(2, 4));
+    const dd = Number(d.slice(4, 6));
+    if (m2d < 1 || m2d > 12) return '';
+    if (dd < 1 || dd > 31) return '';
+    return ok(2000 + y2, m2d);
+  }
+
+  if (d.length === 8) return ok(d.slice(0, 4), d.slice(4, 6));
   return '';
 }
 

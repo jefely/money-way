@@ -184,7 +184,7 @@ th 上不许再写 width
 .nt-table-inst thead .nt-th:nth-child(1) {
   position: sticky;
   left: 0;
-  z-index: 2;                                  /* thead 内部：冻结列压住同行 */
+  z-index: 10;       /* 必须高于列宽手柄 5，否则横滚后别的列的手柄会抢点击 */
 }
 .nt-table-inst .nt-cell:nth-child(1):not([colspan]) {
   position: sticky;
@@ -552,6 +552,26 @@ export function freezeWidths(tableEl, skipCol) {
 const MIN_W = 28;    // 再窄就点不到内容
 const MAX_W = 600;   // 再宽屏幕放不下
 ```
+
+### 4.7 两行表头：拖动要写**每一行**的同一个 th
+
+`flush()` 只写被拖的那一个 `th` 时，另一行表头保持旧宽度；`table-layout: fixed`
+下两行分叉，看起来就是「这一列怎么拖都不窄」（2026-11 分期表用户实测）。
+
+```js
+for (const tr of tableEl.querySelectorAll('thead tr')) {
+  const cell = tr.children[idx];
+  if (cell) cell.style.width = px;
+}
+```
+
+另外：**冻结列表头的 z-index 必须高于列宽手柄（5）**。横滚后别的列的
+handle 会滑到冻结列下面，层级低了就抢走点击 —— 点「分期银行」右边缘，
+实际拖的是藏在下方的某一列。分期表冻结表头的层级因此是 10（见 §2.1）。
+
+分期表的 3 个固定列没有登记进 `TABLE_COLS`（它是 3 固定 + N 动态月份），
+宽度存 `localStorage.nt_inst_cw`，重画后由 `ui/inst-layout.js` 应用；
+月份列宽存 `nt_inst_mw`，两套互不影响。
 
 ---
 
@@ -1006,6 +1026,10 @@ for m in st["matchedCSSRules"]:
 ```
 
 - 每条分期占 **2 行**：上行本金、下行利息
+- **删除按钮在第一格、第二行开头靠左**（`.nt-inst-del`，照单文件版）：
+  绝对定位、不占列宽、不参与拖动；输入框左侧留 18px
+- 前 3 列宽存 `localStorage.nt_inst_cw`，月份列宽存 `nt_inst_mw`；重画后分别由
+  `ui/inst-layout.js` 与 CSS 变量 `--nt-inst-mw` 恢复
 - 月份列由 `paintHead()` 按 `calcInstallmentMatrix` 的跨度动态生成
 - `colgroup` 与表头**同步生成**
 - **表头吸顶由整块 `<thead>` 负责**（两行是一个整体，见 §2.1），

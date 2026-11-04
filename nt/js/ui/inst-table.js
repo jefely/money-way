@@ -18,14 +18,14 @@ import { setCell as putCell, cellsOf, sumOf, spanOf } from '../core/installment-
 import { mountCellRange } from './cell-range.js';
 import { mountAddForm } from './inst-add.js';
 import { paintHandles, syncFrozen } from './table-layout.js';
+import { FIXED_COLS, applyFixedWidths, revealRow } from './inst-layout.js';
 import { showUndo } from './undo-bar.js';
 import { money, moneyAlways } from '../core/format.js';
 import { clampDay, isDayGiven } from '../core/schema.js';
 import { parseAccountInput } from '../core/account-resolver.js';
 import { removeBatch, restoreBatch } from '../core/state-store.js';
 
-/** 固定 3 列：账户名称/分期金额 · 账单日/还款日 · 本息合计 */
-const FIXED_COLS = 3;
+/** 固定 3 列：账户名称/分期金额 · 账单日/还款日 · 本息合计（FIXED_COLS 来自 inst-layout） */
 
 const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
@@ -53,48 +53,8 @@ export function mountInstTable(ctx, tbody, opts) {
 
   const addForm = mountAddForm(ctx, (info) => {
     render();
-    revealRow(info);
+    revealRow(tbody, info);
   });
-
-  /**
-   * 新增之后把「这条分期铺到的第一格」滚进视野。
-   *
-   * 分期表可以宽到几十个月份列，用户又常常正停在表格最右边：
-   * 新记录若从下个月开始，格子全在当前视口之外，看起来就是
-   * 「记录只有名字和金额、没有具体分期」（2026-11 用户实测）。
-   * 这里只在新格子/新行确实不可见时才滚，避免每次添加都把表格拽走。
-   */
-  function revealRow(info) {
-    if (!info || !info.firstMonth) return;
-    const table = tbody.closest('table');
-    const wrap = tbody.closest('.nt-tablewrap');
-    if (!table || !wrap) return;
-
-    const wr = wrap.getBoundingClientRect();
-    const firstTh = document.querySelector(
-      '#nt-inst-head .nt-inst-month[data-month="' + info.firstMonth + '"]',
-    );
-    const frozen = table.querySelector('thead .nt-th:nth-child(1)');
-    const frozenW = frozen ? frozen.getBoundingClientRect().width : 0;
-
-    if (firstTh) {
-      const tr = firstTh.getBoundingClientRect();
-      const visLeft = wr.left + frozenW + 4;
-      const visRight = wr.right - 4;
-      if (tr.left < visLeft || tr.right > visRight) {
-        wrap.scrollLeft += Math.round(tr.left - visLeft);
-      }
-    }
-
-    const row = [...tbody.querySelectorAll('tr.nt-inst-main')]
-      .find((tr) => tr.dataset.id === info.id);
-    if (row) {
-      const rr = row.getBoundingClientRect();
-      if (rr.top < wr.top + 40 || rr.bottom > wr.bottom - 4) {
-        wrap.scrollTop += Math.round(rr.top - wr.top) - 60;
-      }
-    }
-  }
 
   function deleteRows(ids) {
     const r = removeBatch(ctx.getState(), 'scheduled', ids);
@@ -190,6 +150,7 @@ export function mountInstTable(ctx, tbody, opts) {
     // bindAllTables 只在启动时跑一次，新 th 上不会有 handle。
     const table = tbody.closest('table');
     if (table) {
+      applyFixedWidths(table);
       paintHandles(table);
       syncFrozen(table);
     }
@@ -211,7 +172,19 @@ export function mountInstTable(ctx, tbody, opts) {
     const trI = document.createElement('tr');
     trI.className = 'nt-row nt-inst-sub';
     trI.dataset.id = row.id;
-    trI.appendChild(inputCell(row.id, 'principal', moneyAlways(row.inst.principal), 'nt-cell-input-num'));
+    const tdPrincipal = inputCell(row.id, 'principal', moneyAlways(row.inst.principal), 'nt-cell-input-num');
+    tdPrincipal.classList.add('nt-inst-principal-cell');
+    // 删除按钮放在**第二行（分期金额行）开头靠左**，照单文件版：
+    // 不单独占一列、不参与列宽，靠绝对定位压在格子左侧，输入框留出内边距。
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'nt-inst-del';
+    delBtn.dataset.act = 'del';
+    delBtn.textContent = '×';
+    delBtn.title = '删除这条分期';
+    delBtn.setAttribute('aria-label', '删除这条分期');
+    tdPrincipal.insertBefore(delBtn, tdPrincipal.firstChild);
+    trI.appendChild(tdPrincipal);
     trI.appendChild(textCell(acc && acc.repayDay ? acc.repayDay : '', 'nt-cell-num'));
     trI.appendChild(textCell(moneyAlways(sumI), 'nt-cell-num'));
 
@@ -264,7 +237,19 @@ export function mountInstTable(ctx, tbody, opts) {
 
   function bindRow(tr, id) {
     const del = tr.querySelector('[data-act="del"]');
-    if (del) del.addEventListener('click', () => deleteRows([id]));
+    if (del) {
+      // 别让表格的框选/长按把手势接走；preventDefault 还能阻止 mousedown 把焦点
+      // 从正在编辑的金额输入框移走 —— 否则 blur → change → render 会把按钮
+      // 从 DOM 里摘掉，紧接着的 click 落空（第一次点删除看起来没反应）。
+      del.addEventListener('pointerdown', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+      });
+      del.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        deleteRows([id]);
+      });
+    }
 
     for (const inp of tr.querySelectorAll('input[data-field]')) {
       inp.addEventListener('change', () => applyEdit(id, inp.getAttribute('data-field'), inp.value));

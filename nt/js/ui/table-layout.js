@@ -2,7 +2,6 @@
 /**
  * 表格布局
  * 层：第五层 · UI
- *
  * ============================================================
  * 照单文件版（personal/index.html）的两套模式
  * ============================================================
@@ -21,6 +20,8 @@
  * 每加一个功能（拖动、参数、动态表头）就多一个出错点，最后必然乱。
  * ============================================================
  */
+
+import { saveFixedWidths } from './inst-layout.js';
 
 /** 每张表冻结几列（键 = 表类名）。必须和 CSS 里的 sticky 声明一致。 */
 const FROZEN_COUNT = {
@@ -266,9 +267,14 @@ function startDrag(tableEl, grip, downEv, o) {
     }
     // 其余表：只改这一列的宽度，表宽由 `.cols-custom { width: max-content }` 跟着走。
     // col 和 th 都写 —— col 决定实际列宽（fixed 布局），th 留着给不支持 col 的场合兜底。
-    // 同一列在**每一行表头**里都要写，否则两行宽度会分叉（表头和数据错开）。
+    // **同一列在每一行表头里都要写**：分期表是两行表头，只写被拖的那一行，
+    // 另一行会保持旧宽度 —— fixed 布局下两行分叉，看起来就是「怎么拖都不窄」
+    // （2026-11 用户实测；enterCustomMode 里本来就这么写，拖动时漏了）。
     const px = Math.round(width) + 'px';
-    th.style.width = px;
+    for (const tr of tableEl.querySelectorAll('thead tr')) {
+      const cell = tr.children[idx];
+      if (cell) cell.style.width = px;
+    }
     if (targetCol) targetCol.style.width = px;
     if (idx === 0 && tableEl.classList.contains('is-cat')) {
       tableEl.style.setProperty('--nt-freeze-2', px);
@@ -304,6 +310,10 @@ function startDrag(tableEl, grip, downEv, o) {
     // 其余表按列存，走下面的 onResize → 账本参数 + 镜像。
     if (unified) {
       try { localStorage.setItem('nt_inst_mw', Math.round(width) + 'px'); } catch (e) { /* 忽略 */ }
+    } else if (tableEl.classList.contains('nt-table-inst')) {
+      // 分期表没登记进 TABLE_COLS（3 个固定列 + N 个动态月份列），
+      // 前 3 列宽度和月份一样存 localStorage；重画后由 inst-layout 应用。
+      saveFixedWidths(tableEl);
     }
 
     // 回调带上「哪张表 + 哪一列」：每张表的列宽是各自一份参数，
