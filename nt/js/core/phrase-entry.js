@@ -15,6 +15,7 @@ import { parsePhrase } from './phrase-parser.js';
 import { addTransaction, ensureAccountByText, updateTransaction } from './state-store.js';
 import { learnMapping, mappingFor, promoteDrafts } from './draft-book.js';
 import { uniqueCode } from './import-apply.js';
+import { normalizeCode } from './schema.js';
 
 export const ENTRY_PROMPT = {
   idle: '事项和金额，例如：咖啡 50',
@@ -222,13 +223,26 @@ export function suggestPhraseAccounts(state, text, lexicon = LEXICON) {
   return out.slice(0, 5);
 }
 
+function hintFromAccount(a, keyword) {
+  return {
+    keyword: keyword || a.name,
+    accountName: a.name,
+    type: a.type || '',
+    category: a.category || '',
+    role: '',
+    id: a.id,
+  };
+}
+
 function exactHint(state, text) {
   const q = String(text || '').trim();
   if (!q) return null;
-  const user = (state.accounts || []).find((a) => a && !a.isHidden && a.name === q);
-  if (user) {
-    return { keyword: user.name, accountName: user.name, type: user.type || '', category: user.category || '', role: '', id: user.id };
-  }
+  const code = normalizeCode(q);
+  const list = state.accounts || [];
+  const byCode = code && list.find((a) => a && !a.isHidden && a.code && normalizeCode(a.code) === code);
+  if (byCode) return hintFromAccount(byCode, q);
+  const user = list.find((a) => a && !a.isHidden && a.name === q);
+  if (user) return hintFromAccount(user);
   const rows = accountLexicon(LEXICON).filter((r) => r.keyword === q);
   if (!rows.length) return null;
   rows.sort((a, b) => b.keyword.length - a.keyword.length);

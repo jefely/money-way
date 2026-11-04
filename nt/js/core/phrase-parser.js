@@ -80,11 +80,18 @@ function matchOnce(text, items) {
   const ranges = [];
   for (const item of sorted) {
     if (!item.key) continue;
+    const hay = item.boundary ? text.toUpperCase() : text;
+    const needle = item.boundary ? String(item.key).toUpperCase() : item.key;
     let from = 0;
     while (from <= text.length) {
-      const idx = text.indexOf(item.key, from);
+      const idx = hay.indexOf(needle, from);
       if (idx < 0) break;
-      const end = idx + item.key.length;
+      const end = idx + needle.length;
+      if (item.boundary) {
+        const before = idx === 0 || !/[A-Za-z0-9]/.test(text[idx - 1]);
+        const after = end >= text.length || !/[A-Za-z0-9]/.test(text[end]);
+        if (!before || !after) { from = idx + 1; continue; }
+      }
       const overlap = ranges.some((r) => idx < r.end && end > r.start);
       if (!overlap) {
         ranges.push({ start: idx, end, item });
@@ -190,17 +197,34 @@ export function parsePhrase(text, accounts, lexicon, now) {
     const dated = takeDate(raw, clock, keys);
     const items = [];
     for (const a of accounts || []) {
-      if (!a || a.isHidden || !a.name) continue;
-      items.push({
-        key: String(a.name),
-        keyword: String(a.name),
-        accountName: String(a.name),
-        type: a.type || '',
-        category: a.category || '',
-        role: roleOfType(a.type),
-        id: a.id,
-        rank: 0,
-      });
+      if (!a || a.isHidden) continue;
+      if (a.name) {
+        items.push({
+          key: String(a.name),
+          keyword: String(a.name),
+          accountName: String(a.name),
+          type: a.type || '',
+          category: a.category || '',
+          role: roleOfType(a.type),
+          id: a.id,
+          rank: 0,
+        });
+      }
+      const code = String(a.code || '').replace(/\s+/g, '');
+      if (code) {
+        items.push({
+          key: code,
+          keyword: code,
+          accountName: String(a.name || code),
+          type: a.type || '',
+          category: a.category || '',
+          role: roleOfType(a.type),
+          id: a.id,
+          rank: 0,
+          boundary: true,
+        });
+        keys.push(code);
+      }
     }
     for (const row of accountLexicon(words)) {
       items.push({ ...row, key: row.keyword, id: null, rank: 1 });
