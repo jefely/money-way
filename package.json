@@ -1,0 +1,13 @@
+{
+  "name": "money-way",
+  "private": true,
+  "description": "NT账本。零依赖单页应用，没有构建步骤。",
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test nt/tests/*.test.mjs",
+    "start": "node nt/tools/serve.mjs 8080"
+  }
+}
