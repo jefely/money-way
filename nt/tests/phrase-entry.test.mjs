@@ -142,6 +142,17 @@ test('发送时认不出的碎片不建节点', () => {
   assert.ok(String(made.tx.note).includes('微'));
 });
 
+test('简码对上节点，不会掉进备注', () => {
+  let s = createState();
+  s = addAccount(s, { id: 'bank', code: 'ZHC', name: '招行储蓄卡', type: ACCOUNT_TYPE.ASSET, category: '储蓄' });
+  const first = applyPhrase(s, '咖啡 50', NOW);
+  const r = fillDraft(first.state, first.tx.id, 'zhc', { force: true });
+  assert.equal(r.tx.from_id, 'bank');
+  assert.equal(r.tx.note, '咖啡');
+  const named = (r.state.accounts || []).find((a) => a.id === 'bank');
+  assert.equal(named.name, '招行储蓄卡');
+});
+
 test('候选里能看到模糊的支付账户', () => {
   const items = suggestPhraseAccounts(createState(), '薇信');
   assert.ok(items.some((s) => s.acc.name === '微信'));

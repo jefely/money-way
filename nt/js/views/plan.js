@@ -23,18 +23,34 @@ export function mountPlan(section, ctx) {
   const fixedTable = mountFixedTable(ctx, fixedBody, { onSummary: setInfo });
   const instTable = mountInstTable(ctx, instBody, { onSummary: setInfo });
 
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'nt-btn nt-btn-sm';
+  addBtn.textContent = '添加';
+  addBtn.hidden = true;
+  addBtn.addEventListener('click', () => {
+    show('inst');
+    instTable.submit();
+  });
+  caps.insertAdjacentElement('afterend', addBtn);
+
   let cap = 'fixed';
+
+  function show(next) {
+    cap = next;
+    for (const x of caps.querySelectorAll('.nt-cap')) {
+      x.setAttribute('aria-selected', x.getAttribute('data-cap') === cap ? 'true' : 'false');
+    }
+    fixedPane.hidden = cap !== 'fixed';
+    instPane.hidden = cap !== 'inst';
+    addBtn.hidden = cap !== 'inst';
+    render();
+  }
 
   caps.addEventListener('click', (ev) => {
     const b = ev.target.closest('.nt-cap');
     if (!b) return;
-    cap = b.getAttribute('data-cap');
-    for (const x of caps.querySelectorAll('.nt-cap')) {
-      x.setAttribute('aria-selected', x === b ? 'true' : 'false');
-    }
-    fixedPane.hidden = cap !== 'fixed';
-    instPane.hidden = cap !== 'inst';
-    render();
+    show(b.getAttribute('data-cap'));
   });
 
   function render() {

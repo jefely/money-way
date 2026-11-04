@@ -40,6 +40,8 @@ export function buildHead(thead, columns) {
     // 表头刚重建、内联宽度全丢：先把上次拖出来的宽度套回去，再算冻结列的 left
     applyColMirror(table);
     syncFrozen(table);
+    // 切分类/汇总时，第一次量到的可能还是上一套列宽。下一帧再量一次。
+    requestAnimationFrame(() => syncFrozen(table));
   }
 }
 

@@ -2,8 +2,8 @@
  * 同步弹窗（UI 层）
  *
  * 设计：
- *   ① 二维码铺满弹窗内容宽（正方形，静区画在码里）。
- *      年月、日都是二维码下面的横排滚轮，不占码的宽度。
+ *   ① 年月横条在二维码上方，「存」在这条的右边。
+ *      日轮是二维码右侧的窄竖条。码在剩下的宽度里尽量做大，保持正方形。
  *      选截止日 → 从这天往前按天装流水，装满 70 笔为止。
  *   ② 一个文本框打通复制与接收：复制 / 清空 / 粘贴 / 同步。
  *
@@ -59,29 +59,12 @@ function sectionWindow(ctx, base) {
   h.textContent = '① 扫码同步';
   box.appendChild(h);
 
-  /* 二维码先占满一行。年月和日都放在它下面，不跟它抢宽度。 */
-  const qrRow = document.createElement('div');
-  qrRow.className = 'nt-sync-qrrow';
-
-  const canvas = document.createElement('canvas');
-  canvas.className = 'nt-sync-qr';
-  qrRow.appendChild(canvas);
-
-  const empty = document.createElement('div');
-  empty.className = 'nt-sync-qr-empty';
-  empty.textContent = '还没有可同步的流水';
-  empty.hidden = true;
-  qrRow.appendChild(empty);
-  box.appendChild(qrRow);
-
-  const picks = document.createElement('div');
-  picks.className = 'nt-sync-pickers';
-
+  /* 年月横条在二维码上面，「存」贴在这条右边。 */
   const monRow = document.createElement('div');
   monRow.className = 'nt-sync-monthrow';
   const monWheel = buildWheel({
     axis: 'x',
-    itemSize: 72,
+    itemSize: 78,
     visible: 3,
     labels: months,
     value: months.length,
@@ -106,21 +89,31 @@ function sectionWindow(ctx, base) {
   save.setAttribute('aria-label', '保存二维码图片');
   save.addEventListener('click', savePng);
   monRow.appendChild(save);
-  picks.appendChild(monRow);
+  box.appendChild(monRow);
 
-  const dayRow = document.createElement('div');
-  dayRow.className = 'nt-sync-dayrow';
+  /* 二维码尽量占满「行宽 − 日竖条」。日轮在右侧，上下拖。 */
+  const qrRow = document.createElement('div');
+  qrRow.className = 'nt-sync-qrrow';
+
+  const canvas = document.createElement('canvas');
+  canvas.className = 'nt-sync-qr';
+  qrRow.appendChild(canvas);
+
+  const empty = document.createElement('div');
+  empty.className = 'nt-sync-qr-empty';
+  empty.textContent = '还没有可同步的流水';
+  empty.hidden = true;
+  qrRow.appendChild(empty);
+
   const dayWheel = buildWheel({
-    axis: 'x',
     itemSize: 36,
     visible: 7,
     maxDay: monthDays(),
     value: day,
     onChange: (d) => { day = d; rebuild(); },
   });
-  dayRow.appendChild(dayWheel.el);
-  picks.appendChild(dayRow);
-  box.appendChild(picks);
+  qrRow.appendChild(dayWheel.el);
+  box.appendChild(qrRow);
 
   const range = document.createElement('div');
   range.className = 'nt-sync-range';

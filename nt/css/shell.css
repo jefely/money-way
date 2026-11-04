@@ -426,8 +426,11 @@ body {
    层级相同就按 DOM 顺序画，后面的列会盖住冻结列的文字
    （用户 2026-11-01：「第一列表头冻结了，但是在后方」）。 */
 .nt-table-inst .nt-th:nth-child(1) { z-index: 7; }
-/* 第一行表头固定 44px 高：第二行的 sticky top 就是按它错开的（见 plan.css） */
-.nt-table-inst thead tr:nth-child(1) .nt-th { height: 44px; }
+/* 两行表头都跟数据行一样高，第二行按这个高度错开（见 plan.css） */
+.nt-table-inst thead .nt-th,
+.nt-table-inst tbody .nt-cell {
+  height: var(--nt-row-h, 32px);
+}
 .nt-table-inst .nt-cell:nth-child(1):not([colspan]) {
   left: 0;
   z-index: 5;

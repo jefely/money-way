@@ -353,7 +353,14 @@ const MIRROR_PREFIX = 'nt-colw:';
 /** 表 → 镜像键（用表类名，够稳定） */
 function mirrorKey(tableEl) {
   const cls = [...tableEl.classList].find((c) => c.startsWith('nt-table-'));
-  return cls ? MIRROR_PREFIX + cls : '';
+  if (!cls) return '';
+  // 分类和汇总共用一张表，列数不同。镜像必须分开，否则切回来会把
+  // 汇总的宽列套到「序」上，中间空出一截白、金额列被挤短。
+  if (cls === 'nt-table-stats') {
+    const mode = tableEl.classList.contains('is-sum') ? 'sum' : 'cat';
+    return MIRROR_PREFIX + cls + ':' + mode;
+  }
+  return MIRROR_PREFIX + cls;
 }
 
 /** 写镜像：widths 是「每列一个数字」的数组 */
@@ -375,7 +382,7 @@ export function applyColMirror(tableEl) {
     if (!widths.some((w) => w > 0)) return;
 
     const ths = [...tableEl.querySelectorAll('thead .nt-th')];
-    if (!ths.length) return;
+    if (!ths.length || widths.length !== ths.length) return;
     tableEl.classList.add('cols-custom');
     ths.forEach((th, i) => {
       const w = widths[i] || 0;
