@@ -132,7 +132,7 @@
 | `ui/review-tip.js` | 设置页 → 新增序号气泡 |
 | `ui/row-editor.js` | 流水 tab → 行内编辑 / 新增行 |
 | `ui/share-block.js` | 二维码分享区块 |
-| `ui/share-file.js` | 导出 / 分享加密备份文件 |
+| `ui/share-file.js` | 导出加密备份文件 |
 | `ui/suggest-popover.js` | 流水 tab / 查询 tab → 账户候选气泡 |
 | `ui/sync-dialog.js` | （未标注界面）同步弹窗（UI 层） |
 | `ui/sync-wheel.js` | 同步弹窗里的滚轮（日 / 年月共用） |

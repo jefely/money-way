@@ -422,24 +422,32 @@ body.nt-col-resizing {
   padding: 0 12px;
 }
 
-.nt-add-ledger {
-  display: flex;
+.nt-add-ledger,
+.nt-add-ledger-new {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 6px;
+  column-gap: 6px;
   margin-bottom: 4px;
 }
 
 .nt-add-ledger-check {
-  flex: none;
+  justify-self: center;
   width: 14px;
   height: 14px;
   margin: 0;
   accent-color: var(--nt-primary);
 }
 
+.nt-add-ledger-gap {
+  width: 14px;
+  height: 14px;
+  justify-self: center;
+}
+
 .nt-add-ledger-name,
 .nt-add-ledger-input {
-  flex: 1;
+  width: 100%;
   min-width: 0;
   height: 32px;
   padding: 0 8px;
@@ -454,11 +462,7 @@ body.nt-col-resizing {
 }
 
 .nt-add-ledger-new {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   margin-top: 6px;
-  padding-left: 26px;
 }
 
 .nt-add-del {
@@ -466,8 +470,9 @@ body.nt-col-resizing {
 }
 
 .nt-add-del-off {
-  visibility: hidden;
-  pointer-events: none;
+  color: var(--nt-text-light);
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .nt-add-text {

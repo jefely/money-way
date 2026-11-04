@@ -16,7 +16,7 @@ import { openAccountsWith } from './ui/account-actions.js';
 import { hasVault, createVault, unlockVault, saveState, destroyVault, changeVaultPassword, buildEncryptedBackup, restoreEncryptedBackup } from './browser/db.js';
 import { createUndo } from './core/undo-stack.js';
 import { resetAccountsKeepData } from './core/reset-book.js';
-import { exportBaseName } from './core/export-text.js';
+import { backupFileName } from './core/backup-file.js';
 import { installUndoKeys } from './ui/global-undo.js';
 import { installBackupGuard, markBackupDone } from './ui/backup-guard.js';
 import { watchOtherTabs, tellOtherTabs } from './ui/tab-guard.js';
@@ -194,7 +194,7 @@ function mountViews() {
     },
     shareBackup: async () => {
       const text = await buildEncryptedBackup(getState());
-      return deliverTextFile(exportBaseName() + '.json', text, 'application/json');
+      return deliverTextFile(backupFileName(), text, 'text/plain');
     },
     encryptedBackupText: () => buildEncryptedBackup(getState()),
     markBackup: () => markBackupDone(Date.now()),
