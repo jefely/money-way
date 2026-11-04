@@ -141,7 +141,7 @@ export function mountAccountTable(ctx, tbody, opts) {
         zoneSeq += 1;
         // 斑马纹按**数据行序号**打类：区域标题行（A/B）不参与序号，
         // 用 nth-child 会被标题行挤得隔行错位（用户 2026-10-29 反馈）。
-        if (zoneSeq % 2 === 0) tr.classList.add('nt-row-even');
+        tr.classList.add(...[zoneSeq % 2 === 0 && 'nt-row-even', acc.fresh && 'nt-acc-fresh'].filter(Boolean));
         setCell(tr, 'code', acc.code || '');
         setCell(tr, 'seq', effectiveSeq(acc, zoneSeq));
 

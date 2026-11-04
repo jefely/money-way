@@ -11,6 +11,7 @@
 | `browser/idb.js` | （无界面）IndexedDB 打开 |
 | `core/account-config.js` | （未标注界面）账户配置（纯函数） |
 | `core/account-index.js` | （无界面）账户索引 |
+| `core/account-match.js` | （无界面）新账户名 → 类型 / 分类 |
 | `core/account-order.js` | （未标注界面）数据基座：账户的分区、序号与排序（纯函数，无浏览器 API） |
 | `core/account-resolver.js` | （无界面）账户名/简码解析 |
 | `core/auth-manager.js` | （无界面）主密码校验/修改 |

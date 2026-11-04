@@ -15,6 +15,7 @@ import {
   normalizeCode, ALL_ACCOUNT_TYPES,
 } from './schema.js';
 import { promoteDrafts, dropMappingsFor } from './draft-book.js';
+import { matchAccountName } from './account-match.js';
 
 /** 建一本空账（带期初虚拟账户，但它 isHidden，不进 UI 列表） */export function createState() {
   return {
@@ -86,9 +87,8 @@ export function updateAccount(state, id, patch) {
 
 /**
  * 录入流水时用的「文本 → 账户」兜底（用户 2026-10-30）：
- * 流水只负责记录，转出/转入可以随便写；认不出的文本自动建一个
- * type/category 都为空的账户（落在设置页的「未分类账户」区），
- * 之后用户慢慢补类型/分类即可 —— 不拦截录入，也不丢原文本。
+ * 流水只负责记录。能对上词库或银行/信用启发式的，直接写入类型和分类，
+ * 并打上 fresh（设置页显示「新增」）。对不上才留空类型。
  *
  * @returns {{state:object, id:string|null}}
  */
@@ -102,15 +102,18 @@ export function ensureAccountByText(state, text) {
   );
   if (hit) return { state, id: hit.id };
 
+  const guess = matchAccountName(t);
   const acc = {
     id: 'acc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     code: '',
     name: t,
-    type: '',
-    category: '',
+    type: guess ? guess.type : '',
+    category: guess ? guess.category : '',
     isHidden: false,
+    fresh: true,
   };
-  return { state: { ...state, accounts: [...(state.accounts || []), acc] }, id: acc.id };
+  const next = { ...state, accounts: [...(state.accounts || []), acc] };
+  return { state: promoteDrafts(next), id: acc.id };
 }
 
 /**

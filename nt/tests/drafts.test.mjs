@@ -147,7 +147,7 @@ test('补上类型后，两端齐全的草稿自动入账；标记跟着变', ()
   s = { ...s, accounts: [...s.accounts, shell('a', '甲', 'A'), shell('b', '乙', 'B')] };
   s = addTransaction(s, { id: 't1', date: '2026-11-04', from_id: 'a', to_id: 'b', amount: 50, status: 'draft' });
   assert.equal(canPost(s.transactions[0], s.accounts), false);
-  assert.equal(markerOf(s.transactions[0], s.accounts), 'yellow');
+  assert.equal(markerOf(s.transactions[0], s.accounts), 'untyped');
 
   s = updateAccount(s, 'a', { type: ACCOUNT_TYPE.ASSET });
   assert.equal(s.transactions.find((t) => t.id === 't1').status, 'draft');
@@ -155,7 +155,7 @@ test('补上类型后，两端齐全的草稿自动入账；标记跟着变', ()
   const tx = s.transactions.find((t) => t.id === 't1');
   assert.equal(tx.status, undefined);
   assert.equal(isPosted(tx), true);
-  assert.equal(markerOf(tx, s.accounts), 'solid');
+  assert.equal(markerOf(tx, s.accounts), '');
   assert.equal(balanceOf(s.accounts.find((a) => a.id === 'b'), s.transactions).balance, 50);
 });
 
@@ -163,7 +163,7 @@ test('缺一端是空心标记；删账户时清掉指向它的映射', () => {
   let s = createState();
   s = addAccount(s, { id: 'a', code: 'A', name: '甲', type: ACCOUNT_TYPE.ASSET, category: '储蓄' });
   s = addTransaction(s, { date: '2026-11-04', from_id: null, to_id: null, amount: 50, note: '咖啡', status: 'draft' });
-  assert.equal(markerOf(s.transactions[0], s.accounts), 'hollow');
+  assert.equal(markerOf(s.transactions[0], s.accounts), 'missing');
   s = { ...s, mappings: { 咖啡: 'a', 其他: 'z' } };
   s = removeAccount(s, 'a');
   assert.equal(s.mappings['咖啡'], undefined);

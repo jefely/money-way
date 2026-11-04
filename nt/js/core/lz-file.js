@@ -85,10 +85,16 @@ export function stateFromLzPayload(payload) {
     });
 
     let acc = state.accounts[before];
-    if (a.type === '') {
+    if (a.type === '' || a.fresh) {
       state = {
         ...state,
-        accounts: state.accounts.map((x) => (x.id === acc.id ? { ...x, type: '' } : x)),
+        accounts: state.accounts.map((x) => {
+          if (x.id !== acc.id) return x;
+          const next = { ...x };
+          if (a.type === '') next.type = '';
+          if (a.fresh) next.fresh = true;
+          return next;
+        }),
       };
       acc = state.accounts.find((x) => x.id === acc.id) || acc;
     }

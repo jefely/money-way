@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）�?
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.219';
+const CACHE_NAME = 'nt-v1.220';
 
 const ASSETS = [
   './index.html',
@@ -55,6 +55,7 @@ const ASSETS = [
   './js/browser/idb.js',
   './js/core/account-config.js',
   './js/core/account-index.js',
+  './js/core/account-match.js',
   './js/core/account-order.js',
   './js/core/account-resolver.js',
   './js/core/auth-manager.js',
