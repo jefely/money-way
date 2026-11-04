@@ -163,6 +163,7 @@ function buildPayload(state) {
     v: 1,
     accounts: state.accounts || [],
     transactions: state.transactions || [],
+    mappings: state.mappings || {},
     exportedAt: new Date().toISOString(),
   };
 }

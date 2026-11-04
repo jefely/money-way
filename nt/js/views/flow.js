@@ -8,6 +8,8 @@
  */
 
 import { addTransaction, updateTransaction, removeTransaction, nextSeq, removeBatch, restoreBatch, noteTextByCode, ensureAccountByText } from '../core/state-store.js';
+import { afterTxEdit } from '../core/draft-book.js';
+import { mountComposer } from '../ui/composer.js';
 import { createScheduled } from '../core/schema.js';
 import { buildFlowRows, buildFooterInfo } from '../ui/flow-model.js';
 import { moneyOrBlank, normalizeTypedDate, todayIso } from '../core/format.js';
@@ -31,6 +33,8 @@ export function mountFlow(section, ctx) {
   let scrollInit = false;
   /** 上次渲染时的数据版本；切 tab 回来时用它判断要不要真的重画 */
   let renderedVer = -1;
+
+  mountComposer(section, ctx, body, () => render(true));
 
   bindRowEditing(body, {
     onEdit,
@@ -275,7 +279,10 @@ export function mountFlow(section, ctx) {
     ctx.setFooter(footerText());
   }
 
-  function footerText() { const i = buildFooterInfo(ctx.getState()); return `共 ${i.count} 笔 · 合计 ${i.totalText}`; }
+  function footerText() {
+    const i = buildFooterInfo(ctx.getState());
+    return `共 ${i.count} 笔 · 合计 ${i.totalText}` + (i.drafts ? ` · 草稿 ${i.drafts} 笔未入账` : '');
+  }
 
   function onEdit(id, field, value, resolvedId) {
     const patch = {};
@@ -296,7 +303,7 @@ export function mountFlow(section, ctx) {
     else if (field === 'amount') patchRow(id, { amountEdit: value });
     else if (field === 'from' || field === 'to') patchRow(id, { [field]: value });
 
-    ctx.setState(updateTransaction(ctx.getState(), id, patch));
+    ctx.setState(afterTxEdit(updateTransaction(ctx.getState(), id, patch), id, field));
     ctx.setFooter(footerText());
     ctx.save();
   }

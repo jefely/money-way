@@ -8,6 +8,7 @@
  */
 
 import { balanceOf } from '../core/balance-calculator.js';
+import { isPosted } from '../core/schema.js';
 import { validate, issuesOf } from '../core/validator.js';
 import { checkAccountingIdentity } from '../core/validate.js';
 import { money } from '../core/format.js';
@@ -50,7 +51,9 @@ export function mountValidate(section, ctx) {
     let total = 0;
     let single = 0;
     let zero = 0;
+    let drafts = 0;
     for (const t of txs) {
+      if (!isPosted(t)) { drafts += 1; continue; }
       const amt = Number(t.amount) || 0;
       if (!amt) { zero += 1; continue; }
       if (!t.from_id || !t.to_id) single += 1;
@@ -62,6 +65,7 @@ export function mountValidate(section, ctx) {
       ['左方（转出）合计', money(total)],
       ['右方（转入）合计', money(total)],
       ['差额', money(0)],
+      ['草稿（未入账）', String(drafts)],
     ]));
 
     /* ② 会计恒等式（必须含隐藏的期初权益账户） */

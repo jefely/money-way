@@ -9,7 +9,7 @@
 
 import { toAmount } from './stats.js';
 import { checkAccountingIdentity } from './validate.js';
-import { normalizeCode, isValidCode, CODE_MIN_LEN, CODE_MAX_LEN } from './schema.js';
+import { normalizeCode, isValidCode, CODE_MIN_LEN, CODE_MAX_LEN, isPosted } from './schema.js';
 
 export const LEVEL = { ERROR: 'error', WARN: 'warn' };
 
@@ -33,9 +33,11 @@ export function validate(input) {
   const issues = [];
 
   const ids = new Set(accounts.map((a) => a.id));
+  let draftCount = 0;
 
-  /* ---------- 流水：V1~V5 ---------- */
+  /* ---------- 流水：V1~V5。草稿单独计数，缺端不算 V1 ---------- */
   txs.forEach((t, i) => {
+    if (!isPosted(t)) { draftCount += 1; return; }
     const fromId = t && t.from_id;
     const toId = t && t.to_id;
     const amt = toAmount(t && t.amount);
@@ -98,7 +100,7 @@ export function validate(input) {
     }
   }
 
-  return { ok: issues.length === 0, issues };
+  return { ok: issues.length === 0, issues, draftCount };
 }
 
 /** 只数错误（warn 不算失败） */

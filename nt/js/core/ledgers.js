@@ -36,6 +36,7 @@ function saveActive(state) {
     accounts: state.accounts || [],
     transactions: state.transactions || [],
     scheduled: state.scheduled || [],
+    mappings: state.mappings || {},
   };
   return { ...state, ledgers };
 }
@@ -47,7 +48,7 @@ export function createLedger(state, name) {
   const saved = saveActive(state);
   const ledgerNames = { ...(saved.ledgerNames || {}), [id]: n };
   const ledgers = { ...(saved.ledgers || {}) };
-  ledgers[id] = { accounts: [], transactions: [], scheduled: [] };
+  ledgers[id] = { accounts: [], transactions: [], scheduled: [], mappings: {} };
 
   return {
     ...saved,
@@ -57,6 +58,7 @@ export function createLedger(state, name) {
     accounts: [],
     transactions: [],
     scheduled: [],
+    mappings: {},
   };
 }
 
@@ -77,6 +79,7 @@ export function switchLedger(state, id) {
     accounts: target.accounts || [],
     transactions: target.transactions || [],
     scheduled: target.scheduled || [],
+    mappings: target.mappings || {},
   };
 }
 

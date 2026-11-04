@@ -12,7 +12,7 @@
  *   靠类型  → 加减只由 account.type 决定，金额永远是正数
  */
 
-import { isDebitType } from './schema.js';
+import { isDebitType, isPosted } from './schema.js';
 
 /**
  * 单账户余额。
@@ -28,6 +28,7 @@ export function balanceOf(account, transactions) {
   if (!id) return { balance: 0, inflow: 0, outflow: 0 };
 
   for (const t of transactions || []) {
+    if (!isPosted(t)) continue;
     const amt = Number(t && t.amount) || 0;
     if (!amt) continue;
     if (t.from_id === id) outflow += amt;

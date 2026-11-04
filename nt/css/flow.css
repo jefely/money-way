@@ -911,3 +911,56 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+.nt-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.nt-composer-input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+}
+
+.nt-composer-hint {
+  flex: none;
+  max-width: 42%;
+  color: var(--nt-text-muted);
+  font-size: 12px;
+}
+
+.nt-draft-mark {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 4px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.nt-mark-hollow .nt-draft-mark {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--nt-text-muted, #888);
+}
+
+.nt-mark-yellow .nt-draft-mark {
+  background: #e6b325;
+}
+
+.nt-mark-solid .nt-draft-mark {
+  background: #2f9e62;
+}
+
+.nt-fly-ghost {
+  position: fixed;
+  z-index: 80;
+  margin: 0;
+  padding: 0 4px;
+  pointer-events: none;
+  color: var(--nt-text);
+  background: transparent;
+  font: inherit;
+}

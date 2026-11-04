@@ -116,24 +116,33 @@ export function parseSettingsRows(rows) {
   return out;
 }
 
-/** 流水表：前两行是标题与表头 */
+/** 流水表：前两行是标题与表头。没有「状态」列 = 已入账。 */
 export function parseFlowRows(rows) {
   const out = [];
   let skipped = 0;
+  const head = (rows || [])[1] || [];
+  let statusCol = -1;
+  for (let c = 0; c < head.length; c += 1) {
+    if (str(head[c]) === '状态') statusCol = c;
+  }
 
   for (let i = 2; i < (rows || []).length; i += 1) {
     const r = rows[i] || [];
     const date = parseBillDate(r[1]);
     const amount = num(r[4]);
-    if (!date || !amount) { skipped += 1; continue; }
+    const statusText = statusCol >= 0 ? str(r[statusCol]) : '';
+    const draft = /^(草稿|draft)$/i.test(statusText);
+    if (!date || (!amount && !draft)) { skipped += 1; continue; }
 
-    out.push({
+    const item = {
       date,
       from: str(r[2]),
       to: str(r[3]),
       amount: Math.abs(amount),
       note: str(r[5]),
-    });
+    };
+    if (draft) item.status = 'draft';
+    out.push(item);
   }
 
   return { items: out, skipped };
@@ -263,6 +272,7 @@ export function stateFromTemplate(parsed) {
     bound += 1;
     state = addTransaction(state, {
       date: t.date, from_id: fromId, to_id: toId, amount: t.amount, note: t.note,
+      ...(t.status === 'draft' ? { status: 'draft' } : {}),
     });
   }
 

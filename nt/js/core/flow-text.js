@@ -59,7 +59,7 @@ export function ledgerToText(state) {
   };
 
   const rows = (s.transactions || [])
-    .filter((t) => !t.opening)
+    .filter((t) => !t.opening && t.status !== 'draft')
     .slice()
     .sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0));
 
