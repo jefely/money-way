@@ -180,7 +180,7 @@ export const SCHEMA = [
      统计表 10 列、流水表 8 列，同一个 32px 行高在两处观感不同。
      这里只留「对齐」和「手柄」—— 它们天生跨表一致。 */
   { key: '列标行对齐', group: '列标行', type: 'align', prefix: '--nt-th-align-', def: DEFAULT_COL_ALIGN },
-  { key: '手柄宽度', group: '列标行', def: 14, unit: 'px', cssVar: '--nt-handle-w' },
+  { key: '手柄宽度', group: '列标行', def: 7, unit: 'px', cssVar: '--nt-handle-w' },
 
   /* ---------- 每张表一套（7 组，每组 5 项） ----------
      列标行高/字号 + 数据行高/字号 + 列宽，全部由这张表自己决定。
@@ -273,6 +273,8 @@ const LEGACY_DEFAULT = {
   // v1.236：环外标签锥形，短尖减半、长尖加 50%（解决环外文字压字）
   锥形第一档: { 46: 23 },
   锥形第二档: { 115: 172.5 },
+  // v1.242：列宽手柄 14 → 7，窄列右侧被透明命中区盖住的宽度减半
+  手柄宽度: { 14: 7 },
 };
 
 export function normalize(raw, theme) {

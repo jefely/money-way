@@ -37,7 +37,11 @@ export function buildFlowRows(state, virtual) {
       to: v.toName || v.source || '',
       amount: v.amount,
       amountRaw: v.amount,
-      note: v.note || (v.periodIndex ? `第 ${v.periodIndex}/${v.periods} 期` : ''),
+      // 只有真分期的虚拟行才补「第 n/m 期」；固定收支的 periodIndex 是月份 key，
+      // 拿它拼会变成「第 2026-11/ 期」。固定收支备注为空就保持空（用户 2026-11）。
+      note: v.note || (v.kind === 'installment' && v.periodIndex
+        ? `第 ${v.periodIndex}/${v.periods} 期`
+        : ''),
       dateEdit: shortDate(v.date),
       amountEdit: moneyOrBlank(v.amount),
       dateText: shortDate(v.date),

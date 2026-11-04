@@ -233,6 +233,10 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* 固定表列多、每列本来就不宽；8px 的左右内边距在窄列里比字还宽，
+     会把列标和输入框一起挤扁。收到 3px，把空间还给文字（用户 2026-11）。 */
+  padding-left: 3px;
+  padding-right: 3px;
 }
 
 .nt-table-plan th:nth-child(1) { width: 34px; }   /* 序 */
@@ -249,8 +253,22 @@
   width: 100%;
   box-sizing: border-box;
   font-size: 12px;
-  padding-left: 4px;
-  padding-right: 4px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+/* 频率下拉：窄列里原生箭头会吃掉一大半宽度，只剩一个勾一样的尖角，
+   「每月 / 每天」全被裁掉。固定表把它当纯文本显示，点击仍打开原生选择器；
+   把宽度全部让给文字（用户 2026-11：调窄后要尽可能多显示文字）。 */
+.nt-table-plan select.nt-cell-input {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  text-align: center;
+  cursor: pointer;
+  /* 窄列（34px）里 12px 的两个汉字正好放不下；下拉又没有箭头占位，
+     降到 11px 能完整显示「每月 / 每天」。 */
+  font-size: 11px;
 }
 
 .nt-plan-fixed .nt-tablewrap {

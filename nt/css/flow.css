@@ -187,8 +187,9 @@
 }
 
 /* ---------- 列宽拖动手柄 ----------
-   放在列标右边缘，宽 14px（手指也能按住）。
-   默认**不显示**：未激活时整条线透明，列标看起来是干净的。
+   手柄本体只是 1px 的可视线，pointer-events:none —— 不占文字宽度。
+   真正的命中区在 ui/table-layout.js：th 右边缘 --nt-handle-w（默认 7px）。
+   默认**不显示**：未激活时线透明，列标看起来是干净的。
    悬停 / 拖动时才浮出一条淡紫竖线 —— 高度固定 70%，不随激活变长
    （以前 hover 时 top/bottom 从 15% 变 0，看着像「一激活就长出来一截」）。 */
 
@@ -200,7 +201,11 @@
      跨出去以后点手柄的右半，closest('.nt-th') 会拿到右边那一列，
      坐标判定不成立，手柄就时灵时不灵。 */
   right: 0;
-  width: var(--nt-handle-w, 14px);
+  /* 只留 1px 的可视线，不再用透明层盖住列标。
+     真正的命中区由 ui/table-layout.js 在 th 的右边缘按 --nt-handle-w（默认 7px）
+     判定 —— 这样列宽再窄，文字也不用给透明块让位。 */
+  width: 1px;
+  pointer-events: none;
   cursor: col-resize;
   background: transparent;
   z-index: 5;

@@ -3,6 +3,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { materializeDueFixed } from '../js/core/plan-occurrence.js';
+import { buildVirtualFixed } from '../js/timeline/time-state.js';
+import { buildFlowRows } from '../js/ui/flow-model.js';
 import { removeFlowTx, removeFlowBatch, unvoidKeys, markPlanHandled } from '../js/ui/plan-links.js';
 
 function rule(over) {
@@ -99,6 +101,23 @@ test('多条每月规则一起补，seq 依次加一', () => {
   const out = materializeDueFixed(before, '2026-11-05');
   assert.equal(out.transactions.length, 2);
   assert.deepEqual(out.transactions.map((t) => t.seq), [1, 2]);
+});
+
+test('非分期的固定收支：自动到账的备注就是模板备注，空就空', () => {
+  const out = materializeDueFixed(book({ scheduled: [rule({ note: '' })] }), '2026-11-05');
+  assert.equal(out.transactions[0].note, '');
+  assert.equal(out.transactions[0].planKey, 's1|2026-11');
+
+  // 未来虚拟行也不能因为 periodIndex 是月份 key 就补「第 2026-11/ 期」
+  const virtual = buildVirtualFixed(
+    [rule({ note: '', freq: 'monthly', day: 20 })],
+    '2026-11-05',
+    [],
+  );
+  assert.equal(virtual[0].note, '');
+  assert.equal(virtual[0].periodIndex, '');
+  const rows = buildFlowRows({ transactions: [], scheduled: [rule({ note: '', day: 20 })] }, virtual);
+  assert.equal(rows[rows.length - 1].note, '');
 });
 
 test('删掉自动到账的那笔：作废这一期，下次补账不再复活', () => {

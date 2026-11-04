@@ -1,4 +1,4 @@
-﻿// 界面：（无界面）时间分段
+// 界面：（无界面）时间分段
 /**
  * ☐5 时间状态机
  * 层：第二层 · 时间轴引擎
@@ -173,14 +173,14 @@ export function buildVirtualFixed(list, targetDate, accounts) {
   return out;
 }
 
-function fixedRow(s, date, key, sourceId, nameOf) {
+function fixedRow(s, date, month, sourceId, nameOf) {
   return {
     isVirtual: true,
     kind: 'fixed',
     source: sourceId,
     sourceId,
-    month: key,
-    planKey: planKey(sourceId, key),
+    month,
+    planKey: planKey(sourceId, month),
     date,
     amount: Number(s.amount) || 0,
     fromName: nameOf(s.from_id),
@@ -188,7 +188,8 @@ function fixedRow(s, date, key, sourceId, nameOf) {
     toName: nameOf(s.to_id),
     toId: s.to_id || null,
     note: s.note || '',
-    periodIndex: key,
+    // 固定收支没有「第几期」；月份 key 放在 month 里，别拿它冒充期数
+    periodIndex: '',
     periods: '',
   };
 }

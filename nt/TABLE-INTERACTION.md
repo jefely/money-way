@@ -428,7 +428,22 @@ col 写 44px  →  实际渲染 28px
 
 ## 四、列宽拖动
 
-### 4.1 手柄尺寸
+### 4.1 手柄尺寸与命中区
+
+> **2026-11 复盘（这个坑反复出现，根因不是 CSS 写错，而是「两处默认值各说各话 + 透明层占位」）**
+>
+> 1. CSS 的 `--nt-handle-w` fallback 是 7px，但参数表 `settings.js` 里这项默认值是 14px；
+>    面板一启动就把 `:root` 写成 14px，CSS fallback 永远不生效。窄列（序 34~44px、金额 34~41px）
+>    右侧 14px 全落在透明命中区里，列标只能显示半个字。
+>    现在参数默认值改成 7px，并用 `LEGACY_DEFAULT` 把旧存档里恰好是 14 的值迁到 7（自调值保留）。
+> 2. 固定表还有 **8px 单元格左右内边距 + 4px 输入框左右内边距**；列宽 34px 时只剩 10px 给文字，
+>    看起来就像「右边多出一块遮盖」。现在固定表收到 3px / 2px，优先把宽度还给文字。
+> 3. 序冻结只写了 `position: sticky`，没写 `left: 0`；`syncFrozen` 又按「CSS 负责 left」的约定
+>    清掉了内联 left —— 两头都没给值，sticky 就没有横向偏移，数据列横滚时整列滑走。
+>    现在固定表表头/数据格都写 `left: 0`，数据格 z-index 4（普通表头 5 压得住它）。
+> 4. 透明手柄层本身占列宽：7/14px 的命中块盖在列标右边缘，列越窄文字越没地方。
+>    现在手柄只是 **1px 可视线 + `pointer-events: none`**，命中判定由 JS 在 th 右边缘做，
+>    列内不再有任何透明占位。
 
 ```css
 .nt-col-handle {
@@ -436,30 +451,27 @@ col 写 44px  →  实际渲染 28px
   top: 0;
   right: 0;
   bottom: 0;
-  width: 7px;                    /* 手指按得住；4px 以下点不准 */
-  cursor: col-resize;
+  width: 1px;                       /* 只是可视线，不参与命中 */
+  pointer-events: none;
   background: transparent;
   z-index: 5;
-  touch-action: none;            /* 手机上不许触发页面滚动 */
 }
 
-/* 中线：常显，不是只在 hover 时出现 */
+/* 中线：默认透明，悬停/拖动才亮；高度固定 70% */
 .nt-col-handle::after {
   content: '';
   position: absolute;
-  top: 20%;
-  bottom: 20%;
-  left: 3px;
+  top: 15%;
+  bottom: 15%;
+  left: 0;
   width: 1px;
   border-radius: 1px;
-  background: var(--nt-handle-color, rgba(140, 130, 190, 0.55));
+  background: transparent;
+  transition: background-color 0.12s ease;
 }
 
-/* hover 时拉满整列高度 */
 .nt-th:hover > .nt-col-handle::after {
-  top: 0;
-  bottom: 0;
-  background: var(--nt-primary);
+  background: var(--nt-handle-color, #8c82be);
 }
 
 /* 拖动中禁止选中文字 */
@@ -469,14 +481,16 @@ body.nt-col-resizing {
 }
 ```
 
-### 4.2 判定：右边缘 7px
+### 4.2 判定：th 右边缘 `--nt-handle-w`（默认 7px）
 
 ```js
 const rect = th.getBoundingClientRect();
-if (ev.clientX < rect.right - 7) return;   // 不在右边缘，是普通点选
+const edge = Number(getComputedStyle(th).getPropertyValue('--nt-handle-w')) || 7;
+if (ev.clientX < rect.right - edge) return;   // 不在右边缘，是普通点选
 ```
 
-**不要**用 `pointer-events: none` + 单独监听手柄——手机上 7px 太窄，容易点不中。
+命中区在 `th` 上判定，**不要**再放一块透明 span 做命中：透明块会盖住列标文字，
+窄列时「能显示的字」和「能拖的区域」互相抢宽度 —— 这是 2026-11 反复出现的根因。
 
 ### 4.3 事件绑定：委托，只绑一次
 
@@ -490,14 +504,18 @@ export function mountColResize(tableEl, opts) {
 
   tableEl.addEventListener('pointerdown', (ev) => {
     const th = ev.target.closest('.nt-th');
-    if (!th || !th.dataset.col) return;
+    if (!th) return;
+    const rect = th.getBoundingClientRect();
+    const edge = Number(getComputedStyle(th).getPropertyValue('--nt-handle-w')) || 7;
+    if (ev.clientX < rect.right - edge) return;   // 不是右边缘，交给普通点选
     // …拖动逻辑
   });
 }
 ```
 
 **为什么必须委托**：表头被 `thead.textContent = ''` 重建 N 次，绑在 `th` 上的监听全丢。
-**为什么 dataset 只管事件**：手柄要跟着重建，所以 `paintHandles` 放在短路之前。
+**为什么 dataset 只管事件**：手柄线要跟着重建，所以 `paintHandles` 放在短路之前。
+**为什么不在 handle 上判定**：1px 的线太窄，7/14px 的透明块又会盖字；在 th 上按坐标判定两头都不占。
 
 ### 4.4 拖动时改什么
 
@@ -760,21 +778,22 @@ grip.addEventListener('pointerdown', (e) => {
 | 一下拖得动、一下拖不动 | 手指移出手柄后事件发给别的元素，拖动链断掉 | 事件全发给抓取者，手指移出也继续 |
 | 按住一个手柄，其它也亮 | 手指扫过其它列，`:hover` 在每列上成立 | 其它元素收不到 `pointerover`，不 hover |
 
-### 5.10 手柄必须完全落在列内
+### 5.10 手柄线必须完全落在列内
 
 ```css
 /* 错：跨到下一列 */
 right: calc(-1 * var(--nt-handle-offset, 0px));   /* 默认 -3 → right: 3px */
 
-/* 对：完全在列内，靠加宽来方便按 */
+/* 对：线在列内，命中区由 JS 在 th 右边缘判定 */
 right: 0;
-width: var(--nt-handle-w, 14px);
+width: 1px;
+pointer-events: none;
 ```
 
-跨出去以后，点手柄的**右半**时 `event.target.closest('.nt-th')` 拿到的是**右边那一列**，
+跨出去以后，按右键时 `event.target.closest('.nt-th')` 拿到的是**右边那一列**，
 如果判定又依赖坐标（`clientX >= 那一列.right - 7`），条件不成立 → **直接 return，拖不动**。
 
-**加宽只能往左加，不能往右跨边界。**
+**加宽只能往左加（命中区），不能把可视线或透明层往右跨边界。**
 
 ### 5.11 拖动的宽度写入要用 rAF 合并
 
@@ -860,7 +879,7 @@ const onMove = (e) => {
 | 纵向边框 | `--nt-border-v-style` | `none` | |
 | 纵向边框线粗 | `--nt-border-v-width` | `1px` | |
 | 纵向边框颜色 | `--nt-border-v-color` | `#2a2438` | |
-| **手柄位置** | `--nt-handle-offset` | `-3px` | 手柄相对列右边缘的偏移 |
+| **手柄宽度** | `--nt-handle-w` | `7px` | 列宽手柄命中宽度（2026-11 由 14 收到 7，参数默认值同步） |
 | **手柄颜色** | `--nt-handle-color` | `#5f5878` | 中线颜色 |
 
 ### 7.3 列标行（表头）
@@ -870,7 +889,6 @@ const onMove = (e) => {
 | 列标行行高 | `--nt-th-h` | `26px` | 表头高度 |
 | 列标行字号 | `--nt-th-font` | `12px` | 表头字号 |
 | 列标行对齐 | `--nt-th-align-<col>` | 见下 | 每列对齐：`左/中/右` |
-| **手柄高度** | `--nt-handle-h` | `26px` | 手柄竖向范围 |
 
 ### 7.4 数据区
 

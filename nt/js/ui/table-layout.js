@@ -214,22 +214,33 @@ export function mountResize(tableEl, opts) {
   if (tableEl.dataset.resizeBound === '1') return;
   tableEl.dataset.resizeBound = '1';
 
-  // 只做一件事：从被按下的手柄找到目标列，然后把后续事件交给手柄自己
+  // 右边缘 7px 算拖动手柄（宽度可由参数 --nt-handle-w 调）。
+  // 不再在 th 里放一块 7/14px 宽的命中层：透明层会盖住列标文字，
+  // 列越窄盖掉的比例越大 —— 这正是「右边多出一块遮盖」的根因。
   tableEl.addEventListener('pointerdown', (ev) => {
-    const grip = ev.target.closest && ev.target.closest('.nt-col-handle');
-    if (!grip) return;
+    const th = ev.target.closest && ev.target.closest('.nt-th');
+    if (!th) return;
     if (ev.button !== 0 && ev.pointerType === 'mouse') return;
+    const rect = th.getBoundingClientRect();
+    const edge = handleHitWidth(th);
+    if (ev.clientX < rect.right - edge) return;
 
     ev.preventDefault();
     ev.stopPropagation();
 
-    startDrag(tableEl, grip, ev, o);
+    startDrag(tableEl, th, ev, o);
   });
 }
 
+/** 右边缘命中宽度（px）；参数 --nt-handle-w 是唯一来源，限制在 4~20。 */
+function handleHitWidth(th) {
+  const raw = parseFloat(getComputedStyle(th).getPropertyValue('--nt-handle-w'));
+  if (!Number.isFinite(raw)) return 7;
+  return Math.min(20, Math.max(4, raw));
+}
+
 /** 一次拖动的全过程 */
-function startDrag(tableEl, grip, downEv, o) {
-  const th = grip.closest('.nt-th');
+function startDrag(tableEl, th, downEv, o) {
   if (!th) return;
 
   // 进 B 模式：把当前各列的实际宽度固化，之后只改目标列
@@ -245,13 +256,12 @@ function startDrag(tableEl, grip, downEv, o) {
   const wrap = tableEl.closest('.nt-tablewrap');
   const prevOverflow = wrap ? wrap.style.overflowX : '';
 
-  grip.classList.add('dragging');
   th.classList.add('nt-col-dragging');
   document.body.classList.add('nt-col-resizing');
   if (wrap) wrap.style.overflowX = 'hidden';
 
-  // ① 指针捕获：手指移出手柄也继续收事件
-  try { grip.setPointerCapture(downEv.pointerId); } catch (e) { /* 忽略 */ }
+  // ① 指针捕获：手指移出列边缘也继续收事件
+  try { th.setPointerCapture(downEv.pointerId); } catch (e) { /* 忽略 */ }
 
   let width = startW;
   let raf = 0;
@@ -294,14 +304,13 @@ function startDrag(tableEl, grip, downEv, o) {
 
     if (raf) { cancelAnimationFrame(raf); flush(); }
 
-    grip.removeEventListener('pointermove', onMove);
-    grip.removeEventListener('pointerup', finish);
-    grip.removeEventListener('pointercancel', finish);
+    th.removeEventListener('pointermove', onMove);
+    th.removeEventListener('pointerup', finish);
+    th.removeEventListener('pointercancel', finish);
     window.removeEventListener('blur', finish);
 
-    try { grip.releasePointerCapture(downEv.pointerId); } catch (e) { /* 忽略 */ }
+    try { th.releasePointerCapture(downEv.pointerId); } catch (e) { /* 忽略 */ }
 
-    grip.classList.remove('dragging');
     th.classList.remove('nt-col-dragging');
     document.body.classList.remove('nt-col-resizing');
     if (wrap) wrap.style.overflowX = prevOverflow;
@@ -322,10 +331,10 @@ function startDrag(tableEl, grip, downEv, o) {
     if (o.onResize) o.onResize(tableEl, (th.dataset && th.dataset.col) || '', Math.round(width));
   };
 
-  // ② 绑在手柄自己身上
-  grip.addEventListener('pointermove', onMove);
-  grip.addEventListener('pointerup', finish);
-  grip.addEventListener('pointercancel', finish);
+  // ② 绑在表头上（指针已捕获，移出列也收得到）
+  th.addEventListener('pointermove', onMove);
+  th.addEventListener('pointerup', finish);
+  th.addEventListener('pointercancel', finish);
   window.addEventListener('blur', finish);
 }
 
