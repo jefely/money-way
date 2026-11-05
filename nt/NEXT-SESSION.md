@@ -1,6 +1,6 @@
 # NT 账本 · 新窗口快速启动 / 交接
 
-> 最后更新：2026-11-05 · `nt-v1.283` · `4f0b1ee`
+> 最后更新：2026-11-05 · `nt-v1.284` · `1021007`
 > 用途：在新会话 / 新窗口里，让另一个 agent 或未来的你快速接手 `D:\myproject\money-way`。
 
 ---
@@ -9,7 +9,7 @@
 
 ```text
 请先读 D:\myproject\money-way\nt\NEXT-SESSION.md，按里面的“当前基线”和“修改流程”继续。
-不要动 nt/js/core/mw-settings.js 里未提交的 25/200 改动，除非先问我。
+环图锥形默认值 25/200 已于 v1.284 正式提交（mw-params 测试同步更新，已重新纳入全量）。
 改完必须跑公约检查、提交、push，并确认 GitHub Pages 上的版本号真的变了。
 ```
 
@@ -79,33 +79,17 @@ NT 本地调试: http://127.0.0.1:8080/nt/index.html?debug=1
 
 | 项 | 值 |
 |---|---|
-| 版本 | `nt-v1.263` |
-| 最新提交 | `29215b5` |
-| 线上 | 已确认 `nt-v1.263`，Pages success |
-| 测试 | 53 个测试文件；**563 通过**（排除 `mw-params.test.mjs`） |
-| 公约 | `check-rules` 通过，257 个文件，300 行/文件 |
-| 工作区 | 只有 `nt/js/core/mw-settings.js` 有**未提交**改动 |
+| 版本 | `nt-v1.284` |
+| 最新提交 | 见文件头 |
+| 线上 | 已确认 `nt-v1.284` |
+| 测试 | 全部测试文件；**590 通过**（含 `mw-params.test.mjs`） |
+| 公约 | `check-rules` 通过，260 个文件，300 行/文件 |
+| 工作区 | 干净 |
 
-### 未提交的 `mw-settings.js` 是什么
+### `mw-settings.js` 的 25/200 已转正
 
-用户/上一轮把环图锥形默认值从 `23 / 172.5` 改成了 `25 / 200`：
-
-```js
-锥形第一档 def: 25
-锥形第二档 def: 200
-```
-
-但 `nt/tests/mw-params.test.mjs` 仍断言旧的 `23 / 172.5`，所以**全量测试会恰好失败这一条**。
-
-处理原则：
-
-- **不要主动提交、还原或覆盖它**，除非用户明确说“这个改动要”或“还原”。
-- 跑回归时用排除法：
-
-```powershell
-$files = Get-ChildItem nt\tests\*.mjs | Where-Object Name -ne 'mw-params.test.mjs' | ForEach-Object FullName
-node --test @files
-```
+环图锥形默认值 `25 / 200` 已在 v1.284 正式提交；`settings-schema.js` 的旧值迁移
+（46 → 25、115 → 200）和 `mw-params.test.mjs` 的断言同步更新，**该测试已重新纳入全量**。
 
 ---
 
@@ -167,7 +151,7 @@ $old = 'nt-v1.255'; $new = 'nt-v1.256'
 node -e "const fs=require('fs');for(const p of ['nt/js/core/version.js','nt/sw.js']){const b=fs.readFileSync(p);const a=Buffer.from(process.argv[1]);const c=Buffer.from(process.argv[2]);if(b.indexOf(a)<0)throw new Error('not found '+p);fs.writeFileSync(p,Buffer.concat([b.subarray(0,b.indexOf(a)),c,b.subarray(b.indexOf(a)+a.length)]))}" $old $new
 ```
 
-然后（**不要把 `nt/js/core/mw-settings.js` 加进去**，它是本地未提交改动）：
+然后：
 
 ```powershell
 node nt/tools/check-rules.mjs
@@ -344,8 +328,9 @@ node nt/tools/check-rules.mjs
 
 ## 9. 已知待办 / 风险
 
-1. **`mw-settings.js` 未提交**：环图锥形 25/200，`mw-params` 旧断言 23/172.5 冲突。先问用户是否要同步这条改动。
-2. **汇总页仍是旧 10 列口径**（当前余额 / 历史转出转入）；分类页已重做，汇总页是否统一还没定。
+1. ~~`mw-settings.js` 未提交~~ 已在 v1.284 转正（含锥形 25/200）。
+2. **汇总页已重做**（v1.279–v1.282）：按类型分组、本期余额、末尾期初余额、7 个金额列统一宽度、无数据行不显示。
+3. **饼图**：用户 2026-11 提过「汇总视图右侧显示饼图」，随后说「还没考虑好」——**不要主动做**，等他再提。
 3. **桌面三列布局**手机已验证，桌面 1180+ 建议再截一次图确认列宽。
 4. **负债负余额**现在显示「多还」；如果用户说某笔其实是欠款，要先查该账户流水方向，不要直接把公式翻正。
 5. **Pages 偶发卡部署**：空提交重触发；以线上版本号为准。
