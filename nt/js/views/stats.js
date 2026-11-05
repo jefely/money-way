@@ -47,13 +47,36 @@ export function mountStats(section, ctx) {
 
   /* ---------- 渲染 ---------- */
 
+  // 切月份 / 年份 / 区间只是重画表格，不该把用户滚到的位置弹回顶部（用户 2026-11）。
+  // 记下各滚动容器（三个分类面板 + 汇总）的位置，重画后放回去；
+  // 切换「分类 ↔ 汇总」时容器结构本来就变了，不恢复。
+  let lastCap = sel.cap;
+
   function render() {
+    const sameCap = sel.cap === lastCap;
+    lastCap = sel.cap;
+
+    const boxes = sameCap ? [...section.querySelectorAll('.nt-tablewrap')] : [];
+    const saved = boxes.map((b) => [b.scrollTop, b.scrollLeft]);
+    const gridEl = section.querySelector('#nt-stats-grid');
+    const gridLeft = gridEl ? gridEl.scrollLeft : 0;
+
     const state = ctx.getState();
     const range = currentRange();
     renderPills();
 
     if (sel.cap === 'summary') renderSummary(state, range);
     else renderCategory(state, range);
+
+    if (!sameCap) return;
+    const after = [...section.querySelectorAll('.nt-tablewrap')];
+    after.forEach((b, i) => {
+      const s = saved[i];
+      if (!s) return;
+      if (b.scrollTop !== s[0]) b.scrollTop = s[0];
+      if (b.scrollWidth > b.clientWidth && s[1]) b.scrollLeft = s[1];
+    });
+    if (gridEl) gridEl.scrollLeft = gridLeft;
   }
 
   function renderCategory(state, range) {
