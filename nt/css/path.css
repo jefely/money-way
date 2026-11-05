@@ -159,7 +159,8 @@
   justify-content: center;
   border: 0;
   background: transparent;
-  color: var(--nt-text-muted);
+  /* 展开态的长条三角也跟随主题对比色（白/黑） */
+  color: var(--nt-text);
   font-size: 11px;
   line-height: 1.1;
   writing-mode: vertical-rl;
@@ -174,7 +175,7 @@
 }
 
 .pw-rail:hover {
-  color: var(--nt-primary);
+  color: var(--nt-text);
   background: var(--nt-bg);
 }
 
@@ -562,7 +563,8 @@
   border: 0;
   border-radius: 5px;
   background: var(--nt-bg-soft);
-  color: var(--nt-text-muted);
+  /* 三角按钮用主题对比色（白/黑），不要主题彩色 —— 某些主题下彩色看着发红 */
+  color: var(--nt-text);
   font-size: 11px;
   line-height: 22px;
   text-align: center;
@@ -570,7 +572,7 @@
 }
 
 .pw-toggle:hover {
-  color: var(--nt-primary);
+  color: var(--nt-text);
   background: var(--nt-bg);
 }
 

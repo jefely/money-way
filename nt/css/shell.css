@@ -175,7 +175,8 @@ body {
   flex: 0 0 auto;
 }
 
-.nt-view[data-view="settings"] .nt-vbar .nt-btn {
+/* 设置页已搬进流水滑道，不再是独立 view；原来的 data-view=settings 选择器失效了 */
+[data-flow-page="settings"] .nt-vbar .nt-btn {
   flex: 0 0 auto;
 }
 

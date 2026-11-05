@@ -1005,6 +1005,12 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   .nt-flow-page[data-flow-page="flow"] { flex: 1 1 0; }
 }
 
+/* 流水 ⇄ 设置 的切换图标（⚙ / ◀）：用主题对比色（白/黑），不要主题彩色 */
+[data-nav="settings"],
+[data-nav="back"] {
+  color: var(--nt-text);
+}
+
 /* 两页之间的分割线：桌面可拖动调整左栏宽度（2026-11） */
 .nt-flow-split {
   position: absolute;
