@@ -7,7 +7,7 @@
  * 过滤逻辑在 core/query-engine.js（纯函数），本文件只负责界面与事件。
  */
 
-import { filterTransactions, queryTotals } from '../core/query-engine.js';
+import { filterTransactions, queryTotals, exactAccount } from '../core/query-engine.js';
 import { parseDateRange } from '../core/date-query.js';
 import { renderRows, renderEmpty } from '../ui/table.js';
 import { tpl } from '../ui/render-transactions.js';
@@ -41,6 +41,10 @@ export function mountQuery(section, ctx) {
           cond.dateFrom = r ? r.from : '';
           cond.dateTo = r ? r.to : '';
         } else {
+          // 转出 / 转入：简码打完就直接换成节点名字。
+          // 只认**精确**命中（名字全等或简码全等），片段匹配会把「招」
+          // 一路补成「招行储」，之后再做模糊搜索就没法打字了。
+          if (key === 'from' || key === 'to') fillAccountName(input, ctx);
           cond[key] = input.value;
         }
         render();
@@ -70,7 +74,7 @@ export function mountQuery(section, ctx) {
     // 传账户对象（不是名字）：这样「转出/转入」框里打简码也能筛到，
     // 与路径页那边用同一份匹配规则（core/query-engine 的 matchAccount）
     const hits = filterTransactions(
-      state.transactions, p.cond, (id) => (ctx.getIndex().byId.get(id) || null),
+      state.transactions, effectiveCond(p.cond, state), (id) => (ctx.getIndex().byId.get(id) || null),
     );
     const rows = hits.map((t, i) => ({
       seq: i + 1,
@@ -115,6 +119,44 @@ function paintSeq(tr, row) {
   const missing = row.tone === 'missing';
   seq.classList.add(missing ? 'nt-seq-missing' : 'nt-seq-untyped');
   seq.title = missing ? '缺转出或转入' : '节点还没定类型';
+}
+
+/**
+ * 转出框里打完简码 → 直接显示节点名字（用户 2026-11）。
+ *
+ * 只在**精确**命中时替换：名字全等或简码全等。这样「ZHC」会变成「招行储」，
+ * 而「招」保持原样继续做模糊匹配 —— 否则每打一个字就被补全，没法搜。
+ */
+function fillAccountName(input, ctx) {
+  const acc = exactAccount(ctx.getState().accounts, input.value);
+  if (!acc) return;
+  const name = String(acc.name || '');
+  if (!name || name === input.value) return;
+  input.value = name;
+  // 程序赋值不会触发 input，光标也不会自动跟到末尾，这里补一下
+  try { input.setSelectionRange(name.length, name.length); } catch (e) { /* 忽略 */ }
+}
+
+/**
+ * 转出、转入填了**同一个节点** → 改成「该节点作为转出方或转入方」。
+ *
+ * 两栏都填同一个名字时，按「与」去筛永远是 0 行（一笔流水不可能自己转给自己），
+ * 而那正是用户想看的「这个节点的转出 + 转入」。写法不同但指向同一账户
+ * （一个打名字一个打简码）也算同一个节点。
+ */
+function effectiveCond(cond, state) {
+  const from = String(cond.from || '').trim();
+  const to = String(cond.to || '').trim();
+  if (!from || !to) return cond;
+
+  let same = from === to;
+  if (!same) {
+    const a = exactAccount(state.accounts, from);
+    const b = exactAccount(state.accounts, to);
+    same = !!(a && b && a.id === b.id);
+  }
+  if (!same) return cond;
+  return { ...cond, from: '', to: '', node: from };
 }
 
 function hasCond(c) {

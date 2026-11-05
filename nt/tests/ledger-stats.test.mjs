@@ -17,7 +17,7 @@ import {
   summariesForAccounts,
   STAT_TYPE_ORDER,
 } from '../js/core/ledger-stats.js';
-import { filterTransactions, queryTotals, matchAccount } from '../js/core/query-engine.js';
+import { filterTransactions, queryTotals, matchAccount, exactAccount } from '../js/core/query-engine.js';
 
 const ACC = {
   bank: { id: 'a1', code: 'ZHC', name: '招行储', type: '资产类', category: '储蓄' },
@@ -200,4 +200,56 @@ test('filterTransactions：传账户对象时能用简码筛（查询页就是�
 
   const none = filterTransactions(TX, { from: 'XJ' }, accOf);
   assert.equal(none.length, 0);
+});
+
+/* ---------- 简码 → 节点名（精确匹配） ---------- */
+
+test('exactAccount：名字全等 / 简码全等才算，片段不算', () => {
+  const accs = [
+    { id: 'a1', name: '招行储', code: 'ZHC' },
+    { id: 'a2', name: '餐饮', code: 'CY' },
+  ];
+  assert.equal(exactAccount(accs, 'ZHC').id, 'a1');
+  assert.equal(exactAccount(accs, 'zhc').id, 'a1', '简码不区分大小写');
+  assert.equal(exactAccount(accs, '招行储').id, 'a1');
+  assert.equal(exactAccount(accs, '招行'), null, '片段不能触发自动补全');
+  assert.equal(exactAccount(accs, 'ZH'), null);
+  assert.equal(exactAccount(accs, ''), null);
+  assert.equal(exactAccount(accs, '不存在'), null);
+  // 重名/重码时不猜：返回 null（调用方保持用户输入原样）
+  assert.equal(exactAccount([{ id: 'x', name: '现金' }, { id: 'y', name: '现金' }], '现金'), null);
+});
+
+/* ---------- 同一个节点：转出 + 转入一起看 ---------- */
+
+test('node 条件：该节点作为转出方**或**转入方都算', () => {
+  const byNode = filterTransactions(TX, { node: '招行储' }, labelOf);
+  // 招行储参与 4 笔：opening→招行储、工资→招行储、招行储→餐饮、招行储→信卡
+  assert.equal(byNode.length, 4);
+  assert.ok(byNode.every((t) => t.from_id === 'a1' || t.to_id === 'a1'));
+
+  // 不同节点仍是「与」：招行储 转出、餐饮 转入 = 只有一笔
+  const pair = filterTransactions(TX, { from: '招行储', to: '餐饮' }, labelOf);
+  assert.equal(pair.length, 1);
+  assert.equal(pair[0].amount, 200);
+});
+
+test('node 条件 + 日期区间：只留区间内（空区间 = 全部）', () => {
+  const feb = filterTransactions(TX, { node: '招行储', dateFrom: '2026-02-01', dateTo: '2026-02-28' }, labelOf);
+  assert.equal(feb.length, 2, '2 月内招行储转出两笔');
+  assert.deepEqual(feb.map((t) => t.amount), [200, 300]);
+
+  const all = filterTransactions(TX, { node: '招行储', dateFrom: '', dateTo: '' }, labelOf);
+  assert.equal(all.length, 4, '不给日期 = 该节点全部流水');
+});
+
+test('查询结果按日期升序（同一天保持原顺序）', () => {
+  const shuffled = [
+    { from_id: 'a1', to_id: 'a2', amount: 2, date: '2026-03-01' },
+    { from_id: 'a1', to_id: 'a2', amount: 1, date: '2026-01-01' },
+    { from_id: 'a1', to_id: 'a2', amount: 3, date: '2026-03-01' },
+  ];
+  const hits = filterTransactions(shuffled, { node: '招行储' }, labelOf);
+  assert.deepEqual(hits.map((t) => t.date), ['2026-01-01', '2026-03-01', '2026-03-01']);
+  assert.deepEqual(hits.map((t) => t.amount), [1, 2, 3], '同一天保持录入顺序');
 });
