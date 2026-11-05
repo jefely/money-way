@@ -1011,12 +1011,13 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
    否则鼠标一碰就变红。 */
 .nt-flow-page .nt-vbar [data-nav="settings"],
 .nt-flow-page .nt-vbar [data-nav="back"] {
-  width: 34px;
-  height: 32px;
+  /* 原来 28×26 / 12px，上一版做成 34×32 / 20px 偏大，取中间值 */
+  width: 31px;
+  height: 29px;
   padding: 0;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
-  line-height: 30px;
+  line-height: 27px;
   color: var(--nt-text);
   background: transparent;
 }
