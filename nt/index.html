@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="./css/gate.css">
   <link rel="stylesheet" href="./css/shell.css">
   <link rel="stylesheet" href="./css/query.css">
+  <link rel="stylesheet" href="./css/stats.css">
   <link rel="stylesheet" href="./css/validate.css">
   <link rel="stylesheet" href="./css/thanks.css">
   <link rel="stylesheet" href="./css/plan.css">
@@ -92,7 +93,33 @@
           </div>
         </div>
         <div class="nt-pills" id="nt-stats-pills" hidden></div>
-        <div class="nt-tablewrap">
+        <div class="nt-stats-grid" id="nt-stats-grid">
+          <section class="nt-stats-panel" data-kind="stock">
+            <div class="nt-stats-panel-head">
+              <b>存量 · 资产 / 负债 / 权益</b>
+              <span>期初 → 本期 → 期末 · 负债按正数欠款</span>
+            </div>
+            <div class="nt-tablewrap">
+              <table class="nt-table nt-table-stock" id="nt-stats-stock">
+                <thead></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="nt-stats-panel" data-kind="flow">
+            <div class="nt-stats-panel-head">
+              <b>流量 · 收入 / 费用 / 成本</b>
+              <span>只看本期 · 收入/支出已扣退回</span>
+            </div>
+            <div class="nt-tablewrap">
+              <table class="nt-table nt-table-flow" id="nt-stats-flow">
+                <thead></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+        <div class="nt-tablewrap" id="nt-stats-summary-wrap" hidden>
           <table class="nt-table nt-table-stats" id="nt-stats-table">
             <thead id="nt-stats-head"></thead>
             <tbody id="nt-stats-body"></tbody>

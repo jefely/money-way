@@ -7,10 +7,11 @@
  * 本文件只负责「取范围 → 调核心 → 套模板 → 写页脚」，不算钱。
  */
 
-import { categoryGroups, accountRows } from '../core/ledger-stats.js';
+import { accountRows } from '../core/ledger-stats.js';
 import { buildHead, renderMixed, renderEmpty } from '../ui/table.js';
 import { mountCellRange } from '../ui/cell-range.js';
 import { money } from '../core/format.js';
+import { paintCategoryPanels } from '../ui/stats-category.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 
@@ -32,6 +33,8 @@ export function mountStats(section, ctx) {
   const body = section.querySelector('#nt-stats-body');
   // 分类视图 8 列、汇总视图 10 列，列宽完全不同 —— 用类区分，别让 nth-child 互相踩
   const table = section.querySelector('#nt-stats-table');
+  const grid = section.querySelector('#nt-stats-grid');
+  const summaryWrap = section.querySelector('#nt-stats-summary-wrap');
 
   bindCaps();
   bindScope();
@@ -54,65 +57,15 @@ export function mountStats(section, ctx) {
   }
 
   function renderCategory(state, range) {
-    if (table) { table.classList.add('is-cat'); table.classList.remove('is-sum'); }
-
-    buildHead(thead, [
-      { label: '序', cls: 'nt-c-seq', col: 'seq' },
-      { label: '分类', cls: 'nt-c-cat', col: 'cat' },
-      { label: '转出金额', cls: 'nt-c-num', col: 'out' },
-      { label: '转入金额', cls: 'nt-c-num', col: 'iin' },
-      { label: '当前余额', cls: 'nt-c-num', col: 'balance' },
-      { label: '历史转出', cls: 'nt-c-num', col: 'histOut' },
-      { label: '历史转入', cls: 'nt-c-num', col: 'histIn' },
-      { label: '历史结余', cls: 'nt-c-num', col: 'histBalance' },
-    ]);
-
-    const groups = categoryGroups(state.accounts, state.transactions, range);
-    const items = [];
-    let seq = 0;
-    let catCount = 0;
-
-    for (const g of groups) {
-      for (const c of g.categories) {
-        seq += 1;
-        catCount += 1;
-        items.push({
-          tplId: 'tpl-stat-cat',
-          data: {
-            seq,
-            category: c.category,
-            out: money(c.periodOut),
-            iin: money(c.periodIn),
-            balance: money(c.balance),
-            histOut: money(c.historyOut || 0),
-            histIn: money(c.historyIn || 0),
-            histBalance: money(c.historyBalance || 0),
-          },
-        });
-      }
-      // 每组自动跟一行合计：格式固定为 tpl-stat-total（序+分类合并格 + 6 个金额列）。
-      // 新出现的类型/分类走的是同一条路径，不需要手工加行（用户 2026-10-30）。
-      items.push({
-        tplId: 'tpl-stat-total',
-        data: {
-          label: `${g.type}合计`,
-          out: money(g.total.periodOut),
-          iin: money(g.total.periodIn),
-          balance: money(g.total.balance),
-          histOut: money(g.total.historyOut || 0),
-          histIn: money(g.total.historyIn || 0),
-          histBalance: money(g.total.historyBalance || 0),
-        },
-      });
-    }
-
-    if (!items.length) renderEmpty(body, '这段时间没有数据', 8);
-    else renderMixed(body, items);
-
-    ctx.setFooter(`${catCount} 个分类 · ${visibleCount(state)} 个节点 · ${scopeLabel()}`);
+    if (grid) grid.hidden = false;
+    if (summaryWrap) summaryWrap.hidden = true;
+    const r = paintCategoryPanels(grid, state, range);
+    ctx.setFooter(`${r.categories} 个分类 · ${visibleCount(state)} 个节点 · ${scopeLabel()}`);
   }
 
   function renderSummary(state, range) {
+    if (grid) grid.hidden = true;
+    if (summaryWrap) summaryWrap.hidden = false;
     if (table) { table.classList.add('is-sum'); table.classList.remove('is-cat'); }
 
     // 列顺序按核对过的设计：账户名称 · 序号 · 类型 · 分类 · 转出 · 转入 · 当前余额 · 历史 ×3

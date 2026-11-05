@@ -157,9 +157,53 @@ export function categoryGroups(accounts, transactions, range) {
   return groups;
 }
 
+const STOCK_TYPES = new Set(['资产类', '负债类', '权益类']);
+
+/** 分类统计要的口径：存量看期初/本期增减/期末；流量只看本期发生与净额。 */
+function periodView(row, type) {
+  const debit = isDebitType(type);
+  if (STOCK_TYPES.has(type)) {
+    const opening = Number(row.historyBalance) || 0;
+    const increase = debit ? row.periodIn : row.periodOut;
+    const decrease = debit ? row.periodOut : row.periodIn;
+    return { ...row, kind: 'stock', opening, increase, decrease, end: opening + increase - decrease };
+  }
+  // 收入：转出是收入、转入是退回；费用/成本：转入是支出、转出是退回。
+  const gross = debit ? row.periodIn : row.periodOut;
+  const reverse = debit ? row.periodOut : row.periodIn;
+  return { ...row, kind: 'flow', gross, reverse, net: gross - reverse };
+}
+
+/**
+ * 分类统计拆成左右两块：
+ *   stock —— 资产 / 负债 / 权益（期初、本期增加、本期减少、期末；负债为正数欠款）
+ *   flow  —— 收入 / 费用 / 成本（本期发生、本期退回、净额；没有余额概念）
+ * 分类按「期末绝对值 / 净额绝对值」降序，重点在前。
+ */
+export function categoryPanels(accounts, transactions, range) {
+  const groups = categoryGroups(accounts, transactions, range);
+  const out = { stock: [], flow: [] };
+  for (const g of groups) {
+    const stock = STOCK_TYPES.has(g.type);
+    const categories = g.categories
+      .map((c) => periodView(c, g.type))
+      .filter((c) => (stock
+        ? (c.opening || c.increase || c.decrease || c.end)
+        : (c.gross || c.reverse || c.net)))
+      .sort((a, b) => (stock ? Math.abs(b.end) - Math.abs(a.end) : Math.abs(b.net) - Math.abs(a.net)));
+    // 整类都是 0 的不占一行：分类统计只看“有金额”的分类，空壳留给汇总视图看。
+    if (!categories.length) continue;
+    out[stock ? 'stock' : 'flow'].push({
+      ...g,
+      total: periodView(g.total, g.type),
+      categories,
+    });
+  }
+  return out;
+}
+
 /** 汇总视图：每个账户一行，按 类型 → 分类 → 名称 排序。 */
-export function accountRows(accounts, transactions, range) {
-  const summaries = summariesForAccounts(accounts, transactions, range);
+export function accountRows(accounts, transactions, range) {  const summaries = summariesForAccounts(accounts, transactions, range);
   return summaries.slice().sort((a, b) => {
     const d = typeIndex(a.acc.type) - typeIndex(b.acc.type);
     if (d) return d;

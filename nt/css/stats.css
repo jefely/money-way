@@ -1,0 +1,125 @@
+/* 分类统计：左侧存量 / 右侧流量两块。
+   桌面并排；手机一屏一块，横向滑动吸附（和流水查询表同一套交互）。 */
+
+.nt-stats-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  border-top: 1px solid var(--nt-bg-line);
+}
+
+.nt-stats-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid var(--nt-bg-line);
+  background: var(--nt-bg);
+}
+
+.nt-stats-panel:last-child {
+  border-right: 0;
+}
+
+.nt-stats-panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--nt-bg-line);
+  background: var(--nt-bg-soft);
+}
+
+.nt-stats-panel-head b {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.nt-stats-panel-head span {
+  font-size: 10px;
+  color: var(--nt-text-muted);
+}
+
+.nt-stats-panel .nt-tablewrap {
+  flex: 1;
+  min-height: 0;
+}
+
+.nt-table-stock,
+.nt-table-flow {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 0;
+}
+
+.nt-table-stock .nt-th,
+.nt-table-flow .nt-th {
+  height: var(--nt-th-h-cat, 26px);
+  padding: 0 5px;
+  font-size: 11px;
+}
+
+.nt-table-stock .nt-cell,
+.nt-table-flow .nt-cell {
+  height: var(--nt-row-h-cat, 32px);
+  padding: 0 5px;
+  font-size: 12px;
+}
+
+.nt-table-stock .nt-cell-num,
+.nt-table-flow .nt-cell-num {
+  text-align: right;
+}
+
+.nt-table-stock .nt-cell:nth-child(2),
+.nt-table-flow .nt-cell:nth-child(2) {
+  text-align: center;
+}
+
+/* 分类 | 节点 | 期初 | 本期增加 | 本期减少 | 期末 */
+.nt-table-stock .nt-th:nth-child(1) { width: 24%; }
+.nt-table-stock .nt-th:nth-child(2) { width: 9%; }
+.nt-table-stock .nt-th:nth-child(3) { width: 17%; }
+.nt-table-stock .nt-th:nth-child(4) { width: 17%; }
+.nt-table-stock .nt-th:nth-child(5) { width: 17%; }
+.nt-table-stock .nt-th:nth-child(6) { width: 16%; }
+
+/* 分类 | 节点 | 本期收入/支出 | 本期退回 | 净额 */
+.nt-table-flow .nt-th:nth-child(1) { width: 30%; }
+.nt-table-flow .nt-th:nth-child(2) { width: 10%; }
+.nt-table-flow .nt-th:nth-child(3) { width: 22%; }
+.nt-table-flow .nt-th:nth-child(4) { width: 19%; }
+.nt-table-flow .nt-th:nth-child(5) { width: 19%; }
+
+.nt-table-stock .nt-row-total .nt-cell,
+.nt-table-flow .nt-row-total .nt-cell {
+  font-weight: 700;
+  background: var(--nt-bg-soft);
+}
+
+/* 窄屏：一屏一块，左右滑动；和 query.css 的查询面板同一套手势 */
+@media (max-width: 900px) {
+  .nt-stats-grid {
+    display: flex;
+    flex-direction: row;
+    grid-template-columns: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  .nt-stats-panel {
+    flex: 0 0 100%;
+    min-width: 0;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    border-right: 1px solid var(--nt-bg-line);
+  }
+
+  .nt-stats-panel .nt-tablewrap {
+    overflow-x: hidden;
+  }
+}
