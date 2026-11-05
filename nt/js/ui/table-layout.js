@@ -214,22 +214,35 @@ export function mountResize(tableEl, opts) {
   if (tableEl.dataset.resizeBound === '1') return;
   tableEl.dataset.resizeBound = '1';
 
-  // 右边缘 7px 算拖动手柄（宽度可由参数 --nt-handle-w 调）。
-  // 不再在 th 里放一块 7/14px 宽的命中层：透明层会盖住列标文字，
-  // 列越窄盖掉的比例越大 —— 这正是「右边多出一块遮盖」的根因。
+  // 命中区以列边界为中线，左右各 --nt-handle-w（默认 14px）：
+  // 手指压在线上时 event.target 可能落到右边那一列，若只按「目标 th 的右边缘」
+  // 判定，右边那列的 x 在它左边缘，永远不满足 —— 这就是「手柄压在线上拖不动」。
   tableEl.addEventListener('pointerdown', (ev) => {
-    const th = ev.target.closest && ev.target.closest('.nt-th');
-    if (!th) return;
+    const hit = ev.target.closest && ev.target.closest('.nt-th');
+    if (!hit) return;
     if (ev.button !== 0 && ev.pointerType === 'mouse') return;
-    const rect = th.getBoundingClientRect();
-    const edge = handleHitWidth(th);
-    if (ev.clientX < rect.right - edge) return;
+
+    const th = edgeTarget(hit.parentNode, ev.clientX, handleHitWidth(hit));
+    if (!th) return;
 
     ev.preventDefault();
     ev.stopPropagation();
 
     startDrag(tableEl, th, ev, o);
   });
+}
+
+/** 在表头行里找离 clientX 最近、且在 ±edge 内的列右边界（返回该列表头）。 */
+function edgeTarget(row, x, edge) {
+  if (!row) return null;
+  let best = null;
+  for (const cell of row.children) {
+    if (!cell || !cell.classList || !cell.classList.contains('nt-th')) continue;
+    const r = cell.getBoundingClientRect();
+    const d = Math.abs(x - r.right);
+    if (d <= edge && (!best || d < best.d)) best = { cell, d };
+  }
+  return best ? best.cell : null;
 }
 
 /** 右边缘命中宽度（px）；参数 --nt-handle-w 是唯一来源，限制在 4~20。 */

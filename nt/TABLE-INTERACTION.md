@@ -482,16 +482,20 @@ body.nt-col-resizing {
 }
 ```
 
-### 4.2 判定：th 右边缘 `--nt-handle-w`（默认 14px）
+### 4.2 判定：列边界左右各 `--nt-handle-w`（默认 14px）
 
 ```js
-const rect = th.getBoundingClientRect();
-const edge = Number(getComputedStyle(th).getPropertyValue('--nt-handle-w')) || 14;
-if (ev.clientX < rect.right - edge) return;   // 不在右边缘，是普通点选
+const hit = ev.target.closest('.nt-th');
+if (!hit) return;
+const edge = Number(getComputedStyle(hit).getPropertyValue('--nt-handle-w')) || 14;
+// 在整行表头里找离 clientX 最近、且距离 <= edge 的列右边界
+const th = edgeTarget(hit.parentNode, ev.clientX, edge);
+if (!th) return;   // 不在任何列边界附近，是普通点选
 ```
 
-命中区在 `th` 上判定，**不要**再放一块透明 span 做命中：透明块会盖住列标文字，
-窄列时「能显示的字」和「能拖的区域」互相抢宽度 —— 这是 2026-11 反复出现的根因。
+**必须以边界为中线、左右都算**：手指压在线上时 `event.target` 可能落到**右边那一列**，
+它的 `clientX` 在左边缘，按「目标 th 右边缘 − 14」永远不成立 —— 这正是 2026-11
+「手柄压在线上拖不动」的原因。现在按坐标扫描整行边界，碰到左列、右列都能选中同一条边界。
 
 ### 4.3 事件绑定：委托，只绑一次
 
@@ -792,9 +796,10 @@ pointer-events: none;
 ```
 
 跨出去以后，按右键时 `event.target.closest('.nt-th')` 拿到的是**右边那一列**，
-如果判定又依赖坐标（`clientX >= 那一列.right - 7`），条件不成立 → **直接 return，拖不动**。
+所以命中判定不能只看「目标 th 的右边缘」，要按坐标扫描整行边界（§4.2）——
+左右各 14px 都算，压在线上也能选中同一条边界。
 
-**加宽只能往左加（命中区），不能把可视线或透明层往右跨边界。**
+**可视线不能跨边界；命中区可以左右跨，因为它只是坐标判定，不占布局、不盖文字。**
 
 ### 5.11 拖动的宽度写入要用 rAF 合并
 
