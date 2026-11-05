@@ -78,20 +78,43 @@ function groupTitle(type) {
 }
 
 /**
- * 每组合计一张独立小表：表头 + 合计行 + 该组分类行。
+ * 每组合计一张独立小表：合计行 + 表头 + 该组分类行。
  *
  * 为什么不用一张大表：用户要的是「每个合计一张表，表与表之间空一行」，
  * 这样资产/负债/权益各自成块，一眼能分清；共用一张表只能靠合并行动画式地区分。
- * 每张小表自带表头，所以面板上原来那两行说明文字也删掉了。
+ *
+ * 合计行为什么放在 thead 的**第一行**（而不是 tbody 里）：
+ *   用户 2026-11 要求它压在表头上面。HTML 的 thead 永远渲染在 tbody 之前，
+ *   所以把合计行放进 thead 的第一行才能「在表头上边」。
+ *   它用 <td> 而不是 <th>：拖列宽 / 列宽参数认的是 `thead .nt-th`，
+ *   用 th 会变成 12 个表头、列宽数组错位。
+ *   第一行也正好是 table-layout:fixed 用来定列宽的那一行，6 个 td 对应 6 列。
  */
 function buildGroupTable(g, kind) {
   const cols = HEAD[kind];
   const stock = kind === 'stock';
+  const t = g.total || {};
 
   const table = document.createElement('table');
   table.className = 'nt-table ' + (stock ? 'nt-table-stock' : 'nt-table-sflow');
 
   const thead = document.createElement('thead');
+
+  // ① 合计行（普通底色、加粗但字号小一号，突出下面的表头）
+  const totalRow = document.createElement('tr');
+  totalRow.className = 'nt-stats-total-row';
+  const totalCells = stock
+    ? [
+      groupTitle(g.type),
+      '', stockAmount(t.opening, g.type), moneyAlways(t.increase), moneyAlways(t.decrease), stockAmount(t.end, g.type),
+    ]
+    : [groupTitle(g.type), '', moneyAlways(t.gross), moneyAlways(t.reverse), moneyAlways(t.net)];
+  totalCells.forEach((c, i) => {
+    totalRow.appendChild(makeCell(c, i === 0 ? 'nt-cell-total-title' : 'nt-cell-num'));
+  });
+  thead.appendChild(totalRow);
+
+  // ② 表头行
   const headRow = document.createElement('tr');
   for (const [label, col] of cols) {
     const th = document.createElement('th');
@@ -105,16 +128,6 @@ function buildGroupTable(g, kind) {
   table.appendChild(thead);
 
   const tbody = document.createElement('tbody');
-  const t = g.total || {};
-  // 合计行紧贴表头下面（用户 2026-11），不是放在分类行后面
-  const totalCells = stock
-    ? [
-      groupTitle(g.type),
-      stockAmount(t.opening, g.type), moneyAlways(t.increase), moneyAlways(t.decrease), stockAmount(t.end, g.type),
-    ]
-    : [groupTitle(g.type), moneyAlways(t.gross), moneyAlways(t.reverse), moneyAlways(t.net)];
-  tbody.appendChild(makeRow(totalCells, true, 2));
-
   for (const c of g.categories) {
     const cells = stock
       ? [
