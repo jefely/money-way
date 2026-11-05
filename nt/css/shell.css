@@ -728,28 +728,12 @@ body.nt-col-resizing .nt-tablewrap {
 /* ---------- 流水记录（8 列：序 · 日期 · 转出 · 转入 · 金额 · 备注 · 固定 · 删除） ---------- */
 
 /* 表宽由各列之和决定（见 .nt-table 的 width:auto），不再给表级 min-width ——
-   表级 min-width 大于列宽之和时会把整表按比例拉大，每列调好的 px 全被放大。 */
+   表级 min-width 大于列宽之和时会把整表按比例拉大，每列调好的 px 全被放大。
 
-/* 流水表**没拖过列宽时铺满容器**（列宽按比例放大）；
-   拖过之后由 .nt-table.cols-custom 切成 width:max-content = 列宽之和。
-   判定在 ui/apply-settings.js 的 syncColModes：参数 ≠ 默认值 = 拖过。
-   为什么不做成 min-width:100%：那会把拖出来的 px 重新按比例放大，
-   等于「调好的列宽白调」—— 这正是用户 2026-11 报的「重新打开就丢」。 */
-.nt-table-flow {
-  width: 100%;
-}
-
-/* 窄屏还要再退一步：px 列宽之和（644px）比手机屏宽，table-layout:fixed 会把
-   表格撑到列宽和 —— 8 列放不进一屏，删除按钮要横滑才看得到。
-   没自定义过时按旧版的百分比压进一屏（和 v1.255 的观感一致）；
-   拖过之后 :not(.cols-custom) 不匹配，仍然按参数 px 排。 */
-@media (max-width: 900px) {
-  .nt-table-flow:not(.cols-custom) .nt-th:nth-child(1) { width: 30%; }
-  .nt-table-flow:not(.cols-custom) .nt-th:nth-child(2) { width: 10%; }
-  .nt-table-flow:not(.cols-custom) .nt-th:nth-child(3) { width: 22%; }
-  .nt-table-flow:not(.cols-custom) .nt-th:nth-child(4) { width: 19%; }
-  .nt-table-flow:not(.cols-custom) .nt-th:nth-child(5) { width: 19%; }
-}
+   流水表**不再铺满容器**（用户 2026-11：打开时各列被分散拉开、占满窗口，
+   根本不是调好的列宽）。表宽 = 8 列之和（默认 688px），窗口更宽时右侧留白；
+   想看更宽就拖列宽，拖完写进参数、重开还原（.cols-custom 也是 max-content）。
+   窄屏也是同一套：列宽之和比屏宽就横滑，不再按百分比压缩。 */
 
 .nt-table-flow .nt-th:nth-child(1) { width: var(--nt-col-flow-seq, 54px); }
 .nt-table-flow .nt-th:nth-child(2) { width: var(--nt-col-flow-date, 84px); }
