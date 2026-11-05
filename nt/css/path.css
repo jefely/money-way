@@ -398,7 +398,7 @@
   gap: 6px;
   /* 高度与工具条（.nt-vbar）统一（用户 2026-11） */
   padding: 2px 10px;
-  min-height: max(var(--nt-vbar-h, 30px), calc(var(--nt-btn-h, 26px) + 4px));
+  min-height: max(var(--nt-vbar-h, 36px), calc(var(--nt-btn-h, 26px) + 4px));
   /* 按钮行统一用工具条背景 */
   background: var(--nt-vbar-bg, transparent);
 }
