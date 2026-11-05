@@ -959,8 +959,15 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
       var(--nt-primary) 55%,
       var(--nt-primary-dark, var(--nt-primary)) 100%);
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.42), 0 2px 6px rgba(0, 0, 0, 0.3);
+  /* 键盘弹出时是「平滑上浮」而不是被挤一下；
+     拖动过程中用 .dragging 关掉过渡，跟手才不迟滞 */
   transition: width 0.22s ease, padding 0.22s ease, border-radius 0.22s ease,
-    background 0.22s ease, box-shadow 0.22s ease;
+    background 0.22s ease, box-shadow 0.22s ease,
+    bottom 0.18s ease, right 0.18s ease;
+}
+
+.nt-composer.dragging {
+  transition: none;
 }
 
 .nt-composer.open {

@@ -128,6 +128,7 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     drag.moved = false;
     drag.sx = ev.clientX;
     drag.sy = ev.clientY;
+    bar.classList.add('dragging');
     // 以**圆钮**的位置为基准：这样展开时拖到哪，收起后气泡就停在同一个地方
     const r = btn.getBoundingClientRect();
     drag.sr = window.innerWidth - r.right;
@@ -151,6 +152,7 @@ export function mountComposer(section, ctx, rowHost, refresh) {
   btn.addEventListener('pointerup', (ev) => {
     if (!drag.active) return;
     drag.active = false;
+    bar.classList.remove('dragging');
     try { btn.releasePointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
     if (!drag.moved) return;                 // 没移动 = 普通点击（click 会处理）
     suppressClick = true;                    // 拖完不要再当成点击
@@ -165,7 +167,10 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     } catch (e) { /* 忽略 */ }
   });
 
-  btn.addEventListener('pointercancel', () => { drag.active = false; });
+  btn.addEventListener('pointercancel', () => {
+    drag.active = false;
+    bar.classList.remove('dragging');
+  });
 
   // 点击三态：收起 → 展开；展开且空 → 收起；展开且有字 → 发送
   btn.addEventListener('click', () => {
