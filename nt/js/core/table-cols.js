@@ -27,19 +27,24 @@ export const TABLE_COLS = {
   // 存量 / 流量 / 分类查询三块之后，那张表就再没人渲染了（is-cat 从来不加），
   // 于是拖它们的列宽既不保存、也没法恢复。现在每块一份参数。
   //
-  // growByWidth = 默认让 CSS 的百分比把表铺满容器；一旦用户拖过列宽，
-  // 整表变成固定 px（见 app.js 的 syncColModes）。所以默认宽度全是 0，
-  // 0 在这里表示「不写变量，交给 CSS 兜底」，不是「零宽」。
+  // fill = 和流水表同一种语义：参数等于默认值时走默认布局，拖过之后整表按 px 固定
+  // （见 ui/apply-settings 的 syncColModes）。
+  // 存量/流量 2026-11 改成固定 px 默认值 —— 用户按自己手机调好后给的：
+  // 金额列 105/102/111 才放得下「¥1,234.56」不被截断。
   stock: {
     label: '分类存量',
     screen: 'stats',
-    growByWidth: true,
+    fill: true,
+    // 不参与旧存档「默认列宽」的按列名迁移：这三个表是 2026-11 新拆出来的，
+    // 旧的那份全局列宽里抽出来的值会盖掉用户这次给的默认值。
+    noLegacy: true,
     cols: ['seq', 'cat', 'opening', 'increase', 'decrease', 'end'],
   },
   sflow: {
     label: '分类流量',
     screen: 'stats',
-    growByWidth: true,
+    fill: true,
+    noLegacy: true,
     cols: ['seq', 'cat', 'gross', 'reverse', 'net'],
   },
   catq: {
@@ -98,10 +103,12 @@ export const TABLE_SCREENS = Object.fromEntries(
  * 改动前请先确认列数没变 —— 数组长度必须等于 TABLE_COLS[表].cols.length。
  */
 export const TABLE_DEFAULT_WIDTHS = {
-  flow: '44,84,112,112,96,116,40,40',
-  // 统计三块：0 = 铺满（CSS 的百分比兜底），拖过之后才写 px。见 stock 的说明。
-  stock: '0,0,0,0,0,0',
-  sflow: '0,0,0,0,0',
+  // 备注从 116 加到 160（用户 2026-11：备注常被截断）
+  flow: '44,84,112,112,96,160,40,40',
+  // 统计三块：存量/流量 2026-11 改成固定 px（用户调好的）；
+  // catq 仍是 0 = 交给 CSS 百分比铺满。
+  stock: '40,75,105,105,105,105',
+  sflow: '40,62,102,111,111',
   catq: '0,0,0,0,0',
   sum: '110,44,72,76,84,84,100,90,90,96',
   query: '44,0,0,0,0,0',

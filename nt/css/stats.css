@@ -68,9 +68,9 @@
 .nt-table-stock,
 .nt-table-sflow {
   table-layout: fixed;
-  /* 默认铺满一栏（三块表并排，每栏都是 1fr）；拖过列宽之后由
-     .cols-custom 改成 width: max-content = 列宽之和。 */
-  width: 100%;
+  /* 列宽是固定 px（默认值见 core/table-cols.js），表宽 = 各列之和。
+     这里**不能**写 width:100% —— 那会把 px 列按比例放大，用户给的宽度就失效了。 */
+  width: max-content;
   min-width: 0;
 }
 

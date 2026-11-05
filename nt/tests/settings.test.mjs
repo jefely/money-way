@@ -61,12 +61,15 @@ test('迁移不会把「自适应列」写成固定宽度', () => {
   assert.ok(path.every((w) => w > 0), '路径表不应再有 0 = 自适应');
   assert.deepEqual(path, [44, 62, 110, 110, 68, 120]);
 
-  // 统计三块表默认是「百分比铺满」，旧的那份按列名迁移过来的宽度
-  // 会让它们升级后突然变成固定 px、不再铺满 —— 必须保持全 0。
-  for (const t of ['stock', 'sflow', 'catq']) {
-    const w = parseTableWidths(n[TABLE_COLS[t].label + '/列宽'], t);
-    assert.ok(w.every((x) => x === 0), `${t} 不该被旧的「默认列宽」迁移成 px`);
-  }
+  // 统计三块表 2026-11 有自己的默认值：存量/流量是固定 px，分类查询仍是 0。
+  // 三块都不能被旧的「默认列宽」按列名迁移 —— 否则用户这次给的默认值会被旧值盖掉。
+  const stockDef = TABLE_DEFAULT_WIDTHS.stock.split(',').map(Number);
+  assert.deepEqual(parseTableWidths(n['分类存量/列宽'], 'stock'), stockDef);
+  const flowDef = TABLE_DEFAULT_WIDTHS.sflow.split(',').map(Number);
+  assert.deepEqual(parseTableWidths(n['分类流量/列宽'], 'sflow'), flowDef);
+
+  const q = parseTableWidths(n['分类查询/列宽'], 'catq');
+  assert.ok(q.every((x) => x === 0), '分类查询仍该是 0（百分比铺满）');
 });
 
 test('旧数组本身缺位时补的是「旧默认宽度」，不是 64', () => {
@@ -95,9 +98,9 @@ test('CSS 变量名是 --nt-col-<表>-<列>，0 变自适应', () => {
   assert.equal(byVar.get('--nt-col-path-from'), '110px');
   assert.equal(byVar.get('--nt-col-path-note'), '120px');
   assert.equal(byVar.get('--nt-col-sum-histBalance'), '96px');
-  // 三块统计表默认是空值（不是 auto，也不是 px）—— auto 会顶掉 CSS 的百分比兜底
-  assert.equal(byVar.get('--nt-col-stock-cat'), '');
-  assert.equal(byVar.get('--nt-col-sflow-net'), '');
+  // 三块统计表：存量/流量 2026-11 起是固定 px 默认值，分类查询仍是 0 = 交给 CSS
+  assert.equal(byVar.get('--nt-col-stock-cat'), '75px');
+  assert.equal(byVar.get('--nt-col-sflow-net'), '111px');
   assert.equal(byVar.get('--nt-col-catq-note'), '');
 });
 
@@ -105,7 +108,7 @@ test('统计三块表拖过列宽后，变量变成 px（重开就靠它还原�
   // 列序：存量 = 序/分类/期初/增加/减少/期末；流量 = 序/分类/收入/退回/净额
   const n = normalize({
     '分类存量/列宽': '40,120,90,90,90,80',
-    '分类流量/列宽': '40,150,0,0,0',
+    '分类流量/列宽': '40,150,102,111,111',
   }, 'dark');
   const byVar = new Map(
     toCssList(n, 'dark').filter((x) => x.cssVar).map((x) => [x.cssVar, x.value]),
@@ -113,9 +116,13 @@ test('统计三块表拖过列宽后，变量变成 px（重开就靠它还原�
   assert.equal(byVar.get('--nt-col-stock-seq'), '40px');
   assert.equal(byVar.get('--nt-col-stock-cat'), '120px');
   assert.equal(byVar.get('--nt-col-stock-end'), '80px');
-  // 只拖了三列（其余还是 0）时，0 的列继续交给 CSS 兜底：值是空串，不是 auto
-  assert.equal(byVar.get('--nt-col-sflow-gross'), '');
   assert.equal(byVar.get('--nt-col-sflow-cat'), '150px');
+  assert.equal(byVar.get('--nt-col-sflow-gross'), '102px');
+
+  // 0 仍是「自适应」：分类查询这种 growByWidth 表 0 → 空串（CSS 兜底），
+  // 普通表 0 → auto（和 query 的备注列同一个规则）。
+  assert.equal(byVar.get('--nt-col-catq-note'), '');
+  assert.equal(byVar.get('--nt-col-query-note'), 'auto');
 });
 
 test('同一个列名在不同表里互不影响', () => {

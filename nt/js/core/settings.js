@@ -204,9 +204,9 @@ function legacyFor(table, raw) {
   // noAuto 的表（路径追踪）不参与旧「默认列宽」迁移：
   // 它现在是固定 px 语义，从旧的按列名数组里抽出来的宽度（112 / 96 …）
   // 既不是新的默认值，也不是用户拖出来的值 —— 直接用该表默认。
-  // growByWidth 的表（统计三块）同理：它们的值 0 = 铺满，
-  // 一旦从旧数组抽到具体 px，升级后就会突然变成固定宽度、不再铺满。
-  if (t.noAuto || t.growByWidth) return '';
+  // growByWidth / noLegacy 的表（统计三块）同理：它们的默认宽度是新给的，
+  // 旧数组里抽出来的值会把这批默认盖掉。
+  if (t.noAuto || t.growByWidth || t.noLegacy) return '';
 
   const def = String(TABLE_DEFAULT_WIDTHS[table] || '').split(',').map((x) => Number(x.trim()));
 
