@@ -32,7 +32,8 @@
   gap: 2px;
   padding: 5px 8px;
   border-bottom: 1px solid var(--nt-bg-line);
-  background: var(--nt-bg-soft);
+  /* 按钮行统一用工具条背景 */
+  background: var(--nt-vbar-bg, var(--nt-bg-soft));
 }
 
 .nt-stats-panel-head b {

@@ -397,6 +397,8 @@
   justify-content: flex-end;
   gap: 6px;
   padding: 8px 10px 4px;
+  /* 按钮行统一用工具条背景（用户 2026-11） */
+  background: var(--nt-vbar-bg, transparent);
 }
 
 .pw-mini-btn {

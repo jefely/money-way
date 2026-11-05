@@ -34,7 +34,8 @@
   gap: var(--nt-btn-gap, 6px);
   padding: 2px 8px;
   min-height: max(var(--nt-vbar-h, 30px), calc(var(--nt-btn-h, 26px) + 4px));
-  background: var(--nt-bg-soft);
+  /* 按钮行统一用工具条背景（用户 2026-11：有按钮的行同一个底色、贯穿整行） */
+  background: var(--nt-vbar-bg, var(--nt-bg-soft));
   border-bottom: 1px solid var(--nt-bg-line);
 }
 
