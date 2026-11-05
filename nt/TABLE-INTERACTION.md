@@ -443,8 +443,8 @@ col 写 44px  →  实际渲染 28px
 >    清掉了内联 left —— 两头都没给值，sticky 就没有横向偏移，数据列横滚时整列滑走。
 >    现在固定表表头/数据格都写 `left: 0`，数据格 z-index 4（普通表头 5 压得住它）。
 > 4. 透明手柄层本身占列宽：7/14px 的命中块盖在列标右边缘，列越窄文字越没地方。
->    现在手柄只是 **1px 可视线 + `pointer-events: none`**，命中判定由 JS 在 th 右边缘做，
->    列内不再有任何透明占位。
+>    现在手柄只是 **1px 可视线 + `pointer-events: none`**，并且**从列右边缘左移 2px**；
+>    命中判定由 JS 从这条线往左算，列内不再有任何透明占位，也不压在列线上。
 
 ```css
 .nt-col-handle {
@@ -482,20 +482,23 @@ body.nt-col-resizing {
 }
 ```
 
-### 4.2 判定：列边界左右各 `--nt-handle-w`（默认 14px）
+### 4.2 判定：列右边缘左移 2px，再往左 `--nt-handle-w`（默认 14px）
 
 ```js
 const hit = ev.target.closest('.nt-th');
 if (!hit) return;
 const edge = Number(getComputedStyle(hit).getPropertyValue('--nt-handle-w')) || 14;
-// 在整行表头里找离 clientX 最近、且距离 <= edge 的列右边界
-const th = edgeTarget(hit.parentNode, ev.clientX, edge);
-if (!th) return;   // 不在任何列边界附近，是普通点选
+// 在整行表头里找：边界线 = 列右边缘 - 2，手指必须在线上或线左侧
+const lineX = cell.getBoundingClientRect().right - 2;
+if (ev.clientX > lineX) continue;
+if (lineX - ev.clientX <= edge) { /* 命中这一列 */ }
 ```
 
-**必须以边界为中线、左右都算**：手指压在线上时 `event.target` 可能落到**右边那一列**，
-它的 `clientX` 在左边缘，按「目标 th 右边缘 − 14」永远不成立 —— 这正是 2026-11
-「手柄压在线上拖不动」的原因。现在按坐标扫描整行边界，碰到左列、右列都能选中同一条边界。
+**不能压在列线上**（单文件版实测结论）：触摸压在线上时 `event.target` 可能落到右边那一列，
+而且手指很难稳定停在 1px 的线上。现在可视线和命中区都**左移 2px**；
+命中区只往左算，碰到左列、右列都按坐标选中同一条边界。
+
+**不要**再放透明 span 做命中：透明块会盖住列标文字，窄列时「能显示的字」和「能拖的区域」互相抢宽度。
 
 ### 4.3 事件绑定：委托，只绑一次
 
@@ -795,11 +798,11 @@ width: 1px;
 pointer-events: none;
 ```
 
-跨出去以后，按右键时 `event.target.closest('.nt-th')` 拿到的是**右边那一列**，
-所以命中判定不能只看「目标 th 的右边缘」，要按坐标扫描整行边界（§4.2）——
-左右各 14px 都算，压在线上也能选中同一条边界。
+跨出去以后，按右键时 `event.target.closest('.nt-th')` 拿到的是**右边那一列**；
+所以判定要按坐标扫描整行边界（§4.2）。但可视线和命中区**从右边缘左移 2px**，
+且命中区只往左算 —— 不压在列线上，也不跨到右列。
 
-**可视线不能跨边界；命中区可以左右跨，因为它只是坐标判定，不占布局、不盖文字。**
+**单文件版结论：手柄不能压在线上，左移 2px 最稳。**
 
 ### 5.11 拖动的宽度写入要用 rAF 合并
 

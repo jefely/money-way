@@ -50,6 +50,8 @@ const CSS_FROZEN = new Set(['nt-table-accounts', 'nt-table-inst', 'nt-table-flow
 
 const MIN_W = 30;
 const MAX_W = 600;
+/** 可视线在列右边缘左侧的偏移（px）。压在列线上很难稳定命中，单文件版用 2。 */
+const EDGE_OFFSET = 2;
 
 /* ============================================================
    一、冻结列：left 按实际渲染宽度累加
@@ -214,9 +216,9 @@ export function mountResize(tableEl, opts) {
   if (tableEl.dataset.resizeBound === '1') return;
   tableEl.dataset.resizeBound = '1';
 
-  // 命中区以列边界为中线，左右各 --nt-handle-w（默认 14px）：
-  // 手指压在线上时 event.target 可能落到右边那一列，若只按「目标 th 的右边缘」
-  // 判定，右边那列的 x 在它左边缘，永远不满足 —— 这就是「手柄压在线上拖不动」。
+  // 命中区从**列右边缘左移 2px 处**往左算 --nt-handle-w（默认 14px）：
+  // 不要压在列线上 —— 手指稍微偏右就落到下一列，触摸会时灵时不灵。
+  // 这里按坐标扫描整行表头，不管 event.target 落在左列还是右列，都选同一条边界。
   tableEl.addEventListener('pointerdown', (ev) => {
     const hit = ev.target.closest && ev.target.closest('.nt-th');
     if (!hit) return;
@@ -232,14 +234,16 @@ export function mountResize(tableEl, opts) {
   });
 }
 
-/** 在表头行里找离 clientX 最近、且在 ±edge 内的列右边界（返回该列表头）。 */
+/** 找 clientX 左侧最近、且在 edge 内的列边界（边界 = 列右边缘 - 2px）。 */
 function edgeTarget(row, x, edge) {
   if (!row) return null;
   let best = null;
   for (const cell of row.children) {
     if (!cell || !cell.classList || !cell.classList.contains('nt-th')) continue;
     const r = cell.getBoundingClientRect();
-    const d = Math.abs(x - r.right);
+    const lineX = r.right - EDGE_OFFSET;
+    if (x > lineX) continue;          // 压在线上或偏右都不算
+    const d = lineX - x;
     if (d <= edge && (!best || d < best.d)) best = { cell, d };
   }
   return best ? best.cell : null;
