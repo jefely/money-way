@@ -7,7 +7,7 @@
  * 过滤逻辑在 core/query-engine.js（纯函数），本文件只负责界面与事件。
  */
 
-import { filterTransactions, queryTotals, exactAccount } from '../core/query-engine.js';
+import { filterTransactions, queryTotals, exactAccount, sameAccountQuery } from '../core/query-engine.js';
 import { parseDateRange } from '../core/date-query.js';
 import { renderRows, renderEmpty } from '../ui/table.js';
 import { tpl } from '../ui/render-transactions.js';
@@ -40,15 +40,28 @@ export function mountQuery(section, ctx) {
           const r = parseDateRange(input.value);
           cond.dateFrom = r ? r.from : '';
           cond.dateTo = r ? r.to : '';
+        } else if (key === 'from' || key === 'to') {
+          // 转出 / 转入**不实时筛**：打简码时每按一个键就重画一次结果，
+          // 又闪又慢，而且替不替换取决于打到第几个字符。
+          // 这里什么都不做，等回车（或失焦）再提交 —— 见下面的 commitNode。
+          return;
         } else {
-          // 转出 / 转入：简码打完就直接换成节点名字。
-          // 只认**精确**命中（名字全等或简码全等），片段匹配会把「招」
-          // 一路补成「招行储」，之后再做模糊搜索就没法打字了。
-          if (key === 'from' || key === 'to') fillAccountName(input, ctx);
           cond[key] = input.value;
         }
         render();
       });
+
+      const key = input.getAttribute('data-cond');
+      if (key === 'from' || key === 'to') {
+        // change 覆盖「失焦且值变过」；Enter 单独接一次，手机上按软键盘的
+        // 「搜索/完成」键走的就是 keydown。
+        input.addEventListener('change', () => commitNode(input, cond, render, ctx));
+        input.addEventListener('keydown', (ev) => {
+          if (ev.key !== 'Enter') return;
+          ev.preventDefault();
+          commitNode(input, cond, render, ctx);
+        });
+      }
     }
 
     node.querySelector('[data-act="clear"]').addEventListener('click', () => {
@@ -122,19 +135,24 @@ function paintSeq(tr, row) {
 }
 
 /**
- * 转出框里打完简码 → 直接显示节点名字（用户 2026-11）。
+ * 转出 / 转入框「提交」：先尝试把简码换成节点名字，再筛一次。
  *
- * 只在**精确**命中时替换：名字全等或简码全等。这样「ZHC」会变成「招行储」，
- * 而「招」保持原样继续做模糊匹配 —— 否则每打一个字就被补全，没法搜。
+ * 只在**精确**命中时替换（名字全等或简码全等）：打「招」不会被补成「招行储」，
+ * 否则之后就没法再用短词做模糊搜索了。
  */
-function fillAccountName(input, ctx) {
+function commitNode(input, cond, render, ctx) {
+  const key = input.getAttribute('data-cond');
   const acc = exactAccount(ctx.getState().accounts, input.value);
-  if (!acc) return;
-  const name = String(acc.name || '');
-  if (!name || name === input.value) return;
-  input.value = name;
-  // 程序赋值不会触发 input，光标也不会自动跟到末尾，这里补一下
-  try { input.setSelectionRange(name.length, name.length); } catch (e) { /* 忽略 */ }
+  if (acc) {
+    const name = String(acc.name || '');
+    if (name && name !== input.value) {
+      input.value = name;
+      // 程序赋值不会触发 input，光标也不会自动跟到末尾，这里补一下
+      try { input.setSelectionRange(name.length, name.length); } catch (e) { /* 忽略 */ }
+    }
+  }
+  cond[key] = input.value;
+  render();
 }
 
 /**
@@ -148,14 +166,7 @@ function effectiveCond(cond, state) {
   const from = String(cond.from || '').trim();
   const to = String(cond.to || '').trim();
   if (!from || !to) return cond;
-
-  let same = from === to;
-  if (!same) {
-    const a = exactAccount(state.accounts, from);
-    const b = exactAccount(state.accounts, to);
-    same = !!(a && b && a.id === b.id);
-  }
-  if (!same) return cond;
+  if (!sameAccountQuery(state.accounts, from, to)) return cond;
   return { ...cond, from: '', to: '', node: from };
 }
 

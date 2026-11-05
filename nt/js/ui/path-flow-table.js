@@ -84,15 +84,34 @@ function startDrag(ev, sp, col, ctx) {
 
 /**
  * 绑定筛选框与行点击。
+ *
+ * 日期 / 金额 / 备注：边打边筛（即时反馈，和以前一样）。
+ * 转出 / 转入：**回车或失焦才提交** —— 打简码时每按一个字符就重筛一次，
+ * 又闪又慢，而且「简码变节点名」取决于打到第几个字符，实时替换会打断输入。
+ *
  * @param {{getFilter:()=>object, setFilter:(k:string,v:string)=>void,
+ *          commitNode:(k:string, el:HTMLInputElement)=>void,
  *          onClear:()=>void, onPick:(txIndex:number)=>void}} h
  */
 export function bindFlowFilters(h) {
-  for (const key of ['date', 'from', 'to', 'amount', 'note']) {
+  for (const key of ['date', 'amount', 'note']) {
     const el = document.getElementById('pw-qf-' + key);
     if (!el) continue;
     el.addEventListener('input', () => h.setFilter(key, el.value));
   }
+
+  for (const key of ['from', 'to']) {
+    const el = document.getElementById('pw-qf-' + key);
+    if (!el) continue;
+    // change 覆盖「失焦且值变过」；Enter 单独接一次（手机软键盘的完成键）
+    el.addEventListener('change', () => h.commitNode(key, el));
+    el.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      h.commitNode(key, el);
+    });
+  }
+
   const clear = document.getElementById('pw-clear');
   if (clear) clear.addEventListener('click', () => h.onClear());
 }

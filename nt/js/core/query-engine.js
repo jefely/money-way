@@ -61,6 +61,27 @@ export function exactAccount(accounts, q) {
 }
 
 /**
+ * 两个查询串是否指向**同一个节点**：字面相同，或各自精确解析到同一个账户
+ * （一个打名字、一个打简码也算）。
+ *
+ * 查询页和路径页都用它判断「转出、转入填了同一个节点」——
+ * 那时两栏要合成「该节点作为任一方」，否则按「与」筛永远是 0 行。
+ *
+ * @param {Array} accounts
+ * @param {string} a
+ * @param {string} b
+ */
+export function sameAccountQuery(accounts, a, b) {
+  const x = String(a == null ? '' : a).trim();
+  const y = String(b == null ? '' : b).trim();
+  if (!x || !y) return false;
+  if (x === y) return true;
+  const ea = exactAccount(accounts, x);
+  const eb = exactAccount(accounts, y);
+  return !!(ea && eb && ea.id === eb.id);
+}
+
+/**
  * @param {Array<{from_id:string,to_id:string,amount:number,date:string,note:string}>} transactions
  * @param {{dateFrom?:string,dateTo?:string,from?:string,to?:string,node?:string,amount?:string|number,note?:string}} cond
  * @param {(id:string)=>object|string} accOf 账户 ID → 账户对象（或旧的「显示名」字符串）

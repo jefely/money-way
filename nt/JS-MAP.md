@@ -126,6 +126,7 @@
 | `ui/note-popover.js` | 流水 / 查询 → 长备注 |
 | `ui/note-table.js` | 设置页的备注区（独立于账户的 A/B 区） |
 | `ui/path-debug.js` | 路径 tab → 追踪链诊断（页脚序号串 + ?debug=1 时的控制台明细） |
+| `ui/path-filter.js` | 路径页左栏（流水表）的筛选 |
 | `ui/path-flow-table.js` | 路径页左栏的流水查询表 |
 | `ui/path-legend.js` | 路径 tab → 图例 |
 | `ui/path-view.js` | 路径 tab |

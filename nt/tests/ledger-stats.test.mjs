@@ -17,7 +17,7 @@ import {
   summariesForAccounts,
   STAT_TYPE_ORDER,
 } from '../js/core/ledger-stats.js';
-import { filterTransactions, queryTotals, matchAccount, exactAccount } from '../js/core/query-engine.js';
+import { filterTransactions, queryTotals, matchAccount, exactAccount, sameAccountQuery } from '../js/core/query-engine.js';
 
 const ACC = {
   bank: { id: 'a1', code: 'ZHC', name: '招行储', type: '资产类', category: '储蓄' },
@@ -221,6 +221,16 @@ test('exactAccount：名字全等 / 简码全等才算，片段不算', () => {
 });
 
 /* ---------- 同一个节点：转出 + 转入一起看 ---------- */
+
+test('sameAccountQuery：名字/简码写法不同，指向同一账户就算同一节点', () => {
+  const accs = [{ id: 'a1', name: '招行储', code: 'ZHC' }, { id: 'a2', name: '餐饮', code: 'CY' }];
+  assert.equal(sameAccountQuery(accs, '招行储', '招行储'), true);
+  assert.equal(sameAccountQuery(accs, 'ZHC', '招行储'), true, '一个简码一个名字');
+  assert.equal(sameAccountQuery(accs, 'zhc', 'ZHC'), true, '大小写不影响');
+  assert.equal(sameAccountQuery(accs, '招行', '招行储'), false, '片段不是同一节点');
+  assert.equal(sameAccountQuery(accs, '', '招行储'), false);
+  assert.equal(sameAccountQuery(accs, '招行储', '餐饮'), false);
+});
 
 test('node 条件：该节点作为转出方**或**转入方都算', () => {
   const byNode = filterTransactions(TX, { node: '招行储' }, labelOf);

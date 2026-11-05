@@ -11,8 +11,7 @@
 
 import { fetchGraphData } from '../graph/mw-data-fetcher.js';
 import { computeSlots } from '../graph/mw-slot-calculator.js';
-import { matchAccount } from '../core/query-engine.js';
-import { dateInRange } from '../core/date-query.js';
+import { visibleIdx, emptyFilter, commitNodeValue } from '../ui/path-filter.js';
 import { money } from '../core/format.js';
 import { buildChord } from '../graph/mw-path-calculator.js';
 import { buildArcs, nodeColor } from '../graph/mw-layers.js';
@@ -179,31 +178,13 @@ export function mountPath(section, ctx) {
     };
   }
 
-  /* 左栏筛选条件：五个框各自过滤，命中才算进列表 */
-  let filter = { date: '', from: '', to: '', amount: '', note: '' };
+  /* 左栏筛选条件：五个框各自过滤，命中才算进列表（规则在 ui/path-filter.js） */
+  let filter = emptyFilter();
 
   /** 按当前筛选条件过滤 tx 下标 */
-  function visibleIdx(txs) {
-    const f = filter;
-    const any = f.date || f.from || f.to || f.amount || f.note;
-    if (!any) return txs.map((_, i) => i);
-
+  function visibleIdxOf(txs) {
     const idx = ctx.getIndex();
-
-    // 账户列要简码和全名都认（与流水查询页同一份规则：core/query-engine 的 matchAccount）
-    const hitAcc = (id, q) => matchAccount(idx && idx.byId ? idx.byId.get(id) : null, q);
-
-    const out = [];
-    for (let i = 0; i < txs.length; i += 1) {
-      const t = txs[i];
-      if (f.date && !dateInRange(t.date, f.date)) continue;
-      if (f.from && !hitAcc(t.from_id, f.from)) continue;
-      if (f.to && !hitAcc(t.to_id, f.to)) continue;
-      if (f.amount && !String(t.amount || '').includes(f.amount)) continue;
-      if (f.note && !String(t.note || '').includes(f.note)) continue;
-      out.push(i);
-    }
-    return out;
+    return visibleIdx(txs, filter, idx && idx.byId, ctx.getState().accounts || []);
   }
 
   /** 当前焦点在图上命中的连线下标（data.txs 下标集）；null = 没有焦点 */
@@ -253,8 +234,14 @@ export function mountPath(section, ctx) {
 
   bindFlowFilters({
     setFilter: (key, value) => { filter[key] = value; render(); },
+    // 转出 / 转入：回车或失焦才走到这里 —— 先把简码换成节点名字，再筛
+    commitNode: (key, el) => {
+      el.value = commitNodeValue(ctx.getState().accounts || [], el.value);
+      filter[key] = el.value;
+      render();
+    },
     onClear: () => {
-      filter = { date: '', from: '', to: '', amount: '', note: '' };
+      filter = emptyFilter();
       for (const k of ['date', 'from', 'to', 'amount', 'note']) {
         const el = document.getElementById('pw-qf-' + k);
         if (el) el.value = '';
@@ -308,7 +295,7 @@ export function mountPath(section, ctx) {
     // 先按左栏筛选框过滤，再拿结果去画图 —— 图的统计范围就是筛选结果
     const st0 = ctx.getState();
     const allTx = (st0.transactions || []).filter((t) => t && !t.opening);
-    const idxList = visibleIdx(allTx);
+    const idxList = visibleIdxOf(allTx);
     const shownTxs = idxList.map((i) => allTx[i]);
 
     data = build(shownTxs, p);
