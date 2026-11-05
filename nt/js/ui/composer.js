@@ -34,9 +34,13 @@ export function mountComposer(section, ctx, rowHost, refresh) {
   bar.appendChild(input);
   bar.appendChild(send);
 
-  const vbar = section.querySelector('.nt-vbar');
+  // 插到**流水页**自己的工具条下面。
+  // 2026-11 起流水页和设置页在一条横向滑道里，section 里第一个 .nt-vbar 是设置页的，
+  // 直接取 section.querySelector('.nt-vbar') 会把输入条插进设置页。
+  const page = section.querySelector('[data-flow-page="flow"]') || section;
+  const vbar = page.querySelector('.nt-vbar');
   if (vbar && vbar.parentNode) vbar.parentNode.insertBefore(bar, vbar.nextSibling);
-  else section.insertBefore(bar, section.firstChild);
+  else page.insertBefore(bar, page.firstChild);
 
   let openId = null;
   let timer = 0;

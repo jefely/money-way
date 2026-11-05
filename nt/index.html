@@ -49,6 +49,43 @@
       <!-- 设置页也在这条横向滑道里（2026-11）：手机上左右滑切换，桌面 ≥1200px 并排 -->
       <section class="nt-view" data-view="flow">
         <div class="nt-flow-shell" id="nt-flow-shell">
+          <!-- 账本设置（左页）：工具条右端 ◀ 回流水 -->
+          <div class="nt-flow-page" data-flow-page="settings">
+            <div class="nt-vbar">
+              <span class="nt-vbar-title">账本设置</span>
+              <button class="nt-btn nt-btn-sm" type="button" data-act="balance">配平</button>
+              <button class="nt-btn nt-btn-sm" type="button" data-act="password">密码</button>
+              <button class="nt-btn nt-btn-sm" type="button" data-act="config">配置</button>
+              <button class="nt-btn nt-btn-sm" type="button" data-act="reset">重置</button>
+              <button class="nt-btn nt-btn-sm" type="button" data-act="theme">主题</button>
+              <button class="nt-btn nt-btn-sm" type="button" data-act="layout">布局</button>
+              <span class="nt-vbar-spacer"></span>
+              <button class="nt-btn nt-btn-sm nt-btn-icon" type="button" data-nav="back"
+                      aria-label="返回流水" title="返回流水">◀</button>
+            </div>
+            <div class="nt-tablewrap">
+              <table class="nt-table nt-table-accounts">
+                <thead>
+                    <tr>
+                      <!-- 列顺序按核对过的设计：简码 · 序 · 类型 · 分类 · 名称 · 期初 · 账单日 · 还款日 · 上移 · 删除 -->
+                      <th class="nt-th nt-c-code" scope="col" data-col="code">简码</th>
+                      <th class="nt-th nt-c-seq" scope="col" data-col="seq">序</th>
+                      <th class="nt-th nt-c-type" scope="col" data-col="type">类型</th>
+                      <th class="nt-th nt-c-cat" scope="col" data-col="cat">分类</th>
+                      <th class="nt-th nt-c-name" scope="col" data-col="name">节点名称</th>
+                      <th class="nt-th nt-c-num" scope="col" data-col="opening">期初余额</th>
+                      <th class="nt-th nt-c-day" scope="col" data-col="billDay">账单日</th>
+                      <th class="nt-th nt-c-day" scope="col" data-col="repayDay">还款日</th>
+                      <th class="nt-th nt-c-action nt-th-edge" scope="col" data-col="up">上移</th>
+                      <th class="nt-th nt-c-action nt-th-edge" scope="col" data-col="action">删除</th>
+                    </tr>
+                </thead>
+                <tbody id="nt-accounts-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 流水（右页）：工具条右端 ⚙ 去设置 -->
           <div class="nt-flow-page" data-flow-page="flow">
             <div class="nt-vbar">
               <span class="nt-vbar-title">流水记录</span>
@@ -77,42 +114,6 @@
             </thead>
             <tbody id="nt-flow-body"></tbody>
           </table>
-            </div>
-          </div>
-
-          <!-- 账本设置：和流水同一条滑道，靠右；左上角「←」回流水 -->
-          <div class="nt-flow-page" data-flow-page="settings">
-            <div class="nt-vbar">
-              <button class="nt-btn nt-btn-sm nt-btn-icon" type="button" data-nav="back"
-                      aria-label="返回流水" title="返回流水">←</button>
-              <span class="nt-vbar-title">账本设置</span>
-              <button class="nt-btn nt-btn-sm" type="button" data-act="balance">配平</button>
-              <button class="nt-btn nt-btn-sm" type="button" data-act="password">密码</button>
-              <button class="nt-btn nt-btn-sm" type="button" data-act="config">配置</button>
-              <button class="nt-btn nt-btn-sm" type="button" data-act="reset">重置</button>
-              <button class="nt-btn nt-btn-sm" type="button" data-act="theme">主题</button>
-              <button class="nt-btn nt-btn-sm" type="button" data-act="layout">布局</button>
-              <span class="nt-vbar-spacer"></span>
-            </div>
-            <div class="nt-tablewrap">
-              <table class="nt-table nt-table-accounts">
-                <thead>
-                    <tr>
-                      <!-- 列顺序按核对过的设计：简码 · 序 · 类型 · 分类 · 名称 · 期初 · 账单日 · 还款日 · 上移 · 删除 -->
-                      <th class="nt-th nt-c-code" scope="col" data-col="code">简码</th>
-                      <th class="nt-th nt-c-seq" scope="col" data-col="seq">序</th>
-                      <th class="nt-th nt-c-type" scope="col" data-col="type">类型</th>
-                      <th class="nt-th nt-c-cat" scope="col" data-col="cat">分类</th>
-                      <th class="nt-th nt-c-name" scope="col" data-col="name">节点名称</th>
-                      <th class="nt-th nt-c-num" scope="col" data-col="opening">期初余额</th>
-                      <th class="nt-th nt-c-day" scope="col" data-col="billDay">账单日</th>
-                      <th class="nt-th nt-c-day" scope="col" data-col="repayDay">还款日</th>
-                      <th class="nt-th nt-c-action nt-th-edge" scope="col" data-col="up">上移</th>
-                      <th class="nt-th nt-c-action nt-th-edge" scope="col" data-col="action">删除</th>
-                    </tr>
-                </thead>
-                <tbody id="nt-accounts-body"></tbody>
-              </table>
             </div>
           </div>
         </div>
