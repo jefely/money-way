@@ -128,10 +128,22 @@
   font-size: 11px;
 }
 
+/* 分类列内容居中（2026-11 用户指定）；序号列也居中 */
+.nt-table-stock .nt-cell:nth-child(2),
+.nt-table-sflow .nt-cell:nth-child(2) {
+  text-align: center;
+}
+
+/* 合计行只留横向分隔，不要竖线（用户 2026-11）：整行读起来是一条摘要 */
+.nt-stats-total-row .nt-cell {
+  border-right: 0;
+  border-left: 0;
+}
+
 .nt-table-stock .nt-stats-total-row .nt-cell-total-title,
 .nt-table-sflow .nt-stats-total-row .nt-cell-total-title {
-  text-align: left;
-  padding-left: 8px;
+  text-align: center;
+  padding-left: 0;
 }
 
 .nt-table-stock .nt-row-total .nt-cell,
