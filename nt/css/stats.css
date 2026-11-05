@@ -92,26 +92,29 @@
   text-align: right;
 }
 
-.nt-table-stock .nt-cell:nth-child(2),
-.nt-table-sflow .nt-cell:nth-child(2) {
+/* 序号列（2026-11 起取代「节点」列）：居中、浅色小字 */
+.nt-table-stock .nt-stats-seq,
+.nt-table-sflow .nt-stats-seq {
   text-align: center;
+  color: var(--nt-text-light);
+  font-size: 11px;
 }
 
-/* 分类存量：分类 | 节点 | 期初 | 本期增加 | 本期减少 | 期末
+/* 分类存量：序 | 分类 | 期初 | 本期增加 | 本期减少 | 期末
    兜底值 = 默认百分比；拖过列宽后 --nt-col-stock-* 是 px。 */
-.nt-table-stock .nt-th:nth-child(1) { width: var(--nt-col-stock-cat, 24%); }
-.nt-table-stock .nt-th:nth-child(2) { width: var(--nt-col-stock-count, 9%); }
+.nt-table-stock .nt-th:nth-child(1) { width: var(--nt-col-stock-seq, 8%); }
+.nt-table-stock .nt-th:nth-child(2) { width: var(--nt-col-stock-cat, 24%); }
 .nt-table-stock .nt-th:nth-child(3) { width: var(--nt-col-stock-opening, 17%); }
 .nt-table-stock .nt-th:nth-child(4) { width: var(--nt-col-stock-increase, 17%); }
 .nt-table-stock .nt-th:nth-child(5) { width: var(--nt-col-stock-decrease, 17%); }
-.nt-table-stock .nt-th:nth-child(6) { width: var(--nt-col-stock-end, 16%); }
+.nt-table-stock .nt-th:nth-child(6) { width: var(--nt-col-stock-end, 17%); }
 
-/* 分类流量：分类 | 节点 | 本期收入/支出 | 本期退回 | 净额 */
-.nt-table-sflow .nt-th:nth-child(1) { width: var(--nt-col-sflow-cat, 30%); }
-.nt-table-sflow .nt-th:nth-child(2) { width: var(--nt-col-sflow-count, 10%); }
+/* 分类流量：序 | 分类 | 本期收入/支出 | 本期退回 | 净额 */
+.nt-table-sflow .nt-th:nth-child(1) { width: var(--nt-col-sflow-seq, 8%); }
+.nt-table-sflow .nt-th:nth-child(2) { width: var(--nt-col-sflow-cat, 26%); }
 .nt-table-sflow .nt-th:nth-child(3) { width: var(--nt-col-sflow-gross, 22%); }
-.nt-table-sflow .nt-th:nth-child(4) { width: var(--nt-col-sflow-reverse, 19%); }
-.nt-table-sflow .nt-th:nth-child(5) { width: var(--nt-col-sflow-net, 19%); }
+.nt-table-sflow .nt-th:nth-child(4) { width: var(--nt-col-sflow-reverse, 22%); }
+.nt-table-sflow .nt-th:nth-child(5) { width: var(--nt-col-sflow-net, 22%); }
 
 /* 合计行在表头**上边**（用户 2026-11）：
    普通底色（透明，露出面板底色），加粗但字号比数据行小一号 ——

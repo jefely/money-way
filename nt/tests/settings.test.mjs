@@ -102,13 +102,15 @@ test('CSS 变量名是 --nt-col-<表>-<列>，0 变自适应', () => {
 });
 
 test('统计三块表拖过列宽后，变量变成 px（重开就靠它还原）', () => {
+  // 列序：存量 = 序/分类/期初/增加/减少/期末；流量 = 序/分类/收入/退回/净额
   const n = normalize({
-    '分类存量/列宽': '120,40,90,90,90,80',
-    '分类流量/列宽': '150,40,0,0,0',
+    '分类存量/列宽': '40,120,90,90,90,80',
+    '分类流量/列宽': '40,150,0,0,0',
   }, 'dark');
   const byVar = new Map(
     toCssList(n, 'dark').filter((x) => x.cssVar).map((x) => [x.cssVar, x.value]),
   );
+  assert.equal(byVar.get('--nt-col-stock-seq'), '40px');
   assert.equal(byVar.get('--nt-col-stock-cat'), '120px');
   assert.equal(byVar.get('--nt-col-stock-end'), '80px');
   // 只拖了三列（其余还是 0）时，0 的列继续交给 CSS 兜底：值是空串，不是 auto

@@ -19,7 +19,8 @@ import { showCatSuggest, hideCatSuggest, isCatSuggestFor } from './cat-suggest.j
  * 拖动时靠它认「哪一列」，列宽参数也是按这个顺序存的。
  */
 const HEAD = {
-  stock: [['分类', 'cat'], ['节点', 'count'], ['期初', 'opening'], ['本期增加', 'increase'], ['本期减少', 'decrease'], ['期末', 'end']],
+  // 序 · 分类 · 期初 · 本期增加 · 本期减少 · 期末（节点数那列 2026-11 删掉了，换成序号）
+  stock: [['序', 'seq'], ['分类', 'cat'], ['期初', 'opening'], ['本期增加', 'increase'], ['本期减少', 'decrease'], ['期末', 'end']],
   // 流量表的列名随组变（收入→本期收入 / 费用成本→本期支出），见 flowCols()
   query: [['日期', 'date'], ['转出', 'from'], ['转入', 'to'], ['金额', 'amount'], ['备注', 'note']],
 };
@@ -84,12 +85,26 @@ function groupTitle(type) {
 function flowCols(type) {
   const income = String(type || '') === '收入类';
   return [
+    ['序', 'seq'],
     ['分类', 'cat'],
-    ['节点', 'count'],
     [income ? '本期收入' : '本期支出', 'gross'],
     ['本期退回', 'reverse'],
     ['净额', 'net'],
   ];
+}
+
+/**
+ * 统计小表的一行：序 | 分类 | 金额…（序居中、分类左对齐、金额右对齐）。
+ * 和通用的 makeRow 分开：那张表是「首列无类、其余 num」，这里首列是序号。
+ */
+function makeGroupRow(seq, category, nums, opts) {
+  const o = opts || {};
+  const tr = document.createElement('tr');
+  tr.className = 'nt-row';
+  tr.appendChild(makeCell(seq, 'nt-stats-seq'));
+  tr.appendChild(makeCell(category, o.title ? 'nt-cell-total-title' : ''));
+  for (const v of nums) tr.appendChild(makeCell(v, 'nt-cell-num'));
+  return tr;
 }
 
 /**
@@ -116,17 +131,13 @@ function buildGroupTable(g, kind) {
   const thead = document.createElement('thead');
 
   // ① 合计行（普通底色、加粗但字号小一号，突出下面的表头）
-  const totalRow = document.createElement('tr');
-  totalRow.className = 'nt-stats-total-row';
-  const totalCells = stock
-    ? [
-      groupTitle(g.type),
-      '', stockAmount(t.opening, g.type), moneyAlways(t.increase), moneyAlways(t.decrease), stockAmount(t.end, g.type),
-    ]
-    : [groupTitle(g.type), '', moneyAlways(t.gross), moneyAlways(t.reverse), moneyAlways(t.net)];
-  totalCells.forEach((c, i) => {
-    totalRow.appendChild(makeCell(c, i === 0 ? 'nt-cell-total-title' : 'nt-cell-num'));
-  });
+  const totalNums = stock
+    ? [stockAmount(t.opening, g.type), moneyAlways(t.increase), moneyAlways(t.decrease), stockAmount(t.end, g.type)]
+    : [moneyAlways(t.gross), moneyAlways(t.reverse), moneyAlways(t.net)];
+  // 序留空，标题落在分类列；不再用 colspan —— 第一行要正好 6/5 格，
+  // table-layout:fixed 靠它定列宽，跨列会让表头和数据列对不齐。
+  const totalRow = makeGroupRow('', groupTitle(g.type), totalNums, { title: true });
+  totalRow.classList.add('nt-stats-total-row');
   thead.appendChild(totalRow);
 
   // ② 表头行
@@ -143,15 +154,12 @@ function buildGroupTable(g, kind) {
   table.appendChild(thead);
 
   const tbody = document.createElement('tbody');
-  for (const c of g.categories) {
-    const cells = stock
-      ? [
-        c.category, c.count,
-        stockAmount(c.opening, g.type), moneyAlways(c.increase), moneyAlways(c.decrease), stockAmount(c.end, g.type),
-      ]
-      : [c.category, c.count, moneyAlways(c.gross), moneyAlways(c.reverse), moneyAlways(c.net)];
-    tbody.appendChild(makeRow(cells, false, 0));
-  }
+  g.categories.forEach((c, i) => {
+    const nums = stock
+      ? [stockAmount(c.opening, g.type), moneyAlways(c.increase), moneyAlways(c.decrease), stockAmount(c.end, g.type)]
+      : [moneyAlways(c.gross), moneyAlways(c.reverse), moneyAlways(c.net)];
+    tbody.appendChild(makeGroupRow(i + 1, c.category, nums));
+  });
 
   table.appendChild(tbody);
   return table;

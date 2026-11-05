@@ -34,13 +34,13 @@ export const TABLE_COLS = {
     label: '分类存量',
     screen: 'stats',
     growByWidth: true,
-    cols: ['cat', 'count', 'opening', 'increase', 'decrease', 'end'],
+    cols: ['seq', 'cat', 'opening', 'increase', 'decrease', 'end'],
   },
   sflow: {
     label: '分类流量',
     screen: 'stats',
     growByWidth: true,
-    cols: ['cat', 'count', 'gross', 'reverse', 'net'],
+    cols: ['seq', 'cat', 'gross', 'reverse', 'net'],
   },
   catq: {
     label: '分类查询',
