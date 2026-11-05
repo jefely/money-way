@@ -168,20 +168,23 @@ function periodView(row, type) {
     const dec = debit ? row.periodOut : row.periodIn;
     const endSigned = openingSigned + inc - dec;
 
-    // 负债按「欠款」显示正数，不解释成多还/预付：
-    //   期初、期末取绝对值；本期增减改为「欠款净变化」，
-    //   这样 期初 + 增加 − 减少 = 期末，且不会出现负数。
+    // 负债用「欠款账」口径：期初正数=已欠；增加=欠款增加，减少=欠款减少，
+    // 期末 = 期初 + 增加 - 减少，四个数都是正数。
+    // 旧数据里同一类负债可能把「借入」记成转入或转出，所以按期初余额的符号定方向：
+    //   期初为负（旧算法：转入>转出）→ 转入是欠款增加、转出是减少；
+    //   期初为正（旧算法：转出>转入）→ 转出是欠款增加、转入是减少。
     if (type === '负债类') {
       const opening = Math.abs(openingSigned);
-      const end = Math.abs(endSigned);
-      const delta = end - opening;
+      const growByIn = openingSigned < 0;
+      const increase = growByIn ? row.periodIn : row.periodOut;
+      const decrease = growByIn ? row.periodOut : row.periodIn;
       return {
         ...row,
         kind: 'stock',
         opening,
-        increase: delta > 0 ? delta : 0,
-        decrease: delta < 0 ? -delta : 0,
-        end,
+        increase,
+        decrease,
+        end: opening + increase - decrease,
       };
     }
 
