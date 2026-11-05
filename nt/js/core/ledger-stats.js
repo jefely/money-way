@@ -164,31 +164,11 @@ function periodView(row, type) {
   const debit = isDebitType(type);
   if (STOCK_TYPES.has(type)) {
     const openingSigned = Number(row.historyBalance) || 0;
+    // 所有贷方类（负债 / 权益 / 收入）都按「转出增加、转入减少」，
+    // 和应付同口径；负债的负余额就是多还（借方余额），由界面单独标「多还」。
     const inc = debit ? row.periodIn : row.periodOut;
     const dec = debit ? row.periodOut : row.periodIn;
-    const endSigned = openingSigned + inc - dec;
-
-    // 负债用「欠款账」口径：期初正数=已欠；增加=欠款增加，减少=欠款减少，
-    // 期末 = 期初 + 增加 - 减少，四个数都是正数。
-    // 旧数据里同一类负债可能把「借入」记成转入或转出，所以按期初余额的符号定方向：
-    //   期初为负（旧算法：转入>转出）→ 转入是欠款增加、转出是减少；
-    //   期初为正（旧算法：转出>转入）→ 转出是欠款增加、转入是减少。
-    if (type === '负债类') {
-      const opening = Math.abs(openingSigned);
-      const growByIn = openingSigned < 0;
-      const increase = growByIn ? row.periodIn : row.periodOut;
-      const decrease = growByIn ? row.periodOut : row.periodIn;
-      return {
-        ...row,
-        kind: 'stock',
-        opening,
-        increase,
-        decrease,
-        end: opening + increase - decrease,
-      };
-    }
-
-    return { ...row, kind: 'stock', opening: openingSigned, increase: inc, decrease: dec, end: endSigned };
+    return { ...row, kind: 'stock', opening: openingSigned, increase: inc, decrease: dec, end: openingSigned + inc - dec };
   }
   // 收入：转出是收入、转入是退回；费用/成本：转入是支出、转出是退回。
   const gross = debit ? row.periodIn : row.periodOut;
@@ -196,7 +176,7 @@ function periodView(row, type) {
   return { ...row, kind: 'flow', gross, reverse, net: gross - reverse };
 }
 
-/** 合计从分类行直接加总：负债取绝对值后不能再用净额合计，否则会互相抵消。 */
+/** 合计从分类行直接加总，避免类型合计和分类行出现两套口径。 */
 function sumRows(categories, kind) {
   const out = { count: 0, category: '' };
   const keys = kind === 'stock'

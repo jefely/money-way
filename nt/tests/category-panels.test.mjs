@@ -53,7 +53,7 @@ test('存量：资产期初 / 本期增减 / 期末', () => {
   assert.equal(a.end, 1200);
 });
 
-test('存量：负债显示正数欠款，增加=欠款增加、减少=欠款减少', () => {
+test('存量：负债和应付同口径，转出增加、转入减少', () => {
   const p = categoryPanels(accounts, transactions, range);
   const l = panel(p, 'stock', '信用');
   assert.equal(l.opening, 1000);
@@ -62,13 +62,13 @@ test('存量：负债显示正数欠款，增加=欠款增加、减少=欠款减
   assert.equal(l.end, 1150, '期末 = 期初 + 增加 - 减少');
 });
 
-test('存量：转入大于转出的负债按转入算增加，仍显示正数欠款', () => {
+test('存量：转入大于转出的负债是负余额（多还），不再硬掰成正欠款', () => {
   const p = categoryPanels(accounts, transactions, range);
   const l = panel(p, 'stock', '溢缴');
-  assert.equal(l.opening, 1000, '旧算法为 -1000，新口径取欠款 1000');
-  assert.equal(l.increase, 100);
-  assert.equal(l.decrease, 30);
-  assert.equal(l.end, 1070);
+  assert.equal(l.opening, -1000, '旧算法：转入>转出，期初就是 -1000');
+  assert.equal(l.increase, 30);
+  assert.equal(l.decrease, 100);
+  assert.equal(l.end, -1070);
 });
 
 test('流量：收入按转出、费用按转入，净额都已扣退回', () => {
