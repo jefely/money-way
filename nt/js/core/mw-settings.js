@@ -34,8 +34,8 @@ export const MW_SCHEMA = [
   // 外圈那条细线（六大类节点类型）的粗细，以及它与内圈节点环之间的空隙。
   // 两个都是**环厚的比例**：0.1 = 环厚的十分之一，0 = 贴死不留缝。
   // 2026-11 用户实测调出 0.06 / 0.03 这一组，定为默认。
-  { key: '外圈线厚比例', type: 'num', group: '环图·几何', def: 0.06, min: 0.01, max: 0.5, cssVar: '--nt-mw-type-w', field: 'typeWidth' },
-  { key: '外圈线间距比例', type: 'num', group: '环图·几何', def: 0.03, min: 0, max: 0.3, cssVar: '--nt-mw-type-gap', field: 'typeGap' },
+  { key: '外圈线厚比例', type: 'num', group: '环图·几何', def: 0.1, min: 0.01, max: 0.5, cssVar: '--nt-mw-type-w', field: 'typeWidth' },
+  { key: '外圈线间距比例', type: 'num', group: '环图·几何', def: 0.05, min: 0, max: 0.3, cssVar: '--nt-mw-type-gap', field: 'typeGap' },
   { key: '扇区分界线宽', type: 'num', group: '环图·几何', def: 0.6, min: 0, max: 10, cssVar: '--nt-mw-sector-w', field: 'sectorW' },
   { key: '扇区分界线不透明度', type: 'num', group: '环图·几何', def: 0.28, min: 0, max: 1, cssVar: '--nt-mw-sector-op', field: 'sectorOp' },
   { key: '弧块描边宽', type: 'num', group: '环图·几何', def: 2.4, min: 0, max: 20, cssVar: '--nt-mw-ring-w', field: 'ringW' },
@@ -49,8 +49,8 @@ export const MW_SCHEMA = [
   { key: '标签外移', type: 'num', group: '环图·标签', def: 8, min: 0, max: 200, cssVar: '--nt-mw-label-gap', field: 'labelGap' },
   // 环外标签的两档锥形长度：一短一长交替排（2026-11 用户定）
   // 为解决环外文字压字：短尖减半 46 → 23，长尖加 50% 115 → 172.5。
-  { key: '锥形第一档', type: 'num', group: '环图·标签', def: 23, min: 0, max: 400, cssVar: '--nt-mw-cone-a', field: 'coneA' },
-  { key: '锥形第二档', type: 'num', group: '环图·标签', def: 172.5, min: 0, max: 400, cssVar: '--nt-mw-cone-b', field: 'coneB' },
+  { key: '锥形第一档', type: 'num', group: '环图·标签', def: 25, min: 0, max: 400, cssVar: '--nt-mw-cone-a', field: 'coneA' },
+  { key: '锥形第二档', type: 'num', group: '环图·标签', def: 200, min: 0, max: 400, cssVar: '--nt-mw-cone-b', field: 'coneB' },
   { key: '锥形半宽', type: 'num', group: '环图·标签', def: 5, min: 0, max: 60, cssVar: '--nt-mw-cone-half-w', field: 'coneHalfW' },
   { key: '锥形不透明度', type: 'num', group: '环图·标签', def: 0.5, min: 0, max: 1, cssVar: '--nt-mw-cone-op', field: 'coneOp' },
   { key: '锥底文字偏移', type: 'num', group: '环图·标签', def: 10, min: 0, max: 200, cssVar: '--nt-mw-cone-text-gap', field: 'coneTextGap' },

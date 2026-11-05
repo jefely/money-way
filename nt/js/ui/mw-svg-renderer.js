@@ -180,10 +180,14 @@ export function renderChart(data) {
   //    宽度为 0 的块直接跳过：金额粒度下中转账户净额为 0，画出来是退化路径。
   const layers = d.layers || { types: [], cats: [] };
   const nodeColorOf = d.nodeColorOf || colorOf;
+  // 弧块外框 = 当前主题的页面背景色（用户 2026-11：要和主题背景统一，
+  // 不要固定的纯白/纯黑）。SVG 的 presentation attribute 不认 var()，
+  // 所以用 style 内联写（style 支持 CSS 变量，且优先级高于 stroke 属性）。
+  const ringStroke = 'style="stroke:var(--nt-bg)"';
   const ringPath = (ro, ri, a1, a2, fill, cls, attr) => `<path class="mw-ring ${cls}"`
     + ` d="${arcPath(ro, ri, a1, a2, pointAt, cx, cy)}"`
     + ` fill="${fill}" fill-opacity="1"`
-    + ` stroke="${isLightTheme() ? '#ffffff' : '#000000'}"`
+    + ` ${ringStroke}`
     + ` stroke-width="${f(p.ringW * U)}" stroke-opacity="${p.ringOp}"${attr}/>`;
 
   // 外圈：类型固定色系，很薄（环厚的 10%），看上去就是贴着环的一条线
@@ -249,15 +253,16 @@ export function renderChart(data) {
     // 放不下的弧块：画单文件版那种**尖锥形引线**，把弧块和外面的文字连起来
     //（照 mwDrawSvg：锥尖贴 rOut 的中点，锥底在文字所在半径上、以 mid 对称，
     //  半宽 5px 换算成角度 = 5 / rText）
+    // 颜色跟着它所指的那块弧走（nodeColorOf），别用 label 的 colorKey —— 那是另一套色。
     if (crowded) {
       const halfAngle = (p.coneHalfW * U) / Math.max(1, rText);
       const tip = pointAt(cx, cy, rOut, midA);
       const base1 = pointAt(cx, cy, rText, midA - halfAngle);
       const base2 = pointAt(cx, cy, rText, midA + halfAngle);
-      parts.push(`<path d="M ${tip[0].toFixed(1)} ${tip[1].toFixed(1)}`
+      parts.push(`<path class="mw-cone" d="M ${tip[0].toFixed(1)} ${tip[1].toFixed(1)}`
         + ` L ${base1[0].toFixed(1)} ${base1[1].toFixed(1)}`
         + ` L ${base2[0].toFixed(1)} ${base2[1].toFixed(1)} Z"`
-        + ` fill="${colorOf(b.colorKey)}" fill-opacity="${p.coneOp}"`
+        + ` fill="${nodeColorOf(b.acc)}" fill-opacity="${p.coneOp}"`
         + ` stroke="none" pointer-events="none"/>`);
     }
 

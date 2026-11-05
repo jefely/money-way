@@ -50,10 +50,10 @@ test('★ 旧默认值跟着新默认走（老存档不会卡在旧值上）', (
   assert.equal(r2['环厚'], 90);
   assert.equal(r2['追踪字号'], 70);
 
-  // v1.236：短尖减半 46 → 23，长尖加 50% 115 → 172.5
+  // 2026-11：短尖 25、长尖 200（旧存档 46/115 迁到这两个值）
   const cones = normalize({ 锥形第一档: 46, 锥形第二档: 115 }, 'dark');
-  assert.equal(cones['锥形第一档'], 23);
-  assert.equal(cones['锥形第二档'], 172.5);
+  assert.equal(cones['锥形第一档'], 25);
+  assert.equal(cones['锥形第二档'], 200);
   const custom = normalize({ 锥形第一档: 60, 锥形第二档: 130 }, 'dark');
   assert.equal(custom['锥形第一档'], 60, '用户自调值不该被迁移');
   assert.equal(custom['锥形第二档'], 130);
@@ -190,9 +190,9 @@ test('字号上下限改了就立刻变（12/27 → 20/20）', () => {
   assert.ok(fixed.includes('font-size="66.7"'));
 });
 
-test('★ 默认锥形：短尖 23、长尖 172.5（v1.236）', () => {
-  assert.equal(MW_DEFAULTS.coneA, 23);
-  assert.equal(MW_DEFAULTS.coneB, 172.5);
+test('★ 默认锥形：短尖 25、长尖 200', () => {
+  assert.equal(MW_DEFAULTS.coneA, 25);
+  assert.equal(MW_DEFAULTS.coneB, 200);
 });
 
 test('锥形两档改了会改变标签半径（100/100 两档同长）', () => {
