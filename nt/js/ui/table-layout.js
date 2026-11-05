@@ -408,7 +408,9 @@ export function tableIdOf(tableEl) {
   if (c.contains('nt-table-equity')) return 'equity';
   if (c.contains('nt-table-cost')) return 'cost';
   if (c.contains('nt-table-catq')) return 'catq';
-  // 汇总表：分类视图改成 6 张分组表之后，.nt-table-stats 只剩汇总在用
+  // 汇总视图：按类型分组的多张小表（2026-11），共用「汇总表/列宽」一套参数
+  if (c.contains('nt-table-sum')) return 'sum';
+  // 旧的单张汇总表（.nt-table-stats）已不再渲染，判断保留以防历史引用
   if (c.contains('nt-table-stats')) return 'sum';
   if (c.contains('nt-table-query')) return 'query';
   if (c.contains('nt-table-plan')) return 'plan';

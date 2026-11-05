@@ -86,7 +86,9 @@ export const TABLE_COLS = {
   sum: {
     label: '汇总表',
     screen: 'stats',
-    cols: ['name', 'seq', 'type', 'cat', 'out', 'iin', 'balance', 'histOut', 'histIn', 'histBalance'],
+    // 2026-11：去掉「类型」列（类型变成分组标签），「当前余额」改「本期余额」，
+    // 末尾补「期初余额」。
+    cols: ['name', 'seq', 'cat', 'out', 'iin', 'balance', 'histOut', 'histIn', 'histBalance', 'opening'],
   },
   query: {
     label: '流水查询',
@@ -144,7 +146,8 @@ export const TABLE_DEFAULT_WIDTHS = {
   equity: '75,105,105,105,105',
   // 分类查询仍是 0 = 交给 CSS 百分比铺满
   catq: '0,0,0,0,0',
-  sum: '110,44,72,76,84,84,100,90,90,96',
+  // 节点名称 | 序号 | 分类 | 转出 | 转入 | 本期余额 | 历史转出 | 历史转入 | 历史结余 | 期初余额
+  sum: '110,44,72,84,84,100,90,90,96,96',
   query: '44,0,0,0,0,0',
   path: '44,62,110,110,68,120',
   plan: '44,64,64,112,112,96,116,40',

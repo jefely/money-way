@@ -146,6 +146,7 @@
 | `ui/stats-category.js` | 统计 tab → 分类（6 大分类表 + 两个独立的分类查询） |
 | `ui/stats-group-tables.js` | 统计页 6 大分类的分组小表 |
 | `ui/stats-split.js` | 统计页 —— 左栏（6 大分类）与右侧查询区之间的分界条 |
+| `ui/stats-summary-tables.js` | 统计页 → 汇总视图的分类型小表 |
 | `ui/suggest-popover.js` | 流水 tab / 查询 tab → 账户候选气泡 |
 | `ui/sync-dialog.js` | （未标注界面）同步弹窗（UI 层） |
 | `ui/sync-wheel.js` | 同步弹窗里的滚轮（日 / 年月共用） |
