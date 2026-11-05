@@ -1005,10 +1005,41 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   .nt-flow-page[data-flow-page="flow"] { flex: 1 1 0; }
 }
 
-/* 流水 ⇄ 设置 的切换图标（⚙ / ◀）：用主题对比色（白/黑），不要主题彩色 */
-[data-nav="settings"],
-[data-nav="back"] {
+/* 流水 ⇄ 设置 的切换图标（⚙ / ◀）：
+   加大、加粗、纯白/纯黑高对比（用户 2026-11）。
+   注意 .nt-btn-icon 自带的 :hover 是 --nt-bad（红色）——这里必须一起覆盖，
+   否则鼠标一碰就变红。 */
+.nt-flow-page .nt-vbar [data-nav="settings"],
+.nt-flow-page .nt-vbar [data-nav="back"] {
+  width: 34px;
+  height: 32px;
+  padding: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 30px;
   color: var(--nt-text);
+  background: transparent;
+}
+
+.nt-flow-page .nt-vbar [data-nav="settings"]:hover,
+.nt-flow-page .nt-vbar [data-nav="back"]:hover {
+  color: var(--nt-text);
+  background: var(--nt-bg-soft);
+}
+
+/* 纯黑 / 纯白：浅色系主题黑，深色系主题白 */
+[data-theme="light"] .nt-flow-page .nt-vbar [data-nav="settings"],
+[data-theme="light"] .nt-flow-page .nt-vbar [data-nav="back"],
+[data-theme="alt1"] .nt-flow-page .nt-vbar [data-nav="settings"],
+[data-theme="alt1"] .nt-flow-page .nt-vbar [data-nav="back"] {
+  color: #000000;
+}
+
+[data-theme="dark"] .nt-flow-page .nt-vbar [data-nav="settings"],
+[data-theme="dark"] .nt-flow-page .nt-vbar [data-nav="back"],
+[data-theme="alt2"] .nt-flow-page .nt-vbar [data-nav="settings"],
+[data-theme="alt2"] .nt-flow-page .nt-vbar [data-nav="back"] {
+  color: #ffffff;
 }
 
 /* 两页之间的分割线：桌面可拖动调整左栏宽度（2026-11） */
