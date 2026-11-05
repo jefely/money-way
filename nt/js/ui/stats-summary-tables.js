@@ -130,6 +130,11 @@ export function renderSummaryTables(host, rows) {
 
   const groups = new Map();
   for (const r of rows || []) {
+    const s = r.s || {};
+    // 无数据的行不显示（用户 2026-11）：期初 / 本期 / 历史 / 余额全 0 的账户不占一行。
+    // 只有余额非 0（比如上个月留下的钱）仍算有数据，照常显示。
+    const hasData = NUM_FIELDS.some((k) => Number(s[k]) || 0);
+    if (!hasData) continue;
     const type = (r.acc && r.acc.type) || '其它';
     if (!groups.has(type)) groups.set(type, []);
     groups.get(type).push(r);
