@@ -61,13 +61,12 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     if (ev.key === 'Escape' && bar.classList.contains('open')) setOpen(false);
   });
 
-  /* ---------- 位置：可拖动 + 键盘不挤动 ---------- */
+  /* ---------- 位置：可拖动，键盘弹出也不挪 ---------- */
   const POS_KEY = 'nt_composer_pos';
   const EDGE = 8;
-  const GAP = 16;
   let suppressClick = false;
 
-  // 用户拖到的位置（距视口右/下）；键盘弹出只改「显示位置」，这里不动
+  // 用户拖到的位置（距视口右/下）：气泡就钉在这里
   let posRight = 16;
   let posBottom = 16;
   try {
@@ -76,49 +75,29 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     if (saved && Number.isFinite(saved.bottom)) posBottom = saved.bottom;
   } catch (e) { /* 无痕模式读不到就算了 */ }
 
-  /**
-   * 软键盘高度。
-   * 只认 `innerHeight - visualViewport.height`；**不要再减 offsetTop** ——
-   * 那是页面滚动量，减掉等于把键盘高度算两遍，气泡会一次跳得老高（用户报「被输入法挤动」）。
-   */
-  function keyboardHeight() {
-    const vv = window.visualViewport;
-    if (!vv) return 0;
-    const h = window.innerHeight - vv.height;
-    return h > 80 ? Math.round(h) : 0;
-  }
-
   /** 展开宽度的上限（屏宽留 32px 边） */
   function panelWidth() {
     return Math.min(360, window.innerWidth - 32);
   }
 
   /**
-   * 摆放：
-   *   · 收起 —— 就在用户拖到的地方；
-   *   · 展开 —— 右边仍在原位，但左边界至少留 8px（太靠左就临时往右挪）；
-   *   · 键盘弹出 —— 抬到键盘上方（只改显示位置，posBottom/posRight 不变）。
+   * 摆放：气泡位置**只由用户拖到的位置决定**，键盘弹出也不挪（2026-11 用户要求）。
+   * 键盘是系统窗口，网页盖不过它；与其跟着键盘上下跳，不如钉死在用户放的地方。
+   *   · 收起 —— 就在拖到的地方；
+   *   · 展开 —— 右边仍在原位，但左边界至少留 8px（太靠左就临时往右挪）。
    */
   function applyPos() {
-    const kb = keyboardHeight();
     const open = bar.classList.contains('open');
     const w = open ? panelWidth() : 54;
     const right = open
       ? Math.max(EDGE, Math.min(posRight, window.innerWidth - w - EDGE))
       : posRight;
-    const maxBottom = Math.max(EDGE, window.innerHeight - 90);
-    const bottom = Math.min(maxBottom, Math.max(posBottom, kb ? kb + GAP : 0));
     bar.style.right = Math.round(right) + 'px';
-    bar.style.bottom = Math.round(bottom) + 'px';
+    bar.style.bottom = Math.round(posBottom) + 'px';
   }
   applyPos();
 
   window.addEventListener('resize', applyPos);
-  const vv = window.visualViewport;
-  if (vv) {
-    vv.addEventListener('resize', applyPos);
-    vv.addEventListener('scroll', applyPos);
-  }
 
   const drag = { active: false, moved: false, sx: 0, sy: 0, sr: 0, sb: 0 };
 
