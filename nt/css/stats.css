@@ -134,6 +134,10 @@
   flex-direction: row;
   align-items: center;
   gap: 6px;
+  /* 高度与工具条（.nt-vbar）统一：2px 上下 padding + 同一 min-height 表达式。
+     以前这里是 5px padding，比统计页顶部按钮行高 6px（用户 2026-11 报不统一）。 */
+  padding: 2px 8px;
+  min-height: max(var(--nt-vbar-h, 30px), calc(var(--nt-btn-h, 26px) + 4px));
 }
 
 .nt-stats-panel-head-query b {
