@@ -193,6 +193,12 @@ function enterCustomMode(tableEl) {
 }
 
 /**
+ * 启动时注册的拖动回调。动态建的表格（统计页每个合计一张小表）拿不到 ctx，
+ * 由 mountResize 在没显式传 opts 时复用这里。
+ */
+let defaultOpts = null;
+
+/**
  * 给一张表挂拖动手柄。
  *
  * 做法照单文件版的 initColResize，三道关键：
@@ -202,7 +208,7 @@ function enterCustomMode(tableEl) {
  *   ③ 宽度写入用 rAF 合并到每帧一次，长表才不卡
  */
 export function mountResize(tableEl, opts) {
-  const o = opts || {};
+  const o = opts || defaultOpts || {};
   if (!tableEl) return;
 
   paintHandles(tableEl);
@@ -361,8 +367,9 @@ export function paintHandles(tableEl) {
 
 /** 给所有数据区挂手柄 + 同步冻结列 */
 export function bindAllTables(opts) {
+  defaultOpts = opts || {};
   for (const table of document.querySelectorAll('table.nt-table')) {
-    mountResize(table, opts);
+    mountResize(table, defaultOpts);
     paintHandles(table);
     syncFrozen(table);
   }

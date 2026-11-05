@@ -10,7 +10,7 @@
 import { categoryPanels } from '../core/ledger-stats.js';
 import { queryByCategory, resolveCategory, suggestCategories } from '../core/category-query.js';
 import { moneyAlways, shortDate } from '../core/format.js';
-import { paintHandles, syncFrozen } from './table-layout.js';
+import { mountResize, paintHandles, syncFrozen } from './table-layout.js';
 import { showCatSuggest, hideCatSuggest, isCatSuggestFor } from './cat-suggest.js';
 
 /**
@@ -72,44 +72,100 @@ function paintHead(table, cols) {
   syncFrozen(table);
 }
 
+/** 组名 → 合计行标题：'资产类' → '资产 合计'（用户 2026-11：去掉「类」，空格隔开） */
+function groupTitle(type) {
+  return String(type || '').replace(/类$/, '') + ' 合计';
+}
+
+/**
+ * 每组合计一张独立小表：表头 + 合计行 + 该组分类行。
+ *
+ * 为什么不用一张大表：用户要的是「每个合计一张表，表与表之间空一行」，
+ * 这样资产/负债/权益各自成块，一眼能分清；共用一张表只能靠合并行动画式地区分。
+ * 每张小表自带表头，所以面板上原来那两行说明文字也删掉了。
+ */
+function buildGroupTable(g, kind) {
+  const cols = HEAD[kind];
+  const stock = kind === 'stock';
+
+  const table = document.createElement('table');
+  table.className = 'nt-table ' + (stock ? 'nt-table-stock' : 'nt-table-sflow');
+
+  const thead = document.createElement('thead');
+  const headRow = document.createElement('tr');
+  for (const [label, col] of cols) {
+    const th = document.createElement('th');
+    th.className = 'nt-th';
+    th.scope = 'col';
+    th.dataset.col = col;
+    th.textContent = label;
+    headRow.appendChild(th);
+  }
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  const t = g.total || {};
+  // 合计行紧贴表头下面（用户 2026-11），不是放在分类行后面
+  const totalCells = stock
+    ? [
+      groupTitle(g.type),
+      stockAmount(t.opening, g.type), moneyAlways(t.increase), moneyAlways(t.decrease), stockAmount(t.end, g.type),
+    ]
+    : [groupTitle(g.type), moneyAlways(t.gross), moneyAlways(t.reverse), moneyAlways(t.net)];
+  tbody.appendChild(makeRow(totalCells, true, 2));
+
+  for (const c of g.categories) {
+    const cells = stock
+      ? [
+        c.category, c.count,
+        stockAmount(c.opening, g.type), moneyAlways(c.increase), moneyAlways(c.decrease), stockAmount(c.end, g.type),
+      ]
+      : [c.category, c.count, moneyAlways(c.gross), moneyAlways(c.reverse), moneyAlways(c.net)];
+    tbody.appendChild(makeRow(cells, false, 0));
+  }
+
+  table.appendChild(tbody);
+  return table;
+}
+
+/**
+ * 新表要不要「按 px 排」：看 :root 上有没有 --nt-col-<表>-cat。
+ *
+ * 参数里该列 > 0 时 apply-settings 会写这个变量；全 0（还没自定义）时
+ * 它是被 removeProperty 掉的空值。小表是每次重画重建的，类不会自己跟过来，
+ * 所以每次建表都按这个变量判一次（列宽参数仍是唯一真相）。
+ */
+function markCustom(table, kind) {
+  const v = getComputedStyle(document.documentElement)
+    .getPropertyValue('--nt-col-' + kind + '-cat').trim();
+  table.classList.toggle('cols-custom', !!v);
+}
+
 function paintPanel(panel, groups, kind) {
   if (!panel) return 0;
-  const table = panel.querySelector('table');
-  const tbody = table && table.querySelector('tbody');
-  if (!table || !tbody) return 0;
-  paintHead(table, HEAD[kind]);
-  tbody.textContent = '';
+  const host = panel.querySelector('.nt-stats-tables');
+  if (!host) return 0;
+  host.textContent = '';
 
-  const stock = kind === 'stock';
   let count = 0;
   for (const g of groups || []) {
-    for (const c of g.categories) {
-      count += 1;
-      const cells = stock
-        ? [
-          c.category, c.count,
-          stockAmount(c.opening, g.type), moneyAlways(c.increase), moneyAlways(c.decrease), stockAmount(c.end, g.type),
-        ]
-        : [c.category, c.count, moneyAlways(c.gross), moneyAlways(c.reverse), moneyAlways(c.net)];
-      tbody.appendChild(makeRow(cells, false, 0));
-    }
-    const t = g.total || {};
-    const totalCells = stock
-      ? [
-        `${g.type}合计`,
-        stockAmount(t.opening, g.type), moneyAlways(t.increase), moneyAlways(t.decrease), stockAmount(t.end, g.type),
-      ]
-      : [`${g.type}合计`, moneyAlways(t.gross), moneyAlways(t.reverse), moneyAlways(t.net)];
-    tbody.appendChild(makeRow(totalCells, true, 2));
+    if (!g.categories || !g.categories.length) continue;
+    count += g.categories.length;
+    const table = buildGroupTable(g, kind);
+    host.appendChild(table);
+    markCustom(table, kind);
+    // 表是动态建的，拖动绑定要补（列宽参数三张小表共用一套 stock/sflow）
+    mountResize(table);
+    paintHandles(table);
+    syncFrozen(table);
   }
 
   if (!count) {
-    const tr = document.createElement('tr');
-    tr.className = 'nt-row';
-    const td = makeCell('本期没有数据', '', HEAD[kind].length);
-    td.className = 'nt-cell nt-cell-empty';
-    tr.appendChild(td);
-    tbody.appendChild(tr);
+    const empty = document.createElement('div');
+    empty.className = 'nt-stats-empty';
+    empty.textContent = '本期没有数据';
+    host.appendChild(empty);
   }
   return count;
 }

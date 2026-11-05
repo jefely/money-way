@@ -49,6 +49,22 @@
   min-height: 0;
 }
 
+/* 每个合计一张独立小表：表与表之间留一行空白，不带边框（用户 2026-11） */
+.nt-stats-tables {
+  padding: 6px 0;
+}
+
+.nt-stats-tables .nt-table + .nt-table {
+  margin-top: 14px;
+}
+
+.nt-stats-empty {
+  padding: 18px 10px;
+  font-size: 12px;
+  color: var(--nt-text-light);
+  text-align: center;
+}
+
 .nt-table-stock,
 .nt-table-sflow {
   table-layout: fixed;
