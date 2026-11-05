@@ -29,8 +29,12 @@ export function mountComposer(section, ctx, rowHost, refresh) {
   toggle.type = 'button';
   toggle.className = 'nt-composer-fab';
   toggle.setAttribute('aria-label', '随手记一笔');
-  toggle.title = '随手记一笔';
-  toggle.textContent = '✎';
+  toggle.title = '随手记一笔（可拖动）';
+  // 铅笔图标用内联 SVG：比 ✎ 字符在各平台上稳定，也能跟着 currentColor 变白
+  toggle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+    + '<path d="M4 20h4L19 9l-4-4L4 16v4z" fill="none" stroke="currentColor"'
+    + ' stroke-width="2" stroke-linejoin="round"/>'
+    + '<path d="M14 6l4 4" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
 
   const input = document.createElement('input');
   input.className = 'nt-input nt-composer-input';
@@ -55,15 +59,90 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     panel.hidden = !open;
     bar.classList.toggle('open', open);
     if (!open) return;
+    alignPanel();   // 展开时按气泡位置算面板对齐方式和最大宽度
     setTimeout(() => {
       try { input.focus(); } catch (e) { /* 忽略 */ }
     }, 30);
   }
 
-  toggle.addEventListener('click', () => setOpen(panel.hidden));
+  toggle.addEventListener('click', () => {
+    if (suppressClick) { suppressClick = false; return; }
+    setOpen(panel.hidden);
+  });
   document.addEventListener('keydown', (ev) => {
     if (ev.key === 'Escape' && !panel.hidden) setOpen(false);
   });
+
+  /* ---------- 气泡可拖动（位置记在本机） ---------- */
+  const POS_KEY = 'nt_composer_pos';
+  const EDGE = 8;
+  let suppressClick = false;
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(POS_KEY) || 'null');
+    if (saved && Number.isFinite(saved.right) && Number.isFinite(saved.bottom)) {
+      bar.style.right = saved.right + 'px';
+      bar.style.bottom = saved.bottom + 'px';
+    }
+  } catch (e) { /* 无痕模式读不到就算了 */ }
+
+  /** 气泡在左半屏时，展开的面板改成左对齐（并限宽），否则会跑出屏幕 */
+  function alignPanel() {
+    const r = bar.getBoundingClientRect();
+    if (!r.width) return;   // mount 时还没定位，量到 0 会误判成「在左边」
+    const leftHalf = r.left + r.width / 2 < window.innerWidth / 2;
+    bar.classList.toggle('left', leftHalf);
+    const space = leftHalf ? window.innerWidth - r.left - 8 : r.right - 8;
+    panel.style.maxWidth = Math.max(220, Math.round(space)) + 'px';
+  }
+  requestAnimationFrame(alignPanel);
+  window.addEventListener('resize', alignPanel);
+
+  const drag = { active: false, moved: false, sx: 0, sy: 0, sr: 0, sb: 0 };
+
+  toggle.addEventListener('pointerdown', (ev) => {
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    drag.active = true;
+    drag.moved = false;
+    drag.sx = ev.clientX;
+    drag.sy = ev.clientY;
+    const r = bar.getBoundingClientRect();
+    drag.sr = window.innerWidth - r.right;
+    drag.sb = window.innerHeight - r.bottom;
+    try { toggle.setPointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
+  });
+
+  toggle.addEventListener('pointermove', (ev) => {
+    if (!drag.active) return;
+    const dx = ev.clientX - drag.sx;
+    const dy = ev.clientY - drag.sy;
+    if (!drag.moved && Math.hypot(dx, dy) < 5) return;   // 手抖不算拖动
+    drag.moved = true;
+    const maxR = window.innerWidth - 60;
+    const maxB = window.innerHeight - 60;
+    const right = Math.max(EDGE, Math.min(maxR, drag.sr - dx));
+    const bottom = Math.max(EDGE, Math.min(maxB, drag.sb - dy));
+    bar.style.right = Math.round(right) + 'px';
+    bar.style.bottom = Math.round(bottom) + 'px';
+    alignPanel();
+  });
+
+  toggle.addEventListener('pointerup', (ev) => {
+    if (!drag.active) return;
+    drag.active = false;
+    try { toggle.releasePointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
+    if (!drag.moved) return;                 // 没移动 = 普通点击（click 会处理）
+    suppressClick = true;                    // 拖完不要再当成点击
+    const r = bar.getBoundingClientRect();
+    try {
+      localStorage.setItem(POS_KEY, JSON.stringify({
+        right: Math.round(window.innerWidth - r.right),
+        bottom: Math.round(window.innerHeight - r.bottom),
+      }));
+    } catch (e) { /* 忽略 */ }
+  });
+
+  toggle.addEventListener('pointercancel', () => { drag.active = false; });
 
   // 插到**流水页**自己的工具条下面。
   // 2026-11 起流水页和设置页在一条横向滑道里，section 里第一个 .nt-vbar 是设置页的，
