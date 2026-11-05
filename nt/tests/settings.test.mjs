@@ -60,7 +60,7 @@ test('迁移不会把「自适应列」写成固定宽度', () => {
   // 自适应列算出的列宽和与数据行实际宽度对不上，横滚到右边表头会整块移出视口。
   const path = parseTableWidths(n['路径追踪/列宽'], 'path');
   assert.ok(path.every((w) => w > 0), '路径表不应再有 0 = 自适应');
-  assert.deepEqual(path, [44, 62, 110, 110, 68, 120]);
+  assert.deepEqual(path, [27, 62, 83, 87, 44, 120]);
 
   // 6 大分类表 2026-11 各有一套固定 px 默认值，且**不参与**旧「默认列宽」迁移
   // （旧数组里抽出来的值会盖掉用户这次给的默认值）。
@@ -96,7 +96,7 @@ test('CSS 变量名是 --nt-col-<表>-<列>，0 变自适应', () => {
   assert.equal(byVar.get('--nt-col-query-note'), 'auto');
   // 路径表的列宽必须是固定 px：自适应列（1fr/minmax）算出的列宽和与数据行
   // 实际宽度对不上，横滚到右边时表头会整块移出视口（2026-10 用户实测）。
-  assert.equal(byVar.get('--nt-col-path-from'), '110px');
+  assert.equal(byVar.get('--nt-col-path-from'), '83px');
   assert.equal(byVar.get('--nt-col-path-note'), '120px');
   assert.equal(byVar.get('--nt-col-sum-histBalance'), '96px');
   // 6 大分类：固定 px 默认值；分类查询仍是 0 = 交给 CSS 百分比漂白
