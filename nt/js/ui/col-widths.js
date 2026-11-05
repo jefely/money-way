@@ -32,7 +32,11 @@ function currentTheme() {
  * 之后拖任何一张都只动自己 —— 用户看到的就是「上下两张表列宽不同步」。
  */
 function clearInlineWidths(table) {
-  for (const c of table.querySelectorAll('col')) c.style.width = '';
+  for (const c of table.querySelectorAll('col')) {
+    // 恢复「参数表达式」而不是清空：统计页小表的 col 宽度只有内联的 var()，
+    // 清空后没有 CSS 兜底，整表会塌成内容宽度（用户报「拖一张，另一张列宽乱了」）。
+    c.style.width = c.dataset.w || '';
+  }
   for (const th of table.querySelectorAll('thead .nt-th')) {
     th.style.width = '';
     th.style.minWidth = '';

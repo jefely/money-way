@@ -136,6 +136,11 @@
   text-align: center;
 }
 
+/* 汇总表：序号列居中（第 2 列；第 1 列是节点名称） */
+.nt-table-sum tbody .nt-cell:nth-child(2) {
+  text-align: center;
+}
+
 /* 合计行只留横向分隔，不要竖线：整行读起来是一条摘要 */
 .nt-stats-total-row .nt-cell {
   border-right: 0;

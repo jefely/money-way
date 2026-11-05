@@ -63,7 +63,10 @@ function buildTable(type, list) {
   const cg = document.createElement('colgroup');
   COLS.forEach(([, key], i) => {
     const col = document.createElement('col');
-    col.style.width = 'var(--nt-col-sum-' + key + ', ' + (defs[i] || 80) + 'px)';
+    const expr = 'var(--nt-col-sum-' + key + ', ' + (defs[i] || 80) + 'px)';
+    col.style.width = expr;
+    // 记住「参数表达式」：拖动后 col 会被写成 px，清内联时要恢复成它（见 ui/col-widths.js）
+    col.dataset.w = expr;
     cg.appendChild(col);
   });
   el.appendChild(cg);

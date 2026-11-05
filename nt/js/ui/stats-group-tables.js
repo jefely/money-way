@@ -99,7 +99,10 @@ function buildGroupTable(g, table) {
   const cg = document.createElement('colgroup');
   cols.forEach(([, key], i) => {
     const col = document.createElement('col');
-    col.style.width = 'var(--nt-col-' + table + '-' + key + ', ' + (defs[i] || 80) + 'px)';
+    const expr = 'var(--nt-col-' + table + '-' + key + ', ' + (defs[i] || 80) + 'px)';
+    col.style.width = expr;
+    // 记住「参数表达式」：拖动后 col 会被写成 px，清内联时要恢复成它
+    col.dataset.w = expr;
     cg.appendChild(col);
   });
   el.appendChild(cg);
