@@ -76,15 +76,40 @@ export function mountComposer(section, ctx, rowHost, refresh) {
   /* ---------- 气泡可拖动（位置记在本机） ---------- */
   const POS_KEY = 'nt_composer_pos';
   const EDGE = 8;
+  const GAP = 16;
   let suppressClick = false;
 
+  // 用户拖到的位置（距视口右/下），和「实际显示位置」分开：
+  // 软键盘弹出时只在显示位置抬高，拖到的位置本身不变（见 applyPos）。
+  let posRight = 16;
+  let posBottom = 16;
   try {
     const saved = JSON.parse(localStorage.getItem(POS_KEY) || 'null');
-    if (saved && Number.isFinite(saved.right) && Number.isFinite(saved.bottom)) {
-      bar.style.right = saved.right + 'px';
-      bar.style.bottom = saved.bottom + 'px';
-    }
+    if (saved && Number.isFinite(saved.right)) posRight = saved.right;
+    if (saved && Number.isFinite(saved.bottom)) posBottom = saved.bottom;
   } catch (e) { /* 无痕模式读不到就算了 */ }
+
+  /** 软键盘高度（键盘弹出时 visualViewport 变矮；不是键盘就不算） */
+  function keyboardHeight() {
+    const vv = window.visualViewport;
+    if (!vv) return 0;
+    const h = window.innerHeight - vv.height - vv.offsetTop;
+    return h > 80 ? Math.round(h) : 0;
+  }
+
+  /**
+   * 摆放气泡：平时就在用户拖到的位置；
+   * 键盘弹出时整体抬到键盘上方（只改显示位置，posBottom 不动），
+   * 这样键盘一收就回到原处，也不会被浏览器重排挤来挤去。
+   */
+  function applyPos() {
+    const kb = keyboardHeight();
+    const maxBottom = Math.max(EDGE, window.innerHeight - 90);
+    const bottom = Math.min(maxBottom, Math.max(posBottom, kb ? kb + GAP : 0));
+    bar.style.right = Math.round(posRight) + 'px';
+    bar.style.bottom = Math.round(bottom) + 'px';
+  }
+  applyPos();
 
   /** 气泡在左半屏时，展开的面板改成左对齐（并限宽），否则会跑出屏幕 */
   function alignPanel() {
@@ -96,7 +121,14 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     panel.style.maxWidth = Math.max(220, Math.round(space)) + 'px';
   }
   requestAnimationFrame(alignPanel);
-  window.addEventListener('resize', alignPanel);
+  window.addEventListener('resize', () => { applyPos(); alignPanel(); });
+
+  // 键盘弹出 / 收起：重算显示位置（iOS 会重排视口，这里显式管住它）
+  const vv = window.visualViewport;
+  if (vv) {
+    vv.addEventListener('resize', () => { applyPos(); alignPanel(); });
+    vv.addEventListener('scroll', () => { applyPos(); alignPanel(); });
+  }
 
   const drag = { active: false, moved: false, sx: 0, sy: 0, sr: 0, sb: 0 };
 
@@ -120,10 +152,9 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     drag.moved = true;
     const maxR = window.innerWidth - 60;
     const maxB = window.innerHeight - 60;
-    const right = Math.max(EDGE, Math.min(maxR, drag.sr - dx));
-    const bottom = Math.max(EDGE, Math.min(maxB, drag.sb - dy));
-    bar.style.right = Math.round(right) + 'px';
-    bar.style.bottom = Math.round(bottom) + 'px';
+    posRight = Math.max(EDGE, Math.min(maxR, drag.sr - dx));
+    posBottom = Math.max(EDGE, Math.min(maxB, drag.sb - dy));
+    applyPos();
     alignPanel();
   });
 
@@ -133,11 +164,10 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     try { toggle.releasePointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
     if (!drag.moved) return;                 // 没移动 = 普通点击（click 会处理）
     suppressClick = true;                    // 拖完不要再当成点击
-    const r = bar.getBoundingClientRect();
     try {
       localStorage.setItem(POS_KEY, JSON.stringify({
-        right: Math.round(window.innerWidth - r.right),
-        bottom: Math.round(window.innerHeight - r.bottom),
+        right: Math.round(posRight),
+        bottom: Math.round(posBottom),
       }));
     } catch (e) { /* 忽略 */ }
   });

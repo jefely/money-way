@@ -945,7 +945,8 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   position: fixed;
   right: 16px;
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  z-index: 60;
+  /* 永远压在最上层：不被页面里任何浮层/表格盖住 */
+  z-index: 2000;
   width: 54px;
   height: 54px;
   pointer-events: none;
