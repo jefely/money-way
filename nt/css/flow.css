@@ -1038,11 +1038,53 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   border-radius: 12px;
 }
 
+/* 展开时和圆形气泡「合体」：气泡本身收起来，面板右侧这个圆钮就是它 ——
+   空着是铅笔、有字变发送箭头（2026-11 用户要求）。 */
+.nt-composer.open .nt-composer-fab {
+  display: none;
+}
+
 .nt-composer-send {
   flex: none;
-  height: 36px;
-  padding: 0 14px;
-  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--nt-bg);
+  color: var(--nt-text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+
+.nt-composer-send:active {
+  transform: scale(0.94);
+}
+
+.nt-composer-send.has-text {
+  background: var(--nt-primary);
+  color: #ffffff;
+}
+
+.nt-composer-send svg {
+  width: 19px;
+  height: 19px;
+  display: block;
+}
+
+.nt-composer-send .nt-icon-send {
+  display: none;
+}
+
+.nt-composer-send.has-text .nt-icon-edit {
+  display: none;
+}
+
+.nt-composer-send.has-text .nt-icon-send {
+  display: block;
 }
 
 .nt-seq-missing { color: #c62828; }

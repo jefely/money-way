@@ -46,8 +46,17 @@ export function mountComposer(section, ctx, rowHost, refresh) {
 
   const send = document.createElement('button');
   send.type = 'button';
-  send.className = 'nt-btn nt-btn-sm nt-composer-send';
-  send.textContent = '发送';
+  send.className = 'nt-composer-send';
+  send.setAttribute('aria-label', '随手记一笔');
+  send.title = '随手记一笔';
+  // 和圆形气泡「合体」：没内容时是铅笔（空态），一旦有字就变成发送箭头
+  send.innerHTML = '<svg class="nt-icon-edit" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+    + '<path d="M4 20h4L19 9l-4-4L4 16v4z" fill="none" stroke="currentColor"'
+    + ' stroke-width="2" stroke-linejoin="round"/>'
+    + '<path d="M14 6l4 4" fill="none" stroke="currentColor" stroke-width="2"/></svg>'
+    + '<svg class="nt-icon-send" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+    + '<path d="M12 19V6M6 12l6-6 6 6" fill="none" stroke="currentColor"'
+    + ' stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   panel.appendChild(input);
   panel.appendChild(send);
@@ -225,6 +234,7 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     else if (result.tx && result.tx.status === 'draft') openId = result.tx.id;
     if (result.outcome !== 'suggest') input.value = '';
     if (h.setFooter && result.prompt) h.setFooter(result.prompt);
+    syncSendState();
   }
 
   function submit(force) {
@@ -252,12 +262,22 @@ export function mountComposer(section, ctx, rowHost, refresh) {
 
   input.addEventListener('input', () => {
     armIdle();
+    syncSendState();
     const text = String(input.value || '').trim();
     if (!text || text.length > 8 || /\d/.test(text)) { hideSuggest(); return; }
     const items = suggestPhraseAccounts(h.getState(), text);
     if (items.length) showSuggest(input, items, (acc) => { input.value = acc.name || ''; submit(true); });
     else hideSuggest();
   });
+
+  /** 有内容 → 圆形按钮切成「发送箭头」；空着 → 回到铅笔 */
+  function syncSendState() {
+    const has = String(input.value || '').trim().length > 0;
+    send.classList.toggle('has-text', has);
+    send.setAttribute('aria-label', has ? '发送' : '随手记一笔');
+    send.title = has ? '发送' : '随手记一笔';
+  }
+  syncSendState();
 
   input.addEventListener('blur', () => {
     setTimeout(() => {
