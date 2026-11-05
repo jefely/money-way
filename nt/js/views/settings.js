@@ -40,6 +40,10 @@ export function mountSettings(section, ctx) {
     table.render();
   }
 
+  // 初始渲染一次：设置页已经搬进流水页的滑道，不再是独立 tab，
+  // 没人会在「切到设置 tab」时替它调 render（2026-11，桌面空白就是它）。
+  if (body) render();
+
   /* ---------- 六个功能 ---------- */
 
   function bindActions() {

@@ -999,9 +999,34 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 }
 
 @media (min-width: 1200px) {
-  .nt-flow-shell { overflow-x: hidden; }
-  .nt-flow-page { flex: 1 1 50%; }
-  /* 并排时两页同时可见，切换按钮没有意义 */
-  [data-nav="settings"],
-  [data-nav="back"] { display: none; }
+  .nt-flow-shell { overflow-x: hidden; position: relative; }
+  /* 左栏（设置）宽度可拖（--nt-flow-left-w），右栏（流水）吃掉剩余 */
+  .nt-flow-page[data-flow-page="settings"] { flex: 0 0 var(--nt-flow-left-w, 50%); }
+  .nt-flow-page[data-flow-page="flow"] { flex: 1 1 0; }
+}
+
+/* 两页之间的分割线：桌面可拖动调整左栏宽度（2026-11） */
+.nt-flow-split {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  margin-left: -3px;
+  padding: 0;
+  border: 0;
+  display: none;
+  background: var(--nt-bg-line);
+  cursor: col-resize;
+  z-index: 6;
+  touch-action: none;
+}
+
+.nt-flow-split:hover,
+.nt-flow-split:focus-visible {
+  background: var(--nt-primary, #7c6bd6);
+  outline: none;
+}
+
+@media (min-width: 1200px) {
+  .nt-flow-split { display: block; }
 }

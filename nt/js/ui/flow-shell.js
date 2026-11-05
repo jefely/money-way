@@ -70,4 +70,70 @@ export function mountFlowShell(section, hooks) {
       }
     }, 120);
   });
+
+  mountSplit(section, shell);
+}
+
+/**
+ * 桌面并排时的分割线：拖动改左栏（设置）宽度，宽度记在本机（界面偏好）。
+ * 手机是「一页一屏」，分割线由 CSS 隐藏，拖动逻辑也不介入。
+ */
+const SPLIT_KEY = 'nt_flow_left_w';
+const MIN_LEFT = 280;
+const MIN_RIGHT = 360;
+
+function mountSplit(section, shell) {
+  if (shell.querySelector('.nt-flow-split')) return;
+  const left = section.querySelector('[data-flow-page="settings"]');
+  if (!left) return;
+
+  const bar = document.createElement('button');
+  bar.type = 'button';
+  bar.className = 'nt-flow-split';
+  bar.setAttribute('aria-label', '拖动调整设置区宽度');
+  shell.appendChild(bar);
+
+  const place = () => {
+    bar.style.left = Math.round(left.getBoundingClientRect().width) + 'px';
+  };
+  const applyWidth = (w) => {
+    const root = document.documentElement;
+    if (w > 0) root.style.setProperty('--nt-flow-left-w', Math.round(w) + 'px');
+    else root.style.removeProperty('--nt-flow-left-w');
+  };
+
+  let saved = 0;
+  try { saved = Number(localStorage.getItem(SPLIT_KEY)) || 0; } catch (e) { saved = 0; }
+  if (saved > 0) applyWidth(saved);
+
+  requestAnimationFrame(place);
+  window.addEventListener('resize', () => requestAnimationFrame(place));
+
+  bar.addEventListener('pointerdown', (ev) => {
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const startX = ev.clientX;
+    const startW = left.getBoundingClientRect().width;
+    const maxW = Math.max(MIN_LEFT, shell.clientWidth - MIN_RIGHT);
+
+    const move = (e) => {
+      const w = Math.max(MIN_LEFT, Math.min(maxW, startW + (e.clientX - startX)));
+      applyWidth(w);
+      place();
+    };
+    const finish = () => {
+      bar.removeEventListener('pointermove', move);
+      bar.removeEventListener('pointerup', finish);
+      bar.removeEventListener('pointercancel', finish);
+      try { bar.releasePointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
+      try { localStorage.setItem(SPLIT_KEY, String(Math.round(left.getBoundingClientRect().width))); } catch (e) { /* 忽略 */ }
+    };
+
+    try { bar.setPointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
+    bar.addEventListener('pointermove', move);
+    bar.addEventListener('pointerup', finish);
+    bar.addEventListener('pointercancel', finish);
+  });
 }
