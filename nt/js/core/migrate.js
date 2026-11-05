@@ -25,6 +25,7 @@ import {
   createAccount,
   createTransaction,
 } from './schema.js';
+import { openingEnds, normalizeOpeningDirections } from './opening-tx.js';
 
 const KNOWN_TYPES = [
   ACCOUNT_TYPE.ASSET,
@@ -86,7 +87,8 @@ export function migrate(raw) {
       ledgerNames: src.ledgerNames && typeof src.ledgerNames === 'object' ? src.ledgerNames : { main: '主账本' },
       activeLedger: src.activeLedger || 'main',
     });
-    return { state: normalized, migrated: false, from: from, to: SCHEMA_VERSION, stats: {} };
+    const state = normalizeOpeningDirections(normalized);
+    return { state, migrated: false, from: from, to: SCHEMA_VERSION, stats: {} };
   }
 
   // ---- 1. 账户 ----
@@ -158,11 +160,13 @@ export function migrate(raw) {
     const accId = byName.get(rawAcc.name);
     if (!accId || opened.has(accId)) continue;
 
+    const acc = accounts.find((a) => a && a.id === accId);
+    const ends = openingEnds(acc);
     transactions.unshift(createTransaction({
       id: 'tx_opening_' + accId,
       date: String(src.openingDate || '2000-01-01'),
-      from_id: OPENING_ACCOUNT_ID,
-      to_id: accId,
+      from_id: ends.from_id,
+      to_id: ends.to_id,
       amount: amount,
       note: '期初',
       opening: true,
@@ -188,7 +192,7 @@ export function migrate(raw) {
   };
 
   return {
-    state: state,
+    state: normalizeOpeningDirections(state),
     migrated: true,
     from: from,
     to: SCHEMA_VERSION,

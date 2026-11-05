@@ -44,6 +44,7 @@
 | `core/migrate.js` | （无界面）旧数据迁移 |
 | `core/mw-settings.js` | （无界面）环图参数 SCHEMA + 默认值 |
 | `core/opening-migrator.js` | （无界面）期初迁移 |
+| `core/opening-tx.js` | 期初流水的方向 |
 | `core/phrase-entry.js` | （无界面）一句话入账 |
 | `core/phrase-parser.js` | （无界面）一句话解析 |
 | `core/plan-occurrence.js` | （无界面）计划发生：确认到今天 / 作废一期 |

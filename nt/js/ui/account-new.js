@@ -9,7 +9,8 @@
 
 import { addAccount, addTransaction, accountTypesOf } from '../core/state-store.js';
 import { accountsOfZone, nextSeqFor, zoneKeyOf } from '../core/account-order.js';
-import { normalizeCode, isValidCode, OPENING_ACCOUNT_ID } from '../core/schema.js';
+import { normalizeCode, isValidCode } from '../core/schema.js';
+import { openingEnds } from '../core/opening-tx.js';
 import { toAmount } from '../core/stats.js';
 import { syncOpeningDates } from '../core/ledger-stats.js';
 import { bindTypePicker, promptType } from './type-picker.js';
@@ -20,14 +21,17 @@ const NEW_FIELDS = ['type', 'category', 'code', 'name', 'opening', 'seq'];
 /** 期初：改那条 opening 流水（没有就建一条） */
 export function setOpening(ctx, id, amount) {
   const st = ctx.getState();
-  const txs = (st.transactions || []).filter((t) => !(t.opening && t.to_id === id));
+  const acc = (st.accounts || []).find((a) => a && a.id === id);
+  if (!acc) return;
+  const txs = (st.transactions || []).filter((t) => !(t.opening && (t.to_id === id || t.from_id === id)));
   let s = { ...st, transactions: txs };
 
   if (amount > 0) {
+    const ends = openingEnds(acc);
     s = addTransaction(s, {
       date: '2000-01-01',
-      from_id: OPENING_ACCOUNT_ID,
-      to_id: id,
+      from_id: ends.from_id,
+      to_id: ends.to_id,
       amount,
       note: '期初',
       opening: true,
@@ -97,10 +101,11 @@ export function bindNewRow(ctx, tr, zone, onCreated) {
     const opening = toAmount(get('opening'));
     if (opening > 0) {
       const added = s.accounts[s.accounts.length - 1];
+      const ends = openingEnds(added);
       s = addTransaction(s, {
         date: '2000-01-01',
-        from_id: OPENING_ACCOUNT_ID,
-        to_id: added.id,
+        from_id: ends.from_id,
+        to_id: ends.to_id,
         amount: opening,
         note: '期初',
         opening: true,

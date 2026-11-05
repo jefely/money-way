@@ -17,7 +17,7 @@
 import { decodeSyncCode } from './sync-code.js';
 import { createState, addAccount, addTransaction } from './state-store.js';
 import { createScheduled, FREQ, normalizeMonth } from './schema.js';
-import { OPENING_ACCOUNT_ID } from './schema.js';
+import { openingEnds } from './opening-tx.js';
 
 const str = (v) => String(v == null ? '' : v).trim();
 const num = (v) => {
@@ -102,10 +102,11 @@ export function stateFromLzPayload(payload) {
     idByName.set(name, acc.id);
 
     if (num(a.opening) > 0) {
+      const ends = openingEnds(acc);
       state = addTransaction(state, {
         date: '2000-01-01',
-        from_id: OPENING_ACCOUNT_ID,
-        to_id: acc.id,
+        from_id: ends.from_id,
+        to_id: ends.to_id,
         amount: Math.abs(num(a.opening)),
         note: '期初',
         opening: true,

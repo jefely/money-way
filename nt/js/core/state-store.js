@@ -15,6 +15,7 @@ import {
   normalizeCode, ALL_ACCOUNT_TYPES,
 } from './schema.js';
 import { promoteDrafts, dropMappingsFor } from './draft-book.js';
+import { openingEnds, openingAccountId } from './opening-tx.js';
 import { matchAccountName } from './account-match.js';
 import { noteTarget } from './lexicon.js';
 
@@ -211,7 +212,7 @@ export function restoreBatch(state, field, removed) {
 export function migrateOpeningToTransactions(state, openingDate = '2000-01-01') {
   const out = { ...state, accounts: state.accounts.map((a) => ({ ...a })) };
   const hasOpening = new Set(
-    (out.transactions || []).filter((t) => t.opening).map((t) => t.to_id || t.from_id),
+    (out.transactions || []).filter((t) => t.opening).map(openingAccountId).filter(Boolean),
   );
 
   const added = [];
@@ -220,10 +221,11 @@ export function migrateOpeningToTransactions(state, openingDate = '2000-01-01') 
     const amount = Number(acc.opening) || 0;
     if (!amount) continue;
     if (hasOpening.has(acc.id)) continue;
+    const ends = openingEnds(acc);
     added.push(createTransaction({
       date: openingDate,
-      from_id: OPENING_ACCOUNT_ID,
-      to_id: acc.id,
+      from_id: ends.from_id,
+      to_id: ends.to_id,
       amount,
       note: '期初',
       opening: true,

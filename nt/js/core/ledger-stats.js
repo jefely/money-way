@@ -237,7 +237,8 @@ export function accountRows(accounts, transactions, range) {
 export function openingOf(state, id) {
   let sum = 0;
   for (const t of (state && state.transactions) || []) {
-    if (t.opening && t.to_id === id) sum += Number(t.amount) || 0;
+    // 期初方向随账户性质：资产是「期初→账户」，负债/权益/收入是「账户→期初」
+    if (t.opening && (t.to_id === id || t.from_id === id)) sum += Number(t.amount) || 0;
   }
   return sum;
 }

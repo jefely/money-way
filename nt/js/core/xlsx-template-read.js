@@ -10,7 +10,8 @@
  */
 
 import { parseBillDate } from './bill-parse.js';
-import { normalizeMonth, isDayGiven, clampDay, OPENING_ACCOUNT_ID } from './schema.js';
+import { normalizeMonth, isDayGiven, clampDay } from './schema.js';
+import { openingEnds } from './opening-tx.js';
 import { createState, addAccount, addTransaction } from './state-store.js';
 import { createScheduled } from './schema.js';
 import { fullType } from './xlsx-template.js';
@@ -251,10 +252,11 @@ export function stateFromTemplate(parsed) {
 
     // 期初 → 一条 opening 流水（本工程的口径：期初不是账户字段）
     if (a.opening > 0) {
+      const ends = openingEnds(acc);
       state = addTransaction(state, {
         date: '2000-01-01',
-        from_id: OPENING_ACCOUNT_ID,
-        to_id: acc.id,
+        from_id: ends.from_id,
+        to_id: ends.to_id,
         amount: Math.abs(a.opening),
         note: '期初',
         opening: true,

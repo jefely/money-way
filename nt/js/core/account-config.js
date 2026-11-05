@@ -10,7 +10,7 @@
 import { ledgerToText, applyAccounts } from './flow-text.js';
 import { parseLedgerText } from './import-parser.js';
 import { addTransaction, idOf } from './state-store.js';
-import { OPENING_ACCOUNT_ID } from './schema.js';
+import { openingEnds } from './opening-tx.js';
 
 /** 账户段的表头 */
 export const ACCOUNT_HEADER = '类型，分类，简码，名称，期初，账单日，还款日，';
@@ -65,12 +65,14 @@ export function applyAccountsText(state, text) {
     if (!row.opening) continue;
     const accId = idOf(s, row.name);
     if (!accId) continue;
+    const acc = (s.accounts || []).find((a) => a && a.id === accId);
 
-    s = { ...s, transactions: (s.transactions || []).filter((t) => !(t.opening && t.to_id === accId)) };
+    s = { ...s, transactions: (s.transactions || []).filter((t) => !(t.opening && (t.to_id === accId || t.from_id === accId))) };
+    const ends = openingEnds(acc);
     s = addTransaction(s, {
       date: '2000-01-01',
-      from_id: OPENING_ACCOUNT_ID,
-      to_id: accId,
+      from_id: ends.from_id,
+      to_id: ends.to_id,
       amount: row.opening,
       note: '期初',
       opening: true,

@@ -20,7 +20,8 @@ import { shortDate } from './format.js';
 import { syncOpeningDates } from './ledger-stats.js';
 import { parseLedgerText } from './import-parser.js';
 import { addTransaction, idOf, nextSeq } from './state-store.js';
-import { createAccount, normalizeCode, indexAccounts, OPENING_ACCOUNT_ID } from './schema.js';
+import { createAccount, normalizeCode, indexAccounts } from './schema.js';
+import { openingEnds, openingAccountId } from './opening-tx.js';
 
 const SEP = '，';
 const HEAD_ACC = '账户：';
@@ -39,7 +40,8 @@ export function ledgerToText(state) {
 
   const openingOf = new Map();
   for (const t of s.transactions || []) {
-    if (t.opening && t.to_id) openingOf.set(t.to_id, Number(t.amount) || 0);
+    const accId = openingAccountId(t);
+    if (t.opening && accId) openingOf.set(accId, Number(t.amount) || 0);
   }
 
   const accLines = visible.map((a) => [
@@ -139,10 +141,12 @@ export function replaceLedgerFromText(state, text) {
     if (!row.opening) continue;
     const accId = idOf(s, row.name);
     if (!accId) continue;
+    const acc = (s.accounts || []).find((a) => a && a.id === accId);
+    const ends = openingEnds(acc);
     s = addTransaction(s, {
       date: '2000-01-01',
-      from_id: OPENING_ACCOUNT_ID,
-      to_id: accId,
+      from_id: ends.from_id,
+      to_id: ends.to_id,
       amount: row.opening,
       note: '期初',
       opening: true,
