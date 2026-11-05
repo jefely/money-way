@@ -85,8 +85,12 @@
 }
 
 /* 6 大分类：每张表一个圆角外框，看上去像一张卡片（用户 2026-11）。
-   边框必须放在 div 上：border-collapse:collapse 的 table 加 border-radius 不生效。 */
+   边框必须放在 div 上：border-collapse:collapse 的 table 加 border-radius 不生效。
+   宽度用 fit-content —— div 默认撑满整栏，右边框会落在表格右边好几像素外；
+   fit-content 让卡片右边和最后一列的右边重叠（用户 2026-11）。 */
 .nt-stat-card {
+  width: fit-content;
+  max-width: 100%;
   border: 1px solid var(--nt-bg-line);
   border-radius: 8px;
   overflow: hidden;
