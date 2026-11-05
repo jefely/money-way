@@ -938,152 +938,120 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 }
 
 /* ---------- 一句话记账：悬浮聊天气泡（2026-11） ---------- */
-/* 平时只是右下角一个圆形按钮（可拖动）；点开才展开「输入 + 发送」的胶囊面板。
-   容器固定 54×54（只包按钮），面板绝对定位浮在它上方 ——
-   否则面板 358 宽会把容器撑宽，拖到左边时整个气泡会被 right 定位推出屏幕。 */
+/* 一个圆钮：收起时是 54px 渐变气泡（铅笔），点开时容器横向长成胶囊，
+   输入框从左边滑出、圆钮留在右边变成发送键 —— 形状连续，不是「泡泡消失」。 */
 .nt-composer {
   position: fixed;
   right: 16px;
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   /* 永远压在最上层：不被页面里任何浮层/表格盖住 */
   z-index: 2000;
-  width: 54px;
-  height: 54px;
-  pointer-events: none;
-}
-
-.nt-composer > * {
-  pointer-events: auto;
-}
-
-.nt-composer-fab {
+  display: flex;
+  align-items: center;
+  gap: 0;
   width: 54px;
   height: 54px;
   padding: 0;
-  border: 0;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: 27px;
+  overflow: hidden;
   background: linear-gradient(135deg,
       var(--nt-primary-light, var(--nt-primary)) 0%,
       var(--nt-primary) 55%,
       var(--nt-primary-dark, var(--nt-primary)) 100%);
-  color: #ffffff;
-  cursor: grab;
-  touch-action: none;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.42), 0 2px 6px rgba(0, 0, 0, 0.3);
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  transition: width 0.22s ease, padding 0.22s ease, border-radius 0.22s ease,
+    background 0.22s ease, box-shadow 0.22s ease;
 }
 
-.nt-composer-fab:active {
-  cursor: grabbing;
-  transform: scale(0.95);
-}
-
-.nt-composer-fab:hover {
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.5), 0 3px 8px rgba(0, 0, 0, 0.34);
-}
-
-.nt-composer-fab svg {
-  width: 23px;
-  height: 23px;
-  display: block;
-}
-
-.nt-composer-panel {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 10px);
-  display: flex;
-  align-items: center;
+.nt-composer.open {
   gap: 6px;
   width: min(360px, calc(100vw - 32px));
   padding: 8px;
-  border: 1px solid var(--nt-bg-line);
-  border-radius: 20px;
+  border-radius: 28px;
   background: var(--nt-bg-soft);
+  border: 1px solid var(--nt-bg-line);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
-  transform-origin: bottom right;
-  animation: nt-composer-pop 0.18s ease-out;
-}
-
-/* 拖到左半屏：面板改成左对齐，不然会跑出屏幕左边 */
-.nt-composer.left .nt-composer-panel {
-  right: auto;
-  left: 0;
-  transform-origin: bottom left;
-}
-
-.nt-composer-panel[hidden] {
-  display: none;
-}
-
-@keyframes nt-composer-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.9) translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 .nt-composer-input {
-  flex: 1;
+  /* 收起态要真正压成 0 宽：只靠 flex:1 + min-width:0 时，
+     input 自带的 padding/border 仍会占掉十几像素（圆钮被挤偏） */
+  flex: 0 1 0;
+  width: 0;
   min-width: 0;
-  height: 36px;
+  height: 38px;
+  padding: 0;
+  border-width: 0;
   border-radius: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
 }
 
-/* 展开时和圆形气泡「合体」：气泡本身收起来，面板右侧这个圆钮就是它 ——
-   空着是铅笔、有字变发送箭头（2026-11 用户要求）。 */
-.nt-composer.open .nt-composer-fab {
-  display: none;
+.nt-composer.open .nt-composer-input {
+  flex: 1 1 auto;
+  width: auto;
+  padding: 0 10px;
+  border-width: 1px;
+  opacity: 1;
+  pointer-events: auto;
 }
 
-.nt-composer-send {
+.nt-composer-btn {
   flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 54px;
+  height: 54px;
   padding: 0;
   border: 0;
   border-radius: 50%;
+  background: transparent;
+  color: #ffffff;
+  cursor: grab;
+  touch-action: none;
+  transition: width 0.2s ease, height 0.2s ease, background 0.15s ease,
+    color 0.15s ease, transform 0.12s ease;
+}
+
+.nt-composer-btn:active {
+  cursor: grabbing;
+  transform: scale(0.95);
+}
+
+.nt-composer.open .nt-composer-btn {
+  width: 38px;
+  height: 38px;
   background: var(--nt-bg);
   color: var(--nt-text-muted);
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
 }
 
-.nt-composer-send:active {
-  transform: scale(0.94);
-}
-
-.nt-composer-send.has-text {
+.nt-composer.open .nt-composer-btn.has-text {
   background: var(--nt-primary);
   color: #ffffff;
 }
 
-.nt-composer-send svg {
-  width: 19px;
-  height: 19px;
+.nt-composer-btn svg {
+  width: 22px;
+  height: 22px;
   display: block;
 }
 
-.nt-composer-send .nt-icon-send {
+.nt-composer.open .nt-composer-btn svg {
+  width: 19px;
+  height: 19px;
+}
+
+.nt-composer-btn .nt-icon-send {
   display: none;
 }
 
-.nt-composer-send.has-text .nt-icon-edit {
+.nt-composer-btn.has-text .nt-icon-edit {
   display: none;
 }
 
-.nt-composer-send.has-text .nt-icon-send {
+.nt-composer-btn.has-text .nt-icon-send {
   display: block;
 }
 
