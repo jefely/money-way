@@ -20,7 +20,7 @@ import { showCatSuggest, hideCatSuggest, isCatSuggestFor } from './cat-suggest.j
  */
 const HEAD = {
   stock: [['分类', 'cat'], ['节点', 'count'], ['期初', 'opening'], ['本期增加', 'increase'], ['本期减少', 'decrease'], ['期末', 'end']],
-  flow: [['分类', 'cat'], ['节点', 'count'], ['本期收入/支出', 'gross'], ['本期退回', 'reverse'], ['净额', 'net']],
+  // 流量表的列名随组变（收入→本期收入 / 费用成本→本期支出），见 flowCols()
   query: [['日期', 'date'], ['转出', 'from'], ['转入', 'to'], ['金额', 'amount'], ['备注', 'note']],
 };
 
@@ -72,9 +72,24 @@ function paintHead(table, cols) {
   syncFrozen(table);
 }
 
-/** 组名 → 合计行标题：'资产类' → '资产 合计'（用户 2026-11：去掉「类」，空格隔开） */
+/** 组名 → 合计行标题：'资产类' → '资产  合计'（去掉「类」，中间两个空格） */
 function groupTitle(type) {
-  return String(type || '').replace(/类$/, '') + ' 合计';
+  return String(type || '').replace(/类$/, '') + '  合计';
+}
+
+/**
+ * 流量表的列名按组变：收入组是「本期收入」，费用/成本组是「本期支出」。
+ * 以前统一叫「本期收入/支出」，两种方向混在一个标题里，看表时得先想一下。
+ */
+function flowCols(type) {
+  const income = String(type || '') === '收入类';
+  return [
+    ['分类', 'cat'],
+    ['节点', 'count'],
+    [income ? '本期收入' : '本期支出', 'gross'],
+    ['本期退回', 'reverse'],
+    ['净额', 'net'],
+  ];
 }
 
 /**
@@ -91,7 +106,7 @@ function groupTitle(type) {
  *   第一行也正好是 table-layout:fixed 用来定列宽的那一行，6 个 td 对应 6 列。
  */
 function buildGroupTable(g, kind) {
-  const cols = HEAD[kind];
+  const cols = kind === 'flow' ? flowCols(g.type) : HEAD[kind];
   const stock = kind === 'stock';
   const t = g.total || {};
 
