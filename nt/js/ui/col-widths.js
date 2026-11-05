@@ -25,6 +25,22 @@ function currentTheme() {
 }
 
 /**
+ * 清掉一张表上的内联宽度，让它重新跟随 CSS 变量（= 参数）。
+ *
+ * 拖动时 enterCustomMode 会把宽度固化到 th/col 的内联样式上。统计页同一组是
+ * **多张小表**：如果只清被拖那张，其它表会保留上一次拖出来的内联宽度，
+ * 之后拖任何一张都只动自己 —— 用户看到的就是「上下两张表列宽不同步」。
+ */
+function clearInlineWidths(table) {
+  for (const c of table.querySelectorAll('col')) c.style.width = '';
+  for (const th of table.querySelectorAll('thead .nt-th')) {
+    th.style.width = '';
+    th.style.minWidth = '';
+    th.style.maxWidth = '';
+  }
+}
+
+/**
  * 拖动手柄改列宽后，把**这一整张表**的列宽写进当前主题的「用户设置」。
  *
  * 为什么存整表而不是只存被拖的那一列：
@@ -44,4 +60,8 @@ export function onColResize(ctx, tableEl) {
   // 存完立刻把新宽度写回 CSS 变量：切 tab 时表头会重建、内联宽度随之丢失，
   // 只靠「下次启动」才生效的话，中途看着就是白调了。
   applySettings(loadMergedSettings(ctx, currentTheme()), currentTheme());
+  // 同组的小表（统计页一个合计一张表）全部回到变量驱动，这样它们始终一样宽
+  for (const t of document.querySelectorAll('table.nt-table')) {
+    if (t !== tableEl && tableIdOf(t) === id) clearInlineWidths(t);
+  }
 }

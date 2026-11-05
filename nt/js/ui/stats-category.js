@@ -73,9 +73,9 @@ function paintHead(table, cols) {
   syncFrozen(table);
 }
 
-/** 组名 → 合计行标题：'资产类' → '资产  合计'（去掉「类」，中间两个空格） */
+/** 组名 → 合计行标题：'资产类' → '资产   合计'（去掉「类」，中间三个空格） */
 function groupTitle(type) {
-  return String(type || '').replace(/类$/, '') + '  合计';
+  return String(type || '').replace(/类$/, '') + '   合计';
 }
 
 /**
@@ -130,6 +130,8 @@ function makeGroupRow(seq, category, nums, opts) {
 function buildGroupTable(g, kind) {
   const cols = kind === 'flow' ? flowCols(g.type) : HEAD[kind];
   const stock = kind === 'stock';
+  // 参数表 / CSS 变量用的是 stock、sflow 这两个 id（不是 'flow'）
+  const tableId = stock ? 'stock' : 'sflow';
   const t = g.total || {};
 
   const table = document.createElement('table');
@@ -138,10 +140,11 @@ function buildGroupTable(g, kind) {
   // 列宽必须写在 col 上（见 TABLE-INTERACTION.md）：
   // table-layout:fixed 下第一行（这里是跨序+分类的合计行）会被用来算列宽，
   // 不写 col 时浏览器按「5 格均分」重算 6 列 —— 实测每列 78px，CSS 的百分比全失效。
+  // 类名必须带表 id（nt-col-sflow-gross）；用 kind 拼会拼成 nt-col-flow-*，CSS 匹配不到。
   const cg = document.createElement('colgroup');
   for (const [, key] of cols) {
     const c = document.createElement('col');
-    c.className = 'nt-col-' + kind + '-' + key;
+    c.className = 'nt-col-' + tableId + '-' + key;
     cg.appendChild(c);
   }
   table.appendChild(cg);
@@ -190,9 +193,9 @@ function buildGroupTable(g, kind) {
  * 它是被 removeProperty 掉的空值。小表是每次重画重建的，类不会自己跟过来，
  * 所以每次建表都按这个变量判一次（列宽参数仍是唯一真相）。
  */
-function markCustom(table, kind) {
+function markCustom(table, tableId) {
   const v = getComputedStyle(document.documentElement)
-    .getPropertyValue('--nt-col-' + kind + '-cat').trim();
+    .getPropertyValue('--nt-col-' + tableId + '-cat').trim();
   table.classList.toggle('cols-custom', !!v);
 }
 
@@ -208,7 +211,7 @@ function paintPanel(panel, groups, kind) {
     count += g.categories.length;
     const table = buildGroupTable(g, kind);
     host.appendChild(table);
-    markCustom(table, kind);
+    markCustom(table, kind === 'stock' ? 'stock' : 'sflow');
     // 表是动态建的，拖动绑定要补（列宽参数三张小表共用一套 stock/sflow）
     mountResize(table);
     paintHandles(table);

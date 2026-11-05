@@ -130,9 +130,11 @@
   font-size: 13px;
 }
 
-/* 分类列内容居中（2026-11 用户指定）；序号列也居中 */
-.nt-table-stock .nt-cell:nth-child(2),
-.nt-table-sflow .nt-cell:nth-child(2) {
+/* 分类列内容居中（2026-11 用户指定）；序号列也居中。
+   限定 tbody：合计行在 thead，它的第 2 个格子是第一个金额，
+   不限 tbody 会把那个金额也居中（用户报「合计金额没靠右」）。 */
+.nt-table-stock tbody .nt-cell:nth-child(2),
+.nt-table-sflow tbody .nt-cell:nth-child(2) {
   text-align: center;
 }
 
