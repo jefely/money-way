@@ -1,6 +1,6 @@
 # NT 账本 · 新窗口快速启动 / 交接
 
-> 最后更新：2026-11-05 · `nt-v1.256` · `51c845d`
+> 最后更新：2026-11-05 · `nt-v1.257` · `c1f8fe2`
 > 用途：在新会话 / 新窗口里，让另一个 agent 或未来的你快速接手 `D:\myproject\money-way`。
 
 ---
@@ -79,9 +79,9 @@ NT 本地调试: http://127.0.0.1:8080/nt/index.html?debug=1
 
 | 项 | 值 |
 |---|---|
-| 版本 | `nt-v1.256` |
-| 最新提交 | `51c845d` |
-| 线上 | 已确认 `nt-v1.255`，Pages success |
+| 版本 | `nt-v1.257` |
+| 最新提交 | `c1f8fe2` |
+| 线上 | 已确认 `nt-v1.257`，Pages success |
 | 测试 | 52 个测试文件；**547 通过**（排除 `mw-params.test.mjs`） |
 | 公约 | `check-rules` 通过，253 个文件，300 行/文件 |
 | 工作区 | 只有 `nt/js/core/mw-settings.js` 有**未提交**改动 |
@@ -335,10 +335,11 @@ node nt/tools/check-rules.mjs
 4. **负债负余额**现在显示「多还」；如果用户说某笔其实是欠款，要先查该账户流水方向，不要直接把公式翻正。
 5. **Pages 偶发卡部署**：空提交重触发；以线上版本号为准。
 6. 旧单文件 `personal/index.html` 只做参考，不要在里面实现新功能。
-7. **流水表宽度语义变了（v1.256）**：修掉和统计页的 CSS 类名冲突后，流水表列宽 = `--nt-col-flow-*`
-   的 px 之和（默认 644px），不再被 `width:100%` 按比例拉满。桌面上列宽之和小于容器时会右侧留白，
-   这是「列宽可调」的必然结果；如果用户嫌留白，可以再讨论要不要给非自定义状态加一条
-   「铺满」规则，但**不要**用 `min-width:100%`（会把调好的 px 重新按比例放大）。
+7. **流水表宽度语义（v1.257 定稿）**：默认 `width:100%` 铺满容器（列宽按比例放大，桌面/手机都不留白）；
+   拖动过列宽后参数 ≠ 默认值 → 整表切 `.cols-custom`（`width: max-content` = 列宽之和），
+   重开按 px 还原。窄屏（≤900px）在**没拖过**时仍用旧版的百分比列宽把 8 列压进一屏
+   （否则 644px 的列宽和会把删除按钮顶到屏幕外）。判定的唯一输入是列宽参数，
+   见 `ui/apply-settings.js` 的 syncColModes；**不要**改用 `min-width:100%`（会把调好的 px 重新放大）。
 8. **`settings.js` 已拆成两份**：参数声明表在 `core/settings-schema.js`（GROUPS/SCREENS/SCHEMA/
    COL_KEYS/LEGACY_DEFAULT），`core/settings.js` 只剩归一化与变 CSS 变量。
    新增参数改 `settings-schema.js`，别再往 `settings.js` 里塞（会顶破 300 行）。
