@@ -158,8 +158,13 @@ function enterCustomMode(tableEl) {
   const headRows = [...tableEl.querySelectorAll('thead tr')];
 
   // ① 先把每列宽度量完（边量边设会让后面的测量被前面的改动污染）。
-  //    量第一行就够：同一列在各行的宽度本来就一样。
-  const widths = (headRows[0] ? [...headRows[0].children] : []).map(
+  //    要用**列数最多**的那一行：统计页小表的第一行是跨两列的合计行
+  //    （「资产  合计」占序+分类），按它量会少一列，后面全部错位。
+  const base = headRows.reduce(
+    (best, tr) => (tr.children.length > (best ? best.children.length : 0) ? tr : best),
+    null,
+  );
+  const widths = (base ? [...base.children] : []).map(
     (th) => Math.round(th.getBoundingClientRect().width),
   );
 
@@ -170,8 +175,11 @@ function enterCustomMode(tableEl) {
     if (!(w > 0)) continue;
     const col = cols[i];
 
-    // 每一行的这一列都要写（两行表头都要跟）
+    // 每一行的这一列都要写（两行表头都要跟）。
+    // 带 colspan 的行整行跳过：它的 children 下标和视觉列对不上，
+    // 写进去会把宽度安到跨列格上（合计行就是这种）。
     for (const tr of headRows) {
+      if ([...tr.children].some((c) => c.colSpan > 1)) continue;
       const th = tr.children[i];
       if (!th) continue;
       if (isUnifiedMonth(tableEl, th)) continue;
@@ -183,7 +191,7 @@ function enterCustomMode(tableEl) {
 
     // **col 也要写**：table-layout: fixed 下 col 的宽度优先于 th，
     // 只改 th 的话拖动一点效果都没有（用户 2026-11-01「一二列调不窄」）。
-    if (col && !isUnifiedMonth(tableEl, headRows[0] && headRows[0].children[i])) {
+    if (col && !isUnifiedMonth(tableEl, base && base.children[i])) {
       col.style.width = w + 'px';
     }
   }
@@ -300,7 +308,10 @@ function startDrag(tableEl, th, downEv, o) {
     // 另一行会保持旧宽度 —— fixed 布局下两行分叉，看起来就是「怎么拖都不窄」
     // （2026-11 用户实测；enterCustomMode 里本来就这么写，拖动时漏了）。
     const px = Math.round(width) + 'px';
+    // 每行表头都要写；带 colspan 的行整行跳过（统计页合计行跨了序+分类，
+    // 它的 children 下标和视觉列对不上）
     for (const tr of tableEl.querySelectorAll('thead tr')) {
+      if ([...tr.children].some((c) => c.colSpan > 1)) continue;
       const cell = tr.children[idx];
       if (cell) cell.style.width = px;
     }

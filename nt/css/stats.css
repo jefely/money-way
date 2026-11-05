@@ -101,31 +101,33 @@
 }
 
 /* 分类存量：序 | 分类 | 期初 | 本期增加 | 本期减少 | 期末
+   **宽度写在 col 上**：table-layout:fixed 下 col 优先于表头行，
+   而第一行是跨了两列的合计行（详见 ui/stats-category.js）。
    兜底值 = 默认百分比；拖过列宽后 --nt-col-stock-* 是 px。 */
-.nt-table-stock .nt-th:nth-child(1) { width: var(--nt-col-stock-seq, 8%); }
-.nt-table-stock .nt-th:nth-child(2) { width: var(--nt-col-stock-cat, 24%); }
-.nt-table-stock .nt-th:nth-child(3) { width: var(--nt-col-stock-opening, 17%); }
-.nt-table-stock .nt-th:nth-child(4) { width: var(--nt-col-stock-increase, 17%); }
-.nt-table-stock .nt-th:nth-child(5) { width: var(--nt-col-stock-decrease, 17%); }
-.nt-table-stock .nt-th:nth-child(6) { width: var(--nt-col-stock-end, 17%); }
+.nt-col-stock-seq { width: var(--nt-col-stock-seq, 8%); }
+.nt-col-stock-cat { width: var(--nt-col-stock-cat, 24%); }
+.nt-col-stock-opening { width: var(--nt-col-stock-opening, 17%); }
+.nt-col-stock-increase { width: var(--nt-col-stock-increase, 17%); }
+.nt-col-stock-decrease { width: var(--nt-col-stock-decrease, 17%); }
+.nt-col-stock-end { width: var(--nt-col-stock-end, 17%); }
 
 /* 分类流量：序 | 分类 | 本期收入/支出 | 本期退回 | 净额 */
-.nt-table-sflow .nt-th:nth-child(1) { width: var(--nt-col-sflow-seq, 8%); }
-.nt-table-sflow .nt-th:nth-child(2) { width: var(--nt-col-sflow-cat, 26%); }
-.nt-table-sflow .nt-th:nth-child(3) { width: var(--nt-col-sflow-gross, 22%); }
-.nt-table-sflow .nt-th:nth-child(4) { width: var(--nt-col-sflow-reverse, 22%); }
-.nt-table-sflow .nt-th:nth-child(5) { width: var(--nt-col-sflow-net, 22%); }
+.nt-col-sflow-seq { width: var(--nt-col-sflow-seq, 8%); }
+.nt-col-sflow-cat { width: var(--nt-col-sflow-cat, 26%); }
+.nt-col-sflow-gross { width: var(--nt-col-sflow-gross, 22%); }
+.nt-col-sflow-reverse { width: var(--nt-col-sflow-reverse, 22%); }
+.nt-col-sflow-net { width: var(--nt-col-sflow-net, 22%); }
 
 /* 合计行在表头**上边**（用户 2026-11）：
-   普通底色（透明，露出面板底色），加粗但字号比数据行小一号 ——
+   普通底色（透明，露出面板底色），加粗、字号略小于数据行 ——
    这样突出的是下面的表头行（它有底色），合计行退成一条摘要。 */
 .nt-table-stock .nt-stats-total-row .nt-cell,
 .nt-table-sflow .nt-stats-total-row .nt-cell {
-  height: 24px;
+  height: 26px;
   padding: 0 5px;
   background: transparent;
   font-weight: 700;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 /* 分类列内容居中（2026-11 用户指定）；序号列也居中 */
@@ -140,10 +142,12 @@
   border-left: 0;
 }
 
+/* 合计标题从序号列跨到分类列，字号再大一号 */
 .nt-table-stock .nt-stats-total-row .nt-cell-total-title,
 .nt-table-sflow .nt-stats-total-row .nt-cell-total-title {
   text-align: center;
   padding-left: 0;
+  font-size: 14px;
 }
 
 .nt-table-stock .nt-row-total .nt-cell,

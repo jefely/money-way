@@ -101,8 +101,15 @@ function makeGroupRow(seq, category, nums, opts) {
   const o = opts || {};
   const tr = document.createElement('tr');
   tr.className = 'nt-row';
-  tr.appendChild(makeCell(seq, 'nt-stats-seq'));
-  tr.appendChild(makeCell(category, o.title ? 'nt-cell-total-title' : ''));
+  if (o.title) {
+    // 合计标题从**序号列**开始、跨到分类列（用户 2026-11）
+    const td = makeCell(category, 'nt-cell-total-title');
+    td.colSpan = 2;
+    tr.appendChild(td);
+  } else {
+    tr.appendChild(makeCell(seq, 'nt-stats-seq'));
+    tr.appendChild(makeCell(category, ''));
+  }
   for (const v of nums) tr.appendChild(makeCell(v, 'nt-cell-num'));
   return tr;
 }
@@ -127,6 +134,17 @@ function buildGroupTable(g, kind) {
 
   const table = document.createElement('table');
   table.className = 'nt-table ' + (stock ? 'nt-table-stock' : 'nt-table-sflow');
+
+  // 列宽必须写在 col 上（见 TABLE-INTERACTION.md）：
+  // table-layout:fixed 下第一行（这里是跨序+分类的合计行）会被用来算列宽，
+  // 不写 col 时浏览器按「5 格均分」重算 6 列 —— 实测每列 78px，CSS 的百分比全失效。
+  const cg = document.createElement('colgroup');
+  for (const [, key] of cols) {
+    const c = document.createElement('col');
+    c.className = 'nt-col-' + kind + '-' + key;
+    cg.appendChild(c);
+  }
+  table.appendChild(cg);
 
   const thead = document.createElement('thead');
 
