@@ -16,6 +16,9 @@ import { bindTypePicker } from './type-picker.js';
 import * as NtModal from './modal.js';
 import { normalizeCode, isValidCode } from '../core/schema.js';
 
+/** 末尾固定空行数（用户 2026-11：和账户表 / 固定收支一样留 10 行，批量录入不用等着重画） */
+const BLANK_ROWS = 10;
+
 /**
  * @param {{getState:Function, setState:Function, saveNow:Function, setFooter?:Function}} ctx
  * @param {Function} rerender 重绘整个账户表
@@ -28,7 +31,9 @@ export function renderNotes(ctx, rerender) {
   frag.appendChild(noteCols());
   frag.appendChild(noteHead());
   notes.forEach((note, i) => frag.appendChild(noteRow(ctx, note, i, rerender)));
-  frag.appendChild(noteNewRow(ctx, rerender));
+
+  // 末尾 10 个空行：空行不显示任何内容（没有「+」、没有占位文字）
+  for (let k = 0; k < BLANK_ROWS; k += 1) frag.appendChild(noteNewRow(ctx, rerender));
   return frag;
 }
 
@@ -234,7 +239,8 @@ function noteNewRow(ctx, rerender) {
   tr.className = 'nt-row nt-row-new';
   tr.dataset.new = '2';
 
-  const c = noteCells({ __new: true, type: '', text: '' }, '+');
+  // 空行不显示任何内容：序号格留空（原来这里显示「+」）
+  const c = noteCells({ __new: true, type: '', text: '' }, '');
 
   const tryCreate = () => {
     if (!tr.isConnected) return;
