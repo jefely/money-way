@@ -15,8 +15,22 @@ import { flyParts } from './fly-in.js';
 
 export function mountComposer(section, ctx, rowHost, refresh) {
   const h = ctx || {};
+
+  // 悬浮气泡（2026-11）：平时只是右下角一个圆形按钮，点开才展开输入条。
+  // 结构：.nt-composer > .nt-composer-panel（输入 + 发送） + .nt-composer-fab（圆形按钮）
   const bar = document.createElement('div');
   bar.className = 'nt-composer';
+
+  const panel = document.createElement('div');
+  panel.className = 'nt-composer-panel';
+  panel.hidden = true;
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'nt-composer-fab';
+  toggle.setAttribute('aria-label', '随手记一笔');
+  toggle.title = '随手记一笔';
+  toggle.textContent = '✎';
 
   const input = document.createElement('input');
   input.className = 'nt-input nt-composer-input';
@@ -31,8 +45,25 @@ export function mountComposer(section, ctx, rowHost, refresh) {
   send.className = 'nt-btn nt-btn-sm nt-composer-send';
   send.textContent = '发送';
 
-  bar.appendChild(input);
-  bar.appendChild(send);
+  panel.appendChild(input);
+  panel.appendChild(send);
+  bar.appendChild(panel);
+  bar.appendChild(toggle);
+
+  /** 展开 / 收起气泡；展开时把焦点交给输入框 */
+  function setOpen(open) {
+    panel.hidden = !open;
+    bar.classList.toggle('open', open);
+    if (!open) return;
+    setTimeout(() => {
+      try { input.focus(); } catch (e) { /* 忽略 */ }
+    }, 30);
+  }
+
+  toggle.addEventListener('click', () => setOpen(panel.hidden));
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && !panel.hidden) setOpen(false);
+  });
 
   // 插到**流水页**自己的工具条下面。
   // 2026-11 起流水页和设置页在一条横向滑道里，section 里第一个 .nt-vbar 是设置页的，
@@ -98,6 +129,9 @@ export function mountComposer(section, ctx, rowHost, refresh) {
       openId = null;
       land(applyPhrase(state, text));
     }
+    // 这一句已经落定（没有「哪里付的钱？」这类后续追问）就收起气泡；
+    // 还要接着补一句时保持展开，别让用户每句都点一次按钮。
+    if (!openId) setOpen(false);
   }
 
   input.addEventListener('keydown', (ev) => {
