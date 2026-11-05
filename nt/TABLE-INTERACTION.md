@@ -480,6 +480,9 @@ body.nt-col-resizing {
   user-select: none;
   cursor: col-resize;
 }
+
+/* 手机：表头横向手势交给 JS，纵向滚动保留 */
+.nt-th { touch-action: pan-y; }
 ```
 
 ### 4.2 判定：列右边缘左移 2px，再往左 `--nt-handle-w`（默认 14px）
@@ -488,11 +491,15 @@ body.nt-col-resizing {
 const hit = ev.target.closest('.nt-th');
 if (!hit) return;
 const edge = Number(getComputedStyle(hit).getPropertyValue('--nt-handle-w')) || 14;
-// 在整行表头里找：边界线 = 列右边缘 - 2，手指必须在线上或线左侧
+// 在整行表头里找：边界线 = 列右边缘 - 2，手指在线左侧 edge 内命中；
+// 线右侧到列边界这 2px 只做误差容限，不能越过列边界
 const lineX = cell.getBoundingClientRect().right - 2;
-if (ev.clientX > lineX) continue;
-if (lineX - ev.clientX <= edge) { /* 命中这一列 */ }
+if (ev.clientX > cell.getBoundingClientRect().right) continue;
+if (Math.max(0, lineX - ev.clientX) <= edge) { /* 命中这一列 */ }
 ```
+
+手机还要在表头上写 `touch-action: pan-y`：保留纵向滚动，横向拖动交给 JS；
+否则浏览器会把横向拖动当成表格横滚，pointer 事件被 cancel，表现就是「拖不稳」。
 
 **不能压在列线上**（单文件版实测结论）：触摸压在线上时 `event.target` 可能落到右边那一列，
 而且手指很难稳定停在 1px 的线上。现在可视线和命中区都**左移 2px**；

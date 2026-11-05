@@ -242,8 +242,10 @@ function edgeTarget(row, x, edge) {
     if (!cell || !cell.classList || !cell.classList.contains('nt-th')) continue;
     const r = cell.getBoundingClientRect();
     const lineX = r.right - EDGE_OFFSET;
-    if (x > lineX) continue;          // 压在线上或偏右都不算
-    const d = lineX - x;
+    // 线右侧到列边界这 2px 也算：手指落在线上/边界上时允许一点误差，
+    // 但不能越过列边界（越过去就是右列的左边缘，会拖错列）。
+    if (x > r.right) continue;
+    const d = Math.max(0, lineX - x);
     if (d <= edge && (!best || d < best.d)) best = { cell, d };
   }
   return best ? best.cell : null;
