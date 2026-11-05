@@ -102,21 +102,22 @@
 
 /* 分类存量：序 | 分类 | 期初 | 本期增加 | 本期减少 | 期末
    **宽度写在 col 上**：table-layout:fixed 下 col 优先于表头行，
-   而第一行是跨了两列的合计行（详见 ui/stats-category.js）。
-   兜底值 = 默认百分比；拖过列宽后 --nt-col-stock-* 是 px。 */
-.nt-col-stock-seq { width: var(--nt-col-stock-seq, 8%); }
-.nt-col-stock-cat { width: var(--nt-col-stock-cat, 24%); }
-.nt-col-stock-opening { width: var(--nt-col-stock-opening, 17%); }
-.nt-col-stock-increase { width: var(--nt-col-stock-increase, 17%); }
-.nt-col-stock-decrease { width: var(--nt-col-stock-decrease, 17%); }
-.nt-col-stock-end { width: var(--nt-col-stock-end, 17%); }
+   而第一行是合计行（详见 ui/stats-category.js）。
+   兜底值 = 默认百分比；拖过列宽后 --nt-col-stock-* 是 px。
+   序号列留 12%：「资产」「负债」两个字的合计名要在这一列放下（10% 时手机上会截成「资…」）。 */
+.nt-col-stock-seq { width: var(--nt-col-stock-seq, 12%); }
+.nt-col-stock-cat { width: var(--nt-col-stock-cat, 22%); }
+.nt-col-stock-opening { width: var(--nt-col-stock-opening, 16.5%); }
+.nt-col-stock-increase { width: var(--nt-col-stock-increase, 16.5%); }
+.nt-col-stock-decrease { width: var(--nt-col-stock-decrease, 16.5%); }
+.nt-col-stock-end { width: var(--nt-col-stock-end, 16.5%); }
 
 /* 分类流量：序 | 分类 | 本期收入/支出 | 本期退回 | 净额 */
-.nt-col-sflow-seq { width: var(--nt-col-sflow-seq, 8%); }
-.nt-col-sflow-cat { width: var(--nt-col-sflow-cat, 26%); }
-.nt-col-sflow-gross { width: var(--nt-col-sflow-gross, 22%); }
-.nt-col-sflow-reverse { width: var(--nt-col-sflow-reverse, 22%); }
-.nt-col-sflow-net { width: var(--nt-col-sflow-net, 22%); }
+.nt-col-sflow-seq { width: var(--nt-col-sflow-seq, 12%); }
+.nt-col-sflow-cat { width: var(--nt-col-sflow-cat, 24%); }
+.nt-col-sflow-gross { width: var(--nt-col-sflow-gross, 21.33%); }
+.nt-col-sflow-reverse { width: var(--nt-col-sflow-reverse, 21.33%); }
+.nt-col-sflow-net { width: var(--nt-col-sflow-net, 21.34%); }
 
 /* 合计行在表头**上边**（用户 2026-11）：
    普通底色（透明，露出面板底色），加粗、字号略小于数据行 ——
@@ -144,12 +145,18 @@
   border-left: 0;
 }
 
-/* 合计标题从序号列跨到分类列，字号再大一号 */
-.nt-table-stock .nt-stats-total-row .nt-cell-total-title,
-.nt-table-sflow .nt-stats-total-row .nt-cell-total-title {
-  text-align: center;
-  padding-left: 0;
-  font-size: 14px;
+/* 合计行：类型名在序号列靠左、「合计」在分类列靠右（用户 2026-11），
+   两个字分处两列，比挤在一格里清楚 */
+.nt-table-stock .nt-stats-total-row .nt-cell-total-name,
+.nt-table-sflow .nt-stats-total-row .nt-cell-total-name {
+  text-align: left;
+  padding-left: 8px;
+}
+
+.nt-table-stock .nt-stats-total-row .nt-cell-total-word,
+.nt-table-sflow .nt-stats-total-row .nt-cell-total-word {
+  text-align: right;
+  padding-right: 8px;
 }
 
 .nt-table-stock .nt-row-total .nt-cell,

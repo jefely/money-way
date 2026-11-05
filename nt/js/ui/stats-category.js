@@ -73,9 +73,9 @@ function paintHead(table, cols) {
   syncFrozen(table);
 }
 
-/** 组名 → 合计行标题：'资产类' → '资产   合计'（去掉「类」，中间三个空格） */
-function groupTitle(type) {
-  return String(type || '').replace(/类$/, '') + '   合计';
+/** 组名 → 合计行里的类型名：'资产类' → '资产'（去掉「类」） */
+function groupName(type) {
+  return String(type || '').replace(/类$/, '');
 }
 
 /**
@@ -94,22 +94,14 @@ function flowCols(type) {
 }
 
 /**
- * 统计小表的一行：序 | 分类 | 金额…（序居中、分类左对齐、金额右对齐）。
+ * 统计小表的一行：序 | 分类 | 金额…（序居中、分类居中、金额右对齐）。
  * 和通用的 makeRow 分开：那张表是「首列无类、其余 num」，这里首列是序号。
  */
-function makeGroupRow(seq, category, nums, opts) {
-  const o = opts || {};
+function makeGroupRow(seq, category, nums) {
   const tr = document.createElement('tr');
   tr.className = 'nt-row';
-  if (o.title) {
-    // 合计标题从**序号列**开始、跨到分类列（用户 2026-11）
-    const td = makeCell(category, 'nt-cell-total-title');
-    td.colSpan = 2;
-    tr.appendChild(td);
-  } else {
-    tr.appendChild(makeCell(seq, 'nt-stats-seq'));
-    tr.appendChild(makeCell(category, ''));
-  }
+  tr.appendChild(makeCell(seq, 'nt-stats-seq'));
+  tr.appendChild(makeCell(category, ''));
   for (const v of nums) tr.appendChild(makeCell(v, 'nt-cell-num'));
   return tr;
 }
@@ -155,10 +147,14 @@ function buildGroupTable(g, kind) {
   const totalNums = stock
     ? [stockAmount(t.opening, g.type), moneyAlways(t.increase), moneyAlways(t.decrease), stockAmount(t.end, g.type)]
     : [moneyAlways(t.gross), moneyAlways(t.reverse), moneyAlways(t.net)];
-  // 序留空，标题落在分类列；不再用 colspan —— 第一行要正好 6/5 格，
-  // table-layout:fixed 靠它定列宽，跨列会让表头和数据列对不齐。
-  const totalRow = makeGroupRow('', groupTitle(g.type), totalNums, { title: true });
-  totalRow.classList.add('nt-stats-total-row');
+  // 「资产」放序号列靠左、「合计」放分类列靠右（用户 2026-11）：
+  // 两个字分处两列，类型名和「合计」各自有归属，比挤在一格里清楚。
+  // 也正因为不再跨列，第一行正好 6/5 格，fixed 布局的列宽不会被打乱。
+  const totalRow = document.createElement('tr');
+  totalRow.className = 'nt-row nt-stats-total-row';
+  totalRow.appendChild(makeCell(groupName(g.type), 'nt-cell-total-name'));
+  totalRow.appendChild(makeCell('合计：', 'nt-cell-total-word'));
+  for (const v of totalNums) totalRow.appendChild(makeCell(v, 'nt-cell-num'));
   thead.appendChild(totalRow);
 
   // ② 表头行
