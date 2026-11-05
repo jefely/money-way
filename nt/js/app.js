@@ -276,7 +276,7 @@ function enterApp() {
   applySettings(merged, theme);
 
   // 列宽拖动手柄：**所有**数据区都挂，拖动后同步到当前主题的「用户设置」并保存
-  bindAllTables({ onResize: (tableEl) => onColResize(colCtx, tableEl) });
+  bindAllTables({ onResize: (tableEl, col, width) => onColResize(colCtx, tableEl, col, width) });
 
   mountViews();
   bindTabs({

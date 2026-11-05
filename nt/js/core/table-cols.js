@@ -89,6 +89,8 @@ export const TABLE_COLS = {
     // 2026-11：去掉「类型」列（类型变成分组标签），「当前余额」改「本期余额」，
     // 末尾补「期初余额」。
     cols: ['name', 'seq', 'cat', 'out', 'iin', 'balance', 'histOut', 'histIn', 'histBalance', 'opening'],
+    // 金额列统一宽度（用户 2026-11）：拖任意一列，这些列一起变同宽。
+    uniformCols: ['out', 'iin', 'balance', 'histOut', 'histIn', 'histBalance', 'opening'],
   },
   query: {
     label: '流水查询',

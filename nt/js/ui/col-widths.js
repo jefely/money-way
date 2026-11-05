@@ -19,6 +19,7 @@ import { loadMergedSettings } from './debug-themes.js';
 import { saveTableWidths } from './col-save.js';
 import { tableIdOf } from './table-layout.js';
 import { applySettings } from './apply-settings.js';
+import { TABLE_COLS } from '../core/table-cols.js';
 
 function currentTheme() {
   return document.documentElement.getAttribute('data-theme') || 'dark';
@@ -52,14 +53,36 @@ function clearInlineWidths(table) {
  *   只存一列的话，重开时其余列会回到默认 —— 整表的比例就变了。
  *   统计三块表默认宽度全是 0，更需要整表存才能判断「这张表自定义过」。
  *
+ * 汇总表的金额列是「统一宽度」（TABLE_COLS.sum.uniformCols）：
+ *   拖其中任意一列，7 列金额一起变成同一宽度（用户 2026-11）。
+ *
  * @param {object} ctx getState / setState / saveNow
  * @param {HTMLElement} tableEl 被拖的那张表
+ * @param {string} [col] 被拖的列名（data-col）
+ * @param {number} [width] 拖完后的列宽（px）
  */
-export function onColResize(ctx, tableEl) {
+export function onColResize(ctx, tableEl, col, width) {
   const id = tableIdOf(tableEl);
   if (!id) return;
-  const widths = [...tableEl.querySelectorAll('thead .nt-th')]
-    .map((th) => Math.round(th.getBoundingClientRect().width));
+
+  const ths = [...tableEl.querySelectorAll('thead .nt-th')];
+  const cols = [...tableEl.querySelectorAll('col')];
+  const widths = ths.map((th) => Math.round(th.getBoundingClientRect().width));
+
+  // 汇总表：7 个金额列统一宽度 —— 拖任意一列，其余金额列也改成同一宽度
+  const meta = TABLE_COLS[id];
+  const uni = meta && meta.uniformCols;
+  if (uni && col && uni.includes(col) && Number(width) > 0) {
+    const w = Math.round(Number(width));
+    for (const key of uni) {
+      const i = meta.cols.indexOf(key);
+      if (i < 0) continue;
+      widths[i] = w;
+      if (ths[i]) ths[i].style.width = w + 'px';
+      if (cols[i]) cols[i].style.width = w + 'px';
+    }
+  }
+
   saveTableWidths(ctx, id, widths);
   // 存完立刻把新宽度写回 CSS 变量：切 tab 时表头会重建、内联宽度随之丢失，
   // 只靠「下次启动」才生效的话，中途看着就是白调了。
