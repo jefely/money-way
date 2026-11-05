@@ -15,7 +15,7 @@
  */
 
 import { toCssList, GROUP_SCOPE, normalize } from '../core/settings.js';
-import { TABLE_COLS, parseTableWidths, colWidthKey } from '../core/table-cols.js';
+import { TABLE_COLS, TABLE_DEFAULT_WIDTHS, parseTableWidths, colWidthKey } from '../core/table-cols.js';
 import { syncAllFrozen, tableIdOf } from './table-layout.js';
 
 /**
@@ -33,10 +33,15 @@ function syncColModes(settings, theme) {
   for (const table of document.querySelectorAll('table.nt-table')) {
     const id = tableIdOf(table);
     const t = TABLE_COLS[id];
-    if (!t || !t.growByWidth) continue;
-    // 0 = 还没自定义；拖动时存的是整表宽度，所以「有任一列 > 0」= 拖过
+    if (!t || !(t.growByWidth || t.fill)) continue;
     const widths = parseTableWidths(s[colWidthKey(id)], id);
-    table.classList.toggle('cols-custom', widths.some((w) => w > 0));
+    // 两种判定，都是「参数说了算」：
+    //   growByWidth（统计三块）：0 = 还没自定义（CSS 百分比铺满），有非 0 = 拖过
+    //   fill（流水表）：参数与默认值不同 = 拖过（默认时仍走 CSS 的 width:100%）
+    const custom = t.growByWidth
+      ? widths.some((w) => w > 0)
+      : widths.join(',') !== String(TABLE_DEFAULT_WIDTHS[id] || '');
+    table.classList.toggle('cols-custom', custom);
   }
 }
 

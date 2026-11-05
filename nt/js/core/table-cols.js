@@ -18,6 +18,9 @@ export const TABLE_COLS = {
   flow: {
     label: '流水记录',
     screen: 'flow',
+    // 默认铺满容器（列宽按比例放大），拖过之后整表按 px 固定。
+    // 这样：没调过的人看到的还是满屏表格；调过的人重开也还是自己那套宽度。
+    fill: true,
     cols: ['seq', 'date', 'from', 'to', 'amount', 'note', 'fixed', 'action'],
   },
   // 统计页的三块表（2026-11）：以前只有「分类统计」一张 8 列表，分类视图改成
