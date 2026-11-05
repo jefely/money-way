@@ -78,12 +78,6 @@ export function syncFrozen(tableEl) {
 
   // 流水 / 统计的 left 在 CSS（--nt-freeze-2）。不要逐行写 style.left。
   if (CSS_FROZEN.has(cls)) {
-    const head = headRows[0];
-    const c0 = head && head.children[0];
-    if (cls === 'nt-table-stats' && tableEl.classList.contains('is-cat') && c0) {
-      const w = Math.round(c0.getBoundingClientRect().width);
-      if (w > 0) tableEl.style.setProperty('--nt-freeze-2', w + 'px');
-    }
     for (const th of ths) {
       if (th.style.left) th.style.left = '';
     }
@@ -305,9 +299,6 @@ function startDrag(tableEl, th, downEv, o) {
       if (cell) cell.style.width = px;
     }
     if (targetCol) targetCol.style.width = px;
-    if (idx === 0 && tableEl.classList.contains('is-cat')) {
-      tableEl.style.setProperty('--nt-freeze-2', px);
-    }
   };
 
   const onMove = (e) => {
@@ -378,58 +369,28 @@ export function bindAllTables(opts) {
 }
 
 /* ============================================================
-   三、列宽的「渲染缓存」
+   三、表元素 → TABLE_COLS 的表名
    ------------------------------------------------------------
-   列宽的真身在账本参数里（加密、要等解锁），但表头每次重绘都会重建，
-   内联 width 随之丢失 —— 表现就是「调好列宽，一折叠一展开就回到默认」。
-   所以拖动时额外往 localStorage 写一份字符串镜像，buildHead 重建表头后
-   直接应用它。参数面板改动时也会同步镜像（见 app.js）。
+   列宽的真相只有一处：账本参数里的 `<表>/列宽`（加密、可备份）。
+   表头重建后由 CSS 变量自动回到那个值（见 shell.css 的 --nt-col-*），
+   所以**不再需要 localStorage 镜像** —— 镜像会和参数打架：
+   面板「恢复默认」后表头一重建，旧镜像又把宽度套回去。
    ============================================================ */
 
-const MIRROR_PREFIX = 'nt-colw:';
-
-/** 表 → 镜像键（用表类名，够稳定） */
-function mirrorKey(tableEl) {
-  const cls = [...tableEl.classList].find((c) => c.startsWith('nt-table-'));
-  if (!cls) return '';
-  // 分类和汇总共用一张表，列数不同。镜像必须分开，否则切回来会把
-  // 汇总的宽列套到「序」上，中间空出一截白、金额列被挤短。
-  if (cls === 'nt-table-stats') {
-    const mode = tableEl.classList.contains('is-sum') ? 'sum' : 'cat';
-    return MIRROR_PREFIX + cls + ':' + mode;
-  }
-  return MIRROR_PREFIX + cls;
-}
-
-/** 写镜像：widths 是「每列一个数字」的数组 */
-export function saveColMirror(tableEl, widths) {
-  try {
-    const k = mirrorKey(tableEl);
-    if (!k) return;
-    localStorage.setItem(k, (widths || []).join(','));
-  } catch (e) { /* 忽略 */ }
-}
-
-/** 从镜像里把宽度应用到表头上（没有镜像就什么都不做） */
-export function applyColMirror(tableEl) {
-  try {
-    const k = mirrorKey(tableEl);
-    const raw = k ? localStorage.getItem(k) : '';
-    if (!raw) return;
-    const widths = raw.split(',').map((x) => Number(x) || 0);
-    if (!widths.some((w) => w > 0)) return;
-
-    const ths = [...tableEl.querySelectorAll('thead .nt-th')];
-    if (!ths.length || widths.length !== ths.length) return;
-    tableEl.classList.add('cols-custom');
-    ths.forEach((th, i) => {
-      const w = widths[i] || 0;
-      th.style.minWidth = '0';
-      th.style.maxWidth = 'none';
-      th.style.width = w > 0 ? w + 'px' : '';
-    });
-    syncFrozen(tableEl);
-  } catch (e) { /* 忽略 */ }
+/** 表元素 → TABLE_COLS 的 key；认不出来返回 '' */
+export function tableIdOf(tableEl) {
+  if (!tableEl) return '';
+  const c = tableEl.classList;
+  if (c.contains('nt-table-flow')) return 'flow';
+  if (c.contains('nt-table-stock')) return 'stock';
+  if (c.contains('nt-table-sflow')) return 'sflow';
+  if (c.contains('nt-table-catq')) return 'catq';
+  // 分类 / 汇总共用一张表：只有汇总视图还会渲染它（分类视图改成三块表了）
+  if (c.contains('nt-table-stats')) return 'sum';
+  if (c.contains('nt-table-query')) return 'query';
+  if (c.contains('nt-table-plan')) return 'plan';
+  if (c.contains('nt-table-accounts')) return 'accounts';
+  return '';
 }
 
 /** 恢复默认列宽：回到 A 模式 */

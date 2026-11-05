@@ -361,8 +361,7 @@ body {
 /* 分期表**不在这里**：它有两行表头，层级要单独排，见下面「分期表冻结」整段。 */
 .nt-table-flow .nt-th:nth-child(1),
 .nt-table-plan .nt-th:nth-child(1),
-.nt-table-stats .nt-th:nth-child(1),
-.nt-table-stats.is-cat .nt-th:nth-child(2) {
+.nt-table-stats .nt-th:nth-child(1) {
   position: -webkit-sticky;   /* 老 Safari / 部分安卓 WebView 只认带前缀的 */
   position: sticky;
   z-index: 6;
@@ -376,19 +375,8 @@ body {
   z-index: 4;
 }
 
-/* 冻结两列的表：第二列压在第一列之下。
-   :not([colspan]) 必须排除合计行的跨列单元格 —— 它是 nth-child(1) 的 2 列合并格，
-   否则那一行会把「转出金额」当成第二列钉住（用户 2026-10-30）。 */
-.nt-table-stats.is-cat .nt-th:nth-child(1),
-.nt-table-stats.is-cat .nt-cell:nth-child(1):not([colspan]) {
-  left: 0;
-}
-.nt-table-stats.is-cat .nt-th:nth-child(2),
-.nt-table-stats.is-cat .nt-cell:nth-child(2):not([colspan]) {
-  position: sticky;
-  left: var(--nt-freeze-2, 54px);
-  z-index: 5;
-}
+/* 汇总表冻结首列（节点名称）。分类视图已经换成三块独立的表，
+   不再共用 .nt-table-stats —— 所以这里没有 is-cat 分支了。 */
 .nt-table-stats.is-sum .nt-th:nth-child(1),
 .nt-table-stats.is-sum .nt-cell:nth-child(1) {
   position: sticky;
@@ -397,7 +385,6 @@ body {
   text-align: left;
 }
 .nt-table-stats .nt-th:nth-child(1),
-.nt-table-stats.is-cat .nt-th:nth-child(2),
 .nt-table-stats.is-sum .nt-th:nth-child(1) {
   z-index: 8;
   background: var(--nt-bg-soft);
@@ -514,7 +501,6 @@ body {
    偶数行的斑马纹由 flow.css 的规则覆盖，这里不用重复。 */
 .nt-table-flow .nt-cell:nth-child(1),
 .nt-table-stats .nt-cell:nth-child(1):not([colspan]),
-.nt-table-stats.is-cat .nt-cell:nth-child(2):not([colspan]),
 .nt-table-stats.is-sum .nt-cell:nth-child(1) {
   z-index: 5;
   background: var(--nt-bg-cell, var(--nt-bg));
@@ -526,10 +512,7 @@ body {
   background: var(--nt-bg-cell, var(--nt-bg));
 }
 
-/* 分类合计行的「转出金额」是该行第 2 个子格（第 1 格跨了序+分类）。
-   它会误中上面的「第 2 列冻结」，金额就盖住「资产类合计」。
-   金额格退回普通层，标题格用实色盖住冻结宽度。 */
-.nt-table-stats.is-cat .nt-row-total > .nt-cell:not([colspan]),
+/* 汇总表合计行的「金额」格是普通层，标题格（跨列）用实色盖住冻结宽度。 */
 .nt-table-stats.is-sum .nt-row-total > .nt-cell:nth-child(n + 2) {
   position: static;
   left: auto;
@@ -644,10 +627,6 @@ body {
 .nt-table-flow tbody td { text-align: center; }
 .nt-table-flow tbody td:nth-child(5) { text-align: right; }
 .nt-table-flow tbody td:nth-child(6) { text-align: left; }
-
-/* 分类统计：中 中 右 右 右 右 右 右 */
-.nt-table-stats.is-cat tbody td { text-align: center; }
-.nt-table-stats.is-cat tbody td:nth-child(n + 3) { text-align: right; }
 
 /* 汇总表：中 中 中 中 右 右 右 右 右 右 */
 .nt-table-stats.is-sum tbody td { text-align: center; }
@@ -767,19 +746,14 @@ body.nt-col-resizing .nt-tablewrap {
 .nt-table-flow .nt-th:nth-child(7) .nt-col-handle,
 .nt-table-flow .nt-th:nth-child(8) .nt-col-handle { display: none; }
 
-/* ---------- 统计（分类 8 列 / 汇总 10 列，两张视图列宽各自独立） ---------- */
+/* ---------- 统计：分类存量 / 分类流量 / 分类查询（各自一套列宽） ----------
 
-/* 同上：不再给表级 min-width */
+   三块表的默认列宽是**百分比**（var 的兜底值），由 stats.css 的「铺满」语义决定：
+   参数里宽度为 0 时 toCssList 不写变量，于是这里落到 24% / 30% …，
+   表格 width:100% 铺满面板。用户拖过之后参数变成 px，变量生效、
+   表切到 .cols-custom（表宽 = 列宽之和），重开也按 px 还原。
 
-/* 分类：序 · 分类 · 转出金额 · 转入金额 · 当前余额 · 历史转出 · 历史转入 · 历史结余 */
-.nt-table-stats.is-cat .nt-th:nth-child(1) { width: var(--nt-col-cat-seq, 54px); }
-.nt-table-stats.is-cat .nt-th:nth-child(2) { width: var(--nt-col-cat-cat, 96px); }
-.nt-table-stats.is-cat .nt-th:nth-child(3) { width: var(--nt-col-cat-out, 84px); }
-.nt-table-stats.is-cat .nt-th:nth-child(4) { width: var(--nt-col-cat-iin, 84px); }
-.nt-table-stats.is-cat .nt-th:nth-child(5) { width: var(--nt-col-cat-balance, 96px); }
-.nt-table-stats.is-cat .nt-th:nth-child(6) { width: var(--nt-col-cat-histOut, 84px); }
-.nt-table-stats.is-cat .nt-th:nth-child(7) { width: var(--nt-col-cat-histIn, 84px); }
-.nt-table-stats.is-cat .nt-th:nth-child(8) { width: var(--nt-col-cat-histBalance, 96px); }
+   以前这里写的是 is-cat（8 列的旧分类表），那张表现在已经没人渲染了。 */
 
 /* 汇总：账户名称 · 序号 · 类型 · 分类 · 转出金额 · 转入金额 · 当前余额 · 历史转出 · 历史转入 · 历史结余 */
 .nt-table-stats.is-sum .nt-th:nth-child(1)  { width: var(--nt-col-sum-name, 120px); }

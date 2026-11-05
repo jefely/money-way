@@ -41,10 +41,8 @@ import { mountDebugPanel } from './ui/debug-panel.js';
 import { applySettings } from './ui/apply-settings.js';
 import { bindAllTables, syncAllFrozen } from './ui/table-layout.js';
 import { clearSelection } from './ui/cell-range.js';
-import { loadMergedSettings, loadUserSettings, saveThemeSettings } from './ui/debug-themes.js';
-import { TABLE_COLS } from './core/table-cols.js';
-import { saveTableColWidth } from './ui/col-save.js';
-import { saveColMirror } from './ui/table-layout.js';
+import { loadMergedSettings } from './ui/debug-themes.js';
+import { onColResize } from './ui/col-widths.js';
 import { APP_VER } from './core/version.js';
 import { initVersion } from './ui/update-check.js';
 import { registerServiceWorker } from './ui/pwa.js';
@@ -248,31 +246,12 @@ function adoptState(raw) {
   return syncOpeningDates(migrate(raw).state);
 }
 
-/** 表元素 → TABLE_COLS 的 key（统计表按当前视图判：分类 / 汇总各一套列宽） */
-function tableKeyOf(tableEl) {
-  const cls = tableEl.classList;
-  if (cls.contains('nt-table-flow')) return 'flow';
-  if (cls.contains('nt-table-stats')) return cls.contains('is-sum') ? 'sum' : 'cat';
-  if (cls.contains('nt-table-query')) return 'query';
-  if (cls.contains('nt-table-plan')) return 'plan';
-  if (cls.contains('nt-table-accounts')) return 'accounts';
-  return '';
-}
-
-/**
- * 拖动手柄改列宽后，写入当前主题的「用户列宽」（不覆盖默认列宽）。
- *
- * 每张表一份：在流水表把金额拖宽，不会连带改掉查询表 / 固定表的金额列。
- */
-function onColResize(tableEl, col, width) {
-  saveTableColWidth({ getState, setState, saveNow: flushSave }, tableKeyOf(tableEl), col, width);
-  // 同时写一份 localStorage 镜像：列宽参数要解锁才拿得到，
-  // 而表头重绘（切 tab / 折叠）发生在渲染期，先用镜像顶上。
-  try {
-    const ths = [...tableEl.querySelectorAll('thead .nt-th')];
-    saveColMirror(tableEl, ths.map((th) => Math.round(th.getBoundingClientRect().width)));
-  } catch (e) { /* 忽略 */ }
-}
+/** 列宽相关的 ctx：读 state 算合并参数，写完立刻落盘 */
+const colCtx = {
+  getState: () => state,
+  setState,
+  saveNow: () => flushSave(),
+};
 
 function enterApp() {
   hideGate();
@@ -296,8 +275,8 @@ function enterApp() {
   const merged = loadMergedSettings({ getState }, theme);
   applySettings(merged, theme);
 
-  // 列宽拖动手柄：**所有**数据区都挂，拖动后同步到当前主题的「默认列宽」并保存
-  bindAllTables({ onResize: onColResize });
+  // 列宽拖动手柄：**所有**数据区都挂，拖动后同步到当前主题的「用户设置」并保存
+  bindAllTables({ onResize: (tableEl) => onColResize(colCtx, tableEl) });
 
   mountViews();
   bindTabs({

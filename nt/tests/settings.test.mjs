@@ -29,9 +29,9 @@ test('每张表都有列宽键，且长度 = 该表列数', () => {
   }
 });
 
-test('表格列数与「核对过的设计」一致：8 / 8 / 10 / 6 / 6 / 8 / 10', () => {
+test('表格列数与「核对过的设计」一致：8 / 6 / 5 / 5 / 10 / 6 / 6 / 8 / 10', () => {
   const counts = TABLES.map((t) => TABLE_COLS[t].cols.length);
-  assert.deepEqual(counts, [8, 8, 10, 6, 6, 8, 10]);
+  assert.deepEqual(counts, [8, 6, 5, 5, 10, 6, 6, 8, 10]);
 });
 
 test('旧版单份「默认列宽」→ 按列名迁成每表一份', () => {
@@ -60,6 +60,13 @@ test('迁移不会把「自适应列」写成固定宽度', () => {
   const path = parseTableWidths(n['路径追踪/列宽'], 'path');
   assert.ok(path.every((w) => w > 0), '路径表不应再有 0 = 自适应');
   assert.deepEqual(path, [44, 62, 110, 110, 68, 120]);
+
+  // 统计三块表默认是「百分比铺满」，旧的那份按列名迁移过来的宽度
+  // 会让它们升级后突然变成固定 px、不再铺满 —— 必须保持全 0。
+  for (const t of ['stock', 'sflow', 'catq']) {
+    const w = parseTableWidths(n[TABLE_COLS[t].label + '/列宽'], t);
+    assert.ok(w.every((x) => x === 0), `${t} 不该被旧的「默认列宽」迁移成 px`);
+  }
 });
 
 test('旧数组本身缺位时补的是「旧默认宽度」，不是 64', () => {
@@ -75,7 +82,8 @@ test('CSS 变量名是 --nt-col-<表>-<列>，0 变自适应', () => {
   const list = toCssList(n, 'dark')
     .filter((x) => x.cssVar && x.cssVar.startsWith('--nt-col-'));
 
-  // 7 张表所有列都要有变量
+  // 统计三块表（growByWidth）默认全 0 = 交给 CSS 的百分比铺满；
+  // 它们的变量值是空串（apply-settings 收到空值会 removeProperty），其余 6 张表是 px。
   const want = TABLES.reduce((k, t) => k + TABLE_COLS[t].cols.length, 0);
   assert.equal(list.length, want);
 
@@ -87,6 +95,25 @@ test('CSS 变量名是 --nt-col-<表>-<列>，0 变自适应', () => {
   assert.equal(byVar.get('--nt-col-path-from'), '110px');
   assert.equal(byVar.get('--nt-col-path-note'), '120px');
   assert.equal(byVar.get('--nt-col-sum-histBalance'), '96px');
+  // 三块统计表默认是空值（不是 auto，也不是 px）—— auto 会顶掉 CSS 的百分比兜底
+  assert.equal(byVar.get('--nt-col-stock-cat'), '');
+  assert.equal(byVar.get('--nt-col-sflow-net'), '');
+  assert.equal(byVar.get('--nt-col-catq-note'), '');
+});
+
+test('统计三块表拖过列宽后，变量变成 px（重开就靠它还原）', () => {
+  const n = normalize({
+    '分类存量/列宽': '120,40,90,90,90,80',
+    '分类流量/列宽': '150,40,0,0,0',
+  }, 'dark');
+  const byVar = new Map(
+    toCssList(n, 'dark').filter((x) => x.cssVar).map((x) => [x.cssVar, x.value]),
+  );
+  assert.equal(byVar.get('--nt-col-stock-cat'), '120px');
+  assert.equal(byVar.get('--nt-col-stock-end'), '80px');
+  // 只拖了三列（其余还是 0）时，0 的列继续交给 CSS 兜底：值是空串，不是 auto
+  assert.equal(byVar.get('--nt-col-sflow-gross'), '');
+  assert.equal(byVar.get('--nt-col-sflow-cat'), '150px');
 });
 
 test('同一个列名在不同表里互不影响', () => {
@@ -116,8 +143,8 @@ test('COL_KEYS 仍然是「只在末尾追加」的旧映射表（迁移依赖�
    ============================================================ */
 
 test('★ 每张表 5 项：列宽 + 列标行高/字号 + 数据行高/字号（路径表只有列宽）', () => {
-  // 6 张 <table> × 4 项尺寸；路径表是 div+grid，不参与
-  assert.equal(TABLE_SIZE_SCHEMA.length, 24, '6 表 × 4 项');
+  // 8 张 <table> × 4 项尺寸；路径表是 div+grid，不参与
+  assert.equal(TABLE_SIZE_SCHEMA.length, 32, '8 表 × 4 项');
 
   for (const [table, t] of Object.entries(TABLE_COLS)) {
     const items = SCHEMA.filter((s) => s.group === t.label);
@@ -137,7 +164,7 @@ test('★ 每张表 5 项：列宽 + 列标行高/字号 + 数据行高/字号�
   }
 });
 
-test('★ 每个表组都有自己的屏：7 个 tab 一一对应，没有孤儿组', () => {
+test('★ 每个表组都有自己的屏：tab 一一对应，没有孤儿组', () => {
   const ids = SCREENS.map((s) => s.id);
   assert.deepEqual(ids, ['main', 'flow', 'stats', 'query', 'path', 'plan', 'settings']);
 
@@ -189,7 +216,7 @@ test('每表尺寸走自己的变量名，调一张不动别张', () => {
   );
   assert.equal(byVar.get('--nt-row-h-flow'), '40px');
   assert.equal(byVar.get('--nt-row-h-sum'), '48px');
-  assert.equal(byVar.get('--nt-row-h-cat'), '32px', '分类统计不该被连带动');
+  assert.equal(byVar.get('--nt-row-h-stock'), '32px', '分类存量不该被连带动');
 });
 
 test('每表尺寸也被钳制（行高 5 → 16，500 → 120）', () => {

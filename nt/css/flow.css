@@ -269,18 +269,16 @@ body.nt-col-resizing {
   text-overflow: ellipsis;
 }
 
-/* ---------- 每张表一套尺寸（7 张表） ----------
+/* ---------- 每张表一套尺寸（8 张表） ----------
    全局的「数据区行高/字号」「列标行高/字号」四项已经拆到每张表：
-   统计表 10 列、流水表 8 列，同一个 32px 行高在两处观感不同。
+   统计页三块表列数不同（6 / 5 / 5），同一个行高在别处观感不同。
    变量由 core/table-cols.js 的 TABLE_SIZE_SCHEMA 生成（--nt-row-h-flow 这种），
    ui/apply-settings 写到 :root，这里按表类名消费。
-   统计页两张表共用 .nt-table-stats，靠 .is-sum 区分「分类」与「汇总」。 */
+   分类视图改成存量 / 流量 / 分类查询三块之后，.nt-table-stats 只剩汇总在用。 */
 .nt-table-flow .nt-th { height: var(--nt-th-h-flow); font-size: var(--nt-th-font-flow); }
 .nt-table-flow .nt-cell { height: var(--nt-row-h-flow); font-size: var(--nt-cell-font-flow); }
-.nt-table-stats:not(.is-sum) .nt-th { height: var(--nt-th-h-cat); font-size: var(--nt-th-font-cat); }
-.nt-table-stats:not(.is-sum) .nt-cell { height: var(--nt-row-h-cat); font-size: var(--nt-cell-font-cat); }
-.nt-table-stats.is-sum .nt-th { height: var(--nt-th-h-sum); font-size: var(--nt-th-font-sum); }
-.nt-table-stats.is-sum .nt-cell { height: var(--nt-row-h-sum); font-size: var(--nt-cell-font-sum); }
+.nt-table-stats .nt-th { height: var(--nt-th-h-sum); font-size: var(--nt-th-font-sum); }
+.nt-table-stats .nt-cell { height: var(--nt-row-h-sum); font-size: var(--nt-cell-font-sum); }
 .nt-table-query .nt-th { height: var(--nt-th-h-query); font-size: var(--nt-th-font-query); }
 .nt-table-query .nt-cell { height: var(--nt-row-h-query); font-size: var(--nt-cell-font-query); }
 .nt-table-plan .nt-th { height: var(--nt-th-h-plan); font-size: var(--nt-th-font-plan); }

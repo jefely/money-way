@@ -9,111 +9,25 @@
  *
  * 主题：1=浅色 2=深色 3=备选1 4=备选2，每个主题一套默认值（THEME_DEFAULTS）。
  * 每项：key、group、def、unit、cssVar / type / attr / options / values。
- */
-
-import { MW_GROUPS, MW_SCHEMA } from './mw-settings.js';
-import { TABLE_GROUPS, TABLE_SCREENS, TABLE_SIZE_SCHEMA } from './table-cols.js';
-
-export const GROUPS = [
-  '标签栏', '按钮区', '表格', '信息栏', '按钮尺寸', '列标行',
-  // 7 张表各一组（列标行高/字号 + 数据行高/字号 + 列宽）
-  ...TABLE_GROUPS,
-  // 环图那 30 项（路径页）单独四组：它们是「基准单位」，由 SVG 渲染器消费，
-  // 和上面这些 --nt-col-* 的 CSS 消费方不是一回事。见 core/mw-settings.js。
-  ...MW_GROUPS,
-];
-
-/** 调试面板的界面标签：与顶部 7 个 tab 一一对应 */
-export const SCREENS = [
-  { id: 'main', label: '主界面' },
-  { id: 'flow', label: '流水' },
-  { id: 'stats', label: '统计' },
-  { id: 'query', label: '查询' },
-  { id: 'path', label: '路径' },
-  { id: 'plan', label: '固定' },
-  { id: 'settings', label: '设置' },
-];
-
-/** 分组归属的界面标签：main=公共参数，flow=流水页参数 */
-export const GROUP_SCREEN = {
-  标签栏: 'main',
-  按钮区: 'main',
-  表格: 'main',
-  信息栏: 'main',
-  // 这三组原来归 'flow' 屏幕，打开面板要先切到「流水」才看得到，
-  // 用户以为「布局功能没了」。它们在主界面也要调，改归 main。
-  按钮尺寸: 'main',
-  列标行: 'main',
-  // 7 张表各归自己的页：流水记录→流水、分类统计+汇总表→统计、…
-  ...TABLE_SCREENS,
-  // 环图参数只在路径页看得见效果，所以归「路径」屏，不和主界面挤在一起
-  ...Object.fromEntries(MW_GROUPS.map((g) => [g, 'path'])),
-};
-
-/** 参数作用域：global=写全局(:root)；其余=写到对应标签页容器 [data-view] */
-export const GROUP_SCOPE = {
-  标签栏: 'global',
-  按钮区: 'global',
-  表格: 'global',
-  信息栏: 'global',
-  // 这三个原本是 'flow'（只作用于流水页）。但 7 个页面都有表头和按钮区，
-  // 标成 flow 会让「列标行字号 / 按钮尺寸字号 / 数据区字号」在别的页面不起作用，
-  // 面板上看着就是「怎么调都控制不到」。全部改 global。
-  按钮尺寸: 'global',
-  列标行: 'global',
-  // 每表尺寸/列宽都是全局变量（--nt-row-h-flow 这种），靠 CSS 的
-  // `.nt-table-flow .nt-cell` 这类选择器落到具体表上，所以作用域写 :root。
-  ...Object.fromEntries(TABLE_GROUPS.map((g) => [g, 'global'])),
-  // 环图参数写在 :root 上：渲染器从 getComputedStyle(documentElement) 读，
-  // 不依赖路径页容器是否存在（切 tab / 未解锁时读到的也是同一份值）。
-  ...Object.fromEntries(MW_GROUPS.map((g) => [g, 'global'])),
-};
-
-/**
- * 列宽/对齐数组的列顺序（对应 colgroup 的 .nt-c-*）
  *
- * ⚠️ 顺序**只能在末尾追加**：用户拖过的列宽是以逗号数组存在存档里的，
- * 按下标对应这张表。往中间插一项 = 所有人的列宽整体错位。
- *
- * 2026-10 追加了 from/to/note/out/iin/fixed/histBalance/up：
- * 之前这些列不在表里，拖它们的手柄会被 onColResize 的 indexOf 判成 -1 直接返回
- * —— 表现就是「流水表的转出/转入/备注拖不动」。
+ * 「有哪些参数」的声明表在 core/settings-schema.js（那部分快 300 行了）；
+ * 本文件负责读：归一化、旧值迁移、变 CSS 变量、导出/导入文本。
  */
-export const COL_KEYS = [
-  'seq', 'date', 'type', 'cat', 'code', 'num', 'amount', 'action', 'state', 'freq',
-  'day', 'name', 'balance', 'opening', 'histOut', 'histIn', 'periods', 'principal',
-  // ↓ 2026-10 追加（不要往上面插）
-  'from', 'to', 'note', 'out', 'iin', 'fixed', 'histBalance', 'up',
-  // ↓ 2026-10 第二次追加：账户表的账单日/还款日 + 分期表的三列。
-  //   shell.css 早就写好了这 5 条对齐规则，但 COL_KEYS 里没有对应的键，
-  //   于是 toCssList 从不输出 --nt-th-align-billDay 这些变量 ——
-  //   「账单日那一列的对齐调不动」就是这么来的（调了没反应）。
-  'billDay', 'repayDay', 'interest', 'per', 'firstMonth',
-];
-
-// 顺序与 COL_KEYS 一一对应（末尾 5 项是 2026-10 第二次追加的列）
-export const DEFAULT_COL_WIDTHS = '44,84,72,76,64,100,96,40,64,64,64,110,100,96,90,90,64,96,'
-  + '112,112,116,84,84,48,96,40,56,56,84,64,84';
-// 列标题对齐：**所有表头一律居中**（用户 2026-10-29 指定）。
-// 以前 balance / histOut 两列是「右」；这里作为新默认全给「中」。
-// 顺序与 COL_KEYS 一一对应（末尾 5 项是 2026-10 第二次追加的列）。
-export const DEFAULT_COL_ALIGN = '中,中,中,中,中,中,中,中,中,中,中,中,中,中,中,中,中,中,'
-  + '中,中,中,中,中,中,中,中,中,中,中,中,中';
-
-// 旧默认（balance 与 histOut 两列右对齐）—— 只用于下面的迁移判断
-const OLD_COL_ALIGN = DEFAULT_COL_ALIGN.split(',').map((x, i) => ((i === 12 || i === 14) ? '右' : x)).join(',');
-
-/* ============================================================
-   每张表各自的列与默认列宽
-   ------------------------------------------------------------
-   数据与解析都在 core/table-cols.js（这里只转发，保持既有 import 不变）。
-   ============================================================ */
 
 import {
   TABLE_COLS, TABLE_DEFAULT_WIDTHS, parseTableWidths, colWidthKey,
 } from './table-cols.js';
+import {
+  GROUPS, SCREENS, GROUP_SCREEN, GROUP_SCOPE, COL_KEYS, DEFAULT_COL_WIDTHS,
+  DEFAULT_COL_ALIGN, OLD_COL_ALIGN, SCHEMA, LEGACY_DEFAULT,
+} from './settings-schema.js';
 
-export { TABLE_COLS, TABLE_DEFAULT_WIDTHS, parseTableWidths, colWidthKey };
+// 保持既有 import 不变：参数表与表列定义都从这里转出一次。
+export {
+  GROUPS, SCREENS, GROUP_SCREEN, GROUP_SCOPE, SCHEMA,
+  COL_KEYS, DEFAULT_COL_WIDTHS, DEFAULT_COL_ALIGN,
+  TABLE_COLS, TABLE_DEFAULT_WIDTHS, parseTableWidths, colWidthKey,
+};
 
 /** 补到该表的列数：缺位用该表默认值（不能掉成 0/64，否则整列消失或变窄） */
 function padTableWidths(text, table) {
@@ -123,89 +37,9 @@ function padTableWidths(text, table) {
 /** 主题 id 列表（与 theme-manager 的 VALID 一致） */
 export const THEME_IDS = ['light', 'dark', 'alt1', 'alt2'];
 
-export const SCHEMA = [
-  /* ---------- 标签栏（公共） ---------- */
-  { key: '标签栏行高', group: '标签栏', def: 40, unit: 'px', cssVar: '--nt-tabs-h' },
-  { key: '标签栏字号', group: '标签栏', def: 13, unit: 'px', cssVar: '--nt-tab-font' },
-  // 文字整体**向下**偏移（px，0~20）。默认 2px 是「看上去正好居中」的位置。
-  // 不支持负数：实现用的是 padding-top，负 padding 不合法。
-  { key: '标签栏文字偏移', group: '标签栏', def: 2, unit: 'px', cssVar: '--nt-tab-shift' },
-  { key: '标签栏文字颜色', group: '标签栏', def: '#b9b2d0', cssVar: '--nt-tabs-color' },
-  { key: '标签栏背景颜色', group: '标签栏', def: '#0e0b16', cssVar: '--nt-tabs-bg' },
-  { key: '标签栏行背景色', group: '标签栏', def: '#0e0b16', cssVar: '--nt-tab-bg' },
-  { key: '标签栏边框', group: '标签栏', type: 'enum', options: ['按钮框', '竖线', '直角框', '无边框'], values: ['solid', 'line', 'sharp', 'plain'], def: '按钮框', attr: 'data-tabs-border' },
-  { key: '标签栏边框颜色', group: '标签栏', def: '#2a2438', cssVar: '--nt-tabs-border' },
-
-  /* ---------- 按钮区（公共） ---------- */
-  { key: '按钮区文字颜色', group: '按钮区', def: '#f2eeff', cssVar: '--nt-btn-text' },
-  { key: '按钮区按钮样式', group: '按钮区', type: 'enum', options: ['无', '圆角框', '直角框', '竖线'], values: ['plain', 'solid', 'sharp', 'line'], def: '圆角框', attr: 'data-btn-style' },
-  { key: '按钮区间距', group: '按钮区', def: 6, unit: 'px', cssVar: '--nt-btn-gap' },
-  // 工具条按钮的最小宽度：0 = 按内容（默认）。调大能让「添加/导入/重载」对齐成等宽。
-  { key: '工具条按钮宽', group: '按钮区', def: 0, min: 0, max: 200, unit: 'px', cssVar: '--nt-btn-w' },
-  { key: '按钮区背景颜色', group: '按钮区', def: '#0e0b16', cssVar: '--nt-vbar-bg' },
-  { key: '按钮区行背景色', group: '按钮区', def: '#000000', cssVar: '--nt-btn-bg' },
-
-  /* ---------- 表格（公共） ---------- */
-  { key: '默认文字颜色', group: '表格', def: '#f2eeff', cssVar: '--nt-unit-text' },
-  { key: '默认背景颜色', group: '表格', def: '#000000', cssVar: '--nt-unit-bg' },
-  { key: '整行背景色', group: '表格', def: '#000000', cssVar: '--nt-unit-row-bg' },
-  { key: '横向边框', group: '表格', type: 'enum', options: ['无', '虚线', '实线'], values: ['none', 'dashed', 'solid'], def: '实线', attr: 'data-border-h' },
-  { key: '横向边框线粗', group: '表格', def: 1, unit: 'px', cssVar: '--nt-border-h-width' },
-  { key: '横向边框颜色', group: '表格', def: '#2a2438', cssVar: '--nt-border-h-color' },
-  { key: '纵向边框', group: '表格', type: 'enum', options: ['无', '虚线', '实线'], values: ['none', 'dashed', 'solid'], def: '实线', attr: 'data-border-v' },
-  { key: '纵向边框线粗', group: '表格', def: 1, unit: 'px', cssVar: '--nt-border-v-width' },
-  { key: '纵向边框颜色', group: '表格', def: '#2a2438', cssVar: '--nt-border-v-color' },
-  // border-spacing：0 = 单元格紧贴（默认）。调大能看出「缝隙」，也方便排查边框错位。
-  { key: '单元格间隙', group: '表格', def: 0, min: 0, max: 20, unit: 'px', cssVar: '--nt-cell-gap' },
-  { key: '手柄颜色', group: '表格', def: '#8c82be', cssVar: '--nt-handle-color' },
-  // 注：原「手柄位置」(--nt-handle-offset) 已删 —— 它没有任何 CSS 消费方。
-  // 手柄必须完全落在列内（right:0），跨出去会让 closest('.nt-th') 拿到右边那列，
-  // 表现就是「手柄时灵时不灵」（见 TABLE-INTERACTION.md）。这个值不该可调。
-
-  /* ---------- 信息栏（公共） ---------- */
-  { key: '信息栏行高', group: '信息栏', def: 28, unit: 'px', cssVar: '--nt-footer-h' },
-  { key: '信息栏字号', group: '信息栏', def: 12, unit: 'px', cssVar: '--nt-footer-font' },
-  { key: '信息栏文字颜色', group: '信息栏', def: '#b9b2d0', cssVar: '--nt-footer-color' },
-  { key: '信息栏背景颜色', group: '信息栏', def: '#0e0b16', cssVar: '--nt-footer-bg' },
-
-  /* ---------- 按钮尺寸（独立） ---------- */
-  // 按钮区高度：工具条 min-height（各页共用这一个键）
-  { key: '按钮尺寸行高', group: '按钮尺寸', def: 30, unit: 'px', cssVar: '--nt-vbar-h' },
-  // 按钮本身的高度：工具条 / 查询面板头的按钮共用（2026-10-29 用户指定）
-  { key: '按钮尺寸按钮高', group: '按钮尺寸', def: 26, min: 18, max: 60, unit: 'px', cssVar: '--nt-btn-h' },
-  { key: '按钮尺寸字号', group: '按钮尺寸', def: 12, unit: 'px', cssVar: '--nt-vbar-font' },
-
-  /* ---------- 列标行（全局只剩两件事） ----------
-     行高与字号已经下放到每张表（见 TABLE_SIZE_SCHEMA）：
-     统计表 10 列、流水表 8 列，同一个 32px 行高在两处观感不同。
-     这里只留「对齐」和「手柄」—— 它们天生跨表一致。 */
-  { key: '列标行对齐', group: '列标行', type: 'align', prefix: '--nt-th-align-', def: DEFAULT_COL_ALIGN },
-  { key: '手柄宽度', group: '列标行', def: 14, unit: 'px', cssVar: '--nt-handle-w' },
-
-  /* ---------- 每张表一套（7 组，每组 5 项） ----------
-     列标行高/字号 + 数据行高/字号 + 列宽，全部由这张表自己决定。
-     列宽 0 = 自适应（query 用 auto，path 的 grid 用 1fr）；
-     拖动后整表切 .cols-custom 模式，见 ui/table-layout.js。
-     想恢复默认列宽用面板底部的「恢复默认」。 */
-  { key: '流水记录/列宽', group: '流水记录', type: 'cols', table: 'flow', def: TABLE_DEFAULT_WIDTHS.flow },
-  { key: '分类统计/列宽', group: '分类统计', type: 'cols', table: 'cat', def: TABLE_DEFAULT_WIDTHS.cat },
-  { key: '汇总表/列宽', group: '汇总表', type: 'cols', table: 'sum', def: TABLE_DEFAULT_WIDTHS.sum },
-  { key: '流水查询/列宽', group: '流水查询', type: 'cols', table: 'query', def: TABLE_DEFAULT_WIDTHS.query },
-  { key: '路径追踪/列宽', group: '路径追踪', type: 'cols', table: 'path', def: TABLE_DEFAULT_WIDTHS.path },
-  { key: '固定开支/列宽', group: '固定开支', type: 'cols', table: 'plan', def: TABLE_DEFAULT_WIDTHS.plan },
-  { key: '账户设置/列宽', group: '账户设置', type: 'cols', table: 'accounts', def: TABLE_DEFAULT_WIDTHS.accounts },
-  // 28 项尺寸参数在 core/table-cols.js 里生成（7 表 × 4）
-  ...TABLE_SIZE_SCHEMA,
-
-  /* ---------- 环图（路径页，四组） ----------
-     30 项的声明在 core/mw-settings.js：面板、导出文本、存档都走同一份 SCHEMA，
-     消费方是 ui/mw-params.js（读 --nt-mw-* → 数字），不是 CSS 规则。 */
-  ...MW_SCHEMA,
-];
-
 /**
  * 每表尺寸的旧值来源：2026-10 之前这四个是**全局**参数。
- * 用户调过的值（比如数据区行高 40）要能跟着迁移到 7 张表上。
+ * 用户调过的值（比如数据区行高 40）要能跟着迁移到每张表上。
  */
 const LEGACY_SIZE = {
   thH: '列标行行高',
@@ -256,33 +90,16 @@ export const THEME_DEFAULTS = THEME_IDS.reduce((acc, id) => {
 
 /**
  * 归一化：px 项转数字，数组/对齐项保留逗号串，颜色项保留字符串；非法值落回该主题默认。
+ * 旧存档的全局尺寸/列宽在这里迁移到每表一份（见 LEGACY_SIZE / legacyFor）。
  * @param {object} raw
  * @param {string} [theme]
  * @returns {object} 完整设置
  */
-/**
- * 改了默认值的项：老存档里如果**还留着旧默认**，就跟着新默认走。
- *
- * 为什么需要它：这些参数一律由 normalize 从存档读，存档里有值就不会用 def ——
- * 于是「把默认值改小」对已经打开过页面的人完全不生效，面板上还是旧数字。
- * 只在值**恰好等于旧默认**时才迁移，用户自己调过的其它值原样保留。
- */
-const LEGACY_DEFAULT = {
-  环厚: { 80: 60 },        // v1.210：80 → 60
-  追踪字号: { 52: 46 },    // v1.210：52 → 46
-  // v1.236：环外标签锥形，短尖减半、长尖加 50%（解决环外文字压字）
-  锥形第一档: { 46: 23 },
-  锥形第二档: { 115: 172.5 },
-  // v1.244：命中区从 7 回到 14。透明手柄层已经去掉，命中区不再占列宽，
-  // 14px 只让边缘更好按住，列标文字空间不受影响。
-  手柄宽度: { 7: 14 },
-};
-
 export function normalize(raw, theme) {
   const out = { ...(THEME_DEFAULTS[theme] || THEME_DEFAULTS.dark) };
   for (const s of SCHEMA) {
     let v = raw ? raw[s.key] : undefined;
-    // 旧默认值迁移（见 LEGACY_DEFAULT）
+    // 旧默认值迁移（见 settings-schema.js 的 LEGACY_DEFAULT）
     const mig = LEGACY_DEFAULT[s.key];
     if (mig && v != null && mig[String(v)] !== undefined) v = mig[String(v)];
 
@@ -312,7 +129,7 @@ export function normalize(raw, theme) {
       // 空 / 只有符号 / 只有小数点，一律当作没填，保留该主题默认值。
       const n = toNum(v);
       if (n == null) continue;
-      // 钳制：只有声明了 min/max 的项才生效（表格那 43 项都没声明，行为不变）。
+      // 钳制：只有声明了 min/max 的项才生效（表格那些都没声明，行为不变）。
       // 环图参数必须有界 —— 环半径调过头会把标签切到画布外面，环厚超过半径会让 rIn 变负。
       out[s.key] = clampNum(n, s.min, s.max);
     } else if (s.type === 'array' || s.type === 'align') {
@@ -387,7 +204,9 @@ function legacyFor(table, raw) {
   // noAuto 的表（路径追踪）不参与旧「默认列宽」迁移：
   // 它现在是固定 px 语义，从旧的按列名数组里抽出来的宽度（112 / 96 …）
   // 既不是新的默认值，也不是用户拖出来的值 —— 直接用该表默认。
-  if (t.noAuto) return '';
+  // growByWidth 的表（统计三块）同理：它们的值 0 = 铺满，
+  // 一旦从旧数组抽到具体 px，升级后就会突然变成固定宽度、不再铺满。
+  if (t.noAuto || t.growByWidth) return '';
 
   const def = String(TABLE_DEFAULT_WIDTHS[table] || '').split(',').map((x) => Number(x.trim()));
 
@@ -424,6 +243,14 @@ export function toCssList(settings, theme) {
       const widths = parseTableWidths(v, item.table);
       const auto = t.autoValue || 'auto';
       t.cols.forEach((c, i) => {
+        // growByWidth 的表：0 表示「还没自定义」，宽度由 CSS 的百分比铺满容器。
+        // 这里输出**空值**（不是 auto）：apply-settings 收到空值会 removeProperty，
+        // 把上一次拖出来、现在已被「恢复默认」清掉的旧变量摘掉。
+        // 写 auto 会把 CSS 的 `var(--nt-col-…, 24%)` 兜底顶掉，表就不铺满了。
+        if (widths[i] === 0 && t.growByWidth) {
+          out.push({ group: item.group, cssVar: '--nt-col-' + item.table + '-' + c, value: '' });
+          return;
+        }
         out.push({
           group: item.group,
           cssVar: '--nt-col-' + item.table + '-' + c,

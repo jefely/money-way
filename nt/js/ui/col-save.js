@@ -36,3 +36,32 @@ export function saveTableColWidth(ctx, table, col, width) {
   if (typeof ctx.saveNow === 'function') ctx.saveNow();
   return true;
 }
+
+/**
+ * 整张表的列宽一起写进「用户设置」。
+ *
+ * 拖动一张表时，所有列都已经被固化成了实际 px（见 table-layout 的
+ * enterCustomMode），只存被拖那一列会让其余列在重开时回到默认，
+ * 整表比例就变了。统计三块表还靠「有没有非 0」判断是否自定义过。
+ *
+ * @param {object} ctx
+ * @param {string} table 表 key
+ * @param {number[]} widths 每列一个 px（0 / 非法 = 交给默认）
+ * @returns {boolean} 是否写入
+ */
+export function saveTableWidths(ctx, table, widths) {
+  const t = TABLE_COLS[table];
+  if (!t || !Array.isArray(widths) || !widths.length) return false;
+
+  const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const key = colWidthKey(table);
+  const list = t.cols.map((_, i) => {
+    const w = Math.round(Number(widths[i]));
+    return Number.isFinite(w) && w > 0 ? w : 0;
+  });
+
+  const user = { ...loadUserSettings(ctx, theme), [key]: list.join(',') };
+  saveThemeSettings(ctx, theme, user, 'user');
+  if (typeof ctx.saveNow === 'function') ctx.saveNow();
+  return true;
+}

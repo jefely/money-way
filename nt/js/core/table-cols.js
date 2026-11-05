@@ -20,10 +20,30 @@ export const TABLE_COLS = {
     screen: 'flow',
     cols: ['seq', 'date', 'from', 'to', 'amount', 'note', 'fixed', 'action'],
   },
-  cat: {
-    label: '分类统计',
+  // 统计页的三块表（2026-11）：以前只有「分类统计」一张 8 列表，分类视图改成
+  // 存量 / 流量 / 分类查询三块之后，那张表就再没人渲染了（is-cat 从来不加），
+  // 于是拖它们的列宽既不保存、也没法恢复。现在每块一份参数。
+  //
+  // growByWidth = 默认让 CSS 的百分比把表铺满容器；一旦用户拖过列宽，
+  // 整表变成固定 px（见 app.js 的 syncColModes）。所以默认宽度全是 0，
+  // 0 在这里表示「不写变量，交给 CSS 兜底」，不是「零宽」。
+  stock: {
+    label: '分类存量',
     screen: 'stats',
-    cols: ['seq', 'cat', 'out', 'iin', 'balance', 'histOut', 'histIn', 'histBalance'],
+    growByWidth: true,
+    cols: ['cat', 'count', 'opening', 'increase', 'decrease', 'end'],
+  },
+  sflow: {
+    label: '分类流量',
+    screen: 'stats',
+    growByWidth: true,
+    cols: ['cat', 'count', 'gross', 'reverse', 'net'],
+  },
+  catq: {
+    label: '分类查询',
+    screen: 'stats',
+    growByWidth: true,
+    cols: ['date', 'from', 'to', 'amount', 'note'],
   },
   sum: {
     label: '汇总表',
@@ -76,7 +96,10 @@ export const TABLE_SCREENS = Object.fromEntries(
  */
 export const TABLE_DEFAULT_WIDTHS = {
   flow: '44,84,112,112,96,116,40,40',
-  cat: '44,76,84,84,100,90,90,96',
+  // 统计三块：0 = 铺满（CSS 的百分比兜底），拖过之后才写 px。见 stock 的说明。
+  stock: '0,0,0,0,0,0',
+  sflow: '0,0,0,0,0',
+  catq: '0,0,0,0,0',
   sum: '110,44,72,76,84,84,100,90,90,96',
   query: '44,0,0,0,0,0',
   path: '44,62,110,110,68,120',

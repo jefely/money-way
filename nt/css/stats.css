@@ -1,9 +1,12 @@
-/* 分类统计：左侧存量 / 右侧流量两块。
-   桌面并排；手机一屏一块，横向滑动吸附（和流水查询表同一套交互）。 */
+/* 分类统计：存量 / 流量 / 分类查询三块。
+   三联排布 = 查询页（query.css 的 .nt-query-grid）同一套：
+   等宽三栏、栏间一条分隔线、窄屏一屏一栏横向吸附。
+   以前这里是 1.15fr / 1fr / 1.1fr 的不等宽，901–1179px 还把查询块
+   折到第二行 —— 和查询页放一起看就是「两边不是一回事」（用户 2026-11）。 */
 
 .nt-stats-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1.1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   flex: 1;
   min-height: 0;
   border-top: 1px solid var(--nt-bg-line);
@@ -47,53 +50,55 @@
 }
 
 .nt-table-stock,
-.nt-table-flow {
+.nt-table-sflow {
   table-layout: fixed;
+  /* 默认铺满一栏（三块表并排，每栏都是 1fr）；拖过列宽之后由
+     .cols-custom 改成 width: max-content = 列宽之和。 */
   width: 100%;
   min-width: 0;
 }
 
-.nt-table-stock .nt-th,
-.nt-table-flow .nt-th {
-  height: var(--nt-th-h-cat, 26px);
-  padding: 0 5px;
-  font-size: 11px;
-}
+/* 每块表一套行高 / 字号（参数面板各自的组），变量由 core/table-cols.js 生成 */
+.nt-table-stock .nt-th { height: var(--nt-th-h-stock, 26px); font-size: var(--nt-th-font-stock, 12px); }
+.nt-table-stock .nt-cell { height: var(--nt-row-h-stock, 32px); font-size: var(--nt-cell-font-stock, 14px); }
+.nt-table-sflow .nt-th { height: var(--nt-th-h-sflow, 26px); font-size: var(--nt-th-font-sflow, 12px); }
+.nt-table-sflow .nt-cell { height: var(--nt-row-h-sflow, 32px); font-size: var(--nt-cell-font-sflow, 14px); }
 
+.nt-table-stock .nt-th,
 .nt-table-stock .nt-cell,
-.nt-table-flow .nt-cell {
-  height: var(--nt-row-h-cat, 32px);
+.nt-table-sflow .nt-th,
+.nt-table-sflow .nt-cell {
   padding: 0 5px;
-  font-size: 12px;
 }
 
 .nt-table-stock .nt-cell-num,
-.nt-table-flow .nt-cell-num {
+.nt-table-sflow .nt-cell-num {
   text-align: right;
 }
 
 .nt-table-stock .nt-cell:nth-child(2),
-.nt-table-flow .nt-cell:nth-child(2) {
+.nt-table-sflow .nt-cell:nth-child(2) {
   text-align: center;
 }
 
-/* 分类 | 节点 | 期初 | 本期增加 | 本期减少 | 期末 */
-.nt-table-stock .nt-th:nth-child(1) { width: 24%; }
-.nt-table-stock .nt-th:nth-child(2) { width: 9%; }
-.nt-table-stock .nt-th:nth-child(3) { width: 17%; }
-.nt-table-stock .nt-th:nth-child(4) { width: 17%; }
-.nt-table-stock .nt-th:nth-child(5) { width: 17%; }
-.nt-table-stock .nt-th:nth-child(6) { width: 16%; }
+/* 分类存量：分类 | 节点 | 期初 | 本期增加 | 本期减少 | 期末
+   兜底值 = 默认百分比；拖过列宽后 --nt-col-stock-* 是 px。 */
+.nt-table-stock .nt-th:nth-child(1) { width: var(--nt-col-stock-cat, 24%); }
+.nt-table-stock .nt-th:nth-child(2) { width: var(--nt-col-stock-count, 9%); }
+.nt-table-stock .nt-th:nth-child(3) { width: var(--nt-col-stock-opening, 17%); }
+.nt-table-stock .nt-th:nth-child(4) { width: var(--nt-col-stock-increase, 17%); }
+.nt-table-stock .nt-th:nth-child(5) { width: var(--nt-col-stock-decrease, 17%); }
+.nt-table-stock .nt-th:nth-child(6) { width: var(--nt-col-stock-end, 16%); }
 
-/* 分类 | 节点 | 本期收入/支出 | 本期退回 | 净额 */
-.nt-table-flow .nt-th:nth-child(1) { width: 30%; }
-.nt-table-flow .nt-th:nth-child(2) { width: 10%; }
-.nt-table-flow .nt-th:nth-child(3) { width: 22%; }
-.nt-table-flow .nt-th:nth-child(4) { width: 19%; }
-.nt-table-flow .nt-th:nth-child(5) { width: 19%; }
+/* 分类流量：分类 | 节点 | 本期收入/支出 | 本期退回 | 净额 */
+.nt-table-sflow .nt-th:nth-child(1) { width: var(--nt-col-sflow-cat, 30%); }
+.nt-table-sflow .nt-th:nth-child(2) { width: var(--nt-col-sflow-count, 10%); }
+.nt-table-sflow .nt-th:nth-child(3) { width: var(--nt-col-sflow-gross, 22%); }
+.nt-table-sflow .nt-th:nth-child(4) { width: var(--nt-col-sflow-reverse, 19%); }
+.nt-table-sflow .nt-th:nth-child(5) { width: var(--nt-col-sflow-net, 19%); }
 
 .nt-table-stock .nt-row-total .nt-cell,
-.nt-table-flow .nt-row-total .nt-cell {
+.nt-table-sflow .nt-row-total .nt-cell {
   font-weight: 700;
   background: var(--nt-bg-soft);
 }
@@ -133,20 +138,22 @@
 
 .nt-table-catq .nt-th,
 .nt-table-catq .nt-cell {
-  height: var(--nt-row-h-cat, 32px);
+  height: var(--nt-row-h-catq, 32px);
   padding: 0 4px;
-  font-size: 11px;
+  font-size: var(--nt-cell-font-catq, 11px);
 }
 
 .nt-table-catq .nt-th {
-  height: var(--nt-th-h-cat, 26px);
+  height: var(--nt-th-h-catq, 26px);
+  font-size: var(--nt-th-font-catq, 11px);
 }
 
-.nt-table-catq .nt-th:nth-child(1) { width: 17%; }
-.nt-table-catq .nt-th:nth-child(2) { width: 20%; }
-.nt-table-catq .nt-th:nth-child(3) { width: 20%; }
-.nt-table-catq .nt-th:nth-child(4) { width: 18%; }
-.nt-table-catq .nt-th:nth-child(5) { width: 25%; }
+/* 兜底值 = 默认百分比；拖过列宽后 --nt-col-catq-* 是 px。 */
+.nt-table-catq .nt-th:nth-child(1) { width: var(--nt-col-catq-date, 17%); }
+.nt-table-catq .nt-th:nth-child(2) { width: var(--nt-col-catq-from, 20%); }
+.nt-table-catq .nt-th:nth-child(3) { width: var(--nt-col-catq-to, 20%); }
+.nt-table-catq .nt-th:nth-child(4) { width: var(--nt-col-catq-amount, 18%); }
+.nt-table-catq .nt-th:nth-child(5) { width: var(--nt-col-catq-note, 25%); }
 
 .nt-table-catq .nt-cell:nth-child(1),
 .nt-table-catq .nt-cell:nth-child(4) {
@@ -164,16 +171,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--nt-text-muted);
-}
-
-@media (min-width: 901px) and (max-width: 1179px) {
-  .nt-stats-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-
-  .nt-stats-panel-query {
-    grid-column: 1 / -1;
-  }
 }
 
 /* 窄屏：一屏一块，左右滑动；和 query.css 的查询面板同一套手势 */
@@ -197,7 +194,7 @@
     border-right: 1px solid var(--nt-bg-line);
   }
 
-  .nt-stats-panel .nt-tablewrap {
-    overflow-x: hidden;
-  }
+  /* 这里**不能**写 overflow-x: hidden：用户把列拖宽之后表宽 = 列宽之和，
+     可能超出这一栏 —— 禁掉横滑就等于最后一列再也看不到。
+     默认铺满时不溢出，所以平时也不会多出一条滚动条。 */
 }

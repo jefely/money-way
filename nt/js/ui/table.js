@@ -16,7 +16,7 @@ import { tpl } from './render-transactions.js';
  * @param {HTMLElement} thead
  * @param {Array<{label:string, cls?:string}>} columns
  */
-import { applyColMirror, paintHandles, syncFrozen } from './table-layout.js';
+import { paintHandles, syncFrozen } from './table-layout.js';
 
 export function buildHead(thead, columns) {
   if (!thead) return;
@@ -33,12 +33,12 @@ export function buildHead(thead, columns) {
   }
   thead.appendChild(tr);
 
-  // 表头重建了：补手柄 + 重算冻结列的 left
+  // 表头重建了：补手柄 + 重算冻结列的 left。
+  // 列宽本身不用恢复 —— 它由参数写进 CSS 变量（--nt-col-*），
+  // 表头重建只要别把 .cols-custom 从表元素上弄丢就行（本函数不动表元素）。
   const table = thead.closest('table');
   if (table) {
     paintHandles(table);
-    // 表头刚重建、内联宽度全丢：先把上次拖出来的宽度套回去，再算冻结列的 left
-    applyColMirror(table);
     syncFrozen(table);
     // 切分类/汇总时，第一次量到的可能还是上一套列宽。下一帧再量一次。
     requestAnimationFrame(() => syncFrozen(table));

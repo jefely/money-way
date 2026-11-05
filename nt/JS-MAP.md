@@ -56,6 +56,7 @@
 | `core/reset-book.js` | （无界面）重置账户但保留流水 |
 | `core/scheduler-engine.js` | （无界面）排程引擎 |
 | `core/schema.js` | （无界面）数据结构定义 |
+| `core/settings-schema.js` | （无界面）界面参数 SCHEMA 与分组 |
 | `core/settings.js` | （无界面）界面参数 SCHEMA + 主题默认值 |
 | `core/state-store.js` | （无界面）state 增删改 |
 | `core/stats.js` | （无界面）统计计算 |
@@ -96,6 +97,7 @@
 | `ui/chart-tip.js` | 路径 tab → 悬停提示 |
 | `ui/checks-view.js` | 校验 tab → 账本校验区 |
 | `ui/col-save.js` | 把某张表某列的宽度存进「用户设置」 |
+| `ui/col-widths.js` | 列宽持久化（拖动 → 参数 → CSS 变量） |
 | `ui/color-picker.js` | 界面参数浮层 → 取色器 |
 | `ui/composer.js` | 流水 tab → 一句话输入条 |
 | `ui/datalists.js` | 共用的 datalist（类型候选） |

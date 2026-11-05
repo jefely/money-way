@@ -1,0 +1,47 @@
+// 界面：列宽持久化（拖动 → 参数 → CSS 变量）
+/**
+ * 列宽保存
+ * 层：第五层 · UI（薄胶水，只搬运不计算）
+ *
+ * 一条链路：
+ *   拖动（ui/table-layout）→ 整表存进参数（ui/col-save）
+ *   → applySettings 立刻把新宽度写回 --nt-col-*，
+ *     并按参数切换统计三块表的 .cols-custom（见 ui/apply-settings。
+ *
+ * 为什么不再用 localStorage 镜像：
+ *   镜像会在「参数已经改了、但表头还没重建」的窗口里压过参数，
+ *   面板点「恢复默认」之后一重建表头，旧的 px 又被套回来。
+ *   现在宽度只有一处真相 —— 参数；CSS 变量是它的直接投影，
+ *   表头重建不影响变量，所以不需要任何缓存。
+ */
+
+import { loadMergedSettings } from './debug-themes.js';
+import { saveTableWidths } from './col-save.js';
+import { tableIdOf } from './table-layout.js';
+import { applySettings } from './apply-settings.js';
+
+function currentTheme() {
+  return document.documentElement.getAttribute('data-theme') || 'dark';
+}
+
+/**
+ * 拖动手柄改列宽后，把**这一整张表**的列宽写进当前主题的「用户设置」。
+ *
+ * 为什么存整表而不是只存被拖的那一列：
+ *   进入自定义模式时，所有列都被固化成了当时量到的 px（否则拖一列会带动一排）。
+ *   只存一列的话，重开时其余列会回到默认 —— 整表的比例就变了。
+ *   统计三块表默认宽度全是 0，更需要整表存才能判断「这张表自定义过」。
+ *
+ * @param {object} ctx getState / setState / saveNow
+ * @param {HTMLElement} tableEl 被拖的那张表
+ */
+export function onColResize(ctx, tableEl) {
+  const id = tableIdOf(tableEl);
+  if (!id) return;
+  const widths = [...tableEl.querySelectorAll('thead .nt-th')]
+    .map((th) => Math.round(th.getBoundingClientRect().width));
+  saveTableWidths(ctx, id, widths);
+  // 存完立刻把新宽度写回 CSS 变量：切 tab 时表头会重建、内联宽度随之丢失，
+  // 只靠「下次启动」才生效的话，中途看着就是白调了。
+  applySettings(loadMergedSettings(ctx, currentTheme()), currentTheme());
+}

@@ -68,7 +68,7 @@ export function mountStats(section, ctx) {
   function renderSummary(state, range) {
     if (grid) grid.hidden = true;
     if (summaryWrap) summaryWrap.hidden = false;
-    if (table) { table.classList.add('is-sum'); table.classList.remove('is-cat'); }
+    if (table) table.classList.add('is-sum');
 
     // 列顺序按核对过的设计：账户名称 · 序号 · 类型 · 分类 · 转出 · 转入 · 当前余额 · 历史 ×3
     buildHead(thead, [

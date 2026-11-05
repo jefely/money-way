@@ -10,11 +10,17 @@
 import { categoryPanels } from '../core/ledger-stats.js';
 import { queryByCategory } from '../core/category-query.js';
 import { moneyAlways, shortDate } from '../core/format.js';
+import { paintHandles, syncFrozen } from './table-layout.js';
 
+/**
+ * 三块表的列（标签 + 列 key）。
+ * 列 key 必须和 core/table-cols.js 里 stock / sflow / catq 的 cols 一一对应：
+ * 拖动时靠它认「哪一列」，列宽参数也是按这个顺序存的。
+ */
 const HEAD = {
-  stock: ['分类', '节点', '期初', '本期增加', '本期减少', '期末'],
-  flow: ['分类', '节点', '本期收入/支出', '本期退回', '净额'],
-  query: ['日期', '转出', '转入', '金额', '备注'],
+  stock: [['分类', 'cat'], ['节点', 'count'], ['期初', 'opening'], ['本期增加', 'increase'], ['本期减少', 'decrease'], ['期末', 'end']],
+  flow: [['分类', 'cat'], ['节点', 'count'], ['本期收入/支出', 'gross'], ['本期退回', 'reverse'], ['净额', 'net']],
+  query: [['日期', 'date'], ['转出', 'from'], ['转入', 'to'], ['金额', 'amount'], ['备注', 'note']],
 };
 
 /** 存量余额：负债正数=欠款，负余额=多还（和应付同口径，不把负数硬掰成正）。 */
@@ -45,19 +51,24 @@ function makeRow(cells, total, spanFirst) {
   return tr;
 }
 
-function paintHead(table, labels) {
+function paintHead(table, cols) {
   const thead = table.querySelector('thead');
   if (!thead) return;
   const tr = document.createElement('tr');
-  for (const label of labels) {
+  for (const [label, col] of cols) {
     const th = document.createElement('th');
     th.className = 'nt-th';
     th.scope = 'col';
+    th.dataset.col = col;
     th.textContent = label;
     tr.appendChild(th);
   }
   thead.textContent = '';
   thead.appendChild(tr);
+  // 表头是每次重画都重建的：手柄和冻结偏移都得补，
+  // 列宽不用管 —— 它由参数写进 CSS 变量（见 core/table-cols.js 的 growByWidth）。
+  paintHandles(table);
+  syncFrozen(table);
 }
 
 function paintPanel(panel, groups, kind) {
