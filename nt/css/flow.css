@@ -982,7 +982,8 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   height: 38px;
   padding: 0;
   border-width: 0;
-  border-radius: 12px;
+  /* 半圆头（高 38 的一半）：和小圆钮一起组成「左半圆 + 右半圆」的胶囊 */
+  border-radius: 19px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.12s ease;
@@ -991,7 +992,8 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 .nt-composer.open .nt-composer-input {
   flex: 1 1 auto;
   width: auto;
-  padding: 0 10px;
+  /* 半圆头里文字别贴着圆弧 */
+  padding: 0 14px;
   border-width: 1px;
   opacity: 1;
   pointer-events: auto;
