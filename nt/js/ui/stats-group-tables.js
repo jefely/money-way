@@ -163,7 +163,13 @@ export function renderGroupTables(host, groups) {
     if (!table || !g.categories || !g.categories.length) continue;
     count += g.categories.length;
     const el = buildGroupTable(g, table);
-    host.appendChild(el);
+    // 每张表套一个圆角外框（用户 2026-11：看上去像一张卡片）。
+    // 边框放在 div 上而不是 table 上：border-collapse:collapse 的表格加 border-radius
+    // 不生效（单元格边框会把四个角盖成直角）。
+    const card = document.createElement('div');
+    card.className = 'nt-stat-card';
+    card.appendChild(el);
+    host.appendChild(card);
     markCustom(el, table);
     // 表是动态建的，拖动绑定要补
     mountResize(el);

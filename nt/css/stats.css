@@ -84,6 +84,23 @@
   padding: 6px 0;
 }
 
+/* 6 大分类：每张表一个圆角外框，看上去像一张卡片（用户 2026-11）。
+   边框必须放在 div 上：border-collapse:collapse 的 table 加 border-radius 不生效。 */
+.nt-stat-card {
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.nt-stat-card + .nt-stat-card {
+  margin-top: 24px;
+}
+
+/* 卡片已负责边框，表格自己不要再画一圈外框 */
+.nt-stat-card .nt-table {
+  border: 0;
+}
+
 .nt-stats-tables .nt-table + .nt-table {
   margin-top: 24px;
 }
