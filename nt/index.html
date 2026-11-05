@@ -94,25 +94,34 @@
         </div>
         <div class="nt-pills" id="nt-stats-pills" hidden></div>
         <div class="nt-stats-grid" id="nt-stats-grid">
-          <section class="nt-stats-panel" data-kind="stock">
+          <section class="nt-stats-panel" data-kind="groups">
             <div class="nt-tablewrap">
-              <!-- 每个合计一张独立小表（表头 + 合计 + 该组分类行），表与表之间留空 -->
-              <div class="nt-stats-tables" id="nt-stats-stock"></div>
+              <!-- 6 大分类：费用 / 收入 / 资产 / 负债 / 权益 / 成本，从上到下，
+                   有内容才出一张表；每张表独立列宽 -->
+              <div class="nt-stats-tables" id="nt-stats-groups"></div>
             </div>
           </section>
-          <section class="nt-stats-panel" data-kind="flow">
-            <div class="nt-tablewrap">
-              <div class="nt-stats-tables" id="nt-stats-flow"></div>
-            </div>
-          </section>
-          <section class="nt-stats-panel nt-stats-panel-query" data-kind="query">
+          <section class="nt-stats-panel nt-stats-panel-query" data-kind="query" data-query="1">
             <div class="nt-stats-panel-head nt-stats-panel-head-query">
               <b>分类查询</b>
-              <input class="nt-stats-query-input" id="nt-stats-cat-q" type="search" placeholder="分类 / 首字母，如 储蓄 或 cx" aria-label="分类查询">
-              <button class="nt-btn nt-btn-sm" type="button" id="nt-stats-cat-clear">清空</button>
+              <input class="nt-stats-query-input" data-query-input type="search" placeholder="分类 / 首字母" aria-label="分类查询 1">
+              <button class="nt-btn nt-btn-sm" type="button" data-query-clear>清空</button>
             </div>
             <div class="nt-tablewrap">
-              <table class="nt-table nt-table-catq" id="nt-stats-catq">
+              <table class="nt-table nt-table-catq">
+                <thead></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="nt-stats-panel nt-stats-panel-query" data-kind="query" data-query="2">
+            <div class="nt-stats-panel-head nt-stats-panel-head-query">
+              <b>分类查询</b>
+              <input class="nt-stats-query-input" data-query-input type="search" placeholder="分类 / 首字母" aria-label="分类查询 2">
+              <button class="nt-btn nt-btn-sm" type="button" data-query-clear>清空</button>
+            </div>
+            <div class="nt-tablewrap">
+              <table class="nt-table nt-table-catq">
                 <thead></thead>
                 <tbody></tbody>
               </table>

@@ -23,29 +23,59 @@ export const TABLE_COLS = {
     fill: true,
     cols: ['seq', 'date', 'from', 'to', 'amount', 'note', 'fixed', 'action'],
   },
-  // 统计页的三块表（2026-11）：以前只有「分类统计」一张 8 列表，分类视图改成
-  // 存量 / 流量 / 分类查询三块之后，那张表就再没人渲染了（is-cat 从来不加），
-  // 于是拖它们的列宽既不保存、也没法恢复。现在每块一份参数。
+  // 统计页的「6 大分类」各一张表（2026-11）：费用 / 收入 / 资产 / 负债 / 权益 / 成本
+  // 从上到下顺着排，有内容才列。每张表**各有一套列宽**（拖「资产」不影响「负债」）。
   //
-  // fill = 和流水表同一种语义：参数等于默认值时走默认布局，拖过之后整表按 px 固定
-  // （见 ui/apply-settings 的 syncColModes）。
-  // 存量/流量 2026-11 改成固定 px 默认值 —— 用户按自己手机调好后给的：
-  // 金额列 105/102/111 才放得下「¥1,234.56」不被截断。
-  stock: {
-    label: '分类存量',
+  // fill = 参数等于默认值时走默认布局，拖过之后按 px（见 ui/apply-settings 的 syncColModes）。
+  // noSize = 不参与每表行高/字号那 4 项参数（它们共用 .nt-table-stat 的尺寸）。
+  // noLegacy = 不参与旧存档「默认列宽」的按列名迁移（会盖掉下面给的默认值）。
+  fee: {
+    label: '分类-费用',
     screen: 'stats',
     fill: true,
-    // 不参与旧存档「默认列宽」的按列名迁移：这三个表是 2026-11 新拆出来的，
-    // 旧的那份全局列宽里抽出来的值会盖掉用户这次给的默认值。
+    noSize: true,
     noLegacy: true,
-    cols: ['seq', 'cat', 'opening', 'increase', 'decrease', 'end'],
+    cols: ['cat', 'gross', 'reverse', 'net'],
   },
-  sflow: {
-    label: '分类流量',
+  income: {
+    label: '分类-收入',
     screen: 'stats',
     fill: true,
+    noSize: true,
     noLegacy: true,
-    cols: ['seq', 'cat', 'gross', 'reverse', 'net'],
+    cols: ['cat', 'gross', 'reverse', 'net'],
+  },
+  asset: {
+    label: '分类-资产',
+    screen: 'stats',
+    fill: true,
+    noSize: true,
+    noLegacy: true,
+    cols: ['cat', 'opening', 'increase', 'decrease', 'end'],
+  },
+  liability: {
+    label: '分类-负债',
+    screen: 'stats',
+    fill: true,
+    noSize: true,
+    noLegacy: true,
+    cols: ['cat', 'opening', 'increase', 'decrease', 'end'],
+  },
+  equity: {
+    label: '分类-权益',
+    screen: 'stats',
+    fill: true,
+    noSize: true,
+    noLegacy: true,
+    cols: ['cat', 'opening', 'increase', 'decrease', 'end'],
+  },
+  cost: {
+    label: '分类-成本',
+    screen: 'stats',
+    fill: true,
+    noSize: true,
+    noLegacy: true,
+    cols: ['cat', 'gross', 'reverse', 'net'],
   },
   catq: {
     label: '分类查询',
@@ -105,10 +135,14 @@ export const TABLE_SCREENS = Object.fromEntries(
 export const TABLE_DEFAULT_WIDTHS = {
   // 备注从 116 加到 160（用户 2026-11：备注常被截断）
   flow: '44,84,112,112,96,160,40,40',
-  // 统计三块：存量/流量 2026-11 改成固定 px（用户调好的）；
-  // catq 仍是 0 = 交给 CSS 百分比铺满。
-  stock: '40,75,105,105,105,105',
-  sflow: '40,62,102,111,111',
+  // 6 大分类：没有序号列（手机放不下），列 = 分类 | 金额…；存量 5 列、流量 4 列
+  fee: '62,102,111,111',
+  income: '62,102,111,111',
+  cost: '62,102,111,111',
+  asset: '75,105,105,105,105',
+  liability: '75,105,105,105,105',
+  equity: '75,105,105,105,105',
+  // 分类查询仍是 0 = 交给 CSS 百分比铺满
   catq: '0,0,0,0,0',
   sum: '110,44,72,76,84,84,100,90,90,96',
   query: '44,0,0,0,0,0',
@@ -178,7 +212,8 @@ export const TABLE_SIZE_FIELDS = [
  * 数据行高把侧边栏每行从 ~24px 撑高，用户当场退回（「1.44 才对」）。
  * 它只有列宽（--nt-col-path-*）。
  */
-const SIZE_TABLES = Object.keys(TABLE_COLS).filter((t) => t !== 'path');
+const SIZE_TABLES = Object.keys(TABLE_COLS)
+  .filter((t) => t !== 'path' && !TABLE_COLS[t].noSize);
 
 export const TABLE_SIZE_SCHEMA = SIZE_TABLES.flatMap((table) =>
   TABLE_SIZE_FIELDS.map((f) => ({

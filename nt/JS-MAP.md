@@ -143,7 +143,8 @@
 | `ui/row-editor.js` | 流水 tab → 行内编辑 / 新增行 |
 | `ui/share-block.js` | 二维码分享区块 |
 | `ui/share-file.js` | 导出加密备份文件 |
-| `ui/stats-category.js` | 统计 tab → 分类（存量 / 流量两块） |
+| `ui/stats-category.js` | 统计 tab → 分类（6 大分类表 + 两个独立的分类查询） |
+| `ui/stats-group-tables.js` | 统计页 6 大分类的分组小表 |
 | `ui/suggest-popover.js` | 流水 tab / 查询 tab → 账户候选气泡 |
 | `ui/sync-dialog.js` | （未标注界面）同步弹窗（UI 层） |
 | `ui/sync-wheel.js` | 同步弹窗里的滚轮（日 / 年月共用） |

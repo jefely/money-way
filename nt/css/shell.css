@@ -124,7 +124,8 @@ body {
   /* 工具条高度：按钮区行高 与 按钮高 + 上下 padding 取大者。
      这样面板只调「按钮高」时工具条自动跟着长，不会把按钮顶出边界。 */
   min-height: max(var(--nt-vbar-h, 30px), calc(var(--nt-btn-h, 26px) + 4px));
-  max-width: 960px;
+  /* 不要 max-width：以前写 960px，大屏上按钮行的背景到 960 就断了、
+     右边露出一截别的底色（用户 2026-11 报「背景没贯穿整行」）。 */
   background: var(--nt-vbar-bg, var(--nt-unit-bg, var(--nt-bg-soft)));
   color: var(--nt-btn-text, var(--nt-unit-text, var(--nt-text)));
   border-bottom: 1px solid var(--nt-bg-line);

@@ -6,7 +6,8 @@
 
 .nt-stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* 左栏放 6 张分类表（列宽合计 495/534px），比两个查询栏宽一些 */
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr);
   flex: 1;
   min-height: 0;
   border-top: 1px solid var(--nt-bg-line);
@@ -65,8 +66,9 @@
   text-align: center;
 }
 
-.nt-table-stock,
-.nt-table-sflow {
+/* 6 大分类的分组小表（每类一张，各自一套列宽）。
+   列宽写在每张小表的 <col> 上（内联 var），所以这里不再需要逐表百分比规则。 */
+.nt-table-stat {
   table-layout: fixed;
   /* 列宽是固定 px（默认值见 core/table-cols.js），表宽 = 各列之和。
      这里**不能**写 width:100% —— 那会把 px 列按比例放大，用户给的宽度就失效了。 */
@@ -74,56 +76,25 @@
   min-width: 0;
 }
 
-/* 每块表一套行高 / 字号（参数面板各自的组），变量由 core/table-cols.js 生成 */
-.nt-table-stock .nt-th { height: var(--nt-th-h-stock, 26px); font-size: var(--nt-th-font-stock, 12px); }
-.nt-table-stock .nt-cell { height: var(--nt-row-h-stock, 32px); font-size: var(--nt-cell-font-stock, 14px); }
-.nt-table-sflow .nt-th { height: var(--nt-th-h-sflow, 26px); font-size: var(--nt-th-font-sflow, 12px); }
-.nt-table-sflow .nt-cell { height: var(--nt-row-h-sflow, 32px); font-size: var(--nt-cell-font-sflow, 14px); }
-
-.nt-table-stock .nt-th,
-.nt-table-stock .nt-cell,
-.nt-table-sflow .nt-th,
-.nt-table-sflow .nt-cell {
+.nt-table-stat .nt-th {
+  height: 26px;
+  font-size: 12px;
   padding: 0 5px;
 }
 
-.nt-table-stock .nt-cell-num,
-.nt-table-sflow .nt-cell-num {
+.nt-table-stat .nt-cell {
+  height: 32px;
+  font-size: 14px;
+  padding: 0 5px;
+}
+
+.nt-table-stat .nt-cell-num {
   text-align: right;
 }
 
-/* 序号列（2026-11 起取代「节点」列）：居中、浅色小字 */
-.nt-table-stock .nt-stats-seq,
-.nt-table-sflow .nt-stats-seq {
-  text-align: center;
-  color: var(--nt-text-light);
-  font-size: 11px;
-}
-
-/* 分类存量：序 | 分类 | 期初 | 本期增加 | 本期减少 | 期末
-   **宽度写在 col 上**：table-layout:fixed 下 col 优先于表头行，
-   而第一行是合计行（详见 ui/stats-category.js）。
-   兜底值 = 默认百分比；拖过列宽后 --nt-col-stock-* 是 px。
-   序号列留 12%：「资产」「负债」两个字的合计名要在这一列放下（10% 时手机上会截成「资…」）。 */
-.nt-col-stock-seq { width: var(--nt-col-stock-seq, 12%); }
-.nt-col-stock-cat { width: var(--nt-col-stock-cat, 22%); }
-.nt-col-stock-opening { width: var(--nt-col-stock-opening, 16.5%); }
-.nt-col-stock-increase { width: var(--nt-col-stock-increase, 16.5%); }
-.nt-col-stock-decrease { width: var(--nt-col-stock-decrease, 16.5%); }
-.nt-col-stock-end { width: var(--nt-col-stock-end, 16.5%); }
-
-/* 分类流量：序 | 分类 | 本期收入/支出 | 本期退回 | 净额 */
-.nt-col-sflow-seq { width: var(--nt-col-sflow-seq, 12%); }
-.nt-col-sflow-cat { width: var(--nt-col-sflow-cat, 24%); }
-.nt-col-sflow-gross { width: var(--nt-col-sflow-gross, 21.33%); }
-.nt-col-sflow-reverse { width: var(--nt-col-sflow-reverse, 21.33%); }
-.nt-col-sflow-net { width: var(--nt-col-sflow-net, 21.34%); }
-
-/* 合计行在表头**上边**（用户 2026-11）：
-   普通底色（透明，露出面板底色），加粗、字号略小于数据行 ——
-   这样突出的是下面的表头行（它有底色），合计行退成一条摘要。 */
-.nt-table-stock .nt-stats-total-row .nt-cell,
-.nt-table-sflow .nt-stats-total-row .nt-cell {
+/* 合计行在表头**上边**：普通底色、加粗、字号略小于数据行；
+   只留数字（分类格空），突出下面有底色的表头行 */
+.nt-table-stat .nt-stats-total-row .nt-cell {
   height: 26px;
   padding: 0 5px;
   background: transparent;
@@ -131,38 +102,20 @@
   font-size: 13px;
 }
 
-/* 分类列内容居中（2026-11 用户指定）；序号列也居中。
-   限定 tbody：合计行在 thead，它的第 2 个格子是第一个金额，
-   不限 tbody 会把那个金额也居中（用户报「合计金额没靠右」）。 */
-.nt-table-stock tbody .nt-cell:nth-child(2),
-.nt-table-sflow tbody .nt-cell:nth-child(2) {
+/* 分类列：居中（没有序号列了，第 1 列就是分类） */
+.nt-table-stat tbody .nt-cell:nth-child(1) {
   text-align: center;
 }
 
-/* 合计行只留横向分隔，不要竖线（用户 2026-11）：整行读起来是一条摘要 */
+/* 合计行只留横向分隔，不要竖线：整行读起来是一条摘要 */
 .nt-stats-total-row .nt-cell {
   border-right: 0;
   border-left: 0;
 }
 
-/* 合计行：类型名在序号列靠左、「合计」在分类列靠右（用户 2026-11），
-   两个字分处两列，比挤在一格里清楚 */
-.nt-table-stock .nt-stats-total-row .nt-cell-total-name,
-.nt-table-sflow .nt-stats-total-row .nt-cell-total-name {
-  text-align: left;
-  padding-left: 8px;
-}
-
-.nt-table-stock .nt-stats-total-row .nt-cell-total-word,
-.nt-table-sflow .nt-stats-total-row .nt-cell-total-word {
-  text-align: right;
-  padding-right: 8px;
-}
-
-.nt-table-stock .nt-row-total .nt-cell,
-.nt-table-sflow .nt-row-total .nt-cell {
-  font-weight: 700;
-  background: var(--nt-bg-soft);
+/* 合计行的类型名（资产/负债/…）放在分类列的头上，与分类列内容同样居中 */
+.nt-table-stat .nt-stats-total-row .nt-cell-total-name {
+  text-align: center;
 }
 
 /* ---------- 第三块：分类查询 ---------- */
@@ -187,8 +140,9 @@
 }
 
 .nt-stats-panel-head-query .nt-stats-query-input {
-  /* 输入框只占 1/3 宽（用户 2026-11：铺满太丑），清空紧跟在它后面 */
-  flex: 0 1 33%;
+  /* 输入框占 1/3 宽，并和清空按钮一起**靠右**（用户 2026-11） */
+  margin-left: auto;
+  flex: 0 0 33%;
   width: 33%;
   min-width: 0;
   height: 26px;

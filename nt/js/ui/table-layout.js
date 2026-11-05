@@ -400,10 +400,15 @@ export function tableIdOf(tableEl) {
   if (!tableEl) return '';
   const c = tableEl.classList;
   if (c.contains('nt-table-flow')) return 'flow';
-  if (c.contains('nt-table-stock')) return 'stock';
-  if (c.contains('nt-table-sflow')) return 'sflow';
+  // 统计页 6 大分类：费用 / 收入 / 资产 / 负债 / 权益 / 成本（各自一套列宽）
+  if (c.contains('nt-table-fee')) return 'fee';
+  if (c.contains('nt-table-income')) return 'income';
+  if (c.contains('nt-table-asset')) return 'asset';
+  if (c.contains('nt-table-liability')) return 'liability';
+  if (c.contains('nt-table-equity')) return 'equity';
+  if (c.contains('nt-table-cost')) return 'cost';
   if (c.contains('nt-table-catq')) return 'catq';
-  // 分类 / 汇总共用一张表：只有汇总视图还会渲染它（分类视图改成三块表了）
+  // 汇总表：分类视图改成 6 张分组表之后，.nt-table-stats 只剩汇总在用
   if (c.contains('nt-table-stats')) return 'sum';
   if (c.contains('nt-table-query')) return 'query';
   if (c.contains('nt-table-plan')) return 'plan';

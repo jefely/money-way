@@ -1,56 +1,29 @@
-// 界面：统计 tab → 分类（存量 / 流量两块）
+// 界面：统计 tab → 分类（6 大分类表 + 两个独立的分类查询）
 /**
- * 只画两块表，不碰 state / 不算钱：
- *   stock：分类 | 节点 | 期初 | 本期增加 | 本期减少 | 期末
- *   flow ：分类 | 节点 | 本期收入/支出 | 本期退回 | 净额
+ * 分类视图三栏（用户 2026-11 定稿）：
+ *   左：6 大分类表（费用/收入/资产/负债/权益/成本，从上到下，有内容才列）
+ *   中：分类查询 A
+ *   右：分类查询 B（同一种表，独立输入、独立结果）
  *
- * 桌面左右并排；窄屏由 stats.css 做成一屏一块、横向吸附。
+ * 本文件只负责「三个区域怎么调度 + 分类查询怎么画」，
+ * 分组小表的构建在 ui/stats-group-tables.js。
  */
 
 import { categoryPanels } from '../core/ledger-stats.js';
 import { queryByCategory, resolveCategory, suggestCategories } from '../core/category-query.js';
 import { moneyAlways, shortDate } from '../core/format.js';
-import { mountResize, paintHandles, syncFrozen } from './table-layout.js';
+import { paintHandles, syncFrozen } from './table-layout.js';
 import { showCatSuggest, hideCatSuggest, isCatSuggestFor } from './cat-suggest.js';
+import { renderGroupTables } from './stats-group-tables.js';
 
-/**
- * 三块表的列（标签 + 列 key）。
- * 列 key 必须和 core/table-cols.js 里 stock / sflow / catq 的 cols 一一对应：
- * 拖动时靠它认「哪一列」，列宽参数也是按这个顺序存的。
- */
-const HEAD = {
-  // 序 · 分类 · 期初 · 本期增加 · 本期减少 · 期末（节点数那列 2026-11 删掉了，换成序号）
-  stock: [['序', 'seq'], ['分类', 'cat'], ['期初', 'opening'], ['本期增加', 'increase'], ['本期减少', 'decrease'], ['期末', 'end']],
-  // 流量表的列名随组变（收入→本期收入 / 费用成本→本期支出），见 flowCols()
-  query: [['日期', 'date'], ['转出', 'from'], ['转入', 'to'], ['金额', 'amount'], ['备注', 'note']],
-};
+/** 分类查询表的列（日期/转出/转入/金额/备注） */
+const QUERY_COLS = [['日期', 'date'], ['转出', 'from'], ['转入', 'to'], ['金额', 'amount'], ['备注', 'note']];
 
-/** 存量余额：负债正数=欠款，负余额=多还（和应付同口径，不把负数硬掰成正）。 */
-function stockAmount(value, type) {
-  const n = Number(value) || 0;
-  if (type === '负债类' && n < -0.005) return `多还 ${moneyAlways(Math.abs(n))}`;
-  return moneyAlways(n);
-}
-
-function makeCell(text, cls, span) {
+function makeCell(text, cls) {
   const td = document.createElement('td');
   td.className = 'nt-cell' + (cls ? ' ' + cls : '');
-  if (span) td.colSpan = span;
   td.textContent = text == null ? '' : String(text);
   return td;
-}
-
-function makeRow(cells, total, spanFirst) {
-  const tr = document.createElement('tr');
-  tr.className = 'nt-row' + (total ? ' nt-row-total' : '');
-  cells.forEach((c, i) => {
-    if (i === 0 && spanFirst) {
-      tr.appendChild(makeCell(c, '', spanFirst));
-      return;
-    }
-    tr.appendChild(makeCell(c, i === 0 ? '' : 'nt-cell-num'));
-  });
-  return tr;
 }
 
 function paintHead(table, cols) {
@@ -67,303 +40,131 @@ function paintHead(table, cols) {
   }
   thead.textContent = '';
   thead.appendChild(tr);
-  // 表头是每次重画都重建的：手柄和冻结偏移都得补，
-  // 列宽不用管 —— 它由参数写进 CSS 变量（见 core/table-cols.js 的 growByWidth）。
   paintHandles(table);
   syncFrozen(table);
 }
 
-/** 组名 → 合计行里的类型名：'资产类' → '资产'（去掉「类」） */
-function groupName(type) {
-  return String(type || '').replace(/类$/, '');
-}
-
-/**
- * 流量表的列名按组变：收入组是「本期收入」，费用/成本组是「本期支出」。
- * 以前统一叫「本期收入/支出」，两种方向混在一个标题里，看表时得先想一下。
- */
-function flowCols(type) {
-  const income = String(type || '') === '收入类';
-  return [
-    ['序', 'seq'],
-    ['分类', 'cat'],
-    [income ? '本期收入' : '本期支出', 'gross'],
-    ['本期退回', 'reverse'],
-    ['净额', 'net'],
-  ];
-}
-
-/**
- * 统计小表的一行：序 | 分类 | 金额…（序居中、分类居中、金额右对齐）。
- * 和通用的 makeRow 分开：那张表是「首列无类、其余 num」，这里首列是序号。
- */
-function makeGroupRow(seq, category, nums) {
-  const tr = document.createElement('tr');
-  tr.className = 'nt-row';
-  tr.appendChild(makeCell(seq, 'nt-stats-seq'));
-  tr.appendChild(makeCell(category, ''));
-  for (const v of nums) tr.appendChild(makeCell(v, 'nt-cell-num'));
-  return tr;
-}
-
-/**
- * 每组合计一张独立小表：合计行 + 表头 + 该组分类行。
- *
- * 为什么不用一张大表：用户要的是「每个合计一张表，表与表之间空一行」，
- * 这样资产/负债/权益各自成块，一眼能分清；共用一张表只能靠合并行动画式地区分。
- *
- * 合计行为什么放在 thead 的**第一行**（而不是 tbody 里）：
- *   用户 2026-11 要求它压在表头上面。HTML 的 thead 永远渲染在 tbody 之前，
- *   所以把合计行放进 thead 的第一行才能「在表头上边」。
- *   它用 <td> 而不是 <th>：拖列宽 / 列宽参数认的是 `thead .nt-th`，
- *   用 th 会变成 12 个表头、列宽数组错位。
- *   第一行也正好是 table-layout:fixed 用来定列宽的那一行，6 个 td 对应 6 列。
- */
-function buildGroupTable(g, kind) {
-  const cols = kind === 'flow' ? flowCols(g.type) : HEAD[kind];
-  const stock = kind === 'stock';
-  // 参数表 / CSS 变量用的是 stock、sflow 这两个 id（不是 'flow'）
-  const tableId = stock ? 'stock' : 'sflow';
-  const t = g.total || {};
-
-  const table = document.createElement('table');
-  table.className = 'nt-table ' + (stock ? 'nt-table-stock' : 'nt-table-sflow');
-
-  // 列宽必须写在 col 上（见 TABLE-INTERACTION.md）：
-  // table-layout:fixed 下第一行（这里是跨序+分类的合计行）会被用来算列宽，
-  // 不写 col 时浏览器按「5 格均分」重算 6 列 —— 实测每列 78px，CSS 的百分比全失效。
-  // 类名必须带表 id（nt-col-sflow-gross）；用 kind 拼会拼成 nt-col-flow-*，CSS 匹配不到。
-  const cg = document.createElement('colgroup');
-  for (const [, key] of cols) {
-    const c = document.createElement('col');
-    c.className = 'nt-col-' + tableId + '-' + key;
-    cg.appendChild(c);
-  }
-  table.appendChild(cg);
-
-  const thead = document.createElement('thead');
-
-  // ① 合计行（普通底色、加粗但字号小一号，突出下面的表头）
-  const totalNums = stock
-    ? [stockAmount(t.opening, g.type), moneyAlways(t.increase), moneyAlways(t.decrease), stockAmount(t.end, g.type)]
-    : [moneyAlways(t.gross), moneyAlways(t.reverse), moneyAlways(t.net)];
-  // 「资产」放序号列靠左、「合计」放分类列靠右（用户 2026-11）：
-  // 两个字分处两列，类型名和「合计」各自有归属，比挤在一格里清楚。
-  // 也正因为不再跨列，第一行正好 6/5 格，fixed 布局的列宽不会被打乱。
-  const totalRow = document.createElement('tr');
-  totalRow.className = 'nt-row nt-stats-total-row';
-  totalRow.appendChild(makeCell(groupName(g.type), 'nt-cell-total-name'));
-  totalRow.appendChild(makeCell('合计：', 'nt-cell-total-word'));
-  for (const v of totalNums) totalRow.appendChild(makeCell(v, 'nt-cell-num'));
-  thead.appendChild(totalRow);
-
-  // ② 表头行
-  const headRow = document.createElement('tr');
-  for (const [label, col] of cols) {
-    const th = document.createElement('th');
-    th.className = 'nt-th';
-    th.scope = 'col';
-    th.dataset.col = col;
-    th.textContent = label;
-    headRow.appendChild(th);
-  }
-  thead.appendChild(headRow);
-  table.appendChild(thead);
-
-  const tbody = document.createElement('tbody');
-  g.categories.forEach((c, i) => {
-    const nums = stock
-      ? [stockAmount(c.opening, g.type), moneyAlways(c.increase), moneyAlways(c.decrease), stockAmount(c.end, g.type)]
-      : [moneyAlways(c.gross), moneyAlways(c.reverse), moneyAlways(c.net)];
-    tbody.appendChild(makeGroupRow(i + 1, c.category, nums));
-  });
-
-  table.appendChild(tbody);
-  return table;
-}
-
-/**
- * 新表要不要「按 px 排」：看 :root 上有没有 --nt-col-<表>-cat。
- *
- * 参数里该列 > 0 时 apply-settings 会写这个变量；全 0（还没自定义）时
- * 它是被 removeProperty 掉的空值。小表是每次重画重建的，类不会自己跟过来，
- * 所以每次建表都按这个变量判一次（列宽参数仍是唯一真相）。
- */
-function markCustom(table, tableId) {
-  const v = getComputedStyle(document.documentElement)
-    .getPropertyValue('--nt-col-' + tableId + '-cat').trim();
-  table.classList.toggle('cols-custom', !!v);
-}
-
-function paintPanel(panel, groups, kind) {
-  if (!panel) return 0;
-  const host = panel.querySelector('.nt-stats-tables');
-  if (!host) return 0;
-  host.textContent = '';
-
-  let count = 0;
-  for (const g of groups || []) {
-    if (!g.categories || !g.categories.length) continue;
-    count += g.categories.length;
-    const table = buildGroupTable(g, kind);
-    host.appendChild(table);
-    markCustom(table, kind === 'stock' ? 'stock' : 'sflow');
-    // 表是动态建的，拖动绑定要补（列宽参数三张小表共用一套 stock/sflow）
-    mountResize(table);
-    paintHandles(table);
-    syncFrozen(table);
-  }
-
-  if (!count) {
-    const empty = document.createElement('div');
-    empty.className = 'nt-stats-empty';
-    empty.textContent = '本期没有数据';
-    host.appendChild(empty);
-  }
-  return count;
-}
-
-function paintQueryPanel(grid, state, range) {
-  const panel = grid.querySelector('[data-kind="query"]');
-  if (!panel) return 0;
-  const table = panel.querySelector('table');
+/** 画一个分类查询面板（每个面板读自己的输入框） */
+function paintQueryPanel(panel, state, range) {
+  const table = panel.querySelector('.nt-table-catq');
   const tbody = table && table.querySelector('tbody');
-  const input = panel.querySelector('#nt-stats-cat-q');
-  if (!table || !tbody) return 0;
-  paintHead(table, HEAD.query);
+  const input = panel.querySelector('[data-query-input]');
+  if (!table || !tbody) return { matches: 0, query: '' };
+
+  paintHead(table, QUERY_COLS);
   tbody.textContent = '';
 
   const q = input ? input.value : '';
-  const rows = queryByCategory(state.transactions, state.accounts, range, q);
-  if (!q.trim()) {
+  const rows = q.trim() ? queryByCategory(state.transactions, state.accounts, range, q) : [];
+
+  if (!q.trim() || !rows.length) {
     const tr = document.createElement('tr');
     tr.className = 'nt-row';
-    const td = makeCell('输入分类或首字母后显示本期流水', '', HEAD.query.length);
-    td.className = 'nt-cell nt-cell-empty';
+    const td = makeCell(q.trim() ? '没有匹配的流水' : '输入分类或首字母后显示本期流水', 'nt-cell-empty');
+    td.colSpan = QUERY_COLS.length;
     tr.appendChild(td);
     tbody.appendChild(tr);
-    return 0;
-  }
-  if (!rows.length) {
-    const tr = document.createElement('tr');
-    tr.className = 'nt-row';
-    const td = makeCell('没有匹配的流水', '', HEAD.query.length);
-    td.className = 'nt-cell nt-cell-empty';
-    tr.appendChild(td);
-    tbody.appendChild(tr);
-    return 0;
+    return { matches: 0, query: q.trim() };
   }
 
   for (const r of rows) {
-    const tr = makeRow([
-      shortDate(r.tx.date),
-      r.from ? r.from.name : '',
-      r.to ? r.to.name : '',
-      moneyAlways(r.tx.amount),
-      r.tx.note || '',
-    ], false, 0);
-    // 只有金额列右对齐，日期/节点/备注保持左对齐
-    tr.querySelectorAll('.nt-cell').forEach((td, i) => {
-      if (i !== 3) td.classList.remove('nt-cell-num');
-    });
+    const tr = document.createElement('tr');
+    tr.className = 'nt-row';
+    tr.appendChild(makeCell(shortDate(r.tx.date)));
+    tr.appendChild(makeCell(r.from ? r.from.name : ''));
+    tr.appendChild(makeCell(r.to ? r.to.name : ''));
+    tr.appendChild(makeCell(moneyAlways(r.tx.amount), 'nt-cell-num'));
+    tr.appendChild(makeCell(r.tx.note || ''));
     tbody.appendChild(tr);
   }
-  return rows.length;
+  return { matches: rows.length, query: q.trim() };
 }
 
 /**
- * 绑定分类查询输入框；只绑一次。onChange 每次输入防抖后调用。
- * 回车时先把「首字母」换成分类名（唯一命中才换），再查一次。
- *
- * @param {HTMLElement} grid
- * @param {Function} onChange
- * @param {Function} [getState] 回车换名字要读分类列表
+ * 绑定所有分类查询面板（现在有 A、B 两个）。
+ * 回车 / 点候选：首字母换成分类名后再查；输入过程防抖 120ms。
  */
-export function bindCategoryQuery(grid, onChange, getState) {
-  const panel = grid && grid.querySelector('[data-kind="query"]');
-  if (!panel) return;
-  const input = panel.querySelector('#nt-stats-cat-q');
-  const clear = panel.querySelector('#nt-stats-cat-clear');
-  if (!input || input.dataset.bound) return;
-  input.dataset.bound = '1';
-
-  let timer = 0;
-  let lastItems = [];
+export function bindCategoryQueries(grid, onChange, getState) {
   const stateNow = () => (typeof getState === 'function' ? getState() : null);
 
-  /** 输入任何东西都先算一遍候选：「c」→ 储蓄（cx）/日常（rc） */
-  function refreshSuggest() {
-    const state = stateNow();
-    lastItems = state ? suggestCategories(state.accounts, input.value, 8) : [];
-    if (!lastItems.length) {
-      hideCatSuggest();
-      return;
-    }
-    showCatSuggest(input, lastItems, (name) => {
-      // 点选：直接把分类名填进去再查（用户 2026-11：输入 c 弹出储蓄，点它就带入）
-      input.value = name;
+  for (const panel of grid.querySelectorAll('[data-kind="query"]')) {
+    if (panel.dataset.bound === '1') continue;
+    panel.dataset.bound = '1';
+
+    const input = panel.querySelector('[data-query-input]');
+    const clear = panel.querySelector('[data-query-clear]');
+    if (!input) continue;
+
+    let timer = 0;
+    let lastItems = [];
+
+    const refreshSuggest = () => {
+      const state = stateNow();
+      lastItems = state ? suggestCategories(state.accounts, input.value, 8) : [];
+      if (!lastItems.length) { hideCatSuggest(); return; }
+      showCatSuggest(input, lastItems, (name) => {
+        input.value = name;
+        lastItems = [];
+        hideCatSuggest();
+        onChange();
+        try { input.focus(); } catch (e) { /* 忽略 */ }
+      });
+    };
+
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => { refreshSuggest(); onChange(); }, 120);
+    });
+
+    input.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      clearTimeout(timer);
+      const state = stateNow();
+      let name = state ? resolveCategory(state.accounts, input.value) : '';
+      if (!name && lastItems.length === 1) name = lastItems[0].name;
+      if (name && name !== input.value) {
+        input.value = name;
+        try { input.setSelectionRange(name.length, name.length); } catch (e) { /* 忽略 */ }
+      }
       lastItems = [];
       hideCatSuggest();
       onChange();
-      try { input.focus(); } catch (e) { /* 忽略 */ }
     });
-  }
 
-  input.addEventListener('input', () => {
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      refreshSuggest();
-      onChange();
-    }, 120);
-  });
+    input.addEventListener('blur', () => {
+      // 点候选时 pointerdown 已 preventDefault，焦点不会真丢；这里只处理 Tab/点空白
+      if (isCatSuggestFor(input)) hideCatSuggest();
+    });
 
-  // 回车：先把「首字母」换成分类名（唯一命中才换），再查一次。
-  // 名字换不上但只弹出一个候选时，也直接选它 —— 打 cx 回车就是「储蓄」。
-  input.addEventListener('keydown', (ev) => {
-    if (ev.key !== 'Enter') return;
-    ev.preventDefault();
-    clearTimeout(timer);
-    const state = stateNow();
-    let name = state ? resolveCategory(state.accounts, input.value) : '';
-    if (!name && lastItems.length === 1) name = lastItems[0].name;
-    if (name && name !== input.value) {
-      input.value = name;
-      try { input.setSelectionRange(name.length, name.length); } catch (e) { /* 忽略 */ }
+    if (clear) {
+      clear.addEventListener('click', () => {
+        input.value = '';
+        lastItems = [];
+        hideCatSuggest();
+        onChange();
+        input.focus();
+      });
     }
-    lastItems = [];
-    hideCatSuggest();
-    onChange();
-  });
-
-  input.addEventListener('blur', () => {
-    // 点候选时 pointerdown 已经 preventDefault，焦点不会真的丢；
-    // 这里只处理 Tab / 点空白真正离开输入框的情况。
-    if (isCatSuggestFor(input)) hideCatSuggest();
-  });
-
-  if (clear) {
-    clear.addEventListener('click', () => {
-      input.value = '';
-      lastItems = [];
-      hideCatSuggest();
-      onChange();
-      input.focus();
-    });
   }
 }
 
 /**
- * @param {HTMLElement} grid #nt-stats-grid
- * @param {object} state
- * @param {{start?:string,end?:string}} range
- * @returns {{categories:number, stock:number, flow:number, matches:number, query:string}}
+ * 画整个分类视图（v1.272：三栏 = 6 大分类 | 分类查询 A | 分类查询 B）
+ * @returns {{categories:number, matches:number, query:string}}
  */
 export function paintCategoryPanels(grid, state, range) {
-  if (!grid) return { categories: 0, stock: 0, flow: 0, matches: 0, query: '' };
+  if (!grid) return { categories: 0, matches: 0, query: '' };
+
   const panels = categoryPanels(state.accounts, state.transactions, range);
-  const stock = paintPanel(grid.querySelector('[data-kind="stock"]'), panels.stock, 'stock');
-  const flow = paintPanel(grid.querySelector('[data-kind="flow"]'), panels.flow, 'flow');
-  const matches = paintQueryPanel(grid, state, range);
-  const input = grid.querySelector('#nt-stats-cat-q');
-  return { categories: stock + flow, stock, flow, matches, query: input ? input.value.trim() : '' };
+  const categories = renderGroupTables(
+    grid.querySelector('#nt-stats-groups'),
+    [...panels.stock, ...panels.flow],
+  );
+
+  const qs = [...grid.querySelectorAll('[data-kind="query"]')].map((p) => paintQueryPanel(p, state, range));
+  const matches = qs.reduce((n, q) => n + q.matches, 0);
+  const query = qs.map((q) => q.query).filter(Boolean).join(' / ');
+
+  return { categories, matches, query };
 }

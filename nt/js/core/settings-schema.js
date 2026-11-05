@@ -171,10 +171,13 @@ export const SCHEMA = [
      拖动后整表切 .cols-custom 模式，见 ui/table-layout.js。
      想恢复默认列宽用面板底部的「恢复默认」。 */
   { key: '流水记录/列宽', group: '流水记录', type: 'cols', table: 'flow', def: TABLE_DEFAULT_WIDTHS.flow },
-  // 统计页三块表各一份（2026-11）。growByWidth：0 = 交给 CSS 的百分比铺满容器，
-  // 拖过之后才写 px —— 见 core/table-cols.js 的 stock。
-  { key: '分类存量/列宽', group: '分类存量', type: 'cols', table: 'stock', def: TABLE_DEFAULT_WIDTHS.stock },
-  { key: '分类流量/列宽', group: '分类流量', type: 'cols', table: 'sflow', def: TABLE_DEFAULT_WIDTHS.sflow },
+  // 统计页 6 大分类各一张表（2026-11）：每张表独立一套列宽
+  { key: '分类-费用/列宽', group: '分类-费用', type: 'cols', table: 'fee', def: TABLE_DEFAULT_WIDTHS.fee },
+  { key: '分类-收入/列宽', group: '分类-收入', type: 'cols', table: 'income', def: TABLE_DEFAULT_WIDTHS.income },
+  { key: '分类-资产/列宽', group: '分类-资产', type: 'cols', table: 'asset', def: TABLE_DEFAULT_WIDTHS.asset },
+  { key: '分类-负债/列宽', group: '分类-负债', type: 'cols', table: 'liability', def: TABLE_DEFAULT_WIDTHS.liability },
+  { key: '分类-权益/列宽', group: '分类-权益', type: 'cols', table: 'equity', def: TABLE_DEFAULT_WIDTHS.equity },
+  { key: '分类-成本/列宽', group: '分类-成本', type: 'cols', table: 'cost', def: TABLE_DEFAULT_WIDTHS.cost },
   { key: '分类查询/列宽', group: '分类查询', type: 'cols', table: 'catq', def: TABLE_DEFAULT_WIDTHS.catq },
   { key: '汇总表/列宽', group: '汇总表', type: 'cols', table: 'sum', def: TABLE_DEFAULT_WIDTHS.sum },
   { key: '流水查询/列宽', group: '流水查询', type: 'cols', table: 'query', def: TABLE_DEFAULT_WIDTHS.query },
