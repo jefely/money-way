@@ -168,6 +168,30 @@
   background: var(--nt-bg);
 }
 
+/* 分类查询：标题、输入框、清空同一行（用户 2026-11：输入框直接跟在标题后面） */
+.nt-stats-panel-head-query {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.nt-stats-panel-head-query b {
+  flex: 0 0 auto;
+}
+
+.nt-stats-panel-head-query .nt-stats-query-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 26px;
+}
+
+.nt-stats-query-bar .nt-btn,
+.nt-stats-panel-head-query .nt-btn {
+  flex: 0 0 auto;
+  height: 26px;
+  padding: 0 8px;
+}
+
 .nt-stats-query-input {
   flex: 1;
   min-width: 0;
