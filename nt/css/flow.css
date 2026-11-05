@@ -1043,6 +1043,17 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   color: #ffffff;
 }
 
+/* 桌面并排时图标再收一点：同样的尺寸在宽屏上看着偏大（用户 2026-11），手机保持 31×29 */
+@media (min-width: 1200px) {
+  .nt-flow-page .nt-vbar [data-nav="settings"],
+  .nt-flow-page .nt-vbar [data-nav="back"] {
+    width: 28px;
+    height: 26px;
+    font-size: 14px;
+    line-height: 24px;
+  }
+}
+
 /* 两页之间的分割线：桌面可拖动调整左栏宽度（2026-11） */
 .nt-flow-split {
   position: absolute;
