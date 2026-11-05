@@ -20,6 +20,7 @@ import { mountAddForm } from './inst-add.js';
 import { paintHandles, syncFrozen } from './table-layout.js';
 import { FIXED_COLS, applyFixedWidths, revealRow } from './inst-layout.js';
 import { showUndo } from './undo-bar.js';
+import { BLANK_INST_ROWS, paintBlankRow } from './inst-blanks.js';
 import { moneyAlways, moneyInt } from '../core/format.js';
 import { clampDay, isDayGiven } from '../core/schema.js';
 import { parseAccountInput } from '../core/account-resolver.js';
@@ -79,6 +80,8 @@ export function mountInstTable(ctx, tbody, opts) {
     paintHead(span, list);
     tbody.textContent = '';
 
+    // 自动生成的分期列表**前面**留 10 条空行（见 ui/inst-blanks.js）
+    for (let k = 0; k < BLANK_INST_ROWS; k += 1) paintBlankRow(tbody, span, FIXED_COLS);
     for (const row of list) paintRow(row, span);
     paintAddForm();
     summarize(list);
