@@ -8,6 +8,7 @@ const accounts = [
   { id: 'a', name: '储蓄卡', type: '资产类', category: '储蓄' },
   { id: 'z', name: '中转', type: '资产类', category: '其他' },
   { id: 'l', name: '信用卡', type: '负债类', category: '信用' },
+  { id: 'l2', name: '溢缴卡', type: '负债类', category: '溢缴' },
   { id: 'i', name: '工资', type: '收入类', category: '工资' },
   { id: 'e', name: '餐饮', type: '费用类', category: '餐饮' },
 ];
@@ -25,6 +26,8 @@ const transactions = [
   tx('2026-01-11', 'l', 'z', 1000),
   tx('2026-02-10', 'l', 'z', 200),
   tx('2026-02-11', 'z', 'l', 50),
+  // 另一张负债卡：历史转入 1000、没有转出 —— 旧算法是 -1000，新口径仍按欠款 1000 显示
+  tx('2026-01-15', 'z', 'l2', 1000),
   // 收入：2 月收入 500、退回 20 → 净 480
   tx('2026-02-05', 'i', 'z', 500),
   tx('2026-02-12', 'z', 'i', 20),
@@ -47,13 +50,22 @@ test('存量：资产期初 / 本期增减 / 期末', () => {
   assert.equal(a.end, 1200);
 });
 
-test('存量：负债显示正数欠款，借入增加、还款减少', () => {
+test('存量：负债显示正数欠款，借入/还清都按净变化', () => {
   const p = categoryPanels(accounts, transactions, range);
   const l = panel(p, 'stock', '信用');
   assert.equal(l.opening, 1000);
-  assert.equal(l.increase, 200);
-  assert.equal(l.decrease, 50);
   assert.equal(l.end, 1150, '负债期末必须是正数欠款');
+  assert.equal(l.increase, 150);
+  assert.equal(l.decrease, 0);
+});
+
+test('存量：历史上转入 > 转出的负债也显示为正数欠款', () => {
+  const p = categoryPanels(accounts, transactions, range);
+  const l = panel(p, 'stock', '溢缴');
+  assert.equal(l.opening, 1000, '旧算法为 -1000，新口径取欠款 1000');
+  assert.equal(l.end, 1000);
+  assert.equal(l.increase, 0);
+  assert.equal(l.decrease, 0);
 });
 
 test('流量：收入按转出、费用按转入，净额都已扣退回', () => {

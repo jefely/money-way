@@ -15,11 +15,9 @@ const HEAD = {
   flow: ['分类', '节点', '本期收入/支出', '本期退回', '净额'],
 };
 
-/** 存量余额显示：负债为正数欠款；负余额是「多还 / 预付」，不要只给一个负号。 */
-function stockAmount(value, type) {
-  const n = Number(value) || 0;
-  if (type === '负债类' && n < -0.005) return `多还 ${moneyAlways(Math.abs(n))}`;
-  return moneyAlways(n);
+/** 存量余额：负债已在 core 里取绝对值并按欠款显示；这里统一财务格式。 */
+function stockAmount(value) {
+  return moneyAlways(Number(value) || 0);
 }
 
 function makeCell(text, cls, span) {
@@ -74,7 +72,7 @@ function paintPanel(panel, groups, kind) {
       const cells = stock
         ? [
           c.category, c.count,
-          stockAmount(c.opening, g.type), moneyAlways(c.increase), moneyAlways(c.decrease), stockAmount(c.end, g.type),
+          stockAmount(c.opening), moneyAlways(c.increase), moneyAlways(c.decrease), stockAmount(c.end),
         ]
         : [c.category, c.count, moneyAlways(c.gross), moneyAlways(c.reverse), moneyAlways(c.net)];
       tbody.appendChild(makeRow(cells, false, 0));
@@ -83,7 +81,7 @@ function paintPanel(panel, groups, kind) {
     const totalCells = stock
       ? [
         `${g.type}合计`,
-        stockAmount(t.opening, g.type), moneyAlways(t.increase), moneyAlways(t.decrease), stockAmount(t.end, g.type),
+        stockAmount(t.opening), moneyAlways(t.increase), moneyAlways(t.decrease), stockAmount(t.end),
       ]
       : [`${g.type}合计`, moneyAlways(t.gross), moneyAlways(t.reverse), moneyAlways(t.net)];
     tbody.appendChild(makeRow(totalCells, true, 2));

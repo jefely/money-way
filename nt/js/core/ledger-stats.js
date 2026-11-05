@@ -163,15 +163,48 @@ const STOCK_TYPES = new Set(['资产类', '负债类', '权益类']);
 function periodView(row, type) {
   const debit = isDebitType(type);
   if (STOCK_TYPES.has(type)) {
-    const opening = Number(row.historyBalance) || 0;
-    const increase = debit ? row.periodIn : row.periodOut;
-    const decrease = debit ? row.periodOut : row.periodIn;
-    return { ...row, kind: 'stock', opening, increase, decrease, end: opening + increase - decrease };
+    const openingSigned = Number(row.historyBalance) || 0;
+    const inc = debit ? row.periodIn : row.periodOut;
+    const dec = debit ? row.periodOut : row.periodIn;
+    const endSigned = openingSigned + inc - dec;
+
+    // 负债按「欠款」显示正数，不解释成多还/预付：
+    //   期初、期末取绝对值；本期增减改为「欠款净变化」，
+    //   这样 期初 + 增加 − 减少 = 期末，且不会出现负数。
+    if (type === '负债类') {
+      const opening = Math.abs(openingSigned);
+      const end = Math.abs(endSigned);
+      const delta = end - opening;
+      return {
+        ...row,
+        kind: 'stock',
+        opening,
+        increase: delta > 0 ? delta : 0,
+        decrease: delta < 0 ? -delta : 0,
+        end,
+      };
+    }
+
+    return { ...row, kind: 'stock', opening: openingSigned, increase: inc, decrease: dec, end: endSigned };
   }
   // 收入：转出是收入、转入是退回；费用/成本：转入是支出、转出是退回。
   const gross = debit ? row.periodIn : row.periodOut;
   const reverse = debit ? row.periodOut : row.periodIn;
   return { ...row, kind: 'flow', gross, reverse, net: gross - reverse };
+}
+
+/** 合计从分类行直接加总：负债取绝对值后不能再用净额合计，否则会互相抵消。 */
+function sumRows(categories, kind) {
+  const out = { count: 0, category: '' };
+  const keys = kind === 'stock'
+    ? ['opening', 'increase', 'decrease', 'end']
+    : ['gross', 'reverse', 'net'];
+  for (const k of keys) out[k] = 0;
+  for (const c of categories) {
+    out.count += c.count || 0;
+    for (const k of keys) out[k] += c[k] || 0;
+  }
+  return out;
 }
 
 /**
@@ -195,7 +228,7 @@ export function categoryPanels(accounts, transactions, range) {
     if (!categories.length) continue;
     out[stock ? 'stock' : 'flow'].push({
       ...g,
-      total: periodView(g.total, g.type),
+      total: sumRows(categories, stock ? 'stock' : 'flow'),
       categories,
     });
   }
@@ -203,7 +236,8 @@ export function categoryPanels(accounts, transactions, range) {
 }
 
 /** 汇总视图：每个账户一行，按 类型 → 分类 → 名称 排序。 */
-export function accountRows(accounts, transactions, range) {  const summaries = summariesForAccounts(accounts, transactions, range);
+export function accountRows(accounts, transactions, range) {
+  const summaries = summariesForAccounts(accounts, transactions, range);
   return summaries.slice().sort((a, b) => {
     const d = typeIndex(a.acc.type) - typeIndex(b.acc.type);
     if (d) return d;
