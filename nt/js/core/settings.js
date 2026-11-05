@@ -103,6 +103,12 @@ export function normalize(raw, theme) {
     const mig = LEGACY_DEFAULT[s.key];
     if (mig && v != null && mig[String(v)] !== undefined) v = mig[String(v)];
 
+    // 2026-11：按钮行高度从「按钮尺寸」组挪到「按钮区」组（改的是整行，不是按钮本身），
+    // 旧键的值跟着走，否则老存档升级后按钮行会掉回 30。
+    if (s.key === '按钮区高度' && (v == null || v === '')) {
+      v = raw ? raw['按钮尺寸行高'] : undefined;
+    }
+
     // 列宽：每表一份。旧存档没有这些键时，从旧的那一份「默认列宽」里按列名抽初值。
     if (s.type === 'cols') {
       out[s.key] = padTableWidths(

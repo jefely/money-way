@@ -123,6 +123,10 @@ export const SCHEMA = [
   { key: '按钮区文字颜色', group: '按钮区', def: '#f2eeff', cssVar: '--nt-btn-text' },
   { key: '按钮区按钮样式', group: '按钮区', type: 'enum', options: ['无', '圆角框', '直角框', '竖线'], values: ['plain', 'solid', 'sharp', 'line'], def: '圆角框', attr: 'data-btn-style' },
   { key: '按钮区间距', group: '按钮区', def: 6, unit: 'px', cssVar: '--nt-btn-gap' },
+  // 按钮行高度：工具条 / 查询面板头 / 分类查询头 / 路径侧栏头**统一**读这一个值
+  // （2026-11 用户要求「所有按钮行用统计页那个高度」）。
+  // 从「按钮尺寸」组挪过来：它改的是整行，不是按钮本身。
+  { key: '按钮区高度', group: '按钮区', def: 30, min: 20, max: 80, unit: 'px', cssVar: '--nt-vbar-h' },
   // 工具条按钮的最小宽度：0 = 按内容（默认）。调大能让「添加/导入/重载」对齐成等宽。
   { key: '工具条按钮宽', group: '按钮区', def: 0, min: 0, max: 200, unit: 'px', cssVar: '--nt-btn-w' },
   { key: '按钮区背景颜色', group: '按钮区', def: '#0e0b16', cssVar: '--nt-vbar-bg' },
@@ -152,8 +156,6 @@ export const SCHEMA = [
   { key: '信息栏背景颜色', group: '信息栏', def: '#0e0b16', cssVar: '--nt-footer-bg' },
 
   /* ---------- 按钮尺寸（独立） ---------- */
-  // 按钮区高度：工具条 min-height（各页共用这一个键）
-  { key: '按钮尺寸行高', group: '按钮尺寸', def: 30, unit: 'px', cssVar: '--nt-vbar-h' },
   // 按钮本身的高度：工具条 / 查询面板头的按钮共用（2026-10-29 用户指定）
   { key: '按钮尺寸按钮高', group: '按钮尺寸', def: 26, min: 18, max: 60, unit: 'px', cssVar: '--nt-btn-h' },
   { key: '按钮尺寸字号', group: '按钮尺寸', def: 12, unit: 'px', cssVar: '--nt-vbar-font' },
