@@ -6,11 +6,39 @@
 
 .nt-stats-grid {
   display: grid;
-  /* 左栏放 6 张分类表（列宽合计 495/534px），比两个查询栏宽一些 */
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr);
+  /* 左栏宽度可拖（--nt-stats-left-w，默认 45%）；剩下的宽度由两块分类查询**平均分配** */
+  grid-template-columns: var(--nt-stats-left-w, 45%) minmax(0, 1fr) minmax(0, 1fr);
   flex: 1;
   min-height: 0;
   border-top: 1px solid var(--nt-bg-line);
+  position: relative;
+}
+
+/* 左栏与「分类查询1」之间的分界线：拖它调整左栏宽度（用户 2026-11） */
+.nt-stats-split {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  margin-left: -4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+  z-index: 6;
+  touch-action: none;
+}
+
+.nt-stats-split:hover,
+.nt-stats-split:focus-visible {
+  background: var(--nt-primary, #7c6bd6);
+  opacity: 0.35;
+  outline: none;
+}
+
+@media (max-width: 900px) {
+  /* 窄屏是一屏一栏，没有左右分界可拖 */
+  .nt-stats-split { display: none; }
 }
 
 .nt-stats-panel {

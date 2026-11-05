@@ -12,6 +12,7 @@ import { buildHead, renderMixed, renderEmpty } from '../ui/table.js';
 import { mountCellRange } from '../ui/cell-range.js';
 import { money } from '../core/format.js';
 import { paintCategoryPanels, bindCategoryQueries } from '../ui/stats-category.js';
+import { mountStatsSplit } from '../ui/stats-split.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 
@@ -39,6 +40,8 @@ export function mountStats(section, ctx) {
   bindCaps();
   bindScope();
   bindCategoryQueries(grid, () => render(), () => ctx.getState());
+  // 左栏（6 大分类）与右侧查询区之间的分界条：拖它调整左栏宽度
+  mountStatsSplit(section);
 
   // 统计表是只读的：框选只提供「复制」（同时进系统剪贴板，方便贴到 Excel）
   mountCellRange(section.querySelector('#nt-stats-table'), {
