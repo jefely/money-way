@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 import {
   normalize, toCssList, TABLE_COLS, TABLE_DEFAULT_WIDTHS, parseTableWidths,
   colWidthKey, COL_KEYS, DEFAULT_COL_WIDTHS, DEFAULT_COL_ALIGN,
-  GROUPS, SCREENS, GROUP_SCREEN, SCHEMA,
+  GROUPS, SCREENS, GROUP_SCREEN, SCHEMA, GROUP_FILE,
 } from '../js/core/settings.js';
 import { TABLE_SIZE_FIELDS, TABLE_SIZE_SCHEMA } from '../js/core/table-cols.js';
 
@@ -185,6 +185,13 @@ test('★ 每个表组都有自己的屏：tab 一一对应，没有孤儿组', 
   // 每个组都必须有归属屏，否则面板里永远看不到它
   for (const g of GROUPS) {
     assert.ok(ids.includes(GROUP_SCREEN[g]), `${g} 没有归属屏`);
+  }
+});
+
+test('每个参数分组都标了负责文件（调试面板标题旁的小字）', () => {
+  for (const g of GROUPS) {
+    assert.equal(typeof GROUP_FILE[g], 'string', `${g} 缺文件标注`);
+    assert.ok(GROUP_FILE[g].length > 0);
   }
 });
 

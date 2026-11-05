@@ -17,6 +17,40 @@ import {
   TABLE_GROUPS, TABLE_SCREENS, TABLE_SIZE_SCHEMA, TABLE_DEFAULT_WIDTHS,
 } from './table-cols.js';
 
+/**
+ * 每个参数分组 → 负责它的代码文件（2026-11 用户要求）。
+ * 调试面板在分组标题右边用小字显示，方便「这个参数调的是哪个文件」。
+ * 组级标注：一个组通常只改一处（CSS 变量表 / 渲染器 / 某个视图）。
+ */
+export const GROUP_FILE = {
+  标签栏: 'css/theme.css',
+  按钮区: 'css/shell.css',
+  表格: 'css/theme.css',
+  信息栏: 'css/shell.css',
+  按钮尺寸: 'css/shell.css',
+  列标行: 'css/shell.css',
+  // 每张表一组：尺寸变量在 shell.css，列宽默认值在 core/table-cols.js
+  流水记录: 'css/flow.css',
+  '分类-费用': 'css/stats.css',
+  '分类-收入': 'css/stats.css',
+  '分类-资产': 'css/stats.css',
+  '分类-负债': 'css/stats.css',
+  '分类-权益': 'css/stats.css',
+  '分类-成本': 'css/stats.css',
+  分类查询: 'css/stats.css',
+  汇总表: 'css/stats.css',
+  流水查询: 'css/query.css',
+  路径追踪: 'css/path.css',
+  固定开支: 'css/plan.css',
+  账户设置: 'css/settings.css',
+  // 环图：几何/标签/线都由 SVG 渲染器消费，追踪和分层在 graph/ 里算
+  '环图·几何': 'ui/mw-svg-renderer.js',
+  '环图·标签': 'ui/mw-svg-renderer.js',
+  '环图·线': 'ui/mw-svg-renderer.js',
+  '环图·追踪': 'graph/path-tracer.js',
+  '环图·规则': 'graph/mw-layers.js',
+};
+
 export const GROUPS = [
   '标签栏', '按钮区', '表格', '信息栏', '按钮尺寸', '列标行',
   // 每张表一组（列标行高/字号 + 数据行高/字号 + 列宽）

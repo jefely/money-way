@@ -202,6 +202,15 @@
   color: var(--nt-primary);
 }
 
+/* 组标题右边的「这组参数由哪个文件负责」小字（2026-11） */
+.nt-debug-file {
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--nt-text-muted);
+  opacity: 0.85;
+}
+
 .nt-debug-row {
   display: flex;
   align-items: center;

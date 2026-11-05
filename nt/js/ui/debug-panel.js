@@ -1,6 +1,6 @@
 // 界面：?debug=1 → 界面参数浮层
 /** 界面参数调试面板（UI 层）：按标签页分组，改值实时生效，可保存/撤销/恢复默认。 */
-import { GROUPS, SCREENS, GROUP_SCREEN, SCHEMA, normalize } from '../core/settings.js';
+import { GROUPS, SCREENS, GROUP_SCREEN, SCHEMA, normalize, GROUP_FILE } from '../core/settings.js';
 import { applySettings } from './apply-settings.js';
 import { openColorPicker } from './color-picker.js';
 import { createThemeButtons, currentTheme, applyTheme, saveThemeSettings, loadThemeSettings, loadUserSettings, loadMergedSettings, clearGlobalKeys } from './debug-themes.js';
@@ -214,6 +214,14 @@ export function mountDebugPanel(opts) {
       const h = document.createElement('h3');
       h.className = 'nt-debug-group-title';
       h.textContent = group;
+      // 这组参数由哪个文件负责（组级标注，2026-11 用户要求）
+      const file = GROUP_FILE[group];
+      if (file) {
+        const badge = document.createElement('span');
+        badge.className = 'nt-debug-file';
+        badge.textContent = file;
+        h.appendChild(badge);
+      }
       sec.appendChild(h);
 
       for (const item of groupItems) {
