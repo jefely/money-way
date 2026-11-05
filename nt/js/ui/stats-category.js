@@ -8,9 +8,10 @@
  */
 
 import { categoryPanels } from '../core/ledger-stats.js';
-import { queryByCategory } from '../core/category-query.js';
+import { queryByCategory, resolveCategory, suggestCategories } from '../core/category-query.js';
 import { moneyAlways, shortDate } from '../core/format.js';
 import { paintHandles, syncFrozen } from './table-layout.js';
+import { showCatSuggest, hideCatSuggest, isCatSuggestFor } from './cat-suggest.js';
 
 /**
  * 三块表的列（标签 + 列 key）。
@@ -128,7 +129,7 @@ function paintQueryPanel(grid, state, range) {
   if (!q.trim()) {
     const tr = document.createElement('tr');
     tr.className = 'nt-row';
-    const td = makeCell('输入分类后显示本期流水', '', HEAD.query.length);
+    const td = makeCell('输入分类或首字母后显示本期流水', '', HEAD.query.length);
     td.className = 'nt-cell nt-cell-empty';
     tr.appendChild(td);
     tbody.appendChild(tr);
@@ -163,22 +164,79 @@ function paintQueryPanel(grid, state, range) {
 
 /**
  * 绑定分类查询输入框；只绑一次。onChange 每次输入防抖后调用。
+ * 回车时先把「首字母」换成分类名（唯一命中才换），再查一次。
+ *
+ * @param {HTMLElement} grid
+ * @param {Function} onChange
+ * @param {Function} [getState] 回车换名字要读分类列表
  */
-export function bindCategoryQuery(grid, onChange) {
+export function bindCategoryQuery(grid, onChange, getState) {
   const panel = grid && grid.querySelector('[data-kind="query"]');
   if (!panel) return;
   const input = panel.querySelector('#nt-stats-cat-q');
   const clear = panel.querySelector('#nt-stats-cat-clear');
   if (!input || input.dataset.bound) return;
   input.dataset.bound = '1';
+
   let timer = 0;
+  let lastItems = [];
+  const stateNow = () => (typeof getState === 'function' ? getState() : null);
+
+  /** 输入任何东西都先算一遍候选：「c」→ 储蓄（cx）/日常（rc） */
+  function refreshSuggest() {
+    const state = stateNow();
+    lastItems = state ? suggestCategories(state.accounts, input.value, 8) : [];
+    if (!lastItems.length) {
+      hideCatSuggest();
+      return;
+    }
+    showCatSuggest(input, lastItems, (name) => {
+      // 点选：直接把分类名填进去再查（用户 2026-11：输入 c 弹出储蓄，点它就带入）
+      input.value = name;
+      lastItems = [];
+      hideCatSuggest();
+      onChange();
+      try { input.focus(); } catch (e) { /* 忽略 */ }
+    });
+  }
+
   input.addEventListener('input', () => {
     clearTimeout(timer);
-    timer = setTimeout(onChange, 120);
+    timer = setTimeout(() => {
+      refreshSuggest();
+      onChange();
+    }, 120);
   });
+
+  // 回车：先把「首字母」换成分类名（唯一命中才换），再查一次。
+  // 名字换不上但只弹出一个候选时，也直接选它 —— 打 cx 回车就是「储蓄」。
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Enter') return;
+    ev.preventDefault();
+    clearTimeout(timer);
+    const state = stateNow();
+    let name = state ? resolveCategory(state.accounts, input.value) : '';
+    if (!name && lastItems.length === 1) name = lastItems[0].name;
+    if (name && name !== input.value) {
+      input.value = name;
+      try { input.setSelectionRange(name.length, name.length); } catch (e) { /* 忽略 */ }
+    }
+    lastItems = [];
+    hideCatSuggest();
+    onChange();
+  });
+
+  input.addEventListener('blur', () => {
+    // 点候选时 pointerdown 已经 preventDefault，焦点不会真的丢；
+    // 这里只处理 Tab / 点空白真正离开输入框的情况。
+    if (isCatSuggestFor(input)) hideCatSuggest();
+  });
+
   if (clear) {
     clear.addEventListener('click', () => {
       input.value = '';
+      lastItems = [];
+      hideCatSuggest();
       onChange();
       input.focus();
     });

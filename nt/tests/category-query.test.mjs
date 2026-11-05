@@ -1,8 +1,8 @@
-// 分类查询：时间段 + 分类关键字
+// 分类查询：时间段 + 分类关键字 / 拼音首字母
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { queryByCategory } from '../js/core/category-query.js';
+import { queryByCategory, resolveCategory, suggestCategories } from '../js/core/category-query.js';
 
 const accounts = [
   { id: 'a', name: '工资卡', type: '资产类', category: '储蓄' },
@@ -49,4 +49,72 @@ test('无命中返回空数组；日期倒序', () => {
   assert.deepEqual(queryByCategory(txs, accounts, range, '不存在'), []);
   const r = queryByCategory(txs, accounts, range, '储蓄');
   assert.equal(r[0].tx.date >= r[1].tx.date, true);
+});
+
+/* ---------- 拼音首字母（2026-11） ---------- */
+
+test('输入分类首字母也能查到：cx → 储蓄，rc → 日常', () => {
+  const byCx = queryByCategory(txs, accounts, range, 'cx');
+  assert.deepEqual(byCx.map((x) => x.tx.id).sort(), ['t1', 't2'], '储蓄的两笔');
+
+  const byRc = queryByCategory(txs, accounts, range, 'rc');
+  assert.deepEqual(byRc.map((x) => x.tx.id).sort(), ['t1', 't3'], '日常作为转入方的两笔');
+
+  // 单个字母是「包含」：c 命中 cx（储蓄）与 rc（日常）
+  const byC = queryByCategory(txs, accounts, range, 'c');
+  assert.deepEqual(byC.map((x) => x.tx.id).sort(), ['t1', 't2', 't3']);
+});
+
+test('汉字查询与首字母查询都能用，互不干扰', () => {
+  assert.equal(queryByCategory(txs, accounts, range, '储蓄').length, 2);
+  assert.equal(queryByCategory(txs, accounts, range, 'cx').length, 2);
+  assert.equal(queryByCategory(txs, accounts, range, 'CX').length, 2, '大小写不敏感');
+});
+
+test('resolveCategory：唯一精确命中才带回分类名', () => {
+  assert.equal(resolveCategory(accounts, 'rc'), '日常');
+  assert.equal(resolveCategory(accounts, 'cx'), '储蓄');
+  assert.equal(resolveCategory(accounts, '储蓄'), '储蓄');
+  assert.equal(resolveCategory(accounts, 'r'), '', '首字母前缀不替换（会多个候选）');
+  assert.equal(resolveCategory(accounts, '不存在'), '');
+  assert.equal(resolveCategory(accounts, ''), '');
+});
+
+test('resolveCategory：多个分类首字母相同就不猜', () => {
+  const accs = [
+    { id: 'x', category: '餐饮' },   // cy
+    { id: 'y', category: '常用' },   // cy
+  ];
+  assert.equal(resolveCategory(accs, 'cy'), '', '两个都是 cy，保持用户输入');
+});
+
+/* ---------- 候选气泡：「输入 c 弹出储蓄」 ---------- */
+
+test('suggestCategories：首字母前缀排在最前', () => {
+  const list = suggestCategories(accounts, 'c');
+  assert.deepEqual(list.map((x) => x.name), ['储蓄', '日常'], 'cx 前缀在 rc 包含之前');
+  assert.equal(list[0].initials, 'cx');
+  assert.equal(list[0].count, 1, '储蓄只挂了一个账户');
+});
+
+test('suggestCategories：全等时只剩目标，空输入为空', () => {
+  assert.deepEqual(suggestCategories(accounts, 'cx').map((x) => x.name), ['储蓄']);
+  assert.deepEqual(suggestCategories(accounts, '储蓄').map((x) => x.name), ['储蓄']);
+  assert.deepEqual(suggestCategories(accounts, ''), []);
+  assert.deepEqual(suggestCategories(accounts, 'zzz'), []);
+});
+
+test('suggestCategories：同分类多账户只出现一次、节点数累加、limit 生效', () => {
+  const accs = [
+    { id: '1', category: '餐饮' },
+    { id: '2', category: '餐饮' },
+    { id: '3', category: '宠物' },
+  ];
+  const list = suggestCategories(accs, 'c', 1);
+  assert.equal(list.length, 1, 'limit=1');
+  assert.equal(list[0].name, '餐饮');
+  assert.equal(list[0].count, 2, '两个账户挂在同一分类下');
+
+  const all = suggestCategories(accs, 'c', 8);
+  assert.deepEqual(all.map((x) => x.name).sort(), ['宠物', '餐饮'].sort());
 });

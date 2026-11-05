@@ -38,7 +38,7 @@ export function mountStats(section, ctx) {
 
   bindCaps();
   bindScope();
-  bindCategoryQuery(grid, () => render());
+  bindCategoryQuery(grid, () => render(), () => ctx.getState());
 
   // 统计表是只读的：框选只提供「复制」（同时进系统剪贴板，方便贴到 Excel）
   mountCellRange(section.querySelector('#nt-stats-table'), {

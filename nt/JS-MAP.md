@@ -48,6 +48,7 @@
 | `core/opening-tx.js` | 期初流水的方向 |
 | `core/phrase-entry.js` | （无界面）一句话入账 |
 | `core/phrase-parser.js` | （无界面）一句话解析 |
+| `core/pinyin.js` | 汉字 → 拼音首字母（纯函数） |
 | `core/plan-occurrence.js` | （无界面）计划发生：确认到今天 / 作废一期 |
 | `core/qr-encode.js` | （未标注界面）QR 编码入口（纯函数） |
 | `core/qr-matrix.js` | （未标注界面）QR 矩阵构造（纯函数） |
@@ -92,6 +93,7 @@
 | `ui/add-dialog.js` | 流水工具条「添加/导入」→ 添加账本·流水 弹窗 |
 | `ui/apply-settings.js` | 全局：把界面参数写成 CSS 变量（主题/列宽） |
 | `ui/backup-guard.js` | 主屏幕备份提醒 |
+| `ui/cat-suggest.js` | 统计 → 分类查询的候选气泡（输入首字母弹出分类） |
 | `ui/cell-range.js` | 单元格区域框选（长按起手 → 拖动框选 → 复制 / 粘贴 / 删除行） |
 | `ui/chart-gestures.js` | 环网图的手势（拖动 / 缩放 / 平移 / 旋转） |
 | `ui/chart-tip.js` | 路径 tab → 悬停提示 |
