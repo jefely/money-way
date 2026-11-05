@@ -3,7 +3,7 @@
 import { GROUPS, SCREENS, GROUP_SCREEN, SCHEMA, normalize } from '../core/settings.js';
 import { applySettings } from './apply-settings.js';
 import { openColorPicker } from './color-picker.js';
-import { createThemeButtons, currentTheme, applyTheme, saveThemeSettings, loadThemeSettings, loadUserSettings } from './debug-themes.js';
+import { createThemeButtons, currentTheme, applyTheme, saveThemeSettings, loadThemeSettings, loadUserSettings, loadMergedSettings, clearGlobalKeys } from './debug-themes.js';
 import { createPiPButton } from './debug-pip.js';
 import { layoutTextBar, mergePatch } from './layout-text.js';
 import { resetColWidths } from './table-layout.js';
@@ -13,7 +13,9 @@ const POS_KEY = 'nt_debug_pos';
 export function mountDebugPanel(opts) {
   const o = opts || {};
   let theme = currentTheme();
-  const initialState = o.initial || (o.getState ? loadThemeSettings(o, theme) : {});
+  // 用 merged（defaults + user + _global）：环图外圈那两条是跨主题统一的全局值。
+  // 只读 defaults 会让切主题后面板显示旧值，并把它写回变量。
+  const initialState = o.initial || (o.getState ? loadMergedSettings(o, theme) : {});
   let current = normalize(initialState, theme);
   let screen = SCREENS[0].id;
   let history = [];
@@ -43,7 +45,7 @@ export function mountDebugPanel(opts) {
     for (const el of wrap.children) {
       el.setAttribute('aria-pressed', el === btn ? 'true' : 'false');
     }
-    current = normalize(loadThemeSettings(o, theme), theme);
+    current = normalize(loadMergedSettings(o, theme), theme);
     renderBody();
     applySettings(current, theme);
   }));
@@ -170,6 +172,8 @@ export function mountDebugPanel(opts) {
   saveUsrBtn.addEventListener('click', () => persist(saveUsrBtn, 'user', '存用户'));
   resetBtn.addEventListener('click', () => {
     pushHistory();
+    // 跨主题统一的环图参数也要一起清，否则下次加载又被旧全局值盖回来
+    clearGlobalKeys(o);
     current = normalize(o.getState ? loadThemeSettings(o, theme) : {}, theme);
     renderBody();
     applySettings(current, theme);
