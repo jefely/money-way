@@ -156,8 +156,16 @@ export function mountAddForm(ctx, onAdded) {
       inp.className = 'nt-input nt-input-sm';
       inp.type = 'text';
       inp.setAttribute('data-add', key);
-      inp.placeholder = ph;
       inp.setAttribute('aria-label', label);
+      // 「首月」用系统日期选择器（用户 2026-11，和统计页「区间」的日期输入一个思路）：
+      // 优先 type=month（Chrome/安卓直接选年月）；Safari 不认 month，
+      // 会退化成 text —— 这时改回 date，仍然让用户点日历选。
+      if (key === 'firstMonth') {
+        inp.type = 'month';
+        if (inp.type !== 'month') inp.type = 'date';
+      } else {
+        inp.placeholder = ph;
+      }
       // 节点名称这一格：**离开时把简码换成真实账户名**（2026-11 用户要的）。
       // 只换显示、不动解析逻辑 —— 提交时 parseAccountInput 两种写法都认。
       if (key === 'name') {

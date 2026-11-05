@@ -36,6 +36,15 @@ test('8 位与带分隔符的完整日期', () => {
   assert.equal(parseMonthText('2026年11月3日'), '2026-11');
 });
 
+test('日期选择器给的两种值都能解析（month / date 输入）', () => {
+  // <input type="month"> 的值
+  assert.equal(parseMonthText('2026-11'), '2026-11');
+  assert.equal(parseMonthText('2027-02'), '2027-02');
+  // <input type="date"> 的值（Safari 不支持 month 时回退）
+  assert.equal(parseMonthText('2026-11-01'), '2026-11');
+  assert.equal(parseMonthText('2027-02-28'), '2027-02');
+});
+
 test('非法输入返回空串（交给调用方回落到当月）', () => {
   assert.equal(parseMonthText(''), '');
   assert.equal(parseMonthText('abc'), '');
