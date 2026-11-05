@@ -971,3 +971,37 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   background: transparent;
   font: inherit;
 }
+
+/* ---------- 流水 ⇄ 账本设置：同一条横向滑道（2026-11） ---------- */
+/* 手机：一页一屏、左右滑切换；≥1200px：并排各半，两页各自上下滚动。
+   两页都在 data-view="flow" 里，所以顶部 tab 高亮仍是「流水」。 */
+.nt-flow-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.nt-flow-shell::-webkit-scrollbar { display: none; }
+
+.nt-flow-page {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 1200px) {
+  .nt-flow-shell { overflow-x: hidden; }
+  .nt-flow-page { flex: 1 1 50%; }
+  /* 并排时两页同时可见，切换按钮没有意义 */
+  [data-nav="settings"],
+  [data-nav="back"] { display: none; }
+}

@@ -43,6 +43,7 @@ import { bindAllTables, syncAllFrozen } from './ui/table-layout.js';
 import { clearSelection } from './ui/cell-range.js';
 import { loadMergedSettings } from './ui/debug-themes.js';
 import { onColResize } from './ui/col-widths.js';
+import { mountFlowShell } from './ui/flow-shell.js';
 import { APP_VER } from './core/version.js';
 import { initVersion } from './ui/update-check.js';
 import { registerServiceWorker } from './ui/pwa.js';
@@ -225,10 +226,17 @@ function mountViews() {
     stats: mountStats(pick('stats'), ctx),
     query: mountQuery(pick('query'), ctx),
     plan: mountPlan(pick('plan'), ctx),
-    settings: mountSettings(pick('settings'), ctx),
+    // 设置页已搬进流水页右侧的横向滑道（2026-11），不再有 data-view="settings"
+    settings: mountSettings(document.querySelector('[data-flow-page="settings"]'), ctx),
     validate: mountValidate(pick('validate'), ctx),
     path: mountPath(pick('path'), ctx),
   };
+
+  // 流水 ⇄ 设置 的图标按钮 + 搓动切换；滑到设置页时重画一次（数据可能被流水改过）
+  mountFlowShell(pick('flow'), {
+    onSettings: () => { if (views.settings && views.settings.render) views.settings.render(); },
+    onFlow: () => { if (views.flow && views.flow.render) views.flow.render(); },
+  });
 }
 
 /* ---------- 启动 ---------- */

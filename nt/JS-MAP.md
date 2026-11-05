@@ -111,6 +111,7 @@
 | `ui/fixed-table.js` | 固定收支表（表格内直接交互） |
 | `ui/flow-ends.js` | 流水格里的名字 → 节点 |
 | `ui/flow-model.js` | （无界面）流水视图模型 |
+| `ui/flow-shell.js` | 流水 ⇄ 账本设置 的横向切换 |
 | `ui/fly-in.js` | 流水 tab → 入账飞入 |
 | `ui/gate.js` | 锁屏 / 首次设密码 |
 | `ui/global-undo.js` | 全局撤销快捷键 |
