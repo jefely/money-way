@@ -20,6 +20,7 @@
 | `core/balance-calculator.js` | （无界面）余额计算 |
 | `core/bill-parse.js` | 三家账单（支付宝 / 微信支付 / 招商银行）的识别与解析 |
 | `core/calc-engine.js` | （无界面）计算引擎：余额 / 双式恒等 / 实物成本台账 |
+| `core/category-query.js` | 分类查询（纯函数） |
 | `core/color.js` | （无界面）颜色转换 |
 | `core/crypto-engine.js` | （无界面）PBKDF2 + AES-GCM |
 | `core/csv.js` | CSV 解析（纯函数，Node 可跑） |

@@ -11,7 +11,7 @@ import { accountRows } from '../core/ledger-stats.js';
 import { buildHead, renderMixed, renderEmpty } from '../ui/table.js';
 import { mountCellRange } from '../ui/cell-range.js';
 import { money } from '../core/format.js';
-import { paintCategoryPanels } from '../ui/stats-category.js';
+import { paintCategoryPanels, bindCategoryQuery } from '../ui/stats-category.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 
@@ -38,6 +38,7 @@ export function mountStats(section, ctx) {
 
   bindCaps();
   bindScope();
+  bindCategoryQuery(grid, () => render());
 
   // 统计表是只读的：框选只提供「复制」（同时进系统剪贴板，方便贴到 Excel）
   mountCellRange(section.querySelector('#nt-stats-table'), {
@@ -60,7 +61,8 @@ export function mountStats(section, ctx) {
     if (grid) grid.hidden = false;
     if (summaryWrap) summaryWrap.hidden = true;
     const r = paintCategoryPanels(grid, state, range);
-    ctx.setFooter(`${r.categories} 个分类 · ${visibleCount(state)} 个节点 · ${scopeLabel()}`);
+    const q = r.query ? ` · 分类查询「${r.query}」${r.matches} 笔` : '';
+    ctx.setFooter(`${r.categories} 个分类 · ${visibleCount(state)} 个节点 · ${scopeLabel()}${q}`);
   }
 
   function renderSummary(state, range) {

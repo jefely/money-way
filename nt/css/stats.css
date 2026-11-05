@@ -3,7 +3,7 @@
 
 .nt-stats-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1.1fr);
   flex: 1;
   min-height: 0;
   border-top: 1px solid var(--nt-bg-line);
@@ -96,6 +96,84 @@
 .nt-table-flow .nt-row-total .nt-cell {
   font-weight: 700;
   background: var(--nt-bg-soft);
+}
+
+/* ---------- 第三块：分类查询 ---------- */
+
+.nt-stats-query-bar {
+  display: flex;
+  gap: 4px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--nt-bg-line);
+  background: var(--nt-bg);
+}
+
+.nt-stats-query-input {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 0 7px;
+  border: 1px solid var(--nt-border, var(--nt-bg-line));
+  border-radius: 5px;
+  background: var(--nt-bg-soft);
+  color: var(--nt-text);
+  font-size: 12px;
+  outline: none;
+}
+
+.nt-stats-query-input:focus {
+  border-color: var(--nt-primary, #7c6bd6);
+}
+
+.nt-table-catq {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 0;
+}
+
+.nt-table-catq .nt-th,
+.nt-table-catq .nt-cell {
+  height: var(--nt-row-h-cat, 32px);
+  padding: 0 4px;
+  font-size: 11px;
+}
+
+.nt-table-catq .nt-th {
+  height: var(--nt-th-h-cat, 26px);
+}
+
+.nt-table-catq .nt-th:nth-child(1) { width: 17%; }
+.nt-table-catq .nt-th:nth-child(2) { width: 20%; }
+.nt-table-catq .nt-th:nth-child(3) { width: 20%; }
+.nt-table-catq .nt-th:nth-child(4) { width: 18%; }
+.nt-table-catq .nt-th:nth-child(5) { width: 25%; }
+
+.nt-table-catq .nt-cell:nth-child(1),
+.nt-table-catq .nt-cell:nth-child(4) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nt-table-catq .nt-cell:nth-child(4) {
+  text-align: right;
+}
+
+.nt-table-catq .nt-cell:nth-child(5) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--nt-text-muted);
+}
+
+@media (min-width: 901px) and (max-width: 1179px) {
+  .nt-stats-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .nt-stats-panel-query {
+    grid-column: 1 / -1;
+  }
 }
 
 /* 窄屏：一屏一块，左右滑动；和 query.css 的查询面板同一套手势 */
