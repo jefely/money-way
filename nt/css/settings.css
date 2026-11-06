@@ -131,10 +131,14 @@
         所以容器变宽时只有期初列变宽，其它列纹丝不动。
    ============================================================ */
 .nt-table.nt-table-accounts {
-  /* 2026-11：这里**必须是 auto 布局**，不能用 fixed。
-     fixed 下「没有宽度的列」不会吃掉剩余空间 —— 实测表格 885 宽、八列加起来只有 592，
-     右边 293px 就空在表格里（用户报的「一大块空白」）。auto 布局的规则正好相反：
-     有 px 的列按 px 走、没有宽度的列吃掉剩下的全部。 */
+  /* 2026-11 定稿：**auto 布局 + 节点名称列吃剩余**。
+     试过三种都不行：
+       ① fixed + 期初列 auto  → 期初列只按内容算 146px，剩下 293px 空在表格里；
+       ② fixed + calc 减出期初 → fixed 下百分比宽度不按预期解析，宽度还是不变；
+       ③ fixed + 八列都给 px   → 规范说多余空间「应」按比例分配，Chrome 实测**不分**，
+                                  542 的列宽对着 885 的表格，右边空 343px。
+     只有 auto 布局会把「没有宽度的列」撑满剩余空间 —— 所以把这份空间给**节点名称**，
+     它本来就是最长的文本列；期初余额保持固定的 96px，不会再出现被撑到 368px 的失衡。 */
   table-layout: auto;
   width: 100%;
 }
@@ -143,14 +147,20 @@
 .nt-table-accounts .nt-th[data-col="seq"]     { width: var(--nt-col-accounts-seq, 44px); }
 .nt-table-accounts .nt-th[data-col="type"]    { width: var(--nt-col-accounts-type, 66px); }
 .nt-table-accounts .nt-th[data-col="cat"]     { width: var(--nt-col-accounts-cat, 70px); }
-.nt-table-accounts .nt-th[data-col="name"]    { width: var(--nt-col-accounts-name, 110px); }
 /* 按钮列：固定 40px，够点就行（上面 calc 里也是按 40 减的，两处要一致） */
 .nt-table-accounts .nt-th[data-col="up"]      { width: 40px; }
 .nt-table-accounts .nt-th[data-col="action"]  { width: 40px; }
-/* 期初余额列：**不写宽度**。auto 布局下没有宽度的列会吃掉上面七列剩下的空间，
-   所以窗口变宽时只有它变宽。fixed 布局做不到这一点（见上面那条注释）。 */
-.nt-table-accounts .nt-th[data-col="opening"] {
+/* 节点名称：**不写宽度**，吃掉其它七列剩下的全部空间。
+   auto 布局下只有「没有宽度的列」会被撑满，fixed 不行（见上面那段）。
+   名称是最长的文本，把富余空间给它最合理。 */
+.nt-table-accounts .nt-th[data-col="name"] {
   width: auto;
+}
+
+/* 期初余额：固定 px。**不要**让它吃剩余 —— 实测会被撑到 368px，
+   把名称列挤成一条缝（用户 2026-11 截图）。 */
+.nt-table-accounts .nt-th[data-col="opening"] {
+  width: var(--nt-col-accounts-opening, 96px);
 }
 
 /* 新增行的「+」：跟序号同色，别抢眼 */
