@@ -987,7 +987,13 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
       var(--nt-primary-light, var(--nt-primary)) 0%,
       var(--nt-primary) 55%,
       var(--nt-primary-dark, var(--nt-primary)) 100%);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.42), 0 2px 6px rgba(0, 0, 0, 0.3);
+  /* 质感（用户 2026-11）：顶部一道高光、底部一道内阴影 —— 圆钮才有"球面"，
+     不再是一块纯色圆片。落影保留，让它坐在桌面上。 */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.22),
+    0 10px 26px rgba(0, 0, 0, 0.42),
+    0 2px 6px rgba(0, 0, 0, 0.30);
   /* 键盘弹出时是「平滑上浮」而不是被挤一下；
      拖动过程中用 .dragging 关掉过渡，跟手才不迟滞 */
   transition: width 0.22s ease, padding 0.22s ease, border-radius 0.22s ease,
@@ -1010,17 +1016,18 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   width: min(360px, calc(100vw - 32px));
   padding: 6px;
   border-radius: 28px;
-  background: color-mix(in srgb, var(--nt-bg-cell) 86%, transparent);
-  -webkit-backdrop-filter: blur(14px) saturate(150%);
-  backdrop-filter: blur(14px) saturate(150%);
-  border: 1px solid color-mix(in srgb, var(--nt-primary) 26%, var(--nt-bg-line));
+  /* 透明度先按用户要求设 50%（2026-11）：比 86% 透，下面的流水能透出来 */
+  background: color-mix(in srgb, var(--nt-bg-cell) 50%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid color-mix(in srgb, var(--nt-primary) 40%, var(--nt-bg-line));
   /* 收起态的 .nt-composer 是 overflow: hidden（要把渐变圆角裁干净），
      但展开后那条规则还在 —— 外发光会被整个裁掉，只剩内圈亮线，
      这就是「看着不扎实」的真正原因。展开时放开裁剪。 */
   overflow: visible;
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--nt-primary) 10%, transparent),
-    0 0 10px color-mix(in srgb, var(--nt-primary) 12%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--nt-primary) 20%, transparent),
+    0 0 14px color-mix(in srgb, var(--nt-primary) 26%, transparent),
     0 4px 14px rgba(0, 0, 0, 0.30),
     0 1px 2px rgba(0, 0, 0, 0.20);
 }
@@ -1321,18 +1328,19 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
    做法是文字本身用上下渐变（上亮下暗，模拟绒面的受光），
    再压一层很淡的软阴影把字「按」进圆面里。 */
 .nt-icon-nt {
-  background: linear-gradient(180deg, #ffffff 12%, #cfe6cf 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
-  letter-spacing: 0.05em;
+  /* 纯白 + 三层阴影（用户 2026-11：对比度要够）。
+     之前用「上亮下暗」的渐变做丝绒，末端 #cfe6cf 让下半截发灰，
+     在紫 / 绿钮上对比度不够。现在统一纯白，靠阴影把边缘「压」出来；
+     顶部那一丝高光保留丝绒感，不至于变成一块死白。 */
+  color: #ffffff;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 0 6px rgba(0, 0, 0, 0.30),
+    0 -1px 1px rgba(255, 255, 255, 0.25);
+  letter-spacing: 0.04em;
 }
 
-/* 展开成发送态时钮变小、底色变成页面色，把渐变收掉、恢复实心字，
-   否则小尺寸下渐变会糊成一团灰 */
+/* 展开成发送态时钮缩到 38px，阴影收一档，否则小尺寸下糊成一团 */
 .nt-composer.open .nt-icon-nt {
-  background: none;
-  color: currentColor;
-  text-shadow: none;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
 }
