@@ -978,10 +978,11 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   display: flex;
   align-items: center;
   gap: 0;
-  width: 54px;
-  height: 54px;
+  /* 收起态 54 → 50（用户 2026-11：泡泡大了点）。50 正好等于展开态输入框的外缘高度。 */
+  width: 50px;
+  height: 50px;
   padding: 0;
-  border-radius: 27px;
+  border-radius: 25px;
   overflow: hidden;
   background: linear-gradient(135deg,
       var(--nt-primary-light, var(--nt-primary)) 0%,
@@ -1077,8 +1078,13 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 }
 
 .nt-composer.open .nt-composer-btn {
-  width: 38px;
-  height: 38px;
+  /* 展开时**不缩**（用户 2026-11：不应该「一展开反而变小」）。
+     容器高 = 6 + 38 + 6 = 50，圆钮也 50 —— 用负 margin 抵消上下内边距，
+     让它的外缘和输入框的外缘齐平。 */
+  width: 50px;
+  height: 50px;
+  margin: -6px -6px -6px 0;
+  border-radius: 25px;
   /* 展开态也用主色（用户 2026-11）：原来是 var(--nt-bg) 浅灰底，
      白字贴上去几乎看不见。主色底 + 白字在四个主题下都成立。 */
   background: var(--nt-primary);
