@@ -815,16 +815,9 @@ body.nt-col-resizing .nt-tablewrap {
 /* 同上：不再给表级 min-width。
    选择器认 data-col 而不是列序号：以后要在中间插一列，宽度不会整体错位。
    （这也是「CSS 模式」的一部分 —— 列的身份写在标记里，不靠 nth-child 猜。） */
-.nt-table-accounts .nt-th[data-col="code"]     { width: var(--nt-col-accounts-code, 64px); }
-.nt-table-accounts .nt-th[data-col="seq"]      { width: var(--nt-col-accounts-seq, 44px); }
-.nt-table-accounts .nt-th[data-col="type"]     { width: var(--nt-col-accounts-type, 66px); }
-.nt-table-accounts .nt-th[data-col="cat"]      { width: var(--nt-col-accounts-cat, 70px); }
-.nt-table-accounts .nt-th[data-col="name"]     { width: var(--nt-col-accounts-name, 110px); }
-.nt-table-accounts .nt-th[data-col="opening"]  { width: var(--nt-col-accounts-opening, 80px); }
-.nt-table-accounts .nt-th[data-col="billDay"]  { width: var(--nt-col-accounts-billDay, 56px); }
-.nt-table-accounts .nt-th[data-col="repayDay"] { width: var(--nt-col-accounts-repayDay, 56px); }
-.nt-table-accounts .nt-th[data-col="up"]       { width: var(--nt-col-accounts-up, 40px); }
-.nt-table-accounts .nt-th[data-col="action"]   { width: var(--nt-col-accounts-action, 40px); }
+/* 账户表（节点设置）的列宽规则 2026-11 已搬到 css/settings.css。
+   它只在这一页用，和别的表混在这里会被 `.nt-table { width: max-content }`
+   和斑马纹那类「tr > .nt-cell」选择器盖掉，只能靠 !important 打补丁。 */
 
 .nt-backup-banner[hidden] {
   display: none;

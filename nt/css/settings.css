@@ -117,43 +117,35 @@
 /* 账单日 / 还款日 2026-11 已删（手机宽度有限，分期表那边填就行），
    原来给这两列写的数字样式一起删掉 —— 否则第 7、8 位现在是按钮列。 */
 
-/* 节点设置表：**占满容器**（用户 2026-11：要像统计表那样铺满手机屏）。
-   `.nt-table` 默认 max-content（表宽 = 各列之和），这里压回 100%。 */
+/* ============================================================
+   节点设置表的列宽（2026-11 重写）
+   ------------------------------------------------------------
+   规则从 shell.css 搬过来集中在这里，理由和统计表一样：
+   这张表**只在这一页出现**，宽度规则和别的表混在 shell.css 里，
+   很容易被 `.nt-table { width: max-content }` 和斑马纹那类
+   「tr > .nt-cell」选择器盖掉，于是只能一层层加 !important 补丁。
+
+   现在的模型和分类列表（详情表）一致，只有两条：
+     ① 表格 **占满整栏**（不是 max-content = 各列之和）；
+     ② 前 7 列固定 px，**期初余额那列 auto** 吃掉剩余 ——
+        所以容器变宽时只有期初列变宽，其它列纹丝不动。
+   ============================================================ */
 .nt-table.nt-table-accounts {
+  table-layout: fixed;
   width: 100%;
 }
 
-/* 期初列**吃掉剩余宽度**：窗口变宽时只有这一列变宽，其它列保持固定，
-   方便逐行对照金额。它因此也不参与拖列宽（没有固定宽度可拖）。
-   用 !important 压过 shell.css 里按 `--nt-col-accounts-opening` 生成的宽度。 */
-.nt-table.nt-table-accounts th[data-col="opening"] {
-  width: auto !important;
-}
-
-/* ---------- 2026-11 极简收尾（全部 !important，逐条都是被更强的规则压过） ----------
-   ① 铺满：`.nt-table { width: max-content }` 是给流水表定的（表宽=列宽之和），
-      节点设置要的是铺满整栏，容器变宽时期初列吸收。
-   ② 表头不要色块。
-   ③ 按钮列固定 40px、无背景、无边框 —— 斑马纹和竖线分别是
-      `tbody tr > .nt-cell` 和 `[data-border-v] .nt-cell` 级别的选择器，普通写法压不过。 */
-.nt-table.nt-table-accounts {
-  width: 100% !important;
-}
-
-.nt-table-accounts thead,
-.nt-table-accounts thead tr,
-.nt-table-accounts thead .nt-th {
-  background: transparent !important;
-}
-
-.nt-table-accounts .nt-th.nt-c-action,
-.nt-table-accounts .nt-cell-action {
-  width: 40px !important;
-  min-width: 40px !important;
-  max-width: 40px !important;
-  background: transparent !important;
-  border: 0 !important;
-}
+.nt-table-accounts .nt-th[data-col="code"]    { width: var(--nt-col-accounts-code, 64px); }
+.nt-table-accounts .nt-th[data-col="seq"]     { width: var(--nt-col-accounts-seq, 44px); }
+.nt-table-accounts .nt-th[data-col="type"]    { width: var(--nt-col-accounts-type, 66px); }
+.nt-table-accounts .nt-th[data-col="cat"]     { width: var(--nt-col-accounts-cat, 70px); }
+.nt-table-accounts .nt-th[data-col="name"]    { width: var(--nt-col-accounts-name, 110px); }
+/* 期初：不写 px，吃掉上面几列剩下的全部空间 */
+.nt-table-accounts .nt-th[data-col="opening"] { width: auto; }
+/* 按钮列：固定 40px，够点就行；宽度固定后列宽之和才有确定值，
+   期初列才知道自己该占多少。 */
+.nt-table-accounts .nt-th[data-col="up"]      { width: 40px; }
+.nt-table-accounts .nt-th[data-col="action"]  { width: 40px; }
 
 /* 新增行的「+」：跟序号同色，别抢眼 */
 .nt-table-accounts td.nt-cell-seq {
