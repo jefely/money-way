@@ -192,19 +192,21 @@
    colspan 就不生效了（标题会被压成第一列的宽度）。 */
 
 .nt-table-accounts tbody tr.nt-zone-head > td.nt-cell {
-  background-color: var(--nt-unit-bg, var(--nt-bg));
+  /* 区域标题**不要背景色**（用户 2026-11）：原来 A 区绿、B 区红各铺一层色膜，
+     看起来像一条色条压在上面。现在只保留文字颜色，底色跟表格一致。
+     文字靠下对齐 —— 贴着下面那段数据，而不是浮在行中间。 */
+  background: transparent;
+  vertical-align: bottom;
   font-weight: 800;
   font-size: 12px;
   letter-spacing: 0.02em;
 }
 
 .nt-table-accounts tbody tr.nt-zone-a > td.nt-cell {
-  background-image: linear-gradient(rgba(60, 160, 100, 0.16), rgba(60, 160, 100, 0.16));
   color: var(--nt-ok);
 }
 
 .nt-table-accounts tbody tr.nt-zone-b > td.nt-cell {
-  background-image: linear-gradient(rgba(200, 90, 90, 0.16), rgba(200, 90, 90, 0.16));
   color: var(--nt-bad);
 }
 
@@ -213,14 +215,14 @@
    所以这里用「底色 + 色膜」的简写再写一遍，并把选择器抬到 (0,4,3)：
    区号格必须是不透明的，否则横滚时下一格的字会从它下面透出来。 */
 .nt-table-accounts tbody tr.nt-zone-a > td.nt-cell.nt-zone-tag {
-  background: linear-gradient(rgba(60, 160, 100, 0.16), rgba(60, 160, 100, 0.16))
-    var(--nt-unit-bg, var(--nt-bg));
+  /* 区号格（A/B/U）在冻结列里，横滚时必须**不透明**，否则下一格的字会透出来。
+     但底色用页面底色，不再叠那层绿/红色膜（用户 2026-11：色条不要了）。 */
+  background: var(--nt-bg);
   color: var(--nt-ok);
 }
 
 .nt-table-accounts tbody tr.nt-zone-b > td.nt-cell.nt-zone-tag {
-  background: linear-gradient(rgba(200, 90, 90, 0.16), rgba(200, 90, 90, 0.16))
-    var(--nt-unit-bg, var(--nt-bg));
+  background: var(--nt-bg);
   color: var(--nt-bad);
 }
 
@@ -432,11 +434,11 @@
 
 /* 未分类账户区：中性灰，不抢 A 绿 / B 红（用户 2026-10-30） */
 .nt-table-accounts tbody tr.nt-zone-u > td.nt-cell {
-  background-image: linear-gradient(rgba(120, 120, 140, 0.16), rgba(120, 120, 140, 0.16));
+  /* U 区（未分类节点）同样不要色条背景，只留文字色（用户 2026-11） */
+  background: transparent;
   color: var(--nt-text);
 }
 
 .nt-table-accounts tbody tr.nt-zone-u > td.nt-cell.nt-zone-tag {
-  background: linear-gradient(rgba(120, 120, 140, 0.16), rgba(120, 120, 140, 0.16))
-    var(--nt-unit-bg, var(--nt-bg));
+  background: var(--nt-bg);
 }
