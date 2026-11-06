@@ -51,16 +51,23 @@
 .nt-kv {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 0 16px;
+  /* 列间距不用 gap —— gap 会在 dt 和 dd 之间留出真空隙，两段 border-bottom
+     接不上，横线就在中间断成两截（用户 2026-11 截图里就是这样）。
+     改成由 dt 的 padding-right 撑出间距，border 会跟着延伸过去，线是连的。 */
+  gap: 0;
   font-variant-numeric: tabular-nums;
 }
 
-/* 每行加一条细分隔线（用户 2026-11：纯白底上一排数字，眼睛找不到行）。
-   线和表格的格线同色，最后一行不画（免得多出一条悬空的线）。 */
+/* 每行加一条细分隔线（用户 2026-11：纯底色上一排数字，眼睛找不到行）。
+   线和表格的格线同色，最后一行不画。 */
 .nt-kv dt,
 .nt-kv dd {
   padding: 5px 0;
   border-bottom: 1px solid var(--nt-bg-line);
+}
+
+.nt-kv dt {
+  padding-right: 16px;
 }
 
 .nt-kv dt:last-of-type,

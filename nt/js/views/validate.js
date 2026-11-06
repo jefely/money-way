@@ -11,7 +11,7 @@ import { balanceOf } from '../core/balance-calculator.js';
 import { isPosted } from '../core/schema.js';
 import { validate, issuesOf, errorCount } from '../core/validator.js';
 import { checkAccountingIdentity } from '../core/validate.js';
-import { money } from '../core/format.js';
+import { moneyAlways } from '../core/format.js';
 import { shareBlock } from '../ui/share-block.js';
 import { mountThanksWall } from '../ui/thanks-wall.js';
 
@@ -62,9 +62,9 @@ export function mountValidate(section, ctx) {
     const balanced = single === 0 && zero === 0;
     host.appendChild(card('① 发生额平衡', '每笔流水（转出）与（转入）金额相等，两边合计必须一致。', balanced, [
       ['流水笔数', String(txs.length)],
-      ['左方（转出）合计', money(total)],
-      ['右方（转入）合计', money(total)],
-      ['差额', money(0)],
+      ['左方（转出）合计', moneyAlways(total)],
+      ['右方（转入）合计', moneyAlways(total)],
+      ['差额', moneyAlways(0)],
       ['草稿（未入账）', String(drafts)],
     ]));
 
@@ -81,10 +81,10 @@ export function mountValidate(section, ctx) {
     const idt = checkAccountingIdentity(TYPES.map((t) => ({ cat: t, balance: sum[t] || 0 })));
     const diff = idt.diff;
 
-    const identityRows = TYPES.map((t) => [`${t}（${count[t] || 0} 个）`, money(sum[t] || 0)]);
+    const identityRows = TYPES.map((t) => [`${t}（${count[t] || 0} 个）`, moneyAlways(sum[t] || 0)]);
     identityRows.push([
       '资产 + 成本 + 费用 − 负债 − 权益 − 收入',
-      money(diff),
+      moneyAlways(diff),
       Math.abs(diff) < 0.005 ? 'ok' : 'bad',
     ]);
     host.appendChild(card(
