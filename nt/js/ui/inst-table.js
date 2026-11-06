@@ -80,9 +80,10 @@ export function mountInstTable(ctx, tbody, opts) {
     paintHead(span, list);
     tbody.textContent = '';
 
-    // 自动生成的分期列表**前面**留 10 条空行（见 ui/inst-blanks.js）
-    for (let k = 0; k < BLANK_INST_ROWS; k += 1) paintBlankRow(tbody, span, FIXED_COLS);
+    // 先画已有的分期（每笔两行），空行放**后面**（用户 2026-11：
+    // 原来追加在数据之前，一打开就是十几行空白，看不到自己录的分期）。
     for (const row of list) paintRow(row, span);
+    for (let k = 0; k < BLANK_INST_ROWS; k += 1) paintBlankRow(tbody, span, FIXED_COLS);
     paintAddForm();
     summarize(list);
   }
