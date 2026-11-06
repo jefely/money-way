@@ -86,6 +86,8 @@ export function mountValidate(section, ctx) {
       '资产 + 成本 + 费用 − 负债 − 权益 − 收入',
       moneyAlways(diff),
       Math.abs(diff) < 0.005 ? 'ok' : 'bad',
+      // 这条标签比上面几行长一倍，14px 在窄弹窗里会折成两行 —— 单独缩一号
+      'nt-kv-label-long',
     ]);
     host.appendChild(card(
       '② 会计恒等式',
@@ -235,6 +237,8 @@ function card(title, desc, pass, rows) {
   for (const row of rows || []) {
     const dt = document.createElement('dt');
     dt.textContent = row[0];
+    // row[3] 是 dt 的附加类名（目前只有「资产 + 成本 + …」那条长标签用它缩字号）
+    if (row[3]) dt.className = row[3];
     const dd = document.createElement('dd');
     dd.textContent = row[1];
     if (row[2]) dd.className = row[2];

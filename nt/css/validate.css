@@ -70,6 +70,12 @@
   padding-right: 16px;
 }
 
+/* 会计恒等式最后那条长标签：「资产 + 成本 + 费用 − 负债 − 权益 − 收入」。
+   比上面几行字号小一号，窄弹窗里也能一行放下（用户 2026-11）。 */
+.nt-kv dt.nt-kv-label-long {
+  font-size: 12px;
+}
+
 .nt-kv dt:last-of-type,
 .nt-kv dd:last-of-type {
   border-bottom: 0;
