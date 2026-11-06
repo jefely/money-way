@@ -189,6 +189,18 @@
   text-align: left;
 }
 
+/* 卡片已经自己画了一圈 1px 边框，表格靠边那两侧的单元格边框会跟它叠成 2px ——
+   所以右边缘、下边缘看起来比上边和左边粗（用户 2026-11 实测截图）。
+   把表格贴住卡片的那两条线去掉，交界处只留卡片那一道。 */
+.nt-table-stat .nt-th:last-child,
+.nt-table-stat .nt-cell:last-child {
+  border-right: 0;
+}
+
+.nt-table-stat tbody tr:last-child .nt-cell {
+  border-bottom: 0;
+}
+
 /* 金额为 0 的格子暗淡显示：一眼分清「这一项没有」和「这一项有数」。
    **只调字体颜色，不叠透明度** —— opacity 作用在整个 td 上，
    会把单元格边框一起淡化，格线断成一截一截（用户 2026-11 实测）。
