@@ -127,11 +127,15 @@
 
    现在的模型和分类列表（详情表）一致，只有两条：
      ① 表格 **占满整栏**（不是 max-content = 各列之和）；
-     ② 前 7 列固定 px，**期初余额那列 auto** 吃掉剩余 ——
+     ② 前 7 列固定 px，**期初余额那列用 calc 吃掉剩余** ——
         所以容器变宽时只有期初列变宽，其它列纹丝不动。
    ============================================================ */
 .nt-table.nt-table-accounts {
-  table-layout: fixed;
+  /* 2026-11：这里**必须是 auto 布局**，不能用 fixed。
+     fixed 下「没有宽度的列」不会吃掉剩余空间 —— 实测表格 885 宽、八列加起来只有 592，
+     右边 293px 就空在表格里（用户报的「一大块空白」）。auto 布局的规则正好相反：
+     有 px 的列按 px 走、没有宽度的列吃掉剩下的全部。 */
+  table-layout: auto;
   width: 100%;
 }
 
@@ -140,12 +144,14 @@
 .nt-table-accounts .nt-th[data-col="type"]    { width: var(--nt-col-accounts-type, 66px); }
 .nt-table-accounts .nt-th[data-col="cat"]     { width: var(--nt-col-accounts-cat, 70px); }
 .nt-table-accounts .nt-th[data-col="name"]    { width: var(--nt-col-accounts-name, 110px); }
-/* 期初：不写 px，吃掉上面几列剩下的全部空间 */
-.nt-table-accounts .nt-th[data-col="opening"] { width: auto; }
-/* 按钮列：固定 40px，够点就行；宽度固定后列宽之和才有确定值，
-   期初列才知道自己该占多少。 */
+/* 按钮列：固定 40px，够点就行（上面 calc 里也是按 40 减的，两处要一致） */
 .nt-table-accounts .nt-th[data-col="up"]      { width: 40px; }
 .nt-table-accounts .nt-th[data-col="action"]  { width: 40px; }
+/* 期初余额列：**不写宽度**。auto 布局下没有宽度的列会吃掉上面七列剩下的空间，
+   所以窗口变宽时只有它变宽。fixed 布局做不到这一点（见上面那条注释）。 */
+.nt-table-accounts .nt-th[data-col="opening"] {
+  width: auto;
+}
 
 /* 新增行的「+」：跟序号同色，别抢眼 */
 .nt-table-accounts td.nt-cell-seq {
