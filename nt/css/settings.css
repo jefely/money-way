@@ -191,7 +191,7 @@
    flex 必须放在内层 div 上 —— 直接设在 <td> 上会让它脱离表格布局，
    colspan 就不生效了（标题会被压成第一列的宽度）。 */
 
-.nt-table-accounts tbody tr.nt-zone-head > td.nt-cell {
+.nt-table.nt-table-accounts tbody tr.nt-zone-head > td.nt-cell {
   /* 区域标题**不要背景色**（用户 2026-11）：原来 A 区绿、B 区红各铺一层色膜，
      看起来像一条色条压在上面。现在只保留文字颜色，底色跟表格一致。
      文字靠下对齐 —— 贴着下面那段数据，而不是浮在行中间。
@@ -217,14 +217,14 @@
    （特异性 0,4,0）压掉 —— 简写会把 background-image 一起重置成 none。
    所以这里用「底色 + 色膜」的简写再写一遍，并把选择器抬到 (0,4,3)：
    区号格必须是不透明的，否则横滚时下一格的字会从它下面透出来。 */
-.nt-table-accounts tbody tr.nt-zone-a > td.nt-cell.nt-zone-tag {
+.nt-table.nt-table-accounts tbody tr.nt-zone-a > td.nt-cell.nt-zone-tag {
   /* 区号格（A/B/U）在冻结列里，横滚时必须**不透明**，否则下一格的字会透出来。
      但底色用页面底色，不再叠那层绿/红色膜（用户 2026-11：色条不要了）。 */
   background: var(--nt-bg);
   color: var(--nt-ok);
 }
 
-.nt-table-accounts tbody tr.nt-zone-b > td.nt-cell.nt-zone-tag {
+.nt-table.nt-table-accounts tbody tr.nt-zone-b > td.nt-cell.nt-zone-tag {
   background: var(--nt-bg);
   color: var(--nt-bad);
 }
@@ -247,7 +247,7 @@
   color: color-mix(in srgb, #4a90d9 65%, var(--nt-text));
 }
 
-.nt-table-accounts tbody tr.nt-zone-note > td.nt-cell.nt-zone-tag {
+.nt-table.nt-table-accounts tbody tr.nt-zone-note > td.nt-cell.nt-zone-tag {
   /* 「备注」两个字在冻结列里，横滚时必须不透明；底色用页面底色，不叠色膜 */
   background: var(--nt-bg);
   color: color-mix(in srgb, #4a90d9 65%, var(--nt-text));
@@ -437,6 +437,6 @@
   color: var(--nt-text);
 }
 
-.nt-table-accounts tbody tr.nt-zone-u > td.nt-cell.nt-zone-tag {
+.nt-table.nt-table-accounts tbody tr.nt-zone-u > td.nt-cell.nt-zone-tag {
   background: var(--nt-bg);
 }
