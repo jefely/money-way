@@ -1250,3 +1250,15 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   background: color-mix(in srgb, var(--nt-primary) 22%, transparent) !important;
   transition: background 0.2s;
 }
+
+/* 悬浮圆钮上的「NT」标识（用户 2026-11：原来是一支铅笔，换成文字更像品牌）
+   尺寸跟着圆钮走，字号取 12px —— 再大会顶到圆边，再小又看不清。 */
+.nt-icon-nt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}

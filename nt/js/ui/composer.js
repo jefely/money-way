@@ -35,11 +35,9 @@ export function mountComposer(section, ctx, rowHost, refresh) {
   btn.className = 'nt-composer-btn';
   btn.setAttribute('aria-label', '随手记一笔');
   btn.title = '随手记一笔（可拖动）';
-  // 没内容 = 铅笔；有内容 = 发送箭头（两个 SVG 靠 CSS 切）
-  btn.innerHTML = '<svg class="nt-icon-edit" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
-    + '<path d="M4 20h4L19 9l-4-4L4 16v4z" fill="none" stroke="currentColor"'
-    + ' stroke-width="2" stroke-linejoin="round"/>'
-    + '<path d="M14 6l4 4" fill="none" stroke="currentColor" stroke-width="2"/></svg>'
+  // 没内容 = **NT**（软件标识，用户 2026-11：换成文字比铅笔更像品牌）；
+  // 有内容 = 发送箭头（两个靠 CSS 切）
+  btn.innerHTML = '<span class="nt-icon-edit nt-icon-nt" aria-hidden="true">NT</span>'
     + '<svg class="nt-icon-send" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
     + '<path d="M12 19V6M6 12l6-6 6 6" fill="none" stroke="currentColor"'
     + ' stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
