@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { queryByCategory, resolveCategory, suggestCategories, queryByNodes, nodeNameOfCode, splitTerms } from '../js/core/category-query.js';
+import { queryByCategory, queryByNode, resolveCategory, suggestCategories, queryByNodes, nodeNameOfCode, splitTerms } from '../js/core/category-query.js';
 
 const accounts = [
   { id: 'a', name: '工资卡', type: '资产类', category: '储蓄', code: 'GZK' },
@@ -150,4 +150,15 @@ test('queryByNodes：多个节点合并，同一笔只出现一次', () => {
 test('queryByNodes：空词表返回空，不炸', () => {
   assert.deepEqual(queryByNodes(txs, accounts, RANGE, []), []);
   assert.deepEqual(queryByNodes(txs, accounts, RANGE, ['', '  ']), []);
+});
+
+test('queryByNode：不认拼音首字母（节点详情只认名字包含）', () => {
+  // 「工资卡」的首字母是 gzk —— 但节点那一侧不认首字母（用户 2026-11），
+  // 否则简码 GZK 和首字母会互相误伤。
+  assert.deepEqual(queryByNode(txs, accounts, RANGE, 'gzk'), [], '首字母不该命中节点名');
+  assert.ok(queryByNode(txs, accounts, RANGE, '工资').length > 0, '名字包含仍然命中');
+});
+
+test('queryByCategory 仍然认首字母（只改节点那一侧）', () => {
+  assert.ok(queryByCategory(txs, accounts, RANGE, 'cx').length > 0, '「储蓄」首字母 cx 照常命中');
 });

@@ -44,12 +44,14 @@ function initialsMap(accounts, field) {
  * @param {string} text
  * @param {'category'|'name'} field
  */
-function queryBy(transactions, accounts, range, text, field) {
+function queryBy(transactions, accounts, range, text, field, useInitials) {
   const q = String(text || '').trim();
   if (!q) return [];
   const qLower = q.toLowerCase();
   const byId = new Map((accounts || []).filter(Boolean).map((a) => [a.id, a]));
-  const initials = initialsMap(accounts, field);
+  // 只有分类查询认拼音首字母；节点详情不认（用户 2026-11）——
+  // 简码本身经常就是三四个字母（ZHC），再叠一层首字母匹配会互相误伤。
+  const initials = useInitials ? initialsMap(accounts, field) : null;
   const start = (range && range.start) || '';
   const end = (range && range.end) || '';
 
@@ -57,6 +59,7 @@ function queryBy(transactions, accounts, range, text, field) {
     const key = String((acc && acc[field]) || '');
     if (!key) return false;
     if (key.includes(q)) return true;
+    if (!initials) return false;
     return (initials.get(key) || '').includes(qLower);
   };
 
@@ -79,15 +82,18 @@ function queryBy(transactions, accounts, range, text, field) {
  * @returns {Array<{tx:object,from:object|null,to:object|null}>}
  */
 export function queryByCategory(transactions, accounts, range, text) {
-  return queryBy(transactions, accounts, range, text, 'category');
+  return queryBy(transactions, accounts, range, text, 'category', true);
 }
 
 /**
  * 按**节点名**筛流水（节点视图的「详情」用）。
- * 口径与 queryByCategory 完全一致，只是匹配字段换成 `account.name`。
+ * 口径与 queryByCategory 一致，但两处不同：
+ *   ① 匹配字段换成 `account.name`
+ *   ② **不认拼音首字母**（用户 2026-11）—— 节点那边靠简码定位，
+ *      再叠一层首字母匹配会互相误伤（简码 `ZHC` 恰好也是「招行储」的首字母）。
  */
 export function queryByNode(transactions, accounts, range, text) {
-  return queryBy(transactions, accounts, range, text, 'name');
+  return queryBy(transactions, accounts, range, text, 'name', false);
 }
 
 /**
