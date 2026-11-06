@@ -36,6 +36,8 @@ export function mountStats(section, ctx) {
   const now = new Date();
   const sel = {
     cap: 'category',
+    // 窄屏一次只显示一栏：'list' = 六类表，'detail' = 详情（见 stats.css 的 data-pane）
+    pane: 'list',
     scope: 'month',
     year: now.getFullYear(),
     month: now.getMonth() + 1,
@@ -53,18 +55,20 @@ export function mountStats(section, ctx) {
   bindCaps();
   bindScope();
   // 手机左右滑动：分类表 → 分类详情 → 节点表 → 节点详情 → 循环。
-  // 「表 → 详情」是窄屏 grid 自己的横向吸附，swipe 只在滚到边界时才换视图；
-  // 换完把新视图滚到对应那一端，滑动方向才连贯。
+  // 窄屏是单栏状态机（stats.css 的 data-pane），滑动只改状态，不滚容器，
+  // 所以不会出现「停在两栏中间」的半边态。
   mountStatsSwipe(section, (dir) => {
-    const order = ['category', 'summary'];
-    const i = Math.max(0, order.indexOf(sel.cap));
-    const next = order[(i + (dir > 0 ? 1 : order.length - 1)) % order.length];
-    setCap(next);
-    requestAnimationFrame(() => {
-      const g = section.querySelector(next === 'category' ? '#nt-stats-grid' : '#nt-stats-summary-wrap');
-      if (!g || g.scrollWidth <= g.clientWidth) return;
-      g.scrollLeft = dir > 0 ? 0 : (g.scrollWidth - g.clientWidth);
-    });
+    const panes = [
+      { cap: 'category', pane: 'list' },
+      { cap: 'category', pane: 'detail' },
+      { cap: 'summary', pane: 'list' },
+      { cap: 'summary', pane: 'detail' },
+    ];
+    const i = panes.findIndex((p) => p.cap === sel.cap && p.pane === sel.pane);
+    const at = i < 0 ? 0 : i;
+    const next = panes[(at + (dir > 0 ? 1 : panes.length - 1)) % panes.length];
+    sel.pane = next.pane;
+    setCap(next.cap, true);
   });
   // 两个视图各有一块「详情」：分类按分类查、节点按节点查，绑定逻辑是同一份
   bindStatsDetail(grid, () => render(), () => ctx.getState());
@@ -88,6 +92,7 @@ export function mountStats(section, ctx) {
   function render() {
     const sameCap = sel.cap === lastCap;
     lastCap = sel.cap;
+    applyPane();
 
     const boxes = sameCap ? [...section.querySelectorAll('.nt-tablewrap')] : [];
     const saved = boxes.map((b) => [b.scrollTop, b.scrollLeft]);
@@ -209,14 +214,23 @@ export function mountStats(section, ctx) {
     });
   }
 
-  /** 切到某个视图（分类 / 节点）：更新胶囊选中态后重画。滑动切换也走这里。 */
-  function setCap(name) {
+  /** 切到某个视图（分类 / 节点）：更新胶囊选中态后重画。滑动切换也走这里。
+   *  @param {string} name 'category' | 'summary'
+   *  @param {boolean} [keepPane] 保留当前「表 / 详情」那一栏（滑动用）；
+   *         点胶囊切视图时默认回到「表」。 */
+  function setCap(name, keepPane) {
     if (!name) return;
     sel.cap = name;
+    if (!keepPane) sel.pane = 'list';
     for (const x of caps.querySelectorAll('.nt-cap')) {
       x.setAttribute('aria-selected', x.getAttribute('data-cap') === name ? 'true' : 'false');
     }
     render();
+  }
+
+  /** 窄屏的「现在显示表还是详情」写到 grid 上，由 CSS 的 data-pane 规则消费 */
+  function applyPane() {
+    for (const g of section.querySelectorAll('.nt-stats-grid')) g.dataset.pane = sel.pane;
   }
 
   function bindScope() {

@@ -419,28 +419,31 @@
   cursor: pointer;
 }
 
-/* 窄屏：一屏一块，左右滑动；和 query.css 的查询面板同一套手势 */
+/* 窄屏：**一次只显示一栏**，由 `data-pane` 决定显示「表」还是「详情」
+   （2026-11 改）。
+   以前是「两栏并排 + 横向滚动吸附」：滑动既要滚容器又要切视图，两者抢手势，
+   结果就是从右往左划时详情页停在两栏中间那一半（用户 2026-11 实测）。
+   现在容器**不可横滚**，一栏占满屏，左右滑动只负责切状态，不存在中间态。
+   列的横向滚动交给里面的 .nt-tablewrap，不冲突。 */
 @media (max-width: 900px) {
   .nt-stats-grid {
-    display: flex;
-    flex-direction: row;
+    display: block;
     grid-template-columns: none;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: contain;
+    overflow-x: hidden;
+    position: relative;
   }
 
   .nt-stats-panel {
-    flex: 0 0 100%;
-    min-width: 0;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-    border-right: 1px solid var(--nt-bg-line);
+    display: none;
+    height: 100%;
+    border-right: 0;
   }
 
-  /* 这里**不能**写 overflow-x: hidden：用户把列拖宽之后表宽 = 列宽之和，
-     可能超出这一栏 —— 禁掉横滑就等于最后一列再也看不到。
-     默认铺满时不溢出，所以平时也不会多出一条滚动条。 */
+  .nt-stats-grid[data-pane="list"] > .nt-stats-panel[data-kind="groups"] {
+    display: flex;
+  }
+
+  .nt-stats-grid[data-pane="detail"] > .nt-stats-panel:not([data-kind="groups"]) {
+    display: flex;
+  }
 }
