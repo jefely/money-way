@@ -431,10 +431,13 @@
 }
 
 /* 未分类账户区：中性灰，不抢 A 绿 / B 红（用户 2026-10-30） */
-.nt-table-accounts tbody tr.nt-zone-u > td.nt-cell {
-  /* U 区（未分类节点）同样不要色条背景，只留文字色（用户 2026-11） */
+.nt-table.nt-table-accounts tbody tr.nt-zone-u > td.nt-cell {
+  /* U 区（未分类节点）不要色条背景，但文字**用紫色**（用户 2026-11）：
+     它原来是正文色，和普通数据行一个颜色，扫视时很容易漏掉这一区。
+     用 color-mix 和正文色混合，深浅主题下都保持可读。
+     选择器补上 .nt-table 前缀，和区域标题那一组保持同样的特异性。 */
   background: transparent;
-  color: var(--nt-text);
+  color: color-mix(in srgb, #8b5cf6 80%, var(--nt-text));
 }
 
 .nt-table.nt-table-accounts tbody tr.nt-zone-u > td.nt-cell.nt-zone-tag {
