@@ -59,7 +59,7 @@ export function resetSection(ctx, close) {
   function action(label, kind) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'nt-btn nt-btn-sm nt-btn-danger';
+    b.className = 'nt-btn nt-btn-sm';
     b.textContent = label;
     b.addEventListener('click', async () => {
       if (word.value.trim() !== '重置') {

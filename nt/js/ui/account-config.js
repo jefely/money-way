@@ -115,7 +115,7 @@ export function openAccountConfig(ctx) {
       // 它自己有「执行重置」按钮，不占弹窗底部的 actions。
       body.appendChild(resetSection(ctx, () => NtModal.closeAll()));
     },
-    actions: [{ label: '关闭', kind: 'ghost', close: true }],
+    actions: [],
   });
 }
 

@@ -61,7 +61,7 @@ export function open(opts) {
   const actionsEl = dlg.querySelector('.nt-modal-actions');
   if (actionsEl) {
     actionsEl.textContent = '';
-    const list = Array.isArray(o.actions) ? o.actions : [{ label: '关闭', kind: 'ghost', close: true }];
+    const list = Array.isArray(o.actions) ? o.actions : [];
     // 空数组 = 不要底部按钮（同步弹窗只留右上角 ×），此时把整条操作栏藏起来，
     // 不然会留一条空白把弹窗撑高。
     if (!list.length) actionsEl.hidden = true;

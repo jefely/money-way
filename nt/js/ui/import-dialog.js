@@ -47,7 +47,7 @@ export function openImportDialog(opts) {
         NtModal.open({
           title: '导入失败',
           body: '这是加密备份，当前不能恢复',
-          actions: [{ label: '关闭', kind: 'ghost', close: true }],
+          actions: [],
         });
       }
       return;
@@ -62,7 +62,7 @@ export function openImportDialog(opts) {
         NtModal.open({
           title: '导入失败',
           body: String((e && e.message) || e),
-          actions: [{ label: '关闭', kind: 'ghost', close: true }],
+          actions: [],
         });
       }
       return;
@@ -102,7 +102,7 @@ export function openImportDialog(opts) {
           p.textContent = error;
           body.appendChild(p);
         },
-        actions: [{ label: '关闭', kind: 'ghost', close: true }],
+        actions: [],
       });
       return;
     }
@@ -285,9 +285,9 @@ function showPreview(result, o, rows) {
         body.appendChild(tip);
       }
     },
+    // 底部不再放「关闭」（用户 2026-11：统一用右上角的 ×），这里只留真正的动作
     actions: result.kind === 'unknown' || !result.items.length
       ? [
-        { label: '关闭', kind: 'ghost', close: true },
         {
           label: '手动指定列',
           kind: 'primary',

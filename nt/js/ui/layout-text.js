@@ -112,7 +112,7 @@ function openTextModal(title, tip, text, filename) {
       bar.appendChild(smallBtn('存文件', () => downloadText(filename, ta.value)));
       body.appendChild(bar);
     },
-    actions: [{ label: '关闭', kind: 'ghost', close: true }],
+    actions: [],
   });
 }
 
