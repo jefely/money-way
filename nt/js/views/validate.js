@@ -91,7 +91,7 @@ export function mountValidate(section, ctx) {
     ]);
     host.appendChild(card(
       '② 会计恒等式',
-      '资产 + 成本 + 费用 = 负债 + 权益 + 收入。期初余额成对录入时这里应为 0。',
+      '资产 + 成本 + 费用 = 负债 + 权益 + 收入。\n期初余额成对录入时这里应为 0。',
       Math.abs(diff) < 0.005,
       identityRows,
     ));

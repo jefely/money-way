@@ -46,6 +46,8 @@
   font-size: 12px;
   line-height: 1.7;
   color: var(--nt-text-muted);
+  /* 说明文字里的 \n 当作真换行（会计恒等式那条要分两行写，用户 2026-11） */
+  white-space: pre-line;
 }
 
 .nt-kv {
