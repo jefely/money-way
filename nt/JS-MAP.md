@@ -120,7 +120,7 @@
 | `ui/import-hub.js` | 流水工具条「导入」→ 先弹入口（选文件 / 粘贴文本） |
 | `ui/import-map.js` | 导入 → 手动指定列 |
 | `ui/inst-add.js` | 分期表上方的「新增」表单 |
-| `ui/inst-blanks.js` | 分期表后面的固定空行（可以直接填） |
+| `ui/inst-blanks.js` | 分期表后面的固定空行（纯占位） |
 | `ui/inst-layout.js` | 分期表的列宽记忆 / 新增定位 |
 | `ui/inst-range.js` | 分期表上方的「月份范围」工具条 |
 | `ui/inst-table.js` | 分期表（表格内直接交互） |
