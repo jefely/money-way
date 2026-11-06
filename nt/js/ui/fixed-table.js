@@ -65,16 +65,30 @@ export function mountFixedTable(ctx, tbody, opts) {
     const state = ctx.getState();
     const list = (state.scheduled || []).filter((s) => s && s.isScheduled);
 
-    tbody.textContent = '';
+    // 四段顺序（用户 2026-11 指定）：
+    //   ① 来自流水勾选的（有 srcTxId）—— 最前
+    //   ② 手动添加的 —— 中间
+    //   ③ 10 行空行 —— 手动录入位
+    //   ④ 分期产生的（有 inst）—— 最后
+    // 以前是所有计划混在一起、空行吊在末尾，分期一多就把手动录入位淹没了。
+    const auto = list.filter((s) => s.srcTxId);
+    const inst = list.filter((s) => s.inst);
+    const manual = list.filter((s) => !s.srcTxId && !s.inst);
+    const head = [...auto, ...manual];
 
+    tbody.textContent = '';
     const rowTpl = tpl('tpl-sched-row');
-    if (rowTpl && list.length) {
+    let seq = 0;
+
+    /** 画一批计划行（序号跨批次连续） */
+    const paintRows = (rows) => {
+      if (!rowTpl || !rows.length) return;
       const frag = document.createDocumentFragment();
-      list.forEach((row, i) => {
+      for (const row of rows) {
+        seq += 1;
         const tr = rowTpl.cloneNode(true);
         tr.dataset.id = row.id;
-
-        setCell(tr, 'seq', i + 1);
+        setCell(tr, 'seq', seq);
         const freqSel = tr.querySelector('[data-field="freq"]');
         if (freqSel) freqSel.value = row.freq === 'daily' ? 'daily' : 'monthly';
         showDay(tr, row.freq, row.day);
@@ -84,16 +98,17 @@ export function mountFixedTable(ctx, tbody, opts) {
         setCell(tr, 'to', nameOf(view ? view.toId : row.to_id));
         setCell(tr, 'amount', moneyOrBlank(view ? view.amount : row.amount));
         setCell(tr, 'note', view ? view.note : (row.note || ''));
-
         bindRow(tr, row.id);
         frag.appendChild(tr);
-      });
+      }
       tbody.appendChild(frag);
-    }
+    };
+
+    paintRows(head);
 
     const newTpl = tpl('tpl-sched-new');
     if (newTpl) {
-      // 末尾固定 10 个空行：批量录入时不用每次等一行重画（用户 2026-11）
+      // 10 个空行夹在「手动」和「分期」之间
       const blanks = document.createDocumentFragment();
       for (let k = 0; k < BLANK_ROWS; k += 1) {
         const tr = newTpl.cloneNode(true);
@@ -102,6 +117,8 @@ export function mountFixedTable(ctx, tbody, opts) {
       }
       tbody.appendChild(blanks);
     }
+
+    paintRows(inst);
 
     summarize(list);
   }
