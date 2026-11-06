@@ -8,9 +8,9 @@
  * 六类小表的构建在 ui/stats-group-tables.js，口径在 core/stats-panels.js。
  */
 
-import { categoryStats } from '../core/stats-panels.js';
+import { categoryStats, typeOfLabel } from '../core/stats-panels.js';
 import {
-  queryByCategory, queryByNodes, resolveCategory, suggestCategories,
+  queryByCategory, queryByNodes, queryByType, resolveCategory, suggestCategories,
   nodeNameOfCode, splitTerms,
 } from '../core/category-query.js';
 import { moneyAlways, shortDate } from '../core/format.js';
@@ -71,19 +71,25 @@ function paintQueryPanel(panel, state, range, rowNos) {
 
   const q = input ? input.value : '';
   const node = isNodePanel(panel);
-  // 节点详情支持**多个简码 / 名字**（空格、中文逗号、英文逗号、点都能分开），
-  // 一次看几个节点的流水，合并去重后按日期倒序。分类详情仍然是单个分类。
-  const rows = q.trim()
-    ? (node
-      ? queryByNodes(state.transactions, state.accounts, range, splitTerms(q))
-      : queryByCategory(state.transactions, state.accounts, range, q))
-    : [];
+  // 输入框里是**类型短名**（`收入`，点了小表的类型标题）→ 列这一整类的流水；
+  // 否则照旧：分类按分类匹配、节点按名字 + 简码（可多个）匹配。
+  const typeFull = typeOfLabel(q);
+  const rows = !q.trim()
+    ? []
+    : typeFull
+      ? queryByType(state.transactions, state.accounts, range, typeFull)
+      : (node
+        ? queryByNodes(state.transactions, state.accounts, range, splitTerms(q))
+        : queryByCategory(state.transactions, state.accounts, range, q));
 
-  if (!q.trim() || !rows.length) {
-    const hint = node ? '点左侧节点，或输入简码（可用空格 / 逗号分隔多个）' : '点左侧分类，或输入名字 / 首字母';
+  // 没输入时**表格留空**：操作说明只出现在输入框的 placeholder 里，
+  // 两处都写一遍反而让人不知道看哪个（用户 2026-11）。
+  if (!q.trim()) return { matches: 0, query: '' };
+
+  if (!rows.length) {
     const tr = document.createElement('tr');
     tr.className = 'nt-row';
-    const td = makeCell(q.trim() ? '没有匹配的流水' : hint, 'nt-cell-empty');
+    const td = makeCell('没有匹配的流水', 'nt-cell-empty');
     td.colSpan = QUERY_COLS.length;
     tr.appendChild(td);
     tbody.appendChild(tr);

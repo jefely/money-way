@@ -97,6 +97,32 @@ export function queryByNode(transactions, accounts, range, text) {
 }
 
 /**
+ * 按**账户类型**筛流水（用户 2026-11：点小表的类型名，看该类型的全部流水）。
+ * 一笔流水只要转出方或转入方任一端是该类型就算命中 —— 所以「收入类」会同时
+ * 带出「工资 → 银行卡」这类收入的转出端。
+ *
+ * @param {string} type 类型全名（`收入类`，不是短名 `收入`）
+ */
+export function queryByType(transactions, accounts, range, type) {
+  const want = String(type || '').trim();
+  if (!want) return [];
+  const byId = new Map((accounts || []).filter(Boolean).map((a) => [a.id, a]));
+  const start = (range && range.start) || '';
+  const end = (range && range.end) || '';
+  const hit = (acc) => !!acc && String(acc.type || '') === want;
+
+  return (transactions || [])
+    .filter((t) => t && isPosted(t) && inRange(t.date, start, end))
+    .filter((t) => hit(byId.get(t.from_id)) || hit(byId.get(t.to_id)))
+    .sort((a, b) => {
+      const d = String(b.date || '').localeCompare(String(a.date || ''));
+      if (d) return d;
+      return (Number(b.seq) || 0) - (Number(a.seq) || 0);
+    })
+    .map((t) => ({ tx: t, from: byId.get(t.from_id) || null, to: byId.get(t.to_id) || null }));
+}
+
+/**
  * 把一串「简码 / 名字」拆成词（用户 2026-11）。
  * 分隔符：空格、中文逗号、英文逗号、点 —— 都认，混着用也行。
  */

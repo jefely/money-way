@@ -95,7 +95,9 @@ function amountCells(src, type) {
 function makeRow(label, cells, total, pick, move, moveColor) {
   const tr = document.createElement('tr');
   tr.className = 'nt-row' + (total ? ' nt-stats-total-row' : '');
-  const cls = total ? 'nt-cell-total-name' : pick ? 'nt-cell-pick' : '';
+  // 合计行的类型名也可以点（点了看这一整类的流水），所以 pick 类在两种行上都要加
+  const cls = [total ? 'nt-cell-total-name' : '', pick ? 'nt-cell-pick' : '']
+    .filter(Boolean).join(' ');
   const nameCell = document.createElement('td');
   nameCell.className = 'nt-cell' + (cls ? ' ' + cls : '');
 
@@ -168,8 +170,11 @@ function buildTable(g, table, firstCol, opts) {
   // 圆点只标**类型**（收入 / 负债 / 资产…），颜色取环图的类型固定色系
   //（graph/mw-layers.js 的 typeColor：费用红 / 资产蓝 / 收入绿 / 负债橙 / 权益紫 / 成本灰）。
   const move = typeof o.onMoveUp === 'function' ? () => o.onMoveUp(type) : null;
+  // 合计行的类型名也当查询词（`收入`）：点它，详情面板列这一整类的流水。
+  // 短名进输入框，`typeOfLabel()` 再把它还原成 `收入类`（用户 2026-11）。
+  const typePick = typeof o.onMoveUp === 'function' || o.pickType ? groupName(type) : null;
   thead.appendChild(makeRow(
-    groupName(type), amountCells(g.total || {}, type), true, null, move, typeColor(type),
+    groupName(type), amountCells(g.total || {}, type), true, typePick, move, typeColor(type),
   ));
 
   const headRow = document.createElement('tr');

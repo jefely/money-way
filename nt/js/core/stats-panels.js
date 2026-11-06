@@ -34,6 +34,24 @@ import { accountSummary } from './ledger-stats.js';
 /** 六类从上到下的顺序（用户 2026-11 定）。分类汇总与节点汇总统一用这一套。 */
 export const STAT_ORDER = ['收入类', '负债类', '权益类', '资产类', '费用类', '成本类'];
 
+/**
+ * 六类的「短名」：`收入类` → `收入`。
+ * 小表的合计行显示的是短名（表头已经写明是类型），详情面板也用它来标识
+ * 「我现在看的是整个这一类」（用户 2026-11：点类型名看该类型的全部流水）。
+ */
+export const TYPE_LABEL = {
+  收入类: '收入', 负债类: '负债', 权益类: '权益',
+  资产类: '资产', 费用类: '费用', 成本类: '成本',
+};
+
+/** 短名 → 类型全名；不是六类之一就返回空串 */
+export function typeOfLabel(text) {
+  const t = String(text || '').trim();
+  if (!t) return '';
+  for (const [full, label] of Object.entries(TYPE_LABEL)) if (label === t) return full;
+  return '';
+}
+
 /** 每类第 1 列的名称：分类视图用「分类」，节点视图用「节点」。 */
 export const FIRST_COL = { category: '分类', node: '节点' };
 
