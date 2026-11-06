@@ -194,9 +194,12 @@
 .nt-table-accounts tbody tr.nt-zone-head > td.nt-cell {
   /* 区域标题**不要背景色**（用户 2026-11）：原来 A 区绿、B 区红各铺一层色膜，
      看起来像一条色条压在上面。现在只保留文字颜色，底色跟表格一致。
-     文字靠下对齐 —— 贴着下面那段数据，而不是浮在行中间。 */
+     文字靠下对齐 —— 贴着下面那段数据，而不是浮在行中间。
+     边框色必须显式写：border-color 默认取 currentColor，而这一行的文字是
+     绿/红色，于是格子底边也跟着变绿/红 —— 就是「A 格下面还有颜色」的由来。 */
   background: transparent;
   vertical-align: bottom;
+  border-color: var(--nt-border-v-color, var(--nt-bg-line));
   font-weight: 800;
   font-size: 12px;
   letter-spacing: 0.02em;
@@ -264,7 +267,8 @@
 
 .nt-zone-label {
   display: flex;
-  padding: 5px 8px;
+  /* 底部不留内边距：这块是区域标题，要让文字贴着下面的数据行（用户 2026-11） */
+  padding: 5px 8px 0;
   align-items: baseline;
   /* 区域标题靠左显示（用户 2026-10-30） */
   justify-content: flex-start;
