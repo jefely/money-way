@@ -984,21 +984,20 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   width: 52px;
   height: 52px;
   padding: 0;
-  /* **固定 26px，不是 50%**：50% 是按当前宽高现算的，宽度从 52 长到 360 的
-     过程中，圆角半径跟着横向拉伸，中间态就成了椭圆（用户 2026-11 实测）。
-     26 = 高度的一半：收起正好是圆、展开正好是胶囊、过渡中始终是胶囊。 */
+  /* 固定 26px：收起是圆、展开是胶囊、过渡中始终是胶囊 */
   border-radius: 26px;
   overflow: hidden;
-  background: radial-gradient(circle at 32% 26%,
-      color-mix(in srgb, var(--nt-primary-light, var(--nt-primary)) 85%, #ffffff) 0%,
-      var(--nt-primary) 46%,
-      var(--nt-primary-dark, var(--nt-primary)) 100%);
+  /* 质感靠**竖向渐变**（顶部提亮 8%、底部压暗 10%），不用径向渐变 ——
+     径向在大面积上容易出现色带（banding），远看就是「脏」。 */
+  background: linear-gradient(180deg,
+      color-mix(in srgb, var(--nt-primary) 92%, #ffffff) 0%,
+      var(--nt-primary) 52%,
+      color-mix(in srgb, var(--nt-primary) 88%, #000000) 100%);
+  /* 只用两层投影：一层贴地的锐利阴影定"重量"，一层柔和扩散给"空间"。
+     **不要发光** —— 那圈主色光晕是廉价感的主要来源。 */
   box-shadow:
-    inset 0 2px 3px rgba(255, 255, 255, 0.35),
-    inset 0 -4px 8px rgba(0, 0, 0, 0.28),
-    0 8px 20px rgba(0, 0, 0, 0.35),
-    0 0 24px color-mix(in srgb, var(--nt-primary) 30%, transparent);
-  /* 键盘弹出时是「平滑上浮」而不是被挤一下；
+    0 1px 2px rgba(0, 0, 0, 0.18),
+    0 6px 16px rgba(0, 0, 0, 0.22);  /* 键盘弹出时是「平滑上浮」而不是被挤一下；
      拖动过程中用 .dragging 关掉过渡，跟手才不迟滞 */
   transition: width 0.22s ease, padding 0.22s ease, border-radius 0.22s ease,
     background 0.22s ease, box-shadow 0.22s ease,
@@ -1012,24 +1011,25 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 .nt-composer.open {
   /* ===== 展开态：一条**扁平的玻璃**（2026-11 重新设计） =====
      和收起态同高 52px，切换时只有宽度在变。
-     玻璃 = 半透明底 + 细边 + 外发光；**没有内阴影**，所以它是平的，不是球。 */
+     玻璃 = 半透明底 + 细边 + 柔和落影；**没有内阴影**，所以它是平的。 */
   gap: 0;
   width: min(360px, calc(100vw - 32px));
   padding: 0 0 0 18px;
   border-radius: 26px;
-  /* 真透明：底色只留 55%。不要 backdrop-filter —— 它会把背后的流水糊成一片，
-     视觉上反而像「不透明的一块磨砂」，正好是「看不出透明」的原因。 */
-  background: color-mix(in srgb, var(--nt-bg-cell) 55%, transparent);
+  /* 透明度 55% → 88%（用户 2026-11：太透看不清，观感廉价）。
+     仍然透一点，但文字和边框保持锐利。 */
+  background: color-mix(in srgb, var(--nt-bg-cell) 88%, transparent);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   /* 细边：主色混一点线色，只要轮廓 */
-  border: 1px solid color-mix(in srgb, var(--nt-primary) 30%, var(--nt-bg-line));
-  /* 收起态是 overflow: hidden（裁渐变圆角），展开后那条还在会裁掉外发光 */
+  border: 1px solid color-mix(in srgb, var(--nt-primary) 22%, var(--nt-bg-line));
+  /* 收起态是 overflow: hidden（裁渐变圆角），展开后那条还在会裁掉落影 */
   overflow: visible;
-  /* 纯色发光，不叠黑投影（黑的和主色光混起来会发灰） */
+  /* 和收起态同一套投影语言：一层贴地的锐利、一层柔和的扩散。
+     不要主色光晕 —— 那圈光是「廉价感」的主要来源。 */
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--nt-primary) 16%, transparent),
-    0 0 22px color-mix(in srgb, var(--nt-primary) 30%, transparent);
+    0 1px 2px rgba(0, 0, 0, 0.14),
+    0 6px 18px rgba(0, 0, 0, 0.18);
 }
 
 .nt-composer-input {
