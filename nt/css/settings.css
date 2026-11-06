@@ -473,3 +473,14 @@
 .nt-table.nt-table-accounts tbody tr.nt-zone-cols > td.nt-cell:first-child {
   background: var(--nt-th-bg, var(--nt-unit-bg, var(--nt-bg-soft)));
 }
+
+/* 区域行（A / B / U / 备注）的首格：它在**冻结列**里，
+   而冻结列有一条自己的不透明底色规则
+     `.nt-table-accounts .nt-cell:nth-child(1):not([colspan]) { background: --nt-unit-row-bg }`
+   （为了横滚时不透出后面的字）。两者特异性接近、层叠顺序又受加载次序影响，
+   实测普通写法压不住，所以这里用 !important 明确钉成透明（用户 2026-11）。
+   代价：横滚时 A 那一格下方的字可能透出来 —— 这一行本来就只有两三个字，
+   透出来的影响远小于看上去「格子里还有一块颜色」。 */
+.nt-table.nt-table-accounts tbody tr.nt-zone-head > td.nt-cell:first-child:not([colspan]) {
+  background: transparent !important;
+}
