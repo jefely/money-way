@@ -399,6 +399,8 @@ function isAbsorbCol(tableEl, th) {
   if (tableEl.classList.contains('nt-table-accounts')) return dc === 'opening';
   // 流水表：**备注**列 —— 它是最长的文本
   if (tableEl.classList.contains('nt-table-flow')) return dc === 'note';
+  // 分类列表（详情表）：**备注**列，理由同上
+  if (tableEl.classList.contains('nt-table-catq')) return dc === 'note';
   return false;
 }
 
