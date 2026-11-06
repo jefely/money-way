@@ -228,20 +228,22 @@
 
 /* 备注区（用户 2026-10-29）：独立于 A/B，标题用主题紫（和 A 绿 / B 红并列） */
 .nt-table-accounts tbody tr.nt-zone-note > td.nt-cell {
+  /* 备注区的标题行用**淡蓝**（用户 2026-11）：原来和 A/B 区一样取主色，
+     而主色是金色，跟整页的暖色调太接近，一眼分不出这是另一块区域。 */
   background-image: linear-gradient(
-    color-mix(in srgb, var(--nt-primary) 16%, transparent),
-    color-mix(in srgb, var(--nt-primary) 16%, transparent)
+    color-mix(in srgb, #4a90d9 18%, transparent),
+    color-mix(in srgb, #4a90d9 18%, transparent)
   );
-  color: var(--nt-primary);
+  color: color-mix(in srgb, #4a90d9 65%, var(--nt-text));
 }
 
 .nt-table-accounts tbody tr.nt-zone-note > td.nt-cell.nt-zone-tag {
   background: linear-gradient(
-      color-mix(in srgb, var(--nt-primary) 16%, transparent),
-      color-mix(in srgb, var(--nt-primary) 16%, transparent)
+      color-mix(in srgb, #4a90d9 18%, transparent),
+      color-mix(in srgb, #4a90d9 18%, transparent)
     )
     var(--nt-unit-bg, var(--nt-bg));
-  color: var(--nt-primary);
+  color: color-mix(in srgb, #4a90d9 65%, var(--nt-text));
 }
 
 .nt-zone-empty .nt-cell {
