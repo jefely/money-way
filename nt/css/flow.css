@@ -92,29 +92,40 @@
   background: transparent;
 }
 
-.nt-btn:hover {
-  background: var(--nt-bg-soft);
+/* ---------- 按钮的三种状态（用户 2026-11 第三次调整：彻底不要任何框） ----------
+   前两版还在「点完冒一圈粗框」，原因有两个：
+     ① :focus-visible 在某些触屏浏览器上点按也会命中，于是画了 2px 主色环；
+     ② 安卓的 -webkit-tap-highlight-color 默认会在点按时盖一层高亮块，
+        看上去同样像「边框变粗」。
+   现在两条都关掉，状态只靠**底色和缩放**表达 —— 不再有任何描边。 */
+.nt-btn {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-/* ---------- 按钮的按下 / 焦点状态（用户 2026-11 重新定义） ----------
-   之前只有 :hover 一条：点下去没有任何即时反馈，而浏览器默认又把焦点环
-   留在了按钮上 —— 于是「点的时候没反应，过一会儿冒出一圈加粗边框」。
-   现在三段各管一件事：
-     · :active        按下**立刻**缩一点、压暗一点（触屏上也能看到）
-     · :focus         去掉浏览器默认外框（那圈加粗边框就是它）
-     · :focus-visible 只在**键盘**操作时画一条细环，鼠标/触屏不画 */
+.nt-btn:focus,
+.nt-btn:focus-visible {
+  outline: none;
+}
+
+/* 指上去：底色变化 + 边框稍微加深（桌面用，触屏不会悬停） */
+.nt-btn:hover {
+  background: var(--nt-bg-soft);
+  border-color: var(--nt-line-strong, var(--nt-bg-line));
+}
+
+/* 点下去：立刻缩一点、压暗一点 */
 .nt-btn:active {
   transform: scale(0.96);
   filter: brightness(0.94);
 }
 
-.nt-btn:focus {
-  outline: none;
-}
-
-.nt-btn:focus-visible {
-  outline: 2px solid var(--nt-primary);
-  outline-offset: 1px;
+/* 激活态（模式按钮、当前选中项）：主色底 + 主色字 */
+.nt-btn[aria-pressed="true"],
+.nt-btn.is-active {
+  background: var(--nt-cell-active);
+  border-color: var(--nt-primary);
+  color: var(--nt-primary);
 }
 
 .nt-btn-primary {
