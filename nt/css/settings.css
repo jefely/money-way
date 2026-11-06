@@ -466,3 +466,10 @@
 .nt-table-accounts tbody tr.nt-zone-cols > td.nt-cell::before {
   display: none;
 }
+
+/* 备注表头的「简码」格：它在冻结的首列里，冻结列统一给了 --nt-bg-soft 底色
+   （为了横滚时不透字），但在这一行里显得和别的标题格不同色（用户 2026-11）。
+   把它在这一行里钉回表头色。 */
+.nt-table.nt-table-accounts tbody tr.nt-zone-cols > td.nt-cell:first-child {
+  background: var(--nt-th-bg, var(--nt-unit-bg, var(--nt-bg-soft)));
+}
