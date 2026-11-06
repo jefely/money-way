@@ -219,6 +219,11 @@ export function mountResize(tableEl, opts) {
   const o = opts || defaultOpts || {};
   if (!tableEl) return;
 
+  // 统计小表走 ui/stat-resize.js 的专用实现：只有第 1 列可拖、七张表共用一个参数。
+  // 通用这套会按坐标命中金额列，给它们钉 px、把「自动均分」破坏掉
+  // —— 用户看到的就是「点表头就错乱」。
+  if (tableEl.classList.contains('nt-table-stat')) return;
+
   paintHandles(tableEl);
 
   if (tableEl.dataset.resizeBound === '1') return;
@@ -248,6 +253,9 @@ function edgeTarget(row, x, edge) {
   let best = null;
   for (const cell of row.children) {
     if (!cell || !cell.classList || !cell.classList.contains('nt-th')) continue;
+    // **没有手柄的列不可拖**：只按坐标判断的话，点在「有手柄列」右边那些
+    // 不可拖的列边缘上也会命中，于是给不该有宽度的列钉上 px。
+    if (!cell.querySelector('.nt-col-handle')) continue;
     const r = cell.getBoundingClientRect();
     const lineX = r.right - EDGE_OFFSET;
     // 线右侧到列边界这 2px 也算：手指落在线上/边界上时允许一点误差，

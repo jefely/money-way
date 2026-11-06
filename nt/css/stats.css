@@ -191,6 +191,17 @@
   font-size: 14px;
 }
 
+/* 分类名前面的彩色圆点：颜色 = 该分类在环图里的颜色（用户 2026-11） */
+.nt-stat-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+  flex: none;
+}
+
 /* 分类 / 节点名可以点：点了右侧「详情」显示它的明细（用户 2026-11）。
    不画下划线（用户偏好素净），靠 cursor 和悬停变色提示。 */
 .nt-table-stat .nt-cell-pick {

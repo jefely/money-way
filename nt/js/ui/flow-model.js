@@ -96,6 +96,26 @@ function buildRealRows(state) {
   }));
 }
 
+/**
+ * 每一笔流水在**流水表里是第几行**（1 起）。
+ *
+ * 详情表要显示「这条在流水记录的第几行」，口径必须和流水表一致，
+ * 所以排序直接复用 buildRealRows 那一套：按 transaction.seq 升序。
+ * 虚拟行（未来分期）不在账本里，不参与编号。
+ *
+ * @param {object} state
+ * @returns {Map<string, number>} txId → 行号
+ */
+export function flowRowNumbers(state) {
+  const rows = (state && state.transactions ? state.transactions : []).slice()
+    .sort((a, b) => (Number(a && a.seq) || 0) - (Number(b && b.seq) || 0));
+  const map = new Map();
+  rows.forEach((t, i) => {
+    if (t && t.id) map.set(String(t.id), i + 1);
+  });
+  return map;
+}
+
 /** 页脚信息：条数 + 合计 */
 export function buildFooterInfo(state) {
   const list = state.transactions || [];

@@ -11,19 +11,29 @@
  * 每类一张独立小表：合计行 + 表头 + 该组数据行；表与表之间空 24px。
  */
 
-import { TABLE_DEFAULT_WIDTHS } from '../core/table-cols.js';
 import { moneyAlways } from '../core/format.js';
 import { STAT_COLS, STAT_FIELDS, STAT_ORDER } from '../core/stats-panels.js';
-import { mountResize, paintHandles, syncFrozen } from './table-layout.js';
+import { mountStatColResize } from './stat-resize.js';
+import { syncFrozen } from './table-layout.js';
 
 /**
  * 5 列的列 key。**按位置命名，不按语义**：
- * 同一个 `opening` 在资产表里是「期初余额」，在费用表里是「历史累计」。
+ * 同一个 `opening` 在资产表里是「期初余额」，在费用表里是「本期累计」。
  * 这样六张表的列宽参数结构一致，加一类不用再发明一套键。
  */
 const COL_KEYS = ['cat', 'opening', 'increase', 'decrease', 'end'];
 
-/** 分类视图：类型 → 列宽参数表 key（每类一套） */
+/**
+ * 第 1 列的宽度参数。分类表和节点表**各用一个**（用户 2026-11）：
+ * 节点名普遍比分类名长（「招行储蓄卡」vs「储蓄」），共用一个默认值时，
+ * 要么分类那列太宽浪费、要么节点名被截断。
+ */
+const FIRST_COL = {
+  category: { cssVar: '--nt-col-stat-cat', def: 72 },
+  node: { cssVar: '--nt-col-node-cat', def: 108 },
+};
+
+/** 分类视图：类型 → 列宽参数表 key（每类一套；节点视图六类共用 node） */
 export const TABLE_OF = {
   费用类: 'fee',
   收入类: 'income',
@@ -69,12 +79,23 @@ function amountCells(src, type) {
  * @param {Array} cells 已建好的 4 个金额 td
  * @param {boolean} total 是不是合计行
  * @param {string} [pick] 给了就表示这一行的名字可以点（点了右侧「详情」显示它）
+ * @param {string} [dot] 给了就在名字前面画一个这个颜色的圆点
  */
-function makeRow(label, cells, total, pick) {
+function makeRow(label, cells, total, pick, dot) {
   const tr = document.createElement('tr');
   tr.className = 'nt-row' + (total ? ' nt-stats-total-row' : '');
   const cls = total ? 'nt-cell-total-name' : pick ? 'nt-cell-pick' : '';
-  const nameCell = makeCell(label, cls);
+  const nameCell = document.createElement('td');
+  nameCell.className = 'nt-cell' + (cls ? ' ' + cls : '');
+
+  if (dot) {
+    const d = document.createElement('span');
+    d.className = 'nt-stat-dot';
+    d.style.background = dot;
+    nameCell.appendChild(d);
+  }
+  nameCell.appendChild(document.createTextNode(label == null ? '' : String(label)));
+
   if (pick) {
     nameCell.dataset.pick = pick;
     nameCell.setAttribute('role', 'button');
@@ -95,23 +116,23 @@ function headLabels(type, firstCol) {
  * 列宽写在 col 上：table-layout:fixed 下 col 优先于表头行，
  * 不写 col 时浏览器会按第一行的格子数重算列宽（实测会均分）。
  */
-function buildTable(g, table, firstCol) {
+function buildTable(g, table, firstCol, opts) {
   const type = g.type;
-  const defs = String(TABLE_DEFAULT_WIDTHS[table] || '').split(',').map((x) => Number(x) || 0);
+  const o = opts || {};
+  const fc = FIRST_COL[o.kind === 'node' ? 'node' : 'category'];
   const labels = headLabels(type, firstCol);
 
   const el = document.createElement('table');
   el.className = 'nt-table nt-table-stat nt-table-' + table;
 
-  // 只有第 1 列（分类 / 节点）是固定 px，七张表**共用一个参数和一条 CSS 变量**
-  //（`分类统计/列宽` → `--nt-col-stat-cat`，用户 2026-11：不是同步数值，是本来就同源）。
+  // 只有第 1 列（分类 / 节点）是固定 px，同类七张表**共用一个参数和一条 CSS 变量**。
   // 后面 4 个金额列**故意不写宽度**：table-layout:fixed 会把剩余空间平均分给它们，
   // 所以「金额列自动等宽」不用 JS 算，拖分类列右边缘时它们自己就重新均分了。
   const cg = document.createElement('colgroup');
   COL_KEYS.forEach((key, i) => {
     const col = document.createElement('col');
     if (i === 0) {
-      const expr = 'var(--nt-col-stat-cat, ' + (defs[0] || 62) + 'px)';
+      const expr = 'var(' + fc.cssVar + ', ' + fc.def + 'px)';
       col.style.width = expr;
       // 记住「参数表达式」：拖动后 col 会被写成 px，清内联时要恢复成它
       col.dataset.w = expr;
@@ -138,7 +159,8 @@ function buildTable(g, table, firstCol) {
 
   const tbody = document.createElement('tbody');
   for (const r of g.rows) {
-    tbody.appendChild(makeRow(r.key, amountCells(r, type), false, r.key));
+    const dot = typeof o.colorOf === 'function' ? o.colorOf(r.key) : '';
+    tbody.appendChild(makeRow(r.key, amountCells(r, type), false, r.key, dot));
   }
   el.appendChild(tbody);
   return el;
@@ -157,9 +179,13 @@ function markCustom(tableEl, table) {
  *
  * @param {HTMLElement} host 容器
  * @param {Array} groups core/stats-panels.js 的输出
- * @param {{firstCol:string, table?:string, tableOf?:object, empty?:string}} opts
- *        table  = 六类共用一个列宽参数（节点汇总）
- *        tableOf = 每类一套（分类汇总）
+ * @param {{firstCol:string, kind?:'category'|'node', table?:string, tableOf?:object,
+ *          empty?:string, colorOf?:(key:string)=>string,
+ *          onResize?:(w:number)=>void}} opts
+ *        kind   = 'category'（默认）或 'node'，决定第 1 列宽度参数与默认值
+ *        table  = 六类共用一个列宽参数（节点视图）
+ *        tableOf = 每类一套（分类视图）
+ *        colorOf = 分类名的环图配色，给了就在名字前画圆点
  * @returns {number} 数据行总数
  */
 export function renderStatTables(host, groups, opts) {
@@ -178,7 +204,7 @@ export function renderStatTables(host, groups, opts) {
     if (!g.rows || !g.rows.length) continue;
     count += g.rows.length;
     const table = o.table || tableOf[g.type] || 'node';
-    const el = buildTable(g, table, firstCol);
+    const el = buildTable(g, table, firstCol, o);
     // 每张表套一个圆角外框（用户 2026-11：看上去像一张卡片）。
     // 边框放在 div 上而不是 table 上：border-collapse:collapse 的表格加 border-radius
     // 不生效（单元格边框会把四个角盖成直角）。
@@ -187,9 +213,9 @@ export function renderStatTables(host, groups, opts) {
     card.appendChild(el);
     host.appendChild(card);
     markCustom(el, table);
-    // 表是动态建的，拖动绑定要补
-    mountResize(el);
-    paintHandles(el);
+    // 统计小表用**专用**的拖动实现（只有第 1 列可拖、一条直线），
+    // 不再走 ui/table-layout 那套通用逻辑 —— 那套按坐标命中金额列，会破坏均分。
+    mountStatColResize(el, { onResize: o.onResize });
     syncFrozen(el);
   }
 

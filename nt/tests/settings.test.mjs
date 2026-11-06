@@ -31,9 +31,11 @@ test('每张表都有列宽键，且长度 = 该表列数', () => {
   }
 });
 
-test('七张统计表共用同一个列宽参数，不是各存一份再同步', () => {
+test('分类与节点各有一个共享列宽参数，不是每张表存一份再同步', () => {
   const n = normalize({}, 'dark');
-  assert.equal(n['分类统计/列宽'], 62, '默认 62');
+  assert.equal(n['分类统计/列宽'], 72);
+  assert.equal(n['节点统计/列宽'], 108);
+  assert.notEqual(n['分类统计/列宽'], n['节点统计/列宽'], '节点名普遍更长，默认必须更宽');
   for (const t of ['fee', 'income', 'asset', 'liability', 'equity', 'cost', 'node']) {
     assert.ok(!(colWidthKey(t) in n), `${t} 不该再有自己的列宽键`);
   }
@@ -100,10 +102,10 @@ test('CSS 变量名是 --nt-col-<表>-<列>，0 变自适应', () => {
 
   // 统计三块表（growByWidth）默认全 0 = 交给 CSS 的百分比铺满；
   // 它们的变量值是空串（apply-settings 收到空值会 removeProperty），其余 6 张表是 px。
-  // 统计小表只贡献一条 --nt-col-stat-cat（七张表共用），其余表按列各一条
+  // 统计小表贡献两条共享变量（分类列 + 节点列），其余表按列各一条
   const want = TABLES
     .filter((t) => !TABLE_COLS[t].noGroup)
-    .reduce((k, t) => k + TABLE_COLS[t].cols.length, 0) + 1;
+    .reduce((k, t) => k + TABLE_COLS[t].cols.length, 0) + 2;
   assert.equal(list.length, want);
 
   const byVar = new Map(list.map((x) => [x.cssVar, x.value]));
@@ -113,8 +115,9 @@ test('CSS 变量名是 --nt-col-<表>-<列>，0 变自适应', () => {
   // 实际宽度对不上，横滚到右边时表头会整块移出视口（2026-10 用户实测）。
   assert.equal(byVar.get('--nt-col-path-from'), '83px');
   assert.equal(byVar.get('--nt-col-path-note'), '120px');
-  // 七张统计表：只有一条分类列宽变量，金额列没有独立变量
-  assert.equal(byVar.get('--nt-col-stat-cat'), '62px');
+  // 七张统计表：分类列和节点列各一条共享变量，金额列没有独立变量
+  assert.equal(byVar.get('--nt-col-stat-cat'), '72px');
+  assert.equal(byVar.get('--nt-col-node-cat'), '108px');
   assert.ok(!byVar.has('--nt-col-fee-cat'), '统计表不该再有按表拆的列宽变量');
   assert.equal(byVar.get('--nt-col-catq-note'), '');
 });

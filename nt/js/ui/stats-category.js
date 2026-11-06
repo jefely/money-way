@@ -13,12 +13,20 @@ import {
   queryByCategory, queryByNode, resolveCategory, suggestCategories,
 } from '../core/category-query.js';
 import { moneyAlways, shortDate } from '../core/format.js';
+import { flowRowNumbers } from './flow-model.js';
 import { paintHandles, syncFrozen } from './table-layout.js';
 import { showCatSuggest, hideCatSuggest, isCatSuggestFor } from './cat-suggest.js';
 import { renderStatTables, TABLE_OF } from './stats-group-tables.js';
 
-/** 详情表的列（日期/转出/转入/金额/备注） */
-const QUERY_COLS = [['日期', 'date'], ['转出', 'from'], ['转入', 'to'], ['金额', 'amount'], ['备注', 'note']];
+/** 详情表的列：序（在流水表里第几行）+ 日期/转出/转入/金额/备注 */
+const QUERY_COLS = [
+  ['序', 'seq'],
+  ['日期', 'date'],
+  ['转出', 'from'],
+  ['转入', 'to'],
+  ['金额', 'amount'],
+  ['备注', 'note'],
+];
 
 function makeCell(text, cls) {
   const td = document.createElement('td');
@@ -51,7 +59,7 @@ function isNodePanel(panel) {
 }
 
 /** 画一个「详情」面板 */
-function paintQueryPanel(panel, state, range) {
+function paintQueryPanel(panel, state, range, rowNos) {
   const table = panel.querySelector('.nt-table-catq');
   const tbody = table && table.querySelector('tbody');
   const input = panel.querySelector('[data-query-input]');
@@ -80,6 +88,8 @@ function paintQueryPanel(panel, state, range) {
   for (const r of rows) {
     const tr = document.createElement('tr');
     tr.className = 'nt-row';
+    const no = rowNos ? rowNos.get(String(r.tx.id)) : 0;
+    tr.appendChild(makeCell(no ? String(no) : '—', 'nt-cell-seq'));
     tr.appendChild(makeCell(shortDate(r.tx.date)));
     tr.appendChild(makeCell(r.from ? r.from.name : ''));
     tr.appendChild(makeCell(r.to ? r.to.name : ''));
@@ -104,10 +114,11 @@ function markPicked(grid) {
  * @returns {{matches:number, query:string}}
  */
 export function paintDetailPanel(grid, state, range) {
+  const rowNos = flowRowNumbers(state);
   let matches = 0;
   const parts = [];
   for (const panel of grid.querySelectorAll('[data-kind="query"]')) {
-    const r = paintQueryPanel(panel, state, range);
+    const r = paintQueryPanel(panel, state, range, rowNos);
     matches += r.matches;
     if (r.query) parts.push(r.query);
   }
@@ -215,15 +226,21 @@ export function bindStatsDetail(grid, onChange, getState) {
 
 /**
  * 画分类视图的左栏（6 大分类表）。
+ * @param {object} [opts] 透传给 renderStatTables（colorOf / onResize）
  * @returns {{categories:number}}
  */
-export function paintCategoryPanels(grid, state, range) {
+export function paintCategoryPanels(grid, state, range, opts) {
   if (!grid) return { categories: 0 };
   const groups = categoryStats(state.accounts, state.transactions, range);
   const categories = renderStatTables(
     grid.querySelector('#nt-stats-groups'),
     groups,
-    { firstCol: '分类', tableOf: TABLE_OF },
+    {
+      firstCol: '分类',
+      kind: 'category',
+      tableOf: TABLE_OF,
+      ...(opts || {}),
+    },
   );
   return { categories };
 }

@@ -8,12 +8,28 @@
  */
 
 import { nodeStats } from '../core/stats-panels.js';
+import { categoryColor } from '../graph/mw-path-calculator.js';
 import { mountCellRange } from '../ui/cell-range.js';
+import { saveSharedWidth } from '../ui/col-widths.js';
 import { paintCategoryPanels, paintDetailPanel, bindStatsDetail } from '../ui/stats-category.js';
 import { mountStatsSplit } from '../ui/stats-split.js';
 import { renderStatTables } from '../ui/stats-group-tables.js';
 
 const pad = (n) => String(n).padStart(2, '0');
+
+/**
+ * 分类 → 色号。和 graph/mw-slot-calculator 的 colorList 同一套规则：
+ * 分类名按字符排序后依次取色，所以同一个分类永远同一个颜色。
+ * （那边取的是「当前范围内出现过的分类」，这里取「全部账户的分类」——
+ *   范围选「全部」时两者完全一致，平时颜色也不会随月份跳。）
+ */
+function colorIndexOf(accounts) {
+  const cats = [...new Set((accounts || [])
+    .filter((a) => a && !a.isHidden)
+    .map((a) => String(a.category || '').trim())
+    .filter(Boolean))].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  return new Map(cats.map((c, i) => [c, i]));
+}
 
 export function mountStats(section, ctx) {
   const now = new Date();
@@ -84,7 +100,12 @@ export function mountStats(section, ctx) {
   function renderCategory(state, range) {
     if (grid) grid.hidden = false;
     if (summaryWrap) summaryWrap.hidden = true;
-    const r = paintCategoryPanels(grid, state, range);
+    const idx = colorIndexOf(state.accounts);
+    const r = paintCategoryPanels(grid, state, range, {
+      // 分类名前的彩色圆点 = 该分类在环图里的颜色
+      colorOf: (key) => categoryColor(idx, key),
+      onResize: (w) => saveSharedWidth(ctx, '分类统计/列宽', w),
+    });
     const d = paintDetailPanel(grid, state, range);
     const q = d.query ? ` · 详情「${d.query}」${d.matches} 笔` : '';
     ctx.setFooter(`${r.categories} 个分类 · ${visibleCount(state)} 个节点 · ${scopeLabel()}${q}`);
@@ -93,12 +114,22 @@ export function mountStats(section, ctx) {
   function renderSummary(state, range) {
     if (grid) grid.hidden = true;
     if (summaryWrap) summaryWrap.hidden = false;
-    // 节点视图：布局逻辑完全沿用分类表 —— 左 6 类节点表 + 右「详情」
+    // 节点视图：布局逻辑完全沿用分类表 —— 左 6 类节点表 + 右「详情」。
+    // 第一列用**节点专用**的宽度参数（节点名普遍比分类名长）。
     const groups = nodeStats(state.accounts, state.transactions, range);
+    const idx = colorIndexOf(state.accounts);
+    const catOf = new Map();
+    for (const a of state.accounts || []) {
+      if (a && !a.isHidden) catOf.set(String(a.name || ''), String(a.category || ''));
+    }
     const n = renderStatTables(summaryHost, groups, {
       firstCol: '节点',
+      kind: 'node',
       table: 'node',
       empty: '还没有节点',
+      // 节点也用所属分类的环图色：同一分类的节点同色，一眼看出分组
+      colorOf: (key) => categoryColor(idx, catOf.get(key) || ''),
+      onResize: (w) => saveSharedWidth(ctx, '节点统计/列宽', w),
     });
     const d = paintDetailPanel(summaryWrap, state, range);
     const q = d.query ? ` · 详情「${d.query}」${d.matches} 笔` : '';

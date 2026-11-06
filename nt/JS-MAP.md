@@ -146,6 +146,7 @@
 | `ui/row-editor.js` | 流水 tab → 行内编辑 / 新增行 |
 | `ui/share-block.js` | 二维码分享区块 |
 | `ui/share-file.js` | 导出加密备份文件 |
+| `ui/stat-resize.js` | 统计小表专用的列宽拖动（只有第 1 列可拖） |
 | `ui/stats-category.js` | 统计 tab → 左栏六类表 + 右侧「详情」 |
 | `ui/stats-group-tables.js` | 统计页的六类小表（分类汇总与节点汇总共用同一套构建器） |
 | `ui/stats-split.js` | 统计页 —— 左栏（6 大分类）与右侧查询区之间的分界条 |

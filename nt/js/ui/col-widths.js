@@ -31,7 +31,7 @@ function currentTheme() {
  * **多张小表**：如果只清被拖那张，其它表会保留上一次拖出来的内联宽度，
  * 之后拖任何一张都只动自己 —— 用户看到的就是「上下两张表列宽不同步」。
  */
-function clearInlineWidths(table) {  for (const c of table.querySelectorAll('col')) {
+export function clearInlineWidths(table) {  for (const c of table.querySelectorAll('col')) {
     // 恢复「参数表达式」而不是清空：统计页小表的 col 宽度只有内联的 var()，
     // 清空后没有 CSS 兜底，整表会塌成内容宽度（用户报「拖一张，另一张列宽乱了」）。
     c.style.width = c.dataset.w || '';
@@ -59,26 +59,22 @@ function clearInlineWidths(table) {  for (const c of table.querySelectorAll('col
  * @param {number} [width] 拖完后的列宽（px）
  */
 /**
- * 七张统计小表**共用同一个列宽参数**（2026-11 用户指定）：
- * 拖任意一张的分类列（或节点列），七张一起变 —— 不是「一个表改、其它表跟着同步」，
- * 而是它们本来就读同一个 `分类统计/列宽` → `--nt-col-stat-cat`。
- * 金额列由 CSS 均分，不存在各自的宽度。
+ * 保存一个「共享列宽」（单值参数 + 立刻把 CSS 变量刷新一遍）。
+ *
+ * 统计小表的第 1 列宽度走这里：分类表写 `分类统计/列宽`、节点表写 `节点统计/列宽`，
+ * 同类六张表读同一条变量，所以拖一张 = 全部一起变。
  */
-const STAT_TABLES = ['fee', 'income', 'asset', 'liability', 'equity', 'cost', 'node'];
+export function saveSharedWidth(ctx, key, width) {
+  const theme = currentTheme();
+  saveUserValue(ctx, key, Math.round(Number(width)) || 0);
+  applySettings(loadMergedSettings(ctx, theme), theme);
+}
 
 export function onColResize(ctx, tableEl, col, width) {
   const id = tableIdOf(tableEl);
   if (!id) return;
 
   const theme = currentTheme();
-
-  if (STAT_TABLES.includes(id)) {
-    saveUserValue(ctx, '分类统计/列宽', Math.round(Number(width)) || 62);
-    applySettings(loadMergedSettings(ctx, theme), theme);
-    // 七张表都在同一条变量下，清掉拖动期间固化的内联 px
-    for (const t of document.querySelectorAll('table.nt-table-stat')) clearInlineWidths(t);
-    return;
-  }
 
   const ths = [...tableEl.querySelectorAll('thead .nt-th')];
   const widths = ths.map((th) => Math.round(th.getBoundingClientRect().width));
