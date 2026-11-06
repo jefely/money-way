@@ -1345,3 +1345,13 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 /* 分期表的空行：现在点一下会跳到添加栏，给个手型提示（用户 2026-11） */
 .nt-inst-blank { cursor: pointer; }
 .nt-inst-blank:hover > .nt-cell { background: var(--nt-bg-soft); }
+
+/* 深色主题下展开态的发光要更明显（用户 2026-11）：
+   深底上 22% 的主色几乎看不出来，同样透明度在浅色主题是合适的 ——
+   所以按主题分开给，不动浅色那套。dark（暗紫）和 alt2（暗绿）一起处理。 */
+[data-theme="dark"] .nt-composer.open,
+[data-theme="alt2"] .nt-composer.open {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--nt-primary) 38%, transparent),
+    0 0 26px 4px color-mix(in srgb, var(--nt-primary) 42%, transparent);
+}
