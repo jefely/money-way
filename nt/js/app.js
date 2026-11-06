@@ -237,6 +237,17 @@ function mountViews() {
     onSettings: () => { if (views.settings && views.settings.render) views.settings.render(); },
     onFlow: () => { if (views.flow && views.flow.render) views.flow.render(); },
   });
+
+  // 节点设置页的「校验」按钮：弹窗显示校验内容（2026-11）。
+  // 校验不再占一个 tab —— tab 那个位置给了「设置」（密码 / 主题 / 布局）。
+  for (const el of document.querySelectorAll('[data-act="check"]')) {
+    el.addEventListener('click', () => {
+      NtModal.open({
+        title: '账本校验',
+        build: (bodyEl) => views.validate.renderCheckInto(bodyEl),
+      });
+    });
+  }
 }
 
 /* ---------- 启动 ---------- */

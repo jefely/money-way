@@ -49,7 +49,10 @@ export function mountSettings(section, ctx) {
   function bindActions() {
     const bar = section.querySelector('.nt-vbar');
     if (!bar) return;
-    for (const el of bar.querySelectorAll('[data-act]')) {
+    // 绑定范围是**整个文档**：密码 / 主题 / 布局 三个按钮 2026-11 搬到了
+    // 「设置」页（原来的校验页），不在这个容器的 vbar 里了。
+    // 不认识的 act（流水页的 add / 导出…）在这里没有任何分支，静默忽略。
+    for (const el of document.querySelectorAll('[data-act]')) {
       el.addEventListener('click', () => onAction(el.getAttribute('data-act')));
     }
   }

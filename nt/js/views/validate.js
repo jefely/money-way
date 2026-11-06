@@ -185,7 +185,28 @@ export function mountValidate(section, ctx) {
     host.appendChild(mountThanksWall({ notify: (text) => ctx.setFooter(text) }));
   }
 
-  return { render };
+  return {
+    render,
+    /**
+     * 把「账本校验」的内容渲染一份到给定容器 —— 节点设置页的「校验」按钮
+     * 用它开弹窗（用户 2026-11：校验不再占一个 tab，改成按钮 + 弹窗）。
+     *
+     * 做法是「渲染到本页 → clone 一份 → 再恢复原视图」：
+     * renderCheck 全程只往闭包里的 host 写，抽成参数要动一整个函数；
+     * 校验内容是纯只读展示，clone 不会丢掉任何行为。
+     */
+    renderCheckInto(target) {
+      if (!target) return;
+      const keep = cap;
+      cap = 'check';
+      render();
+      const copy = host.cloneNode(true);
+      copy.removeAttribute('id');   // 别在页面里造出第二个同 id 的节点
+      target.appendChild(copy);
+      cap = keep;
+      render();
+    },
+  };
 }
 
 /* ---------- 卡片与小工具 ---------- */

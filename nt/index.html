@@ -41,7 +41,7 @@
       <button class="nt-tab" type="button" data-tab="query">查询</button>
       <button class="nt-tab" type="button" data-tab="path">路径</button>
       <button class="nt-tab" type="button" data-tab="plan">固定</button>
-      <button class="nt-tab" type="button" data-tab="validate">校验</button>
+      <button class="nt-tab" type="button" data-tab="validate">设置</button>
     </nav>
 
     <main class="nt-main">
@@ -54,11 +54,9 @@
             <div class="nt-vbar">
               <span class="nt-vbar-title">节点设置</span>
               <button class="nt-btn nt-btn-sm" type="button" data-act="balance">配平</button>
-              <button class="nt-btn nt-btn-sm" type="button" data-act="password">密码</button>
+              <button class="nt-btn nt-btn-sm" type="button" data-act="check">校验</button>
               <button class="nt-btn nt-btn-sm" type="button" data-act="config">配置</button>
               <button class="nt-btn nt-btn-sm" type="button" data-act="reset">重置</button>
-              <button class="nt-btn nt-btn-sm" type="button" data-act="theme">主题</button>
-              <button class="nt-btn nt-btn-sm" type="button" data-act="layout">布局</button>
               <span class="nt-vbar-spacer"></span>
               <button class="nt-btn nt-btn-sm nt-btn-icon" type="button" data-nav="back"
                       aria-label="返回流水" title="返回流水">◀</button>
@@ -312,14 +310,19 @@
         </div>
       </section>
 
-      <!-- ============ 校验：账本说明 / 账本校验 / 赞助感谢 ============ -->
+      <!-- ============ 设置：账本说明 / 赞助感谢 + 密码/主题/布局 ============ -->
+      <!-- tab 文字是「设置」（2026-11 从「校验」改名）。校验本身不再是 tab：
+           它挂在节点设置页的「校验」按钮上，点了弹窗显示。 -->
       <section class="nt-view" data-view="validate" hidden>
         <div class="nt-vbar">
           <div class="nt-caps" id="nt-validate-caps">
             <button class="nt-cap" type="button" data-cap="about" aria-selected="true">账本说明</button>
-            <button class="nt-cap" type="button" data-cap="check" aria-selected="false">账本校验</button>
             <button class="nt-cap" type="button" data-cap="thanks" aria-selected="false">赞助感谢</button>
           </div>
+          <span class="nt-vbar-spacer"></span>
+          <button class="nt-btn nt-btn-sm" type="button" data-act="password">密码</button>
+          <button class="nt-btn nt-btn-sm" type="button" data-act="theme">主题</button>
+          <button class="nt-btn nt-btn-sm" type="button" data-act="layout">布局</button>
         </div>
         <div class="nt-validate-body" id="nt-validate-body"></div>
       </section>
