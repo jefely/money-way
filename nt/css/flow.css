@@ -1005,8 +1005,15 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   padding: 8px;
   border-radius: 28px;
   background: var(--nt-bg-soft);
-  border: 1px solid var(--nt-bg-line);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
+  /* 内边框压暗（用户 2026-11）：原来是 --nt-bg-line，在深色主题下这条线比
+     周围亮，看起来像一圈内发光。改成半透明后它退回到「描边」该有的分量。 */
+  border: 1px solid color-mix(in srgb, var(--nt-bg-line) 55%, transparent);
+  /* 外发光：一圈主色柔光 + 原来的投影。深色主题下这圈光让输入框从背景里浮出来，
+     比加亮内边框更自然。 */
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--nt-primary) 12%, transparent),
+    0 0 22px color-mix(in srgb, var(--nt-primary) 20%, transparent),
+    0 16px 40px rgba(0, 0, 0, 0.5);
 }
 
 .nt-composer-input {
