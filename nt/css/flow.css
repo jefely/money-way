@@ -1000,29 +1000,30 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 }
 
 .nt-composer.open {
-  gap: 6px;
+  /* 2026-11 定稿（用户第四轮：光晕散得太开、落影太弱，整个控件"飘"着）：
+     扎实的关键是**把光收短、把影压深**，不是加大发光。
+       · 光晕半径 22px → 10px，透明度 20% → 12%：只留贴边一层薄光
+       · 落影加重且收紧（6px/18px → 4px/14px，透明度 .2 → .3）：有影才有"坐在桌面上"的重量
+       · 玻璃 72% → 86%：更实，字更清楚
+       · gap 6px → 4px、padding 8px → 6px：输入框和圆钮贴紧，读起来是一个整体 */
+  gap: 4px;
   width: min(360px, calc(100vw - 32px));
-  padding: 8px;
+  padding: 6px;
   border-radius: 28px;
-  /* 玻璃感（用户 2026-11）：底色半透明 + 背景模糊，让下面滚动的流水隐约透出来。
-     saturate 稍微拉高，玻璃才不会把主题色冲淡 —— 这样它和外圈那层主色光晕
-     是同一个色系，而不是一块灰蒙蒙的板子。 */
-  background: color-mix(in srgb, var(--nt-bg-soft) 72%, transparent);
-  -webkit-backdrop-filter: blur(16px) saturate(170%);
-  backdrop-filter: blur(16px) saturate(170%);
-  /* 顶部一道极淡的反光：玻璃的「厚度」就是靠这条线立起来的 */
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 45%);
-  /* 内边框压暗（用户 2026-11）：原来是 --nt-bg-line，在深色主题下这条线比
-     周围亮，看起来像一圈内发光。改成半透明后它退回到「描边」该有的分量。 */
-  border: 1px solid color-mix(in srgb, var(--nt-bg-line) 55%, transparent);
-  /* 外发光：一圈主色柔光 + 原来的投影。深色主题下这圈光让输入框从背景里浮出来，
-     比加亮内边框更自然。 */
+  background: color-mix(in srgb, var(--nt-bg-cell) 86%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid color-mix(in srgb, var(--nt-primary) 26%, var(--nt-bg-line));
+  /* 收起态的 .nt-composer 是 overflow: hidden（要把渐变圆角裁干净），
+     但展开后那条规则还在 —— 外发光会被整个裁掉，只剩内圈亮线，
+     这就是「看着不扎实」的真正原因。展开时放开裁剪。 */
+  overflow: visible;
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--nt-primary) 12%, transparent),
-    0 0 22px color-mix(in srgb, var(--nt-primary) 20%, transparent),
-    0 16px 40px rgba(0, 0, 0, 0.5);
+    0 0 0 1px color-mix(in srgb, var(--nt-primary) 10%, transparent),
+    0 0 10px color-mix(in srgb, var(--nt-primary) 12%, transparent),
+    0 4px 14px rgba(0, 0, 0, 0.30),
+    0 1px 2px rgba(0, 0, 0, 0.20);
 }
-
 .nt-composer-input {
   /* 收起态要真正压成 0 宽：只靠 flex:1 + min-width:0 时，
      input 自带的 padding/border 仍会占掉十几像素（圆钮被挤偏） */
