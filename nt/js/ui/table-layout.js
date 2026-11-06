@@ -189,9 +189,8 @@ function enterCustomMode(tableEl) {
       const th = tr.children[i];
       if (!th) continue;
       if (isUnifiedMonth(tableEl, th)) continue;
-      // 账户表的「节点名称」列要留给 auto 布局去撑满剩余宽度，
-      // 一旦给它写死 px，整张表就再也填不满（右边留白）。
-      if (tableEl.classList.contains('nt-table-accounts') && th.dataset.col === 'name') continue;
+      // 留给 auto 布局去撑满剩余宽度的那一列不写死 px，否则整表再也填不满。
+      if (isAbsorbCol(tableEl, th)) continue;
       // 内联清掉 min/max：CSS 里给冻结列写死的 max-width 会钳住拖出来的宽度
       th.style.minWidth = '0';
       th.style.maxWidth = 'none';
@@ -382,20 +381,37 @@ function startDrag(tableEl, th, downEv, o) {
   window.addEventListener('blur', finish);
 }
 
+/**
+ * 这一列是不是「吃掉剩余宽度」的那一列。
+ *
+ * 节点设置表是**节点名称**、流水表是**备注** —— 它们的宽度由 auto 布局算出来，
+ * 既不能拖（没有固定宽度可拖），也不能在拖动别的列时被固化成 px
+ *（一固化，整张表就再也填不满，右边留白）。
+ */
+function isAbsorbCol(tableEl, th) {
+  const dc = th && th.dataset ? th.dataset.col : '';
+  if (!dc) return false;
+  // 节点设置表：**期初余额**（金额）列跟着窗口变宽（用户 2026-11 指定）
+  if (tableEl.classList.contains('nt-table-accounts')) return dc === 'opening';
+  // 流水表：**备注**列 —— 它是最长的文本
+  if (tableEl.classList.contains('nt-table-flow')) return dc === 'note';
+  return false;
+}
+
 /** 给每个表头补一个拖动手柄 */
 export function paintHandles(tableEl) {
   // 统计小表（.nt-table-stat）只有第 1 列（分类 / 节点）能拖：金额列由 CSS
   // 均分剩余宽度，给它们放手柄会让人以为能单独调，其实拖任何一列都只是
   // 在改金额区的总宽（用户 2026-11）。
   const stat = tableEl.classList.contains('nt-table-stat');
-  const accTable = tableEl.classList.contains('nt-table-accounts');
+  const flowTable = tableEl.classList.contains('nt-table-flow');
   for (const th of tableEl.querySelectorAll('thead .nt-th')) {
     if (stat && th.dataset.col !== 'cat') continue;
-    // 按钮列（上移 / 删除）**不可调宽**：它只需要「够点」，宽度固定（用户 2026-11）。
+    // 按钮 / 图标列（上移、删除、固定收支）**不可调宽**：够点就行（用户 2026-11）。
     if (th.dataset.col === 'up' || th.dataset.col === 'action') continue;
-    // 账户表的「节点名称」列是**吃掉剩余宽度**的那一列（见 css/settings.css），
-    // 它没有固定宽度可拖 —— 给了手柄反而会把表格拖出空白。
-    if (accTable && th.dataset.col === 'name') continue;
+    if (flowTable && th.dataset.col === 'fixed') continue;
+    // 吃剩余宽度的那一列不给手柄。
+    if (isAbsorbCol(tableEl, th)) continue;
     if (th.querySelector('.nt-col-handle')) continue;
     const handle = document.createElement('span');
     handle.className = 'nt-col-handle';

@@ -41,6 +41,10 @@ function syncColModes(settings, theme) {
     // 靠「不写宽度」吃剩余空间、贴住面板右边。切成 max-content 就只剩一半宽
     // —— 用户 2026-11 明确要的是「备注贴右」，不是「表格按内容缩」。
     if (table.classList.contains('nt-table-catq')) continue;
+    // 流水表和节点设置表也是「永远 100%」：它们各有一列（备注 / 期初）
+    // 靠 auto 布局吃掉剩余，切 max-content 会让那一列失去弹性。
+    if (table.classList.contains('nt-table-flow')) continue;
+    if (table.classList.contains('nt-table-accounts')) continue;
     const widths = parseTableWidths(s[colWidthKey(id)], id);
     // 两种判定，都是「参数说了算」：
     //   growByWidth（统计三块）：0 = 还没自定义（CSS 百分比铺满），有非 0 = 拖过

@@ -120,15 +120,13 @@
 /* ============================================================
    节点设置表（账户表）的列宽
    ------------------------------------------------------------
-   一句话：**表格铺满整栏，只有节点名称列不写宽度**，auto 布局把剩余空间
-   全给它；其余七列都是固定 px（可拖，参数在「账户设置/列宽」里）。
+   一句话：**表格铺满整栏，只有期初余额列不写宽度**，auto 布局把剩余空间
+   全给它（窗口变宽时金额列跟着变宽，名称等列表保持固定）；
+   其余七列都是固定 px（可拖，参数在「账户设置/列宽」里）。
 
    为什么只能用 auto：fixed 布局下「没有宽度的列」只按内容算一个窄宽度，
    多余空间留在表格右边、不分给任何列（实测 885 的表格只有 542 的列宽）。
    auto 布局正好相反，会把没有宽度的列撑满。
-
-   为什么富余空间给「名称」而不是「期初」：期初吃剩余会撑到 368px，
-   把名称挤成一条缝；名称本来就是最长文本，给它最合理。
    ============================================================ */
 .nt-table.nt-table-accounts {
   table-layout: auto;
@@ -139,10 +137,10 @@
 .nt-table-accounts .nt-th[data-col="seq"]     { width: var(--nt-col-accounts-seq, 44px); }
 .nt-table-accounts .nt-th[data-col="type"]    { width: var(--nt-col-accounts-type, 66px); }
 .nt-table-accounts .nt-th[data-col="cat"]     { width: var(--nt-col-accounts-cat, 70px); }
-.nt-table-accounts .nt-th[data-col="opening"] { width: var(--nt-col-accounts-opening, 96px); }
+.nt-table-accounts .nt-th[data-col="name"]    { width: var(--nt-col-accounts-name, 110px); }
+.nt-table-accounts .nt-th[data-col="opening"] { width: auto; }
 .nt-table-accounts .nt-th[data-col="up"]      { width: 40px; }
 .nt-table-accounts .nt-th[data-col="action"]  { width: 40px; }
-/* name 故意不写宽度 —— 它是吃掉剩余空间的那一列，也不给拖动手柄（见 ui/table-layout.js）。 */
 
 /* 新增行的「+」：跟序号同色，别抢眼 */
 .nt-table-accounts td.nt-cell-seq {

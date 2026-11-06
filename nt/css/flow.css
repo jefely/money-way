@@ -1189,3 +1189,27 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 @media (min-width: 1200px) {
   .nt-flow-split { display: block; }
 }
+
+/* ============================================================
+   流水表的列宽 —— 和节点设置表（css/settings.css）同一套模型
+   ------------------------------------------------------------
+   表格铺满整栏；**备注列不写宽度**，由 auto 布局把剩余空间全给它；
+   最后两个图标列（固定收支 / 删除）固定 40px，不给拖也不给撑。
+
+   为什么是 auto 而不是 fixed：fixed 下「没有宽度的列」只按内容算，
+   多余空间留在表格右边不分给任何列（节点设置那边实测过：885 的表格
+   只有 542 的列宽）。auto 正好相反，会把没有宽度的列撑满。
+   ============================================================ */
+.nt-table.nt-table-flow {
+  table-layout: auto;
+  width: 100%;
+}
+
+.nt-table-flow .nt-th[data-col="seq"]    { width: var(--nt-col-flow-seq, 54px); }
+.nt-table-flow .nt-th[data-col="date"]   { width: var(--nt-col-flow-date, 84px); }
+.nt-table-flow .nt-th[data-col="from"]   { width: var(--nt-col-flow-from, 112px); }
+.nt-table-flow .nt-th[data-col="to"]     { width: var(--nt-col-flow-to, 112px); }
+.nt-table-flow .nt-th[data-col="amount"] { width: var(--nt-col-flow-amount, 92px); }
+.nt-table-flow .nt-th[data-col="fixed"]  { width: 40px; }
+.nt-table-flow .nt-th[data-col="action"] { width: 40px; }
+/* note 故意不写宽度 —— 它是吃掉剩余空间的那一列，也不给拖动手柄。 */

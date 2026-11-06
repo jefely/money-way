@@ -736,14 +736,7 @@ body.nt-col-resizing .nt-tablewrap {
    想看更宽就拖列宽，拖完写进参数、重开还原（.cols-custom 也是 max-content）。
    窄屏也是同一套：列宽之和比屏宽就横滑，不再按百分比压缩。 */
 
-.nt-table-flow .nt-th:nth-child(1) { width: var(--nt-col-flow-seq, 54px); }
-.nt-table-flow .nt-th:nth-child(2) { width: var(--nt-col-flow-date, 84px); }
-.nt-table-flow .nt-th:nth-child(3) { width: var(--nt-col-flow-from, 112px); }
-.nt-table-flow .nt-th:nth-child(4) { width: var(--nt-col-flow-to, 112px); }
-.nt-table-flow .nt-th:nth-child(5) { width: var(--nt-col-flow-amount, 92px); }
-.nt-table-flow .nt-th:nth-child(6) { width: var(--nt-col-flow-note, 116px); }
-.nt-table-flow .nt-th:nth-child(7) { width: var(--nt-col-flow-fixed, 48px); }
-.nt-table-flow .nt-th:nth-child(8) { width: var(--nt-col-flow-action, 40px); }
+/* 流水表的列宽规则 2026-11 已搬到 css/flow.css，和节点设置表用同一套模型。 */
 
 /* 流水表最后两列（固定收支 / 删除）是固定小格，不参与列宽参数。
    宽度写死并用 !important 压过 inline style（拖动写的是 th.style.width），
