@@ -151,7 +151,7 @@
 | `ui/stats-category.js` | 统计 tab → 左栏六类表 + 右侧「详情」 |
 | `ui/stats-group-tables.js` | 统计页的六类小表（分类汇总与节点汇总共用同一套构建器） |
 | `ui/stats-split.js` | 统计页 —— 左栏（6 大分类）与右侧查询区之间的分界条 |
-| `ui/stats-swipe.js` | 统计页 —— 手机左右滑动切换「分类 / 节点」 |
+| `ui/stats-swipe.js` | 统计页 —— 手机左右滑动在四个页面间循环 |
 | `ui/suggest-popover.js` | 流水 tab / 查询 tab → 账户候选气泡 |
 | `ui/sync-dialog.js` | （未标注界面）同步弹窗（UI 层） |
 | `ui/sync-wheel.js` | 同步弹窗里的滚轮（日 / 年月共用） |

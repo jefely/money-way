@@ -154,6 +154,12 @@ function isUnifiedMonth(tableEl, th) {
 function enterCustomMode(tableEl) {
   if (tableEl.classList.contains('cols-custom')) return;
 
+  // 详情表（.nt-table-catq）**永远** 100% 宽：它的最后一列（备注）靠「不写宽度」
+  // 吃掉剩余空间，一旦切到 `.cols-custom { width: max-content }`，表格宽度就变成
+  // 「各列内容之和」，备注列被压成表头那两个字那么窄 —— 用户看到的就是
+  // 「拖宽了、切页回来又变窄」。这类表只固化列宽，不切模式。
+  const keepFull = tableEl.classList.contains('nt-table-catq');
+
   const cols = [...tableEl.querySelectorAll('colgroup col')];
   const headRows = [...tableEl.querySelectorAll('thead tr')];
 
@@ -169,7 +175,7 @@ function enterCustomMode(tableEl) {
   );
 
   // ② 再切模式、统一写入
-  tableEl.classList.add('cols-custom');
+  if (!keepFull) tableEl.classList.add('cols-custom');
   for (let i = 0; i < widths.length; i += 1) {
     const w = widths[i];
     if (!(w > 0)) continue;

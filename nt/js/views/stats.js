@@ -51,8 +51,20 @@ export function mountStats(section, ctx) {
 
   bindCaps();
   bindScope();
-  // 手机左右滑动切换「分类 / 节点」，两个视图循环（向左滑下一个，向右滑上一个）
-  mountStatsSwipe(section, () => setCap(sel.cap === 'category' ? 'summary' : 'category'));
+  // 手机左右滑动：分类表 → 分类详情 → 节点表 → 节点详情 → 循环。
+  // 「表 → 详情」是窄屏 grid 自己的横向吸附，swipe 只在滚到边界时才换视图；
+  // 换完把新视图滚到对应那一端，滑动方向才连贯。
+  mountStatsSwipe(section, (dir) => {
+    const order = ['category', 'summary'];
+    const i = Math.max(0, order.indexOf(sel.cap));
+    const next = order[(i + (dir > 0 ? 1 : order.length - 1)) % order.length];
+    setCap(next);
+    requestAnimationFrame(() => {
+      const g = section.querySelector(next === 'category' ? '#nt-stats-grid' : '#nt-stats-summary-wrap');
+      if (!g || g.scrollWidth <= g.clientWidth) return;
+      g.scrollLeft = dir > 0 ? 0 : (g.scrollWidth - g.clientWidth);
+    });
+  });
   // 两个视图各有一块「详情」：分类按分类查、节点按节点查，绑定逻辑是同一份
   bindStatsDetail(grid, () => render(), () => ctx.getState());
   if (summaryWrap) bindStatsDetail(summaryWrap, () => render(), () => ctx.getState());
