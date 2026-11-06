@@ -94,7 +94,12 @@ function paintQueryPanel(panel, state, range, rowNos) {
     tr.appendChild(makeCell(r.from ? r.from.name : ''));
     tr.appendChild(makeCell(r.to ? r.to.name : ''));
     tr.appendChild(makeCell(moneyAlways(r.tx.amount), 'nt-cell-num'));
-    tr.appendChild(makeCell(r.tx.note || ''));
+    // 备注格挂 data-field="note"：窄屏下一列放不下整段备注，
+    // 点一下由 ui/note-popover.js 在旁边弹气泡显示全文 ——
+    // 和流水表 / 流水查询表**完全是同一套**（那个模块在 app.js 里全局绑过一次）。
+    const noteCell = makeCell(r.tx.note || '', 'nt-cell-note');
+    noteCell.dataset.field = 'note';
+    tr.appendChild(noteCell);
     tbody.appendChild(tr);
   }
   return { matches: rows.length, query: q.trim() };

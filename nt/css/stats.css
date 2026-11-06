@@ -326,8 +326,11 @@
 
 .nt-table-catq {
   table-layout: fixed;
+  /* 表格撑满面板：`width:100%` 是主约束，`min-width` 再加一道保险 ——
+     只要容器是这块面板，表格右边缘就一定和面板右边缘重合（用户 2026-11：
+     备注列必须贴到区域边缘，右侧不许留白）。 */
   width: 100%;
-  min-width: 0;
+  min-width: 100%;
 }
 
 .nt-table-catq .nt-th,
@@ -375,6 +378,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--nt-text-muted);
+  /* 备注可以点：窄屏放不下整段，点了在旁边弹气泡看全文（ui/note-popover.js） */
+  cursor: pointer;
 }
 
 /* 窄屏：一屏一块，左右滑动；和 query.css 的查询面板同一套手势 */
