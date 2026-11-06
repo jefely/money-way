@@ -228,41 +228,37 @@
   border-left: 0;
 }
 
-/* 合计行的类型名（资产/负债/…）：比金额再大一号，**靠左居中**（用户 2026-11）。
-   这一格要 `overflow: visible` 且给右边留出按钮的位置 ——
-   ▲ 是绝对定位的，不占文本宽度，列再窄也不会把它挤没
-   （用户 2026-11：之前它排在文字后面，列一调窄就整个被 ellipsis 吃掉）。 */
+/* 合计行类型名（资产/负债/…）：比金额再大一号，**靠左居中**（用户 2026-11）。
+   前面的彩色三角形是「上移一位」的按钮，不是装饰 —— 它替代了原来的圆点，
+   所以这一格不需要再给按钮留内边距：三角形是流内元素、本来就在文字前面。 */
 .nt-table-stat .nt-stats-total-row .nt-cell-total-name {
   position: relative;
   overflow: visible;
-  padding-right: 16px;
   text-align: left;
   vertical-align: middle;
   font-size: 14px;
 }
 
-/* 合计行类型名后面的 ▲：把这张小表往上挪一位（用户 2026-11）。
-   独立于单元格流布局：绝对定位钉在这一格的右下侧，文字多长都不影响它。 */
+/* 彩色三角形：颜色由 JS 写成该类型的环图固定色（收入绿 / 负债橙 / 资产蓝…）。
+   点它把这张小表往上挪一位。 */
 .nt-stat-move {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 0 2px;
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0;
   border: 0;
   background: transparent;
-  color: var(--nt-text-muted);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1;
+  vertical-align: middle;
   cursor: pointer;
-  opacity: 0.7;
+  opacity: 0.9;
 }
 
 .nt-stat-move:hover,
 .nt-stat-move:focus-visible {
-  color: var(--nt-primary, #7c6bd6);
   opacity: 1;
   outline: none;
+  transform: translateY(-1px);
 }
 
 /* 分类名前面的彩色圆点：颜色 = 该分类在环图里的颜色（用户 2026-11） */

@@ -92,22 +92,16 @@ function amountCells(src, type) {
  * @param {string} [pick] 给了就表示这一行的名字可以点（点了右侧「详情」显示它）
  * @param {string} [dot] 给了就在名字前面画一个这个颜色的圆点
  */
-function makeRow(label, cells, total, pick, dot, move) {
+function makeRow(label, cells, total, pick, move, moveColor) {
   const tr = document.createElement('tr');
   tr.className = 'nt-row' + (total ? ' nt-stats-total-row' : '');
   const cls = total ? 'nt-cell-total-name' : pick ? 'nt-cell-pick' : '';
   const nameCell = document.createElement('td');
   nameCell.className = 'nt-cell' + (cls ? ' ' + cls : '');
 
-  if (dot) {
-    const d = document.createElement('span');
-    d.className = 'nt-stat-dot';
-    d.style.background = dot;
-    nameCell.appendChild(d);
-  }
-  nameCell.appendChild(document.createTextNode(label == null ? '' : String(label)));
-
-  // 合计行的类型名后面挂一个 ▲：把这张小表往上挪一位（用户 2026-11）
+  // 合计行的类型名前面放一个**彩色三角形**（用户 2026-11）：
+  // 它既替掉了原来的圆点，又是「上移一位」的按钮 —— 少一个元素，也不会像
+  // 文字后面的小 ▲ 那样被列宽挤掉。颜色 = 该类型的环图固定色。
   if (typeof move === 'function') {
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -115,12 +109,14 @@ function makeRow(label, cells, total, pick, dot, move) {
     btn.textContent = '▲';
     btn.title = '上移一位';
     btn.setAttribute('aria-label', `${label} 上移一位`);
+    if (moveColor) btn.style.color = moveColor;
     btn.addEventListener('click', (ev) => {
       ev.stopPropagation();
       move();
     });
     nameCell.appendChild(btn);
   }
+  nameCell.appendChild(document.createTextNode(label == null ? '' : String(label)));
 
   if (pick) {
     nameCell.dataset.pick = pick;
@@ -173,7 +169,7 @@ function buildTable(g, table, firstCol, opts) {
   //（graph/mw-layers.js 的 typeColor：费用红 / 资产蓝 / 收入绿 / 负债橙 / 权益紫 / 成本灰）。
   const move = typeof o.onMoveUp === 'function' ? () => o.onMoveUp(type) : null;
   thead.appendChild(makeRow(
-    groupName(type), amountCells(g.total || {}, type), true, null, typeColor(type), move,
+    groupName(type), amountCells(g.total || {}, type), true, null, move, typeColor(type),
   ));
 
   const headRow = document.createElement('tr');

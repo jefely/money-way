@@ -29,6 +29,38 @@ import { setOpening, bindNewRow } from './account-new.js';
 
 const FIELDS = ['type', 'category', 'code', 'name', 'opening', 'seq'];
 const TYPES = ['资产类', '成本类', '负债类', '收入类', '权益类', '费用类'];
+
+/**
+ * 六类的「短名」←→ 全名。类型格显示 `[资产]`、存回 `资产类`（用户 2026-11）：
+ * 表头已经写着「类型」，每格再带个「类」字既重复又占宽度。
+ */
+const SHORT_OF_TYPE = {
+  资产类: '资产', 负债类: '负债', 权益类: '权益',
+  收入类: '收入', 费用类: '费用', 成本类: '成本',
+};
+const FULL_OF_SHORT = Object.fromEntries(
+  Object.entries(SHORT_OF_TYPE).map(([full, short]) => [short, full]),
+);
+
+/** 账本里的类型 → 格子里显示的文字：`资产类` → `[资产]`；自定义类型原样加括号 */
+export function typeLabel(type) {
+  const t = String(type || '').trim();
+  if (!t) return '';
+  return '[' + (SHORT_OF_TYPE[t] || t) + ']';
+}
+
+/**
+ * 格子里的文字 → 账本里的类型：`[资产]` → `资产类`。
+ * 只认六类的短名；自定义类型原样返回（不加「类」，否则「客户」会变成「客户类」）。
+ */
+export function typeValue(text) {
+  const s = String(text || '').trim()
+    .replace(/^[\[【]\s*/, '')
+    .replace(/\s*[\]】]$/, '')
+    .trim();
+  if (!s) return '';
+  return FULL_OF_SHORT[s] || s;
+}
 const BLANK_ROWS = 10;
 
 // 切到后台/关闭前，把正在编辑的简码用 blur 提交掉。
@@ -145,7 +177,9 @@ export function mountAccountTable(ctx, tbody, opts) {
 
         const typeInput = tr.querySelector('[data-field="type"]');
         if (typeInput) {
-          typeInput.value = acc.type || '';
+          // 显示成 `[资产]`（半角方括号、去掉「类」）—— 表头已经写着「类型」，
+          // 每个格子再带个「类」字既重复又占宽度（用户 2026-11）。
+          typeInput.value = typeLabel(acc.type);
           // 点击弹候选，选「其他…」再弹输入框（用户 2026-10-30：原生下拉坏掉）
           bindTypePicker(typeInput, () => accountTypesOf(state), (v) => {
             if (v === '__custom__') {
@@ -259,7 +293,8 @@ export function mountAccountTable(ctx, tbody, opts) {
     const acc = (st.accounts || []).find((a) => a.id === id);
     if (!acc) return;
 
-    const v = String(raw || '').trim();
+    // 类型格显示的是 `[资产]`，存回账本时要还原成 `资产类`（用户 2026-11）
+    const v = field === 'type' ? typeValue(raw) : String(raw || '').trim();
 
     if (field === 'opening') {
       setOpening(ctx, id, toAmount(v));
