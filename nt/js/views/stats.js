@@ -13,6 +13,7 @@ import { saveSharedWidth } from '../ui/col-widths.js';
 import { paintCategoryPanels, paintDetailPanel, bindStatsDetail } from '../ui/stats-category.js';
 import { mountStatsSplit } from '../ui/stats-split.js';
 import { mountStatsSwipe } from '../ui/stats-swipe.js';
+import { loadStatOrder, moveStatUp } from '../ui/stat-order.js';
 import { renderStatTables } from '../ui/stats-group-tables.js';
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -111,11 +112,19 @@ export function mountStats(section, ctx) {
     if (gridEl) gridEl.scrollLeft = gridLeft;
   }
 
+  /** 某张小表的 ▲：往上移一位后重画（顺序存 ui/stat-order.js） */
+  function reorderUp(type) {
+    if (!moveStatUp(type)) return;
+    render();
+  }
+
   function renderCategory(state, range) {
     if (grid) grid.hidden = false;
     if (summaryWrap) summaryWrap.hidden = true;
     const r = paintCategoryPanels(grid, state, range, {
       onResize: (w) => saveSharedWidth(ctx, '分类统计/列宽', w),
+      order: loadStatOrder(),
+      onMoveUp: reorderUp,
     });
     const d = paintDetailPanel(grid, state, range);
     const q = d.query ? ` · 详情「${d.query}」${d.matches} 笔` : '';
@@ -134,6 +143,8 @@ export function mountStats(section, ctx) {
       table: 'node',
       empty: '还没有节点',
       onResize: (w) => saveSharedWidth(ctx, '节点统计/列宽', w),
+      order: loadStatOrder(),
+      onMoveUp: reorderUp,
     });
     const d = paintDetailPanel(summaryWrap, state, range);
     const q = d.query ? ` · 详情「${d.query}」${d.matches} 笔` : '';

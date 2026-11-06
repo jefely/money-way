@@ -92,7 +92,7 @@ function amountCells(src, type) {
  * @param {string} [pick] 给了就表示这一行的名字可以点（点了右侧「详情」显示它）
  * @param {string} [dot] 给了就在名字前面画一个这个颜色的圆点
  */
-function makeRow(label, cells, total, pick, dot) {
+function makeRow(label, cells, total, pick, dot, move) {
   const tr = document.createElement('tr');
   tr.className = 'nt-row' + (total ? ' nt-stats-total-row' : '');
   const cls = total ? 'nt-cell-total-name' : pick ? 'nt-cell-pick' : '';
@@ -106,6 +106,21 @@ function makeRow(label, cells, total, pick, dot) {
     nameCell.appendChild(d);
   }
   nameCell.appendChild(document.createTextNode(label == null ? '' : String(label)));
+
+  // 合计行的类型名后面挂一个 ▲：把这张小表往上挪一位（用户 2026-11）
+  if (typeof move === 'function') {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'nt-stat-move';
+    btn.textContent = '▲';
+    btn.title = '上移一位';
+    btn.setAttribute('aria-label', `${label} 上移一位`);
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      move();
+    });
+    nameCell.appendChild(btn);
+  }
 
   if (pick) {
     nameCell.dataset.pick = pick;
@@ -156,8 +171,9 @@ function buildTable(g, table, firstCol, opts) {
   // 合计行在表头**上边**：类型名放在第 1 列，金额只留数字。
   // 圆点只标**类型**（收入 / 负债 / 资产…），颜色取环图的类型固定色系
   //（graph/mw-layers.js 的 typeColor：费用红 / 资产蓝 / 收入绿 / 负债橙 / 权益紫 / 成本灰）。
+  const move = typeof o.onMoveUp === 'function' ? () => o.onMoveUp(type) : null;
   thead.appendChild(makeRow(
-    groupName(type), amountCells(g.total || {}, type), true, null, typeColor(type),
+    groupName(type), amountCells(g.total || {}, type), true, null, typeColor(type), move,
   ));
 
   const headRow = document.createElement('tr');
@@ -200,6 +216,8 @@ function markCustom(tableEl, table) {
  *        table  = 六类共用一个列宽参数（节点视图）
  *        tableOf = 每类一套（分类视图）
  *        onResize = 拖完分类列宽度的回调（写共享参数）
+ *        order   = 六类的显示顺序（数组，ui/stat-order.js 给出）
+ *        onMoveUp = 点了合计行那个 ▲ 的回调（参数是类型名）
  * @returns {number} 数据行总数
  */
 export function renderStatTables(host, groups, opts) {
@@ -209,9 +227,13 @@ export function renderStatTables(host, groups, opts) {
   const tableOf = o.tableOf || TABLE_OF;
   host.textContent = '';
 
-  const list = (groups || []).slice().sort(
-    (a, b) => STAT_ORDER.indexOf(a.type) - STAT_ORDER.indexOf(b.type),
-  );
+  const list = (groups || []).slice().sort((a, b) => {
+    // 顺序可由用户用 ▲ 自定义（ui/stat-order.js），没给就用内置默认
+    const order = Array.isArray(o.order) && o.order.length ? o.order : STAT_ORDER;
+    const ia = order.indexOf(a.type);
+    const ib = order.indexOf(b.type);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
 
   let count = 0;
   for (const g of list) {

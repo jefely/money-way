@@ -201,6 +201,28 @@
   border-bottom: 0;
 }
 
+/* 合计行类型名后面的 ▲：把这张小表往上挪一位（用户 2026-11）。
+   做得小、不抢眼 —— 它是个「偶尔用一次」的整理工具，不该比数字还显眼。 */
+.nt-stat-move {
+  margin-left: 5px;
+  padding: 0 3px;
+  border: 0;
+  background: transparent;
+  color: var(--nt-text-muted);
+  font-size: 10px;
+  line-height: 1;
+  vertical-align: middle;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.nt-stat-move:hover,
+.nt-stat-move:focus-visible {
+  color: var(--nt-primary, #7c6bd6);
+  opacity: 1;
+  outline: none;
+}
+
 /* 金额为 0 的格子暗淡显示：一眼分清「这一项没有」和「这一项有数」。
    **只调字体颜色，不叠透明度** —— opacity 作用在整个 td 上，
    会把单元格边框一起淡化，格线断成一截一截（用户 2026-11 实测）。
