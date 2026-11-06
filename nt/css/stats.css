@@ -372,6 +372,13 @@
   min-width: 0;
 }
 
+/* 金额列（第 5 列）：**靠右**（用户 2026-11）。
+   不写的话它跟别的格子一样居中 —— 金额是最该右对齐的一列，位数才对得齐。 */
+.nt-table-catq .nt-th:nth-child(5),
+.nt-table-catq .nt-cell:nth-child(5) {
+  text-align: right;
+}
+
 .nt-table-catq .nt-th,
 .nt-table-catq .nt-cell {
   height: var(--nt-row-h-catq, 32px);
