@@ -510,6 +510,13 @@
 .pw-chart-inner,
 .pw-chart-inner svg {
   touch-action: none;
+  /* 环外拖动不稳定的根因（用户 2026-11）：环外有一圈文字标签，
+     拖到它们上面时浏览器进入「选字」状态，pointermove 被打断 ——
+     表现就是「有时能拖、有时拖不动」。禁掉文本选择即可，
+     不需要额外遮罩（遮罩会把弧块和线的点击一起挡掉）。 */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* 环内遮罩：用背景色压暗环内的连线（fill-opacity 在渲染器里给 0.26） */
