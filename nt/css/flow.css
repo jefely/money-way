@@ -545,9 +545,8 @@ body.nt-col-resizing {
 
 /* 金额列用强调色（用户截图里 ¥2.00 / ¥5.50 都是紫色）。
    正负号仍由数据决定，这里只管颜色。 */
-.nt-table-flow .nt-cell-amount {
-  color: var(--nt-accent, var(--nt-primary));
-}
+/* 金额列不再用强调色（用户 2026-11）：看起来和别的列一样，不跳出来。
+   原来这里写的是 `color: var(--nt-accent, var(--nt-primary))`。 */
 /* 同步弹窗 */
 .nt-sync-hint {
   margin: 0 0 8px;
@@ -895,9 +894,7 @@ dialog.nt-sync-zoom::backdrop {
   background-size: 100% 1px;
 }
 .nt-row-virtual td:only-child,
-.nt-row-virtual .nt-cell-amount {
-  color: var(--nt-text-muted);
-}
+/* 虚拟滚动占位行的金额也不再单独淡化 —— 一律跟其它列同色（用户 2026-11） */
 
 /* 拖动期间：只留目标列那条线，其它已在上面的规则里压成透明。
    目标列用主色 + 2px，但**高度仍固定 70%**，和 hover 时同一个长度。 */
