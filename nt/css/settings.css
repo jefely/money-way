@@ -114,10 +114,28 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* 账单日 / 还款日：两位数字，居中就好 */
-.nt-table-accounts td:nth-child(7) .nt-cell-input,
-.nt-table-accounts td:nth-child(8) .nt-cell-input {
-  font-variant-numeric: tabular-nums;
+/* 账单日 / 还款日 2026-11 已删（手机宽度有限，分期表那边填就行），
+   原来给这两列写的数字样式一起删掉 —— 否则第 7、8 位现在是按钮列。 */
+
+/* 节点设置表：**占满容器**（用户 2026-11：要像统计表那样铺满手机屏）。
+   `.nt-table` 默认 max-content（表宽 = 各列之和），这里压回 100%。 */
+.nt-table.nt-table-accounts {
+  width: 100%;
+}
+
+/* 期初列**吃掉剩余宽度**：窗口变宽时只有这一列变宽，其它列保持固定，
+   方便逐行对照金额。它因此也不参与拖列宽（没有固定宽度可拖）。 */
+.nt-table-accounts .nt-th[data-col="opening"] {
+  width: auto;
+}
+
+/* 按钮列：不要背景、不要竖线 —— 它只是两个操作位，画成格子反而抢眼，
+   而且两个字宽的标题会把列顶住（用户 2026-11）。宽度固定，够点就行。 */
+.nt-table-accounts .nt-th.nt-c-action,
+.nt-table-accounts .nt-cell-action {
+  background: transparent;
+  border-left: 0;
+  border-right: 0;
 }
 
 /* 新增行的「+」：跟序号同色，别抢眼 */

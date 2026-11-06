@@ -138,7 +138,7 @@ export function mountAccountTable(ctx, tbody, opts) {
         tr.className = 'nt-row nt-zone-empty';
         const td = document.createElement('td');
         td.className = 'nt-cell';
-        td.colSpan = 10;
+        td.colSpan = 8;
         td.textContent = '（这一类还没有节点）';
         tr.appendChild(td);
         frag.appendChild(tr);

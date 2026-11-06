@@ -381,6 +381,8 @@ export function paintHandles(tableEl) {
   const stat = tableEl.classList.contains('nt-table-stat');
   for (const th of tableEl.querySelectorAll('thead .nt-th')) {
     if (stat && th.dataset.col !== 'cat') continue;
+    // 按钮列（上移 / 删除）**不可调宽**：它只需要「够点」，宽度固定（用户 2026-11）。
+    if (th.dataset.col === 'up' || th.dataset.col === 'action') continue;
     if (th.querySelector('.nt-col-handle')) continue;
     const handle = document.createElement('span');
     handle.className = 'nt-col-handle';

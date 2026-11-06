@@ -74,8 +74,9 @@
                       <th class="nt-th nt-c-cat" scope="col" data-col="cat">分类</th>
                       <th class="nt-th nt-c-name" scope="col" data-col="name">节点名称</th>
                       <th class="nt-th nt-c-num" scope="col" data-col="opening">期初余额</th>
-                      <th class="nt-th nt-c-action nt-th-edge" scope="col" data-col="up">上移</th>
-                      <th class="nt-th nt-c-action nt-th-edge" scope="col" data-col="action">删除</th>
+                      <!-- 按钮列不写标题：两个字会把列宽顶住，调不窄（用户 2026-11） -->
+                      <th class="nt-th nt-c-action nt-th-edge" scope="col" data-col="up" aria-label="上移"></th>
+                      <th class="nt-th nt-c-action nt-th-edge" scope="col" data-col="action" aria-label="删除"></th>
                     </tr>
                 </thead>
                 <tbody id="nt-accounts-body"></tbody>
