@@ -238,21 +238,15 @@
 
 /* 备注区（用户 2026-10-29）：独立于 A/B，标题用主题紫（和 A 绿 / B 红并列） */
 .nt-table-accounts tbody tr.nt-zone-note > td.nt-cell {
-  /* 备注区的标题行用**淡蓝**（用户 2026-11）：原来和 A/B 区一样取主色，
-     而主色是金色，跟整页的暖色调太接近，一眼分不出这是另一块区域。 */
-  background-image: linear-gradient(
-    color-mix(in srgb, #4a90d9 18%, transparent),
-    color-mix(in srgb, #4a90d9 18%, transparent)
-  );
+  /* 备注区标题也不要背景色（用户 2026-11）：和 A/B/U 一样只留文字色。
+     文字靠下由上面的 `.nt-zone-head > td` 统一给（备注行的 class 里带着 zone-head）。 */
+  background: transparent;
   color: color-mix(in srgb, #4a90d9 65%, var(--nt-text));
 }
 
 .nt-table-accounts tbody tr.nt-zone-note > td.nt-cell.nt-zone-tag {
-  background: linear-gradient(
-      color-mix(in srgb, #4a90d9 18%, transparent),
-      color-mix(in srgb, #4a90d9 18%, transparent)
-    )
-    var(--nt-unit-bg, var(--nt-bg));
+  /* 「备注」两个字在冻结列里，横滚时必须不透明；底色用页面底色，不叠色膜 */
+  background: var(--nt-bg);
   color: color-mix(in srgb, #4a90d9 65%, var(--nt-text));
 }
 
