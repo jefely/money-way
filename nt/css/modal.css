@@ -104,6 +104,13 @@
   line-height: 1.7;
 }
 
+/* 装了校验卡片的弹窗：左右白边收窄到 6px，让卡片尽量宽（用户 2026-11）。
+   只改内边距，**不动弹窗宽度** —— 宽度要和其它弹窗保持一致。
+   普通弹窗（确认框、输入框）不受影响。 */
+.nt-modal-body:has(.nt-card) {
+  padding: 4px 6px 6px;
+}
+
 /* 弹窗里的滚动条：细，且不要在标题附近出现 */
 .nt-modal-body::-webkit-scrollbar {
   width: 0;

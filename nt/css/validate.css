@@ -18,14 +18,6 @@
   background: var(--nt-bg-soft);
 }
 
-/* 校验弹窗比默认宽 —— 里面是「项目 + 金额」两列对账数据，
-   窄弹窗会把「资产 + 成本 + 费用 − 负债 − 权益 − 收入」这种长式子折成两行。
-   用 :has() 只影响**装了校验卡片**的弹窗，别的弹窗宽度不变。 */
-.nt-modal:has(.nt-card) {
-  width: min(680px, 94vw);
-  max-width: min(680px, 94vw);
-}
-
 .nt-card-head {
   display: flex;
   align-items: baseline;
