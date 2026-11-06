@@ -978,26 +978,17 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   display: flex;
   align-items: center;
   gap: 0;
-  /* ===== 收起态：一颗**凸起的球**（2026-11 重新设计） =====
-     52px 既是收起直径、也是展开高度 —— 切换时尺寸不变，不会「一展开就缩小」。
-     球面靠三层：径向渐变（光源在左上 32%/26%）+ 顶部内高光 + 底部内阴影。 */
-  width: 52px;
-  height: 52px;
+  width: 54px;
+  height: 54px;
   padding: 0;
-  /* 固定 26px：收起是圆、展开是胶囊、过渡中始终是胶囊 */
-  border-radius: 26px;
+  border-radius: 27px;
   overflow: hidden;
-  /* 质感靠**竖向渐变**（顶部提亮 8%、底部压暗 10%），不用径向渐变 ——
-     径向在大面积上容易出现色带（banding），远看就是「脏」。 */
-  background: linear-gradient(180deg,
-      color-mix(in srgb, var(--nt-primary) 92%, #ffffff) 0%,
-      var(--nt-primary) 52%,
-      color-mix(in srgb, var(--nt-primary) 88%, #000000) 100%);
-  /* 只用两层投影：一层贴地的锐利阴影定"重量"，一层柔和扩散给"空间"。
-     **不要发光** —— 那圈主色光晕是廉价感的主要来源。 */
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.18),
-    0 6px 16px rgba(0, 0, 0, 0.22);  /* 键盘弹出时是「平滑上浮」而不是被挤一下；
+  background: linear-gradient(135deg,
+      var(--nt-primary-light, var(--nt-primary)) 0%,
+      var(--nt-primary) 55%,
+      var(--nt-primary-dark, var(--nt-primary)) 100%);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.42), 0 2px 6px rgba(0, 0, 0, 0.3);
+  /* 键盘弹出时是「平滑上浮」而不是被挤一下；
      拖动过程中用 .dragging 关掉过渡，跟手才不迟滞 */
   transition: width 0.22s ease, padding 0.22s ease, border-radius 0.22s ease,
     background 0.22s ease, box-shadow 0.22s ease,
@@ -1009,27 +1000,13 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 }
 
 .nt-composer.open {
-  /* ===== 展开态：一条**扁平的玻璃**（2026-11 重新设计） =====
-     和收起态同高 52px，切换时只有宽度在变。
-     玻璃 = 半透明底 + 细边 + 柔和落影；**没有内阴影**，所以它是平的。 */
-  gap: 0;
+  gap: 6px;
   width: min(360px, calc(100vw - 32px));
-  padding: 0 0 0 18px;
-  border-radius: 26px;
-  /* 透明度 55% → 88%（用户 2026-11：太透看不清，观感廉价）。
-     仍然透一点，但文字和边框保持锐利。 */
-  background: color-mix(in srgb, var(--nt-bg-cell) 88%, transparent);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  /* 细边：主色混一点线色，只要轮廓 */
-  border: 1px solid color-mix(in srgb, var(--nt-primary) 22%, var(--nt-bg-line));
-  /* 收起态是 overflow: hidden（裁渐变圆角），展开后那条还在会裁掉落影 */
-  overflow: visible;
-  /* 和收起态同一套投影语言：一层贴地的锐利、一层柔和的扩散。
-     不要主色光晕 —— 那圈光是「廉价感」的主要来源。 */
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.14),
-    0 6px 18px rgba(0, 0, 0, 0.18);
+  padding: 8px;
+  border-radius: 28px;
+  background: var(--nt-bg-soft);
+  border: 1px solid var(--nt-bg-line);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .nt-composer-input {
@@ -1038,11 +1015,11 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   flex: 0 1 0;
   width: 0;
   min-width: 0;
-  height: 46px;
+  height: 38px;
   padding: 0;
   border-width: 0;
-  /* 半圆头（高 46 的一半）：和小圆钮一起组成胶囊 */
-  border-radius: 23px;
+  /* 半圆头（高 38 的一半）：和小圆钮一起组成「左半圆 + 右半圆」的胶囊 */
+  border-radius: 19px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.12s ease;
@@ -1063,16 +1040,17 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
+  width: 54px;
+  height: 54px;
   padding: 0;
   border: 0;
-  border-radius: 26px;
+  border-radius: 50%;
   background: transparent;
   color: #ffffff;
   cursor: grab;
   touch-action: none;
-  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+  transition: width 0.2s ease, height 0.2s ease, background 0.15s ease,
+    color 0.15s ease, transform 0.12s ease;
 }
 
 .nt-composer-btn:active {
@@ -1081,14 +1059,10 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 }
 
 .nt-composer.open .nt-composer-btn {
-  /* 展开时**保持 52 × 52**（用户 2026-11：不该一展开就缩小）。
-     它和容器同高，右端正好是个半圆头；**没有内阴影**，所以是平的，不是球。 */
-  width: 52px;
-  height: 52px;
-  margin: 0;
-  border-radius: 26px;
-  background: var(--nt-primary);
-  color: #ffffff;
+  width: 38px;
+  height: 38px;
+  background: var(--nt-bg);
+  color: var(--nt-text-muted);
 }
 
 .nt-composer.open .nt-composer-btn.has-text {
@@ -1327,55 +1301,9 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   color: var(--nt-text);
 }
 
-/* NT 的「丝绒」质感（用户 2026-11）：
-   纯白字在绿钮上显得发亮发硬，绒面应该是「哑光、有柔光、边缘不刺眼」。
-   做法是文字本身用上下渐变（上亮下暗，模拟绒面的受光），
-   再压一层很淡的软阴影把字「按」进圆面里。 */
-.nt-icon-nt {
-  /* 白字 + **凹陷**阴影（用户 2026-11：绿色泡泡上的白字要「凹下去」）。
-     上沿一道亮白、下沿一道暗影，读起来是「刻进圆面」而不是浮在表面上。
-     之前是全向外的阴影，看起来是凸起的。 */
-  color: #ffffff;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.40),
-    0 -1px 2px rgba(0, 0, 0, 0.60),
-    0 -2px 4px rgba(0, 0, 0, 0.28);
-  letter-spacing: 0.04em;
-}
-
-/* 展开成发送态时钮缩到 38px，阴影收一档，否则小尺寸下糊成一团 */
-.nt-composer.open .nt-icon-nt {
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
-}
 
 /* 分期表的空行：现在点一下会跳到添加栏，给个手型提示（用户 2026-11） */
 .nt-inst-blank { cursor: pointer; }
 .nt-inst-blank:hover > .nt-cell { background: var(--nt-bg-soft); }
 
-/* 深色主题下展开态的发光要更明显（用户 2026-11）：
-   深底上 22% 的主色几乎看不出来，同样透明度在浅色主题是合适的 ——
-   所以按主题分开给，不动浅色那套。dark（暗紫）和 alt2（暗绿）一起处理。 */
-[data-theme="dark"] .nt-composer.open,
-[data-theme="alt2"] .nt-composer.open {
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--nt-primary) 38%, transparent),
-    0 0 26px 4px color-mix(in srgb, var(--nt-primary) 42%, transparent);
-}
 
-/* NT 字色的两种性格（用户 2026-11）：
-   · **绿色泡泡（alt2）**：白色 + 凹陷阴影，像刻进圆面；
-   · **其它主题（含紫色 dark）**：回到「融合」—— 用白和主色混出来的浅紫白，
-     和泡泡同色系、不抢眼，只留一点点阴影保证能读。
-   这条写在最后，覆盖上面基础规则里的白字 + 凹陷阴影。 */
-.nt-icon-nt {
-  color: color-mix(in srgb, #ffffff 80%, var(--nt-primary));
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.30);
-}
-
-[data-theme="alt2"] .nt-icon-nt {
-  color: #ffffff;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.40),
-    0 -1px 2px rgba(0, 0, 0, 0.60),
-    0 -2px 4px rgba(0, 0, 0, 0.28);
-}
