@@ -1210,3 +1210,11 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 .nt-table-flow .nt-th[data-col="fixed"]  { width: 40px; }
 .nt-table-flow .nt-th[data-col="action"] { width: 40px; }
 /* note 故意不写宽度 —— 它是吃掉剩余空间的那一列，也不给拖动手柄。 */
+
+/* 校验里点了问题条目后，跳到的那一行**高亮两秒**（用户 2026-11）：
+   光给计数没法定位，得让人一眼看到是哪一笔。用 color-mix 而不是写死颜色，
+   深浅主题下都够显眼。 */
+.nt-row-locate > .nt-cell {
+  background: color-mix(in srgb, var(--nt-primary) 22%, transparent) !important;
+  transition: background 0.2s;
+}

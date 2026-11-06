@@ -295,3 +295,13 @@
   line-height: 1.7;
   color: var(--nt-bad);
 }
+
+/* 可点击的问题条目：跳转到那一笔流水（用户 2026-11） */
+.nt-issue-list li.nt-issue-pick {
+  cursor: pointer;
+}
+
+.nt-issue-list li.nt-issue-pick:hover {
+  color: var(--nt-primary);
+  text-decoration: underline;
+}

@@ -14,6 +14,7 @@ import { checkAccountingIdentity } from '../core/validate.js';
 import { moneyAlways } from '../core/format.js';
 import { shareBlock } from '../ui/share-block.js';
 import { mountThanksWall } from '../ui/thanks-wall.js';
+import { locateTx } from '../ui/locate-tx.js';
 
 const TYPES = ['资产类', '成本类', '负债类', '收入类', '权益类', '费用类'];
 
@@ -123,12 +124,33 @@ export function mountValidate(section, ctx) {
       ],
     );
 
-    // 简码问题只有计数等于「没找到问题」—— 把具体是哪个账户、为什么列出来
-    // （重复简码只报后一个账户，前一行的简码同样会在设置页标红，两处一起看）。
+    // 问题明细：光给个计数没法定位（用户 2026-11 问「怎么辅助用户定位」）。
+    // 每条写成「第 N 笔 · 日期 · 原因」，**点一下**就跳到流水页并把那一行高亮。
+    // 简码问题（V7）没有流水可跳，只列文字。
     const v7 = issuesOf(res, 'V7');
-    if (v7.length) {
+    const errList = (res.issues || []).filter((it) => it.level !== 'warn');
+    if (errList.length || v7.length) {
       const ul = document.createElement('ul');
       ul.className = 'nt-issue-list';
+      const rowOf = (it) => (it.ref && typeof it.ref.index === 'number' ? txs[it.ref.index] : null);
+      for (const it of errList.slice(0, 8)) {
+        const li = document.createElement('li');
+        const tx = rowOf(it);
+        li.textContent = tx
+          ? `第 ${it.ref.index + 1} 笔 · ${tx.date || '—'} · ${it.message}`
+          : it.message;
+        if (tx && tx.id) {
+          li.classList.add('nt-issue-pick');
+          li.title = '跳到这一笔';
+          li.addEventListener('click', () => locateTx(tx.id));
+        }
+        ul.appendChild(li);
+      }
+      if (errList.length > 8) {
+        const li = document.createElement('li');
+        li.textContent = `还有 ${errList.length - 8} 条…`;
+        ul.appendChild(li);
+      }
       for (const it of v7.slice(0, 6)) {
         const li = document.createElement('li');
         li.textContent = it.message;

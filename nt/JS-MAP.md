@@ -125,6 +125,7 @@
 | `ui/inst-range.js` | 分期表上方的「月份范围」工具条 |
 | `ui/inst-table.js` | 分期表（表格内直接交互） |
 | `ui/layout-text.js` | 布局文本导出/导入 |
+| `ui/locate-tx.js` | 从校验跳到出问题的那一笔 |
 | `ui/modal.js` | 全局 → 统一弹窗（<dialog>） |
 | `ui/mw-params.js` | 全局：环图参数（CSS 变量 → 数字） |
 | `ui/mw-svg-renderer.js` | 路径 tab / path.html → SVG 渲染 |
