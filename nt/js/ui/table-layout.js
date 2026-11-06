@@ -189,6 +189,9 @@ function enterCustomMode(tableEl) {
       const th = tr.children[i];
       if (!th) continue;
       if (isUnifiedMonth(tableEl, th)) continue;
+      // 账户表的「节点名称」列要留给 auto 布局去撑满剩余宽度，
+      // 一旦给它写死 px，整张表就再也填不满（右边留白）。
+      if (tableEl.classList.contains('nt-table-accounts') && th.dataset.col === 'name') continue;
       // 内联清掉 min/max：CSS 里给冻结列写死的 max-width 会钳住拖出来的宽度
       th.style.minWidth = '0';
       th.style.maxWidth = 'none';
@@ -385,10 +388,14 @@ export function paintHandles(tableEl) {
   // 均分剩余宽度，给它们放手柄会让人以为能单独调，其实拖任何一列都只是
   // 在改金额区的总宽（用户 2026-11）。
   const stat = tableEl.classList.contains('nt-table-stat');
+  const accTable = tableEl.classList.contains('nt-table-accounts');
   for (const th of tableEl.querySelectorAll('thead .nt-th')) {
     if (stat && th.dataset.col !== 'cat') continue;
     // 按钮列（上移 / 删除）**不可调宽**：它只需要「够点」，宽度固定（用户 2026-11）。
     if (th.dataset.col === 'up' || th.dataset.col === 'action') continue;
+    // 账户表的「节点名称」列是**吃掉剩余宽度**的那一列（见 css/settings.css），
+    // 它没有固定宽度可拖 —— 给了手柄反而会把表格拖出空白。
+    if (accTable && th.dataset.col === 'name') continue;
     if (th.querySelector('.nt-col-handle')) continue;
     const handle = document.createElement('span');
     handle.className = 'nt-col-handle';

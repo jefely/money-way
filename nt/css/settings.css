@@ -118,27 +118,19 @@
    原来给这两列写的数字样式一起删掉 —— 否则第 7、8 位现在是按钮列。 */
 
 /* ============================================================
-   节点设置表的列宽（2026-11 重写）
+   节点设置表（账户表）的列宽
    ------------------------------------------------------------
-   规则从 shell.css 搬过来集中在这里，理由和统计表一样：
-   这张表**只在这一页出现**，宽度规则和别的表混在 shell.css 里，
-   很容易被 `.nt-table { width: max-content }` 和斑马纹那类
-   「tr > .nt-cell」选择器盖掉，于是只能一层层加 !important 补丁。
+   一句话：**表格铺满整栏，只有节点名称列不写宽度**，auto 布局把剩余空间
+   全给它；其余七列都是固定 px（可拖，参数在「账户设置/列宽」里）。
 
-   现在的模型和分类列表（详情表）一致，只有两条：
-     ① 表格 **占满整栏**（不是 max-content = 各列之和）；
-     ② 前 7 列固定 px，**期初余额那列用 calc 吃掉剩余** ——
-        所以容器变宽时只有期初列变宽，其它列纹丝不动。
+   为什么只能用 auto：fixed 布局下「没有宽度的列」只按内容算一个窄宽度，
+   多余空间留在表格右边、不分给任何列（实测 885 的表格只有 542 的列宽）。
+   auto 布局正好相反，会把没有宽度的列撑满。
+
+   为什么富余空间给「名称」而不是「期初」：期初吃剩余会撑到 368px，
+   把名称挤成一条缝；名称本来就是最长文本，给它最合理。
    ============================================================ */
 .nt-table.nt-table-accounts {
-  /* 2026-11 定稿：**auto 布局 + 节点名称列吃剩余**。
-     试过三种都不行：
-       ① fixed + 期初列 auto  → 期初列只按内容算 146px，剩下 293px 空在表格里；
-       ② fixed + calc 减出期初 → fixed 下百分比宽度不按预期解析，宽度还是不变；
-       ③ fixed + 八列都给 px   → 规范说多余空间「应」按比例分配，Chrome 实测**不分**，
-                                  542 的列宽对着 885 的表格，右边空 343px。
-     只有 auto 布局会把「没有宽度的列」撑满剩余空间 —— 所以把这份空间给**节点名称**，
-     它本来就是最长的文本列；期初余额保持固定的 96px，不会再出现被撑到 368px 的失衡。 */
   table-layout: auto;
   width: 100%;
 }
@@ -147,21 +139,10 @@
 .nt-table-accounts .nt-th[data-col="seq"]     { width: var(--nt-col-accounts-seq, 44px); }
 .nt-table-accounts .nt-th[data-col="type"]    { width: var(--nt-col-accounts-type, 66px); }
 .nt-table-accounts .nt-th[data-col="cat"]     { width: var(--nt-col-accounts-cat, 70px); }
-/* 按钮列：固定 40px，够点就行（上面 calc 里也是按 40 减的，两处要一致） */
+.nt-table-accounts .nt-th[data-col="opening"] { width: var(--nt-col-accounts-opening, 96px); }
 .nt-table-accounts .nt-th[data-col="up"]      { width: 40px; }
 .nt-table-accounts .nt-th[data-col="action"]  { width: 40px; }
-/* 节点名称：**不写宽度**，吃掉其它七列剩下的全部空间。
-   auto 布局下只有「没有宽度的列」会被撑满，fixed 不行（见上面那段）。
-   名称是最长的文本，把富余空间给它最合理。 */
-.nt-table-accounts .nt-th[data-col="name"] {
-  width: auto;
-}
-
-/* 期初余额：固定 px。**不要**让它吃剩余 —— 实测会被撑到 368px，
-   把名称列挤成一条缝（用户 2026-11 截图）。 */
-.nt-table-accounts .nt-th[data-col="opening"] {
-  width: var(--nt-col-accounts-opening, 96px);
-}
+/* name 故意不写宽度 —— 它是吃掉剩余空间的那一列，也不给拖动手柄（见 ui/table-layout.js）。 */
 
 /* 新增行的「+」：跟序号同色，别抢眼 */
 .nt-table-accounts td.nt-cell-seq {
