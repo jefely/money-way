@@ -251,7 +251,12 @@
           <span class="pw-brand" id="pw-brand">Money Way</span>
         </div>
         <details class="pw-help">
-          <summary>点弧块 / 点线 / 点左侧流水</summary>
+          <summary>
+            <span class="pw-help-title">点弧块 / 点线 / 点左侧流水</span>
+            <!-- 页脚的统计文字搬到这里（用户 2026-11：两处提示合并成一处），
+                 折叠着也能看到当前筛选下多少笔、多少块 -->
+            <span class="pw-help-stat" id="pw-help-stat"></span>
+          </summary>
           <p class="pw-help-body">点弧块：看这个节点直接相连的一侧。点线：只亮这一笔。点左侧流水：沿这笔钱追上下游。弦的颜色等于转出节点的弧色。环图就是这张网络：弧块是节点，弦是边。平时每条线一样粗，是为了一次画下大量流水；只有追踪时，线宽才随金额变化。</p>
           <div class="pw-legend" id="pw-legend"></div>
         </details>

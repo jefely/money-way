@@ -700,3 +700,21 @@
   white-space: pre-line;
   pointer-events: none;
 }
+
+/* 折叠行里的统计文字（用户 2026-11：和底部提示区合并）
+   摘要左边是操作提示，右边是当前筛选的统计；两段用不同字重分开，
+   折叠着也能一眼看到「多少笔 · 多少块」。 */
+.pw-help summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pw-help-stat {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--nt-text-muted);
+  font-variant-numeric: tabular-nums;
+}

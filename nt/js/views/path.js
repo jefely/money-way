@@ -380,18 +380,22 @@ export function mountPath(section, ctx) {
       },
     });
 
-    // 图的参数压成一行放页脚（和其它页一样在屏幕底部），左栏不再占一块高度给统计。
-    // 方向开关已取消：点弧块看哪一侧由类型决定，页脚把这件事说清楚即可。
+    // 统计文字**写在折叠行里**（用户 2026-11：和底部提示区整合，不再占页脚）。
+    // 折叠着也能看到「多少笔 · 多少块」，展开才是操作说明和图例。
     const focusName = focus && focus.kind === 'acc' ? ' · ' + nameOf(focus.id) : '';
     const emptyHint = emptyChain
       ? (focus && focus.kind === 'acc' ? ' · 这个节点没有相连的线' : ' · 没有相连的线')
       : '';
-    ctx.setFooter(`路径追踪${focusName}${emptyHint}`
-      + ` · ${data.txs.length} 笔 · ${data.blocks.length} 块`
-      + ` · ${data.unitDeg.toFixed(3)}°/单位 · ${data.unitArcLen.toFixed(2)}px/弧长`
-      + (data.sliced.folded ? ` · 折叠 ${data.sliced.folded}` : '')
-      + (hitIds ? ` · 已高亮 ${hitIds.size}` : '')
-      + (focus && focus.kind === 'trace' ? traceSeqText(traceSteps) : ''));
+    const stat = document.getElementById('pw-help-stat');
+    if (stat) {
+      stat.textContent = `${focusName}${emptyHint}`
+        + ` · ${data.txs.length} 笔 · ${data.blocks.length} 块`
+        + ` · ${data.unitDeg.toFixed(3)}°/单位 · ${data.unitArcLen.toFixed(2)}px/弧长`
+        + (data.sliced.folded ? ` · 折叠 ${data.sliced.folded}` : '')
+        + (hitIds ? ` · 已高亮 ${hitIds.size}` : '')
+        + (focus && focus.kind === 'trace' ? traceSeqText(traceSteps) : '');
+    }
+    ctx.setFooter('');
 
     if (typeof location !== 'undefined' && String(location.search).includes('debug=1')
         && focus && focus.kind === 'trace') {
