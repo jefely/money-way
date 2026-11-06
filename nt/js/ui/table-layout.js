@@ -154,6 +154,12 @@ function isUnifiedMonth(tableEl, th) {
 function enterCustomMode(tableEl) {
   if (tableEl.classList.contains('cols-custom')) return;
 
+  // 分类列表（详情表）**永远 100% 宽**：最后一列（备注）靠「不写宽度」吃剩余、
+  // 贴住面板右边。切到 `.cols-custom { width: max-content }` 表格就按内容缩成一半，
+  // 备注也跟着变窄（用户 2026-11 反复强调要贴右）。
+  // 它只需要「拖动时只改目标列」——前 5 列本来就是固定 px，不动别的列也成立。
+  const keepFull = tableEl.classList.contains('nt-table-catq');
+
   const cols = [...tableEl.querySelectorAll('colgroup col')];
   const headRows = [...tableEl.querySelectorAll('thead tr')];
 
@@ -169,7 +175,7 @@ function enterCustomMode(tableEl) {
   );
 
   // ② 再切模式、统一写入
-  tableEl.classList.add('cols-custom');
+  if (!keepFull) tableEl.classList.add('cols-custom');
   for (let i = 0; i < widths.length; i += 1) {
     const w = widths[i];
     if (!(w > 0)) continue;

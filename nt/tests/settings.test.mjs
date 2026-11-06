@@ -84,8 +84,8 @@ test('迁移不会把「自适应列」写成固定宽度', () => {
     assert.deepEqual(parseTableWidths(n[TABLE_COLS[t].label + '/列宽'], t), want, `${t} 默认值被改动了`);
   }
 
-  const q = parseTableWidths(n['分类查询/列宽'], 'catq');
-  assert.ok(q.every((x) => x === 0), '分类查询仍该是 0（百分比铺满）');
+  const q = parseTableWidths(n['分类列表/列宽'], 'catq');
+  assert.deepEqual(q, [32, 54, 70, 70, 58, 0], '前 5 列固定 px，备注 0 = 吃剩余（贴右）');
 });
 
 test('旧数组本身缺位时补的是「旧默认宽度」，不是 64', () => {
@@ -232,7 +232,7 @@ test('★ 旧存档的全局行高/字号迁移到各表，而不是掉回默认
 test('每表明写的值优先于旧全局值', () => {
   const n = normalize({ 数据区行高: 40, '流水记录/数据行高': 36 }, 'dark');
   assert.equal(n['流水记录/数据行高'], 36);
-  assert.equal(n['分类查询/数据行高'], 40, '表里没写的仍吃旧全局值');
+  assert.equal(n['分类列表/数据行高'], 40, '表里没写的仍吃旧全局值');
 });
 
 test('没设过时用每表默认值（26 / 12 / 32 / 14）', () => {
@@ -247,7 +247,7 @@ test('没设过时用每表默认值（26 / 12 / 32 / 14）', () => {
 });
 
 test('每表尺寸走自己的变量名，调一张不动别张', () => {
-  const n = normalize({ '流水记录/数据行高': 40, '分类查询/数据行高': 48 }, 'dark');
+  const n = normalize({ '流水记录/数据行高': 40, '分类列表/数据行高': 48 }, 'dark');
   const byVar = new Map(
     toCssList(n, 'dark').filter((x) => x.cssVar).map((x) => [x.cssVar, x.value]),
   );
@@ -257,9 +257,9 @@ test('每表尺寸走自己的变量名，调一张不动别张', () => {
 });
 
 test('每表尺寸也被钳制（行高 5 → 16，500 → 120）', () => {
-  const n = normalize({ '流水记录/数据行高': 5, '分类查询/数据行高': 500 }, 'dark');
+  const n = normalize({ '流水记录/数据行高': 5, '分类列表/数据行高': 500 }, 'dark');
   assert.equal(n['流水记录/数据行高'], 16);
-  assert.equal(n['分类查询/数据行高'], 120);
+  assert.equal(n['分类列表/数据行高'], 120);
 });
 
 test('★ 列宽手柄命中区：7 跟到 14，用户自调值保留', () => {

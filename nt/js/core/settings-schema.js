@@ -38,6 +38,7 @@ export const GROUP_FILE = {
   '分类-权益': 'css/stats.css',
   '分类-成本': 'css/stats.css',
   分类查询: 'css/stats.css',
+  '分类列表': 'css/stats.css',
   节点汇总: 'css/stats.css',
   // 六张分类表 + 节点表的第 1 列宽度与字号（节点表另有一个宽度参数）
   分类统计: 'css/stats.css',
@@ -224,7 +225,7 @@ export const SCHEMA = [
      想恢复默认列宽用面板底部的「恢复默认」。 */
   { key: '流水记录/列宽', group: '流水记录', type: 'cols', table: 'flow', def: TABLE_DEFAULT_WIDTHS.flow },
   // 统计页 6 大分类各一张表（2026-11）：每张表独立一套列宽
-  { key: '分类查询/列宽', group: '分类查询', type: 'cols', table: 'catq', def: TABLE_DEFAULT_WIDTHS.catq },
+  { key: '分类列表/列宽', group: '分类列表', type: 'cols', table: 'catq', def: TABLE_DEFAULT_WIDTHS.catq },
   { key: '流水查询/列宽', group: '流水查询', type: 'cols', table: 'query', def: TABLE_DEFAULT_WIDTHS.query },
   { key: '路径追踪/列宽', group: '路径追踪', type: 'cols', table: 'path', def: TABLE_DEFAULT_WIDTHS.path },
   { key: '固定开支/列宽', group: '固定开支', type: 'cols', table: 'plan', def: TABLE_DEFAULT_WIDTHS.plan },

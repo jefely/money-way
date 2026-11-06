@@ -124,16 +124,22 @@
 }
 
 /* 期初列**吃掉剩余宽度**：窗口变宽时只有这一列变宽，其它列保持固定，
-   方便逐行对照金额。它因此也不参与拖列宽（没有固定宽度可拖）。 */
-.nt-table-accounts .nt-th[data-col="opening"] {
-  width: auto;
+   方便逐行对照金额。它因此也不参与拖列宽（没有固定宽度可拖）。
+   用 !important 压过 shell.css 里按 `--nt-col-accounts-opening` 生成的宽度。 */
+.nt-table.nt-table-accounts th[data-col="opening"] {
+  width: auto !important;
 }
 
-/* 按钮列：不要背景、不要竖线 —— 它只是两个操作位，画成格子反而抢眼，
-   而且两个字宽的标题会把列顶住（用户 2026-11）。宽度固定，够点就行。 */
-.nt-table-accounts .nt-th.nt-c-action,
-.nt-table-accounts .nt-cell-action {
-  background: transparent;
+/* 按钮列：**固定 40px**（够点就行）、不要背景、不要竖线。
+   固定宽度是必须的 —— `table-layout: fixed` 在列宽之和小于表宽时会把
+   所有列按比例放大，按钮列跟着变宽，右边就多出一截空白（用户 2026-11）。
+   背景要 !important：斑马纹是 `tbody tr > .nt-cell` 级别的选择器，比这条高。 */
+.nt-table.nt-table-accounts .nt-th.nt-c-action,
+.nt-table.nt-table-accounts .nt-cell-action {
+  width: 40px !important;
+  min-width: 40px;
+  max-width: 40px;
+  background: transparent !important;
   border-left: 0;
   border-right: 0;
 }
