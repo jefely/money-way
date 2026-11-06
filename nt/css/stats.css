@@ -201,28 +201,6 @@
   border-bottom: 0;
 }
 
-/* 合计行类型名后面的 ▲：把这张小表往上挪一位（用户 2026-11）。
-   做得小、不抢眼 —— 它是个「偶尔用一次」的整理工具，不该比数字还显眼。 */
-.nt-stat-move {
-  margin-left: 5px;
-  padding: 0 3px;
-  border: 0;
-  background: transparent;
-  color: var(--nt-text-muted);
-  font-size: 10px;
-  line-height: 1;
-  vertical-align: middle;
-  cursor: pointer;
-  opacity: 0.7;
-}
-
-.nt-stat-move:hover,
-.nt-stat-move:focus-visible {
-  color: var(--nt-primary, #7c6bd6);
-  opacity: 1;
-  outline: none;
-}
-
 /* 金额为 0 的格子暗淡显示：一眼分清「这一项没有」和「这一项有数」。
    **只调字体颜色，不叠透明度** —— opacity 作用在整个 td 上，
    会把单元格边框一起淡化，格线断成一截一截（用户 2026-11 实测）。
@@ -250,11 +228,41 @@
   border-left: 0;
 }
 
-/* 合计行的类型名（资产/负债/…）：比金额再大一号，**靠左居中**（用户 2026-11） */
+/* 合计行的类型名（资产/负债/…）：比金额再大一号，**靠左居中**（用户 2026-11）。
+   这一格要 `overflow: visible` 且给右边留出按钮的位置 ——
+   ▲ 是绝对定位的，不占文本宽度，列再窄也不会把它挤没
+   （用户 2026-11：之前它排在文字后面，列一调窄就整个被 ellipsis 吃掉）。 */
 .nt-table-stat .nt-stats-total-row .nt-cell-total-name {
+  position: relative;
+  overflow: visible;
+  padding-right: 16px;
   text-align: left;
   vertical-align: middle;
   font-size: 14px;
+}
+
+/* 合计行类型名后面的 ▲：把这张小表往上挪一位（用户 2026-11）。
+   独立于单元格流布局：绝对定位钉在这一格的右下侧，文字多长都不影响它。 */
+.nt-stat-move {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--nt-text-muted);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.nt-stat-move:hover,
+.nt-stat-move:focus-visible {
+  color: var(--nt-primary, #7c6bd6);
+  opacity: 1;
+  outline: none;
 }
 
 /* 分类名前面的彩色圆点：颜色 = 该分类在环图里的颜色（用户 2026-11） */
