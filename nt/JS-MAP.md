@@ -66,7 +66,7 @@
 | `core/sync-merge.js` | （未标注界面）合并远端记录（纯函数） |
 | `core/sync-window.js` | （无界面）同步窗口自适应：一张码能装多少天就装多少天 |
 | `core/table-cols.js` | （无界面）每张表各自的列与默认列宽 |
-| `core/undo-stack.js` | （无界面）有上限的撤销栈 |
+| `core/undo-stack.js` | （无界面）有上限的撤销 / 重做栈 |
 | `core/validate.js` | （无界面）账本校验 V1–V7 |
 | `core/validator.js` | （无界面）校验工具 |
 | `core/vault-cas.js` | （无界面）写盘冲突判定 |
@@ -115,7 +115,7 @@
 | `ui/flow-shell.js` | 流水 ⇄ 账本设置 的横向切换 |
 | `ui/fly-in.js` | 流水 tab → 入账飞入 |
 | `ui/gate.js` | 锁屏 / 首次设密码 |
-| `ui/global-undo.js` | 全局撤销快捷键 |
+| `ui/global-undo.js` | 全局撤销 / 重做的动作与快捷键 |
 | `ui/import-dialog.js` | 导入 Excel / CSV / 账单 |
 | `ui/import-hub.js` | 流水工具条「导入」→ 先弹入口（选文件 / 粘贴文本） |
 | `ui/import-map.js` | 导入 → 手动指定列 |

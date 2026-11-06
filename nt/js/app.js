@@ -17,7 +17,7 @@ import { hasVault, createVault, unlockVault, saveState, destroyVault, changeVaul
 import { createUndo } from './core/undo-stack.js';
 import { resetAccountsKeepData } from './core/reset-book.js';
 import { backupFileName } from './core/backup-file.js';
-import { installUndoKeys } from './ui/global-undo.js';
+import { createHistory, bindUndoUI } from './ui/global-undo.js';
 import { installBackupGuard, markBackupDone } from './ui/backup-guard.js';
 import { watchOtherTabs, tellOtherTabs } from './ui/tab-guard.js';
 import { deliverTextFile } from './ui/share-file.js';
@@ -340,20 +340,21 @@ function enterApp() {
   }
 
   undo.checkpoint();
-  installUndoKeys({
-    onUndo: () => {
-      const prev = undo.pop();
-      if (!prev) { setFooter('没有可撤销的操作'); return; }
-      state = prev;
+
+  // 撤销 / 重做：逻辑在 ui/global-undo.js，这里只把「怎么装新状态」交给它
+  bindUndoUI(createHistory({
+    undo,
+    getState: () => state,
+    apply: (next) => {
+      state = next;
       dataVersion += 1;
       index = buildAccountIndex(state.accounts);
       updateDocTitle();
-      undo.unlock();
       renderActive();
       scheduleSave();
-      setFooter('已撤销上一步');
     },
-  });
+    footer: setFooter,
+  }));
   installBackupGuard();
   watchOtherTabs(setFooter);
   bindNotePopover(document);
