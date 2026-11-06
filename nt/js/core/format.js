@@ -37,6 +37,19 @@ export function moneyInt(v) {
   return moneyAlways(Math.round(Number(v) || 0)).replace(/\.00$/, '');
 }
 
+/**
+ * 统计页专用：**整数、千分位、不带 ¥**（用户 2026-11）。
+ *
+ * 手机上 5 列挤一屏，`¥203,047.50` 要 12 个字符宽，而一列只剩 60 多像素 ——
+ * 去掉 ¥ 和两位小数后是 `203,048`，7 个字符，直接省下四成宽度。
+ * 四舍五入到整数（显示用，存的值不动）。
+ */
+export function statAmount(v) {
+  const n = Math.round(Number(v) || 0);
+  const sign = n < 0 ? '-' : '';
+  return sign + String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 /** 今天，YYYY-MM-DD。now 只给测试注入。 */
 export function todayIso(now) {
   const d = now instanceof Date ? now : new Date();

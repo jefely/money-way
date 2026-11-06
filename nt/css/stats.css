@@ -146,7 +146,9 @@
 
 .nt-table-stat .nt-cell {
   height: 32px;
-  font-size: var(--nt-stat-font, 14px);
+  /* 第一顺位是「这张表按内容算出来的字号」（ui/stat-fit.js），放得下时没有这个变量，
+     回到参数里的基础字号。低分辨率手机可以在参数里整体放大，边角情况再自动收窄。 */
+  font-size: var(--nt-stat-font-fit, var(--nt-stat-font, 14px));
   padding: 0 5px;
 }
 

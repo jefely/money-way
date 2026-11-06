@@ -11,8 +11,9 @@
  * 每类一张独立小表：合计行 + 表头 + 该组数据行；表与表之间空 24px。
  */
 
-import { moneyAlways } from '../core/format.js';
+import { statAmount } from '../core/format.js';
 import { STAT_COLS, STAT_FIELDS, STAT_ORDER } from '../core/stats-panels.js';
+import { applyFitFont } from './stat-fit.js';
 import { mountStatColResize } from './stat-resize.js';
 import { syncFrozen } from './table-layout.js';
 
@@ -43,11 +44,15 @@ export const TABLE_OF = {
   成本类: 'cost',
 };
 
-/** 负债的负余额就是多还（借方余额），不把负数硬掰成正欠款 */
+/**
+ * 金额显示：**整数、不带 ¥**（用户 2026-11）。
+ * 手机上 5 列挤一屏，`¥203,047.50` 占的位置比 `203,048` 多四成。
+ * 负债的负余额仍标「多还」，但同样只留整数、不带符号。
+ */
 function amount(value, type, signed) {
   const n = Number(value) || 0;
-  if (signed && type === '负债类' && n < -0.005) return `多还 ${moneyAlways(Math.abs(n))}`;
-  return moneyAlways(n);
+  if (signed && type === '负债类' && n < -0.005) return `多还 ${statAmount(Math.abs(n))}`;
+  return statAmount(n);
 }
 
 function makeCell(text, cls) {
@@ -217,6 +222,11 @@ export function renderStatTables(host, groups, opts) {
     // 不再走 ui/table-layout 那套通用逻辑 —— 那套按坐标命中金额列，会破坏均分。
     mountStatColResize(el, { onResize: o.onResize });
     syncFrozen(el);
+    // 字号自适应要等排版完成才量得到列宽，所以推到下一帧。
+    // 放得下时什么都不做（变量不设 = 用参数里的基础字号）。
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => applyFitFont(el));
+    }
   }
 
   if (!count) {
