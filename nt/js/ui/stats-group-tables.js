@@ -52,7 +52,9 @@ function groupName(type) {
   return String(type || '').replace(/类$/, '');
 }
 
-/** 一行的 4 个金额格（合计行与数据行共用） */
+/**
+ * 一行的 4 个金额格（合计行与数据行共用）
+ */
 function amountCells(src, type) {
   return STAT_FIELDS.map((k, i) => {
     // 第 1 / 第 4 列是余额性质，负债类才需要「多还」；中间两列是发生额，恒正
@@ -61,10 +63,24 @@ function amountCells(src, type) {
   });
 }
 
-function makeRow(label, cells, total) {
+/**
+ * 一行：第 1 列 + 4 个金额格。
+ * @param {string} label 分类名 / 节点名 / 类型名（合计行）
+ * @param {Array} cells 已建好的 4 个金额 td
+ * @param {boolean} total 是不是合计行
+ * @param {string} [pick] 给了就表示这一行的名字可以点（点了右侧「详情」显示它）
+ */
+function makeRow(label, cells, total, pick) {
   const tr = document.createElement('tr');
   tr.className = 'nt-row' + (total ? ' nt-stats-total-row' : '');
-  tr.appendChild(makeCell(label, total ? 'nt-cell-total-name' : ''));
+  const cls = total ? 'nt-cell-total-name' : pick ? 'nt-cell-pick' : '';
+  const nameCell = makeCell(label, cls);
+  if (pick) {
+    nameCell.dataset.pick = pick;
+    nameCell.setAttribute('role', 'button');
+    nameCell.tabIndex = 0;
+  }
+  tr.appendChild(nameCell);
   for (const c of cells) tr.appendChild(c);
   return tr;
 }
@@ -122,7 +138,7 @@ function buildTable(g, table, firstCol) {
 
   const tbody = document.createElement('tbody');
   for (const r of g.rows) {
-    tbody.appendChild(makeRow(r.key, amountCells(r, type), false));
+    tbody.appendChild(makeRow(r.key, amountCells(r, type), false, r.key));
   }
   el.appendChild(tbody);
   return el;

@@ -1,22 +1,23 @@
-// 界面：统计 tab → 分类（6 大分类表 + 两个独立的分类查询）
+// 界面：统计 tab → 左栏六类表 + 右侧「详情」
 /**
- * 分类视图三栏（用户 2026-11 定稿）：
- *   左：6 大分类表（费用/收入/资产/负债/权益/成本，从上到下，有内容才列）
- *   中：分类查询 A
- *   右：分类查询 B（同一种表，独立输入、独立结果）
+ * 统计页的两个视图共用同一套骨架（2026-11 用户定）：
+ *   左：6 类小表（分类视图按分类聚合 / 节点视图按节点聚合）
+ *   右：「详情」—— 点左栏的名字（或手打）就列出构成它的流水
  *
- * 本文件只负责「三个区域怎么调度 + 分类查询怎么画」，
- * 分组小表的构建在 ui/stats-group-tables.js。
+ * 本文件只负责「两个区域怎么调度 + 详情怎么画」，
+ * 六类小表的构建在 ui/stats-group-tables.js，口径在 core/stats-panels.js。
  */
 
 import { categoryStats } from '../core/stats-panels.js';
-import { queryByCategory, resolveCategory, suggestCategories } from '../core/category-query.js';
+import {
+  queryByCategory, queryByNode, resolveCategory, suggestCategories,
+} from '../core/category-query.js';
 import { moneyAlways, shortDate } from '../core/format.js';
 import { paintHandles, syncFrozen } from './table-layout.js';
 import { showCatSuggest, hideCatSuggest, isCatSuggestFor } from './cat-suggest.js';
 import { renderStatTables, TABLE_OF } from './stats-group-tables.js';
 
-/** 分类查询表的列（日期/转出/转入/金额/备注） */
+/** 详情表的列（日期/转出/转入/金额/备注） */
 const QUERY_COLS = [['日期', 'date'], ['转出', 'from'], ['转入', 'to'], ['金额', 'amount'], ['备注', 'note']];
 
 function makeCell(text, cls) {
@@ -44,7 +45,12 @@ function paintHead(table, cols) {
   syncFrozen(table);
 }
 
-/** 画一个分类查询面板（每个面板读自己的输入框） */
+/** 这块详情比的是分类还是节点（`data-query` 决定） */
+function isNodePanel(panel) {
+  return panel.getAttribute('data-query') === 'node';
+}
+
+/** 画一个「详情」面板 */
 function paintQueryPanel(panel, state, range) {
   const table = panel.querySelector('.nt-table-catq');
   const tbody = table && table.querySelector('tbody');
@@ -55,12 +61,16 @@ function paintQueryPanel(panel, state, range) {
   tbody.textContent = '';
 
   const q = input ? input.value : '';
-  const rows = q.trim() ? queryByCategory(state.transactions, state.accounts, range, q) : [];
+  const node = isNodePanel(panel);
+  const rows = q.trim()
+    ? (node ? queryByNode : queryByCategory)(state.transactions, state.accounts, range, q)
+    : [];
 
   if (!q.trim() || !rows.length) {
+    const hint = node ? '点左侧节点，或输入名字 / 首字母' : '点左侧分类，或输入名字 / 首字母';
     const tr = document.createElement('tr');
     tr.className = 'nt-row';
-    const td = makeCell(q.trim() ? '没有匹配的流水' : '输入分类或首字母后显示本期流水', 'nt-cell-empty');
+    const td = makeCell(q.trim() ? '没有匹配的流水' : hint, 'nt-cell-empty');
     td.colSpan = QUERY_COLS.length;
     tr.appendChild(td);
     tbody.appendChild(tr);
@@ -80,12 +90,63 @@ function paintQueryPanel(panel, state, range) {
   return { matches: rows.length, query: q.trim() };
 }
 
+/** 把「当前正在看的名字」标到左栏对应的行上 */
+function markPicked(grid) {
+  const input = grid.querySelector('[data-kind="query"] [data-query-input]');
+  const q = input ? input.value.trim() : '';
+  for (const cell of grid.querySelectorAll('[data-pick]')) {
+    cell.setAttribute('aria-selected', cell.dataset.pick === q ? 'true' : 'false');
+  }
+}
+
 /**
- * 绑定所有分类查询面板（现在有 A、B 两个）。
- * 回车 / 点候选：首字母换成分类名后再查；输入过程防抖 120ms。
+ * 画右侧「详情」面板（分类视图与节点视图共用）。
+ * @returns {{matches:number, query:string}}
  */
-export function bindCategoryQueries(grid, onChange, getState) {
+export function paintDetailPanel(grid, state, range) {
+  let matches = 0;
+  const parts = [];
+  for (const panel of grid.querySelectorAll('[data-kind="query"]')) {
+    const r = paintQueryPanel(panel, state, range);
+    matches += r.matches;
+    if (r.query) parts.push(r.query);
+  }
+  markPicked(grid);
+  return { matches, query: parts.join(' / ') };
+}
+
+/**
+ * 绑定一块统计栅格：左栏点名字 → 填进详情；详情输入框照常可手打。
+ *
+ * 分类和节点用的是同一个函数 —— 两边的差别只在 `data-query`，
+ * 那已经写在 HTML 里了，没必要写两份绑定。
+ */
+export function bindStatsDetail(grid, onChange, getState) {
   const stateNow = () => (typeof getState === 'function' ? getState() : null);
+
+  // 点左栏的分类 / 节点名 → 直接把名字灌进详情并查
+  if (!grid.dataset.pickBound) {
+    grid.dataset.pickBound = '1';
+    const onPick = (ev) => {
+      const cell = ev.target.closest('[data-pick]');
+      if (!cell || !grid.contains(cell)) return;
+      const panel = grid.querySelector('[data-kind="query"]');
+      const input = panel && panel.querySelector('[data-query-input]');
+      if (!input) return;
+      input.value = cell.dataset.pick;
+      hideCatSuggest();
+      onChange();
+    };
+    grid.addEventListener('click', onPick);
+    // 键盘可达：Enter / 空格等同点击
+    grid.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Enter' && ev.key !== ' ') return;
+      const cell = ev.target.closest('[data-pick]');
+      if (!cell) return;
+      ev.preventDefault();
+      onPick(ev);
+    });
+  }
 
   for (const panel of grid.querySelectorAll('[data-kind="query"]')) {
     if (panel.dataset.bound === '1') continue;
@@ -94,11 +155,14 @@ export function bindCategoryQueries(grid, onChange, getState) {
     const input = panel.querySelector('[data-query-input]');
     const clear = panel.querySelector('[data-query-clear]');
     if (!input) continue;
+    const node = isNodePanel(panel);
 
     let timer = 0;
     let lastItems = [];
 
     const refreshSuggest = () => {
+      // 候选只对分类有用（节点名太多，弹出来反而吵）
+      if (node) return;
       const state = stateNow();
       lastItems = state ? suggestCategories(state.accounts, input.value, 8) : [];
       if (!lastItems.length) { hideCatSuggest(); return; }
@@ -121,7 +185,7 @@ export function bindCategoryQueries(grid, onChange, getState) {
       ev.preventDefault();
       clearTimeout(timer);
       const state = stateNow();
-      let name = state ? resolveCategory(state.accounts, input.value) : '';
+      let name = state && !node ? resolveCategory(state.accounts, input.value) : '';
       if (!name && lastItems.length === 1) name = lastItems[0].name;
       if (name && name !== input.value) {
         input.value = name;
@@ -150,22 +214,16 @@ export function bindCategoryQueries(grid, onChange, getState) {
 }
 
 /**
- * 画整个分类视图（v1.272：三栏 = 6 大分类 | 分类查询 A | 分类查询 B）
- * @returns {{categories:number, matches:number, query:string}}
+ * 画分类视图的左栏（6 大分类表）。
+ * @returns {{categories:number}}
  */
 export function paintCategoryPanels(grid, state, range) {
-  if (!grid) return { categories: 0, matches: 0, query: '' };
-
+  if (!grid) return { categories: 0 };
   const groups = categoryStats(state.accounts, state.transactions, range);
   const categories = renderStatTables(
     grid.querySelector('#nt-stats-groups'),
     groups,
     { firstCol: '分类', tableOf: TABLE_OF },
   );
-
-  const qs = [...grid.querySelectorAll('[data-kind="query"]')].map((p) => paintQueryPanel(p, state, range));
-  const matches = qs.reduce((n, q) => n + q.matches, 0);
-  const query = qs.map((q) => q.query).filter(Boolean).join(' / ');
-
-  return { categories, matches, query };
+  return { categories };
 }

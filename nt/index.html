@@ -144,23 +144,10 @@
               <div class="nt-stats-tables" id="nt-stats-groups"></div>
             </div>
           </section>
-          <section class="nt-stats-panel nt-stats-panel-query" data-kind="query" data-query="1">
+          <section class="nt-stats-panel nt-stats-panel-query" data-kind="query" data-query="category">
             <div class="nt-stats-panel-head nt-stats-panel-head-query">
-              <b>分类查询1</b>
-              <input class="nt-stats-query-input" data-query-input type="search" placeholder="分类 / 首字母" aria-label="分类查询 1">
-              <button class="nt-btn nt-btn-sm" type="button" data-query-clear>清空</button>
-            </div>
-            <div class="nt-tablewrap">
-              <table class="nt-table nt-table-catq">
-                <thead></thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </section>
-          <section class="nt-stats-panel nt-stats-panel-query" data-kind="query" data-query="2">
-            <div class="nt-stats-panel-head nt-stats-panel-head-query">
-              <b>分类查询2</b>
-              <input class="nt-stats-query-input" data-query-input type="search" placeholder="分类 / 首字母" aria-label="分类查询 2">
+              <b>详情</b>
+              <input class="nt-stats-query-input" data-query-input type="search" placeholder="分类 / 首字母，或点左侧分类" aria-label="分类详情">
               <button class="nt-btn nt-btn-sm" type="button" data-query-clear>清空</button>
             </div>
             <div class="nt-tablewrap">
@@ -171,8 +158,27 @@
             </div>
           </section>
         </div>
-        <div class="nt-tablewrap" id="nt-stats-summary-wrap" hidden>
-          <div class="nt-stats-tables" id="nt-stats-sum"></div>
+        <!-- 节点视图：和分类视图同一个双区域结构（左 6 类表 + 右详情），
+             只是左栏第一列换成节点名、数据来自 nodeStats() -->
+        <div class="nt-stats-grid" id="nt-stats-summary-wrap" hidden>
+          <section class="nt-stats-panel" data-kind="groups">
+            <div class="nt-tablewrap">
+              <div class="nt-stats-tables" id="nt-stats-sum"></div>
+            </div>
+          </section>
+          <section class="nt-stats-panel nt-stats-panel-query" data-kind="query" data-query="node">
+            <div class="nt-stats-panel-head nt-stats-panel-head-query">
+              <b>详情</b>
+              <input class="nt-stats-query-input" data-query-input type="search" placeholder="节点 / 首字母，或点左侧节点" aria-label="节点详情">
+              <button class="nt-btn nt-btn-sm" type="button" data-query-clear>清空</button>
+            </div>
+            <div class="nt-tablewrap">
+              <table class="nt-table nt-table-catq">
+                <thead></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
         </div>
       </section>
 

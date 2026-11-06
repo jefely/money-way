@@ -146,7 +146,7 @@
 | `ui/row-editor.js` | 流水 tab → 行内编辑 / 新增行 |
 | `ui/share-block.js` | 二维码分享区块 |
 | `ui/share-file.js` | 导出加密备份文件 |
-| `ui/stats-category.js` | 统计 tab → 分类（6 大分类表 + 两个独立的分类查询） |
+| `ui/stats-category.js` | 统计 tab → 左栏六类表 + 右侧「详情」 |
 | `ui/stats-group-tables.js` | 统计页的六类小表（分类汇总与节点汇总共用同一套构建器） |
 | `ui/stats-split.js` | 统计页 —— 左栏（6 大分类）与右侧查询区之间的分界条 |
 | `ui/suggest-popover.js` | 流水 tab / 查询 tab → 账户候选气泡 |

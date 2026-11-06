@@ -6,8 +6,10 @@
 
 .nt-stats-grid {
   display: grid;
-  /* 左栏宽度可拖（--nt-stats-left-w，默认 45%）；剩下的宽度由两块分类查询**平均分配** */
-  grid-template-columns: var(--nt-stats-left-w, 45%) minmax(0, 1fr) minmax(0, 1fr);
+  /* 左栏宽度可拖（--nt-stats-left-w，默认 45%）；右侧一块「详情」。
+     2026-11：原来的两块分类查询合成一块并改名「详情」（点分类即时显示），
+     所以栅格从三栏变两栏。节点视图复用同一个 grid 类，宽度变量也共用。 */
+  grid-template-columns: var(--nt-stats-left-w, 45%) minmax(0, 1fr);
   flex: 1;
   min-height: 0;
   border-top: 1px solid var(--nt-bg-line);
@@ -155,11 +157,14 @@
 /* 合计行在表头**上边**：普通底色、加粗、字号略小于数据行；
    只留数字（分类格空），突出下面有底色的表头行 */
 .nt-table-stat .nt-stats-total-row .nt-cell {
-  height: 26px;
+  /* 26 × 1.1 ≈ 29（用户 2026-11：合计行要更显出「一行摘要」的分量） */
+  height: 29px;
   padding: 0 5px;
   background: transparent;
   font-weight: 700;
   font-size: 13px;
+  /* 金额靠**右下**：贴着单元格底边，读起来像一条压在下划线上的汇总 */
+  vertical-align: bottom;
 }
 
 /* 分类列：居中（没有序号列了，第 1 列就是分类） */
@@ -179,9 +184,27 @@
   border-left: 0;
 }
 
-/* 合计行的类型名（资产/负债/…）放在分类列的头上，与分类列内容同样居中 */
+/* 合计行的类型名（资产/负债/…）：比金额再大一号，**靠左居中**（用户 2026-11） */
 .nt-table-stat .nt-stats-total-row .nt-cell-total-name {
-  text-align: center;
+  text-align: left;
+  vertical-align: middle;
+  font-size: 14px;
+}
+
+/* 分类 / 节点名可以点：点了右侧「详情」显示它的明细（用户 2026-11）。
+   不画下划线（用户偏好素净），靠 cursor 和悬停变色提示。 */
+.nt-table-stat .nt-cell-pick {
+  cursor: pointer;
+}
+
+.nt-table-stat .nt-cell-pick:hover {
+  color: var(--nt-primary, #7c6bd6);
+}
+
+/* 当前正在详情里查看的那一个：左侧留一道前景色细条 */
+.nt-table-stat .nt-cell-pick[aria-selected="true"] {
+  color: var(--nt-primary, #7c6bd6);
+  box-shadow: inset 2px 0 0 var(--nt-primary, #7c6bd6);
 }
 
 /* ---------- 第三块：分类查询 ---------- */

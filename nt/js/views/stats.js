@@ -9,7 +9,7 @@
 
 import { nodeStats } from '../core/stats-panels.js';
 import { mountCellRange } from '../ui/cell-range.js';
-import { paintCategoryPanels, bindCategoryQueries } from '../ui/stats-category.js';
+import { paintCategoryPanels, paintDetailPanel, bindStatsDetail } from '../ui/stats-category.js';
 import { mountStatsSplit } from '../ui/stats-split.js';
 import { renderStatTables } from '../ui/stats-group-tables.js';
 
@@ -35,8 +35,10 @@ export function mountStats(section, ctx) {
 
   bindCaps();
   bindScope();
-  bindCategoryQueries(grid, () => render(), () => ctx.getState());
-  // 左栏（6 大分类）与右侧查询区之间的分界条：拖它调整左栏宽度
+  // 两个视图各有一块「详情」：分类按分类查、节点按节点查，绑定逻辑是同一份
+  bindStatsDetail(grid, () => render(), () => ctx.getState());
+  if (summaryWrap) bindStatsDetail(summaryWrap, () => render(), () => ctx.getState());
+  // 左栏（6 大分类）与右侧详情区之间的分界条：拖它调整左栏宽度
   mountStatsSplit(section);
 
   // 统计表是只读的：框选只提供「复制」（同时进系统剪贴板，方便贴到 Excel）
@@ -83,22 +85,24 @@ export function mountStats(section, ctx) {
     if (grid) grid.hidden = false;
     if (summaryWrap) summaryWrap.hidden = true;
     const r = paintCategoryPanels(grid, state, range);
-    const q = r.query ? ` · 分类查询「${r.query}」${r.matches} 笔` : '';
+    const d = paintDetailPanel(grid, state, range);
+    const q = d.query ? ` · 详情「${d.query}」${d.matches} 笔` : '';
     ctx.setFooter(`${r.categories} 个分类 · ${visibleCount(state)} 个节点 · ${scopeLabel()}${q}`);
   }
 
   function renderSummary(state, range) {
     if (grid) grid.hidden = true;
     if (summaryWrap) summaryWrap.hidden = false;
-    // 节点汇总：六类各一张小表，5 列（节点 | 期初/历史累计 | 本期增 | 本期减 | 期末/净出）。
-    // 和分类汇总共用同一个构建器，只换第一列与列宽参数。
+    // 节点视图：布局逻辑完全沿用分类表 —— 左 6 类节点表 + 右「详情」
     const groups = nodeStats(state.accounts, state.transactions, range);
     const n = renderStatTables(summaryHost, groups, {
       firstCol: '节点',
       table: 'node',
       empty: '还没有节点',
     });
-    ctx.setFooter(`${n} 个节点 · ${scopeLabel()}`);
+    const d = paintDetailPanel(summaryWrap, state, range);
+    const q = d.query ? ` · 详情「${d.query}」${d.matches} 笔` : '';
+    ctx.setFooter(`${n} 个节点 · ${scopeLabel()}${q}`);
   }
 
   /* ---------- 范围与标签 ---------- */

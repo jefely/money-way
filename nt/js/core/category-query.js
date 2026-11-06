@@ -20,11 +20,11 @@ function inRange(date, start, end) {
 }
 
 /** 分类 → 首字母串（同一分类只算一次；分类数很少，但流水很多） */
-function initialsMap(accounts) {
+function initialsMap(accounts, field) {
   const map = new Map();
   for (const a of accounts || []) {
     if (!a) continue;
-    const c = String(a.category || '');
+    const c = String(a[field] || '');
     if (!c || map.has(c)) continue;
     map.set(c, initialsOf(c));
   }
@@ -32,26 +32,32 @@ function initialsMap(accounts) {
 }
 
 /**
+ * 按某个字段（分类 / 节点名）在选定时间段里筛流水。
+ * 一笔流水只要转出方或转入方任一账户的该字段命中，就算命中。
+ *
+ * 分类详情和节点详情共用这一套：它们除了「比哪个字段」之外完全一样，
+ * 所以没有理由写两份。
+ *
  * @param {Array} transactions
  * @param {Array} accounts
  * @param {{start?:string,end?:string}} range
  * @param {string} text
- * @returns {Array<{tx:object,from:object|null,to:object|null}>}
+ * @param {'category'|'name'} field
  */
-export function queryByCategory(transactions, accounts, range, text) {
+function queryBy(transactions, accounts, range, text, field) {
   const q = String(text || '').trim();
   if (!q) return [];
   const qLower = q.toLowerCase();
   const byId = new Map((accounts || []).filter(Boolean).map((a) => [a.id, a]));
-  const initials = initialsMap(accounts);
+  const initials = initialsMap(accounts, field);
   const start = (range && range.start) || '';
   const end = (range && range.end) || '';
 
   const hit = (acc) => {
-    const cat = String((acc && acc.category) || '');
-    if (!cat) return false;
-    if (cat.includes(q)) return true;
-    return (initials.get(cat) || '').includes(qLower);
+    const key = String((acc && acc[field]) || '');
+    if (!key) return false;
+    if (key.includes(q)) return true;
+    return (initials.get(key) || '').includes(qLower);
   };
 
   return (transactions || [])
@@ -63,6 +69,25 @@ export function queryByCategory(transactions, accounts, range, text) {
       return (Number(b.seq) || 0) - (Number(a.seq) || 0);
     })
     .map((t) => ({ tx: t, from: byId.get(t.from_id) || null, to: byId.get(t.to_id) || null }));
+}
+
+/**
+ * @param {Array} transactions
+ * @param {Array} accounts
+ * @param {{start?:string,end?:string}} range
+ * @param {string} text
+ * @returns {Array<{tx:object,from:object|null,to:object|null}>}
+ */
+export function queryByCategory(transactions, accounts, range, text) {
+  return queryBy(transactions, accounts, range, text, 'category');
+}
+
+/**
+ * 按**节点名**筛流水（节点视图的「详情」用）。
+ * 口径与 queryByCategory 完全一致，只是匹配字段换成 `account.name`。
+ */
+export function queryByNode(transactions, accounts, range, text) {
+  return queryBy(transactions, accounts, range, text, 'name');
 }
 
 /**

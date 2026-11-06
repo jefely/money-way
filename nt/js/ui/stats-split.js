@@ -30,9 +30,18 @@ function applyWidth(w) {
   else root.style.removeProperty('--nt-stats-left-w');
 }
 
-/** 挂上分界条（只挂一次） */
+/**
+ * 挂上分界条（只挂一次）。
+ *
+ * 分类视图和节点视图各是一块 `.nt-stats-grid`，两块都挂 —— 它们共用同一个
+ * 宽度变量 `--nt-stats-left-w`，所以在哪个视图拖的，切过去都一样宽。
+ */
 export function mountStatsSplit(section) {
-  const grid = section && section.querySelector('#nt-stats-grid');
+  if (!section) return;
+  for (const grid of section.querySelectorAll('.nt-stats-grid')) mountOne(grid);
+}
+
+function mountOne(grid) {
   if (!grid || grid.querySelector('.nt-stats-split')) return;
 
   const bar = document.createElement('button');
