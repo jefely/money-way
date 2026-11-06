@@ -19,7 +19,7 @@ import { toAmount } from '../core/stats.js';
 import { updateAccount, removeAccount, addNote, updateNote, removeNote, NOTE_TYPES, accountTypesOf } from '../core/state-store.js';
 import { accountsOfZone, orderBySeq, effectiveSeq, moveWithinType, withUndefinedAccounts } from '../core/account-order.js';
 import { bindTypePicker, promptType } from './type-picker.js';
-import { zoneCols, zoneHead } from './table-parts.js';
+import { zoneHead } from './table-parts.js';
 import { normalizeCode, isValidCode } from '../core/schema.js';
 import { balanceOf } from '../core/balance-calculator.js';
 import { renderNotes } from './note-table.js';
@@ -130,7 +130,8 @@ export function mountAccountTable(ctx, tbody, opts) {
       // 序号每个区域从 1 开始（用户 2026-10-29）
       let zoneSeq = 0;
 
-      if (zone.key !== 'A') frag.appendChild(zoneCols());
+      // 不再给每个区域重复列标题（用户 2026-11）：顶部那份冻结表头就够了，
+      // 每个 A/B/U 区再插一行「简码 | 序 | …」只是把列表割得更碎。
       frag.appendChild(zoneHead(zone));
 
       if (!inZone.length) {

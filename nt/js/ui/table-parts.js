@@ -39,14 +39,6 @@ export function zoneHead(zone) {
   return head;
 }
 
-export function zoneCols() {
-  const tr = document.createElement('tr');
-  tr.className = 'nt-zone-cols';
-  for (const label of ACCOUNT_COLS) {
-    const td = document.createElement('td');
-    td.className = 'nt-cell';
-    td.textContent = label;
-    tr.appendChild(td);
-  }
-  return tr;
-}
+// 注意：原来这里还有一个 zoneCols()（给每个 A/B/U 区重复插一行列标题），
+// 2026-11 取消重复表头后没人用了，一并删掉。备注区的列标题是另一套
+// 列结构（简码/序/类型/关键字/内容/移/删），在 note-table.js 里，不受影响。
