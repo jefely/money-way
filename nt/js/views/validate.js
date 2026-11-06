@@ -64,7 +64,8 @@ export function mountValidate(section, ctx) {
       ['流水笔数', String(txs.length)],
       ['左方（转出）合计', moneyAlways(total)],
       ['右方（转入）合计', moneyAlways(total)],
-      ['差额', moneyAlways(0)],
+      // 差额 0 = 两边平衡，用绿色标出来（用户 2026-11）
+    ['差额', moneyAlways(0), 'ok'],
       ['草稿（未入账）', String(drafts)],
     ]));
 
