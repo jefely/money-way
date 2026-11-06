@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    校验页：三张校验卡片 + 说明/赞助的文本块
    ============================================================ */
 
@@ -11,10 +11,19 @@
 
 .nt-card {
   margin-bottom: 12px;
-  padding: 14px;
+  /* 左右收窄一点（用户 2026-11：原来 14px 太宽，右侧金额栏被挤到折行） */
+  padding: 11px 12px;
   border: 1px solid var(--nt-bg-line);
   border-radius: var(--nt-radius-lg);
   background: var(--nt-bg-soft);
+}
+
+/* 校验弹窗比默认宽 —— 里面是「项目 + 金额」两列对账数据，
+   窄弹窗会把「资产 + 成本 + 费用 − 负债 − 权益 − 收入」这种长式子折成两行。
+   用 :has() 只影响**装了校验卡片**的弹窗，别的弹窗宽度不变。 */
+.nt-modal:has(.nt-card) {
+  width: min(680px, 94vw);
+  max-width: min(680px, 94vw);
 }
 
 .nt-card-head {
@@ -50,8 +59,21 @@
 .nt-kv {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 6px 16px;
+  gap: 0 16px;
   font-variant-numeric: tabular-nums;
+}
+
+/* 每行加一条细分隔线（用户 2026-11：纯白底上一排数字，眼睛找不到行）。
+   线和表格的格线同色，最后一行不画（免得多出一条悬空的线）。 */
+.nt-kv dt,
+.nt-kv dd {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--nt-bg-line);
+}
+
+.nt-kv dt:last-of-type,
+.nt-kv dd:last-of-type {
+  border-bottom: 0;
 }
 
 .nt-kv dt {
