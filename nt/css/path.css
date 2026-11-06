@@ -622,7 +622,8 @@
   position: fixed;
   left: 8px;
   right: 8px;
-  bottom: 36px;
+  /* 2026-11：路径页的页脚已清空，原来留的 36px 成了一条空带（用户报「图例下面还有一块区域」）。贴底。 */
+  bottom: 8px;
   z-index: 6;
   max-height: 42vh;
   overflow: auto;

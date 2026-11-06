@@ -52,7 +52,7 @@ export const MW_SCHEMA = [
   { key: '锥形第一档', type: 'num', group: '环图·标签', def: 25, min: 0, max: 400, cssVar: '--nt-mw-cone-a', field: 'coneA' },
   { key: '锥形第二档', type: 'num', group: '环图·标签', def: 200, min: 0, max: 400, cssVar: '--nt-mw-cone-b', field: 'coneB' },
   { key: '锥形半宽', type: 'num', group: '环图·标签', def: 5, min: 0, max: 60, cssVar: '--nt-mw-cone-half-w', field: 'coneHalfW' },
-  { key: '锥形不透明度', type: 'num', group: '环图·标签', def: 0.5, min: 0, max: 1, cssVar: '--nt-mw-cone-op', field: 'coneOp' },
+  { key: '锥形不透明度', type: 'num', group: '环图·标签', def: 1, min: 0, max: 1, cssVar: '--nt-mw-cone-op', field: 'coneOp' },
   { key: '锥底文字偏移', type: 'num', group: '环图·标签', def: 10, min: 0, max: 200, cssVar: '--nt-mw-cone-text-gap', field: 'coneTextGap' },
 
   /* ---------- 环图·线 ---------- */

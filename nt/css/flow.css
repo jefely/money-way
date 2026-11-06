@@ -1083,8 +1083,10 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 .nt-composer.open .nt-composer-btn {
   width: 38px;
   height: 38px;
-  background: var(--nt-bg);
-  color: var(--nt-text-muted);
+  /* 展开态也用主色（用户 2026-11）：原来是 var(--nt-bg) 浅灰底，
+     白字贴上去几乎看不见。主色底 + 白字在四个主题下都成立。 */
+  background: var(--nt-primary);
+  color: #ffffff;
 }
 
 .nt-composer.open .nt-composer-btn.has-text {
@@ -1328,15 +1330,14 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
    做法是文字本身用上下渐变（上亮下暗，模拟绒面的受光），
    再压一层很淡的软阴影把字「按」进圆面里。 */
 .nt-icon-nt {
-  /* 纯白 + 三层阴影（用户 2026-11：对比度要够）。
-     之前用「上亮下暗」的渐变做丝绒，末端 #cfe6cf 让下半截发灰，
-     在紫 / 绿钮上对比度不够。现在统一纯白，靠阴影把边缘「压」出来；
-     顶部那一丝高光保留丝绒感，不至于变成一块死白。 */
+  /* 白字 + **凹陷**阴影（用户 2026-11：绿色泡泡上的白字要「凹下去」）。
+     上沿一道亮白、下沿一道暗影，读起来是「刻进圆面」而不是浮在表面上。
+     之前是全向外的阴影，看起来是凸起的。 */
   color: #ffffff;
   text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.55),
-    0 0 6px rgba(0, 0, 0, 0.30),
-    0 -1px 1px rgba(255, 255, 255, 0.25);
+    0 1px 0 rgba(255, 255, 255, 0.40),
+    0 -1px 2px rgba(0, 0, 0, 0.60),
+    0 -2px 4px rgba(0, 0, 0, 0.28);
   letter-spacing: 0.04em;
 }
 
