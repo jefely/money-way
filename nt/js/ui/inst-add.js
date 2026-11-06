@@ -187,5 +187,19 @@ export function mountAddForm(ctx, onAdded) {
     if (barEl) add(barEl);
   }
 
-  return { render, submit };
+  /**
+   * 用给定的值直接建一条分期（用户 2026-11：分期表的空行要能「直接填」）。
+   * 做法是先把值写进上方表单的对应字段，再走同一个 add() —— 创建逻辑只有一份。
+   */
+  function submitWith(vals) {
+    const bar = document.getElementById('nt-inst-add');
+    if (!bar) return;
+    for (const [k, v] of Object.entries(vals || {})) {
+      const el = bar.querySelector('[data-add="' + k + '"]');
+      if (el) el.value = v;
+    }
+    add(bar);
+  }
+
+  return { render, submit, submitWith };
 }

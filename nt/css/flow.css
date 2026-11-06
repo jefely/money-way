@@ -1341,3 +1341,7 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 .nt-composer.open .nt-icon-nt {
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
 }
+
+/* 分期表的空行：现在点一下会跳到添加栏，给个手型提示（用户 2026-11） */
+.nt-inst-blank { cursor: pointer; }
+.nt-inst-blank:hover > .nt-cell { background: var(--nt-bg-soft); }

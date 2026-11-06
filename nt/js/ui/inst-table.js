@@ -83,7 +83,8 @@ export function mountInstTable(ctx, tbody, opts) {
     // 先画已有的分期（每笔两行），空行放**后面**（用户 2026-11：
     // 原来追加在数据之前，一打开就是十几行空白，看不到自己录的分期）。
     for (const row of list) paintRow(row, span);
-    for (let k = 0; k < BLANK_INST_ROWS; k += 1) paintBlankRow(tbody, span, FIXED_COLS);
+    // 空行支持两种添加入口：格子里直接填（填齐名称+金额自动建），或点空行跳去上方添加栏
+    for (let k = 0; k < BLANK_INST_ROWS; k += 1) paintBlankRow(tbody, span, FIXED_COLS, addForm.submitWith);
     paintAddForm();
     summarize(list);
   }
