@@ -142,7 +142,7 @@
 | `ui/qr-canvas.js` | （未标注界面）把 QR 矩阵画到 canvas（UI 层） |
 | `ui/range-bar.js` | 单元格框选的工具条 |
 | `ui/render-transactions.js` | 流水 tab → 表格 tbody（分批追加，照单文件版） |
-| `ui/reset-dialog.js` | 设置 → 重置 |
+| `ui/reset-dialog.js` | 节点模板弹窗里的「重置」区 |
 | `ui/review-tip.js` | 设置页 → 新增序号气泡 |
 | `ui/row-editor.js` | 流水 tab → 行内编辑 / 新增行 |
 | `ui/share-block.js` | 二维码分享区块 |

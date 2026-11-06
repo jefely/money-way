@@ -1,4 +1,4 @@
-﻿// 界面：账户配置导入导出
+// 界面：账户配置导入导出
 /**
  * 账户配置（UI 层）
  *
@@ -9,6 +9,7 @@
 import * as NtModal from './modal.js';
 import { accountsToText, applyAccountsText } from '../core/account-config.js';
 import { downloadText, pickTextFile } from './file-io.js';
+import { resetSection } from './reset-dialog.js';
 
 /**
  * @param {{getState:Function, setState:Function, saveNow:Function,
@@ -18,7 +19,7 @@ export function openAccountConfig(ctx) {
   const text = accountsToText(ctx.getState());
 
   NtModal.open({
-    title: '账户配置',
+    title: '节点模板',
     build: (body) => {
       const tip = document.createElement('p');
       tip.className = 'nt-sync-hint';
@@ -109,6 +110,10 @@ export function openAccountConfig(ctx) {
       inBar.appendChild(readFile);
       inBar.appendChild(apply);
       body.appendChild(inBar);
+
+      // 重置原来是一个独立弹窗，2026-11 整合进这里（用户要求）。
+      // 它自己有「执行重置」按钮，不占弹窗底部的 actions。
+      body.appendChild(resetSection(ctx, () => NtModal.closeAll()));
     },
     actions: [{ label: '关闭', kind: 'ghost', close: true }],
   });

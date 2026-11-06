@@ -198,3 +198,16 @@
 .nt-modal-actions:empty {
   display: none;
 }
+/* 节点模板弹窗里的「重置」区（2026-11 从独立弹窗整合进来） */
+.nt-reset-block {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--nt-bg-line);
+}
+
+.nt-reset-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--nt-danger, var(--nt-bad));
+}

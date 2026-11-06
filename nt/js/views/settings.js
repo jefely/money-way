@@ -19,7 +19,6 @@ import { loadMergedSettings } from '../ui/debug-themes.js';
 import { mountDebugPanel } from '../ui/debug-panel.js';
 import { openAccountConfig } from '../ui/account-config.js';
 import { checkNewPassword } from '../core/vault-rekey.js';
-import { openResetDialog } from '../ui/reset-dialog.js';
 
 const ACT_LABEL = { password: '修改密码', config: '配置', layout: '布局' };
 
@@ -60,7 +59,6 @@ export function mountSettings(section, ctx) {
   function onAction(act) {
     if (act === 'balance') { showBalance(); return; }
     if (act === 'theme') { cycleTheme(); return; }
-    if (act === 'reset') { openResetDialog(ctx); return; }
     if (act === 'layout') { showLayout(); return; }
     if (act === 'config') { openAccountConfig(ctx); return; }
     if (act === 'password') { showPassword(); return; }
