@@ -92,7 +92,7 @@ function noteCols() {
 
   const delTd = document.createElement('td');
   delTd.className = 'nt-cell';
-  delTd.textContent = '删除';
+  delTd.textContent = '删';
   tr.appendChild(delTd);
 
   return tr;
