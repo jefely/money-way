@@ -130,18 +130,29 @@
   width: auto !important;
 }
 
-/* 按钮列：**固定 40px**（够点就行）、不要背景、不要竖线。
-   固定宽度是必须的 —— `table-layout: fixed` 在列宽之和小于表宽时会把
-   所有列按比例放大，按钮列跟着变宽，右边就多出一截空白（用户 2026-11）。
-   背景要 !important：斑马纹是 `tbody tr > .nt-cell` 级别的选择器，比这条高。 */
-.nt-table.nt-table-accounts .nt-th.nt-c-action,
-.nt-table.nt-table-accounts .nt-cell-action {
-  width: 40px !important;
-  min-width: 40px;
-  max-width: 40px;
+/* ---------- 2026-11 极简收尾（全部 !important，逐条都是被更强的规则压过） ----------
+   ① 铺满：`.nt-table { width: max-content }` 是给流水表定的（表宽=列宽之和），
+      节点设置要的是铺满整栏，容器变宽时期初列吸收。
+   ② 表头不要色块。
+   ③ 按钮列固定 40px、无背景、无边框 —— 斑马纹和竖线分别是
+      `tbody tr > .nt-cell` 和 `[data-border-v] .nt-cell` 级别的选择器，普通写法压不过。 */
+.nt-table.nt-table-accounts {
+  width: 100% !important;
+}
+
+.nt-table-accounts thead,
+.nt-table-accounts thead tr,
+.nt-table-accounts thead .nt-th {
   background: transparent !important;
-  border-left: 0;
-  border-right: 0;
+}
+
+.nt-table-accounts .nt-th.nt-c-action,
+.nt-table-accounts .nt-cell-action {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  background: transparent !important;
+  border: 0 !important;
 }
 
 /* 新增行的「+」：跟序号同色，别抢眼 */
