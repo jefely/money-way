@@ -85,9 +85,13 @@ function noteCols() {
   textTd.textContent = '内容';
   tr.appendChild(textTd);
 
+  const upTd = document.createElement('td');
+  upTd.className = 'nt-cell';
+  upTd.textContent = '移';
+  tr.appendChild(upTd);
+
   const delTd = document.createElement('td');
   delTd.className = 'nt-cell';
-  delTd.colSpan = 2;
   delTd.textContent = '删除';
   tr.appendChild(delTd);
 
@@ -151,8 +155,19 @@ function noteCells(note, seqText) {
 function noteActionTd() {
   const td = document.createElement('td');
   td.className = 'nt-cell nt-cell-action nt-cell-edge';
-  td.colSpan = 2;
   return td;
+}
+
+/** 把一条备注往上挪一位（用户 2026-11：备注区也要和账户表一样有上移） */
+function moveNoteUp(ctx, note, rerender) {
+  const st = ctx.getState();
+  const arr = (st.notes || []).slice();
+  const i = arr.findIndex((n) => n.id === note.id);
+  if (i <= 0) return;
+  [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]];
+  ctx.setState({ ...st, notes: arr });
+  ctx.saveNow();
+  rerender();
 }
 
 /* ---------- 已有备注 ---------- */
@@ -210,6 +225,16 @@ function noteRow(ctx, note, index, rerender) {
     ctx.saveNow();
   });
 
+  // 上移：和账户表一样的 ▲，置顶的那一条点了没反应
+  const upTd = noteActionTd();
+  const up = document.createElement('button');
+  up.type = 'button';
+  up.className = 'nt-btn nt-btn-icon';
+  up.textContent = '▲';
+  up.setAttribute('aria-label', '上移备注');
+  up.addEventListener('click', () => moveNoteUp(ctx, note, rerender));
+  upTd.appendChild(up);
+
   const delTd = noteActionTd();
   const del = document.createElement('button');
   del.type = 'button';
@@ -229,6 +254,7 @@ function noteRow(ctx, note, index, rerender) {
   tr.appendChild(c.typeTd);
   tr.appendChild(c.keyTd);
   tr.appendChild(c.textTd);
+  tr.appendChild(upTd);
   tr.appendChild(delTd);
   return tr;
 }
@@ -286,6 +312,8 @@ function noteNewRow(ctx, rerender) {
   tr.appendChild(c.typeTd);
   tr.appendChild(c.keyTd);
   tr.appendChild(c.textTd);
+  // 新增行也要占满 8 列：内容(2) + 移(1) + 删(1)
+  tr.appendChild(noteActionTd());
   tr.appendChild(noteActionTd());
   return tr;
 }
