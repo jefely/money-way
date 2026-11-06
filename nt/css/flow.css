@@ -96,6 +96,27 @@
   background: var(--nt-bg-soft);
 }
 
+/* ---------- 按钮的按下 / 焦点状态（用户 2026-11 重新定义） ----------
+   之前只有 :hover 一条：点下去没有任何即时反馈，而浏览器默认又把焦点环
+   留在了按钮上 —— 于是「点的时候没反应，过一会儿冒出一圈加粗边框」。
+   现在三段各管一件事：
+     · :active        按下**立刻**缩一点、压暗一点（触屏上也能看到）
+     · :focus         去掉浏览器默认外框（那圈加粗边框就是它）
+     · :focus-visible 只在**键盘**操作时画一条细环，鼠标/触屏不画 */
+.nt-btn:active {
+  transform: scale(0.96);
+  filter: brightness(0.94);
+}
+
+.nt-btn:focus {
+  outline: none;
+}
+
+.nt-btn:focus-visible {
+  outline: 2px solid var(--nt-primary);
+  outline-offset: 1px;
+}
+
 .nt-btn-primary {
   background: var(--nt-primary);
   border-color: var(--nt-primary);
