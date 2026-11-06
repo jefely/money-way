@@ -449,3 +449,20 @@
   border: 0 !important;
   background: transparent !important;
 }
+
+/* ---------- 2026-11 收尾：区域行的底色全部清掉 ----------
+   ① 区号格（A / B / U / 备注）之前各留了一点底色（页面底色或色膜），
+      和这一行其它格不一致，看起来像「格子里还有颜色」。全部改透明。
+   ② 列标题行（简码 | 序 | …）原本叠了一层 9% 金色的 ::before 色膜，
+      导致备注表头的「简码」格底色和别的表头不同。把伪元素关掉。 */
+.nt-table.nt-table-accounts tbody tr.nt-zone-head > td.nt-zone-tag,
+.nt-table.nt-table-accounts tbody tr.nt-zone-a > td.nt-zone-tag,
+.nt-table.nt-table-accounts tbody tr.nt-zone-b > td.nt-zone-tag,
+.nt-table.nt-table-accounts tbody tr.nt-zone-u > td.nt-zone-tag,
+.nt-table.nt-table-accounts tbody tr.nt-zone-note > td.nt-zone-tag {
+  background: transparent;
+}
+
+.nt-table-accounts tbody tr.nt-zone-cols > td.nt-cell::before {
+  display: none;
+}
