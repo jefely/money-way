@@ -108,18 +108,18 @@ export function mountValidate(section, ctx) {
     const card3 = card(
       '③ 数据完整性',
       ok
-        ? (res.issues || []).length
-          ? '数据完整；简码重复已允许，见下方提示。\nV6（会计恒等式不平）在「② 会计恒等式」里单独列出。'
-          : '账户表里的名字和流水里的名字全部对得上。\nV6（会计恒等式不平）在「② 会计恒等式」里单独列出，不重复计数。'
-        : `发现 ${errs} 个错误，见下方计数。\nV6（会计恒等式不平）在「② 会计恒等式」里单独列出。`,
+        ? (res.issues || []).length ? '数据完整；简码重复已允许，见下方提示。' : '账户表里的名字和流水里的名字全部对得上。'
+        : `发现 ${errs} 个错误，见下方计数。`,
       ok,
       [
-        ['单边流水（V1）', String(byCode.V1 || 0)],
-        ['金额非法（V2）', String(byCode.V2 || 0)],
-        ['断链（V3）', String(byCode.V3 || 0)],
-        ['自己转自己（V4）', String(byCode.V4 || 0)],
-        ['日期非法（V5）', String(byCode.V5 || 0)],
-        ['简码提示（V7）', String(byCode.V7 || 0)],
+        // 去掉「（V1）」这类规则编号（用户 2026-11：要简洁）。
+        // 编号只在代码里用于定位问题，界面上中文标签已经说清楚了。
+        ['单边流水', String(byCode.V1 || 0)],
+        ['金额非法', String(byCode.V2 || 0)],
+        ['断链', String(byCode.V3 || 0)],
+        ['自己转自己', String(byCode.V4 || 0)],
+        ['日期非法', String(byCode.V5 || 0)],
+        ['简码提示', String(byCode.V7 || 0)],
       ],
     );
 
