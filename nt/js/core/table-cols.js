@@ -99,7 +99,9 @@ export const TABLE_COLS = {
     label: '分类查询',
     screen: 'stats',
     growByWidth: true,
-    cols: ['date', 'from', 'to', 'amount', 'note'],
+    // 2026-11：详情表最前面加了「序」（这条流水在流水表的行号），
+    // 所以列从 5 个变 6 个。0 = 交给 CSS 的百分比兜底铺满。
+    cols: ['seq', 'date', 'from', 'to', 'amount', 'note'],
   },
   // 节点汇总（2026-11 用户《统计功能规划》重做，替换原 10 列「汇总表」）：
   // 六类各一张小表，和分类汇总同一套 5 列，只换第一列（节点名）与列宽参数。
@@ -171,8 +173,8 @@ export const TABLE_DEFAULT_WIDTHS = {
   asset: '62',
   liability: '62',
   equity: '62',
-  // 分类查询仍是 0 = 交给 CSS 百分比铺满
-  catq: '0,0,0,0,0',
+  // 分类查询（详情）：6 列全 0 = 交给 CSS 百分比铺满
+  catq: '0,0,0,0,0,0',
   // 节点汇总：第 1 列是节点名，和分类表共用同一个宽度
   node: '62',
   query: '44,0,0,0,0,0',

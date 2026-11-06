@@ -46,9 +46,10 @@ export const TABLE_OF = {
 };
 
 /**
- * 金额显示：**整数、不带 ¥**（用户 2026-11）。
- * 手机上 5 列挤一屏，`¥203,047.50` 占的位置比 `203,048` 多四成。
- * 负债的负余额仍标「多还」，但同样只留整数、不带符号。
+ * 金额显示：**1 位小数、不带 ¥、不带千分位**（用户 2026-11）。
+ * 手机上 5 列挤一屏，`¥203,047.50` 占的位置比 `203047.5` 多一半。
+ * 负债的负余额仍标「多还」。
+ * 值为 0 的格子加 `nt-cell-zero`：暗淡显示，一眼分清「没有」和「有数」。
  */
 function amount(value, type, signed) {
   const n = Number(value) || 0;
@@ -77,7 +78,8 @@ function amountCells(src, type) {
     // 第 1 / 第 4 列是余额性质，负债类才需要「多还」；中间两列是发生额，恒正
     const signed = i === 0 || i === 3;
     const n = Number(src[k]) || 0;
-    const zero = Math.abs(n) < 0.005;
+    // 显示精度是 1 位小数，所以「四舍五入后为 0」就按零处理，免得出现不淡的 0.0
+    const zero = Math.abs(n) < 0.05;
     return makeCell(amount(n, type, signed), 'nt-cell-num' + (zero ? ' nt-cell-zero' : ''));
   });
 }

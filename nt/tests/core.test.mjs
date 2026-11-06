@@ -109,12 +109,14 @@ test('format：金额 / 空值 / 短日期', () => {
   assert.equal(moneyInt(0), '¥0');
   assert.equal(moneyOrBlank(0), '');
   assert.equal(moneyOrBlank(12.5), '¥12.50');
-  // 统计页专用：纯整数、不带 ¥、不带千分位（手机 5 列挤一屏，省四成宽度）
-  assert.equal(statAmount(203047.5), '203048');
-  assert.equal(statAmount(0), '0');
-  assert.equal(statAmount(-300), '-300');
-  assert.equal(statAmount(1234.49), '1234');
-  assert.equal(statAmount('abc'), '0');
+  // 统计页专用：1 位小数、不带 ¥、不带千分位（要对得上账，又不能太占宽）
+  assert.equal(statAmount(203047.5), '203047.5');
+  assert.equal(statAmount(0), '0.0');
+  assert.equal(statAmount(-300), '-300.0');
+  assert.equal(statAmount(1234.44), '1234.4');
+  assert.equal(statAmount(1234.46), '1234.5');
+  assert.equal(statAmount(-0.01), '0.0');
+  assert.equal(statAmount('abc'), '0.0');
   // 六位 YYMMDD（与单文件版一致；带连字符的 26-08-30 是旧格式）
   assert.equal(shortDate('2026-08-30'), '260830');
   assert.equal(isIsoDate('2026-08-30'), true);

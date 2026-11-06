@@ -138,6 +138,15 @@
   min-width: 0;
 }
 
+/* 边框颜色统一钉住（2026-11）。
+   `border-color` 默认取 `currentColor`：只要某个格子的文字换了颜色
+   （零值暗淡就是），它周围的格线也跟着变暗，整张表的网格会断成一截一截。
+   这里给统计表的表头和数据格一起写明颜色，文字再怎么变都不动线。 */
+.nt-table-stat .nt-th,
+.nt-table-stat .nt-cell {
+  border-color: var(--nt-border-v-color, var(--nt-bg-line));
+}
+
 .nt-table-stat .nt-th {
   height: 26px;
   font-size: var(--nt-stat-head-font, 12px);
@@ -181,11 +190,18 @@
 }
 
 /* 金额为 0 的格子暗淡显示：一眼分清「这一项没有」和「这一项有数」。
-   只用 opacity，不换颜色 —— `--nt-text-muted` 在深色主题下本身就偏亮
-   （实测 rgb(224,224,224)），再叠一层颜色反而看不出「暗」；
-   透明度对两套主题都成立（背景透出来）。 */
+   **只调字体颜色，不叠透明度** —— opacity 作用在整个 td 上，
+   会把单元格边框一起淡化，格线断成一截一截（用户 2026-11 实测）。
+   颜色取「当前主题的文字色往背景混合」：深色 → 深灰、浅色 → 浅灰，
+   两种主题都得到「明显暗于正常文字、但仍看得清」的效果。 */
 .nt-table-stat .nt-cell-zero {
-  opacity: 0.45;
+  color: var(--nt-text-light, #94a3b8);
+  color: color-mix(in srgb, var(--nt-text) 38%, var(--nt-bg));
+  /* 边框颜色必须**显式钉住**：border-color 默认取 currentColor，
+     不写这一行的话，文字一变暗，格子四周的线也跟着变暗（用户 2026-11 实测）。
+     用 !important 是因为主题里 `[data-border-v="solid"] .nt-cell` 这类
+     「属性选择器 + 类」的规则和本行同优先级，靠加载顺序赌不稳。 */
+  border-color: var(--nt-border-v-color, var(--nt-bg-line)) !important;
 }
 
 /* 汇总表：序号列居中（第 2 列）、分类列居中（第 3 列） */
@@ -260,12 +276,28 @@
 }
 
 .nt-stats-panel-head-query .nt-stats-query-input {
-  /* 输入框占 1/3 宽，并和清空按钮一起**靠右**（用户 2026-11） */
-  margin-left: auto;
-  flex: 0 0 33%;
-  width: 33%;
+  /* 2026-11：不再占 1/3 宽，改成**撑满标题行剩下的空间**（用户：占满表头）；
+     背景**淡化**（表头本身就是工具条底色，输入框再铺一层实色显得突兀），
+     输入内容**居中**。焦点态才补一点底色和主色边框，平时只有一条底线。 */
+  flex: 1 1 auto;
+  width: auto;
   min-width: 0;
   height: 26px;
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  text-align: center;
+}
+
+.nt-stats-panel-head-query .nt-stats-query-input:hover {
+  border-bottom-color: var(--nt-bg-line);
+}
+
+.nt-stats-panel-head-query .nt-stats-query-input:focus {
+  border-bottom-color: var(--nt-primary, #7c6bd6);
+  background: transparent;
 }
 
 .nt-stats-query-bar .nt-btn,
@@ -310,25 +342,35 @@
   font-size: var(--nt-th-font-catq, 11px);
 }
 
-/* 兜底值 = 默认百分比；拖过列宽后 --nt-col-catq-* 是 px。 */
-.nt-table-catq .nt-th:nth-child(1) { width: var(--nt-col-catq-date, 17%); }
-.nt-table-catq .nt-th:nth-child(2) { width: var(--nt-col-catq-from, 20%); }
-.nt-table-catq .nt-th:nth-child(3) { width: var(--nt-col-catq-to, 20%); }
-.nt-table-catq .nt-th:nth-child(4) { width: var(--nt-col-catq-amount, 18%); }
-.nt-table-catq .nt-th:nth-child(5) { width: var(--nt-col-catq-note, 25%); }
+/* 兜底值 = 默认百分比；拖过列宽后 --nt-col-catq-* 是 px。
+   列序：序 · 日期 · 转出 · 转入 · 金额 · 备注。
+   前 5 列给固定百分比，**第 6 列（备注）不写宽度** —— 它会吃掉剩下的空间，
+   右边缘因此始终贴住面板右边，不会在表格右侧留一截空白（用户 2026-11）。 */
+.nt-table-catq .nt-th:nth-child(1) { width: var(--nt-col-catq-seq, 8%); }
+.nt-table-catq .nt-th:nth-child(2) { width: var(--nt-col-catq-date, 13%); }
+.nt-table-catq .nt-th:nth-child(3) { width: var(--nt-col-catq-from, 19%); }
+.nt-table-catq .nt-th:nth-child(4) { width: var(--nt-col-catq-to, 19%); }
+.nt-table-catq .nt-th:nth-child(5) { width: var(--nt-col-catq-amount, 14%); }
+
+/* 序 / 日期 / 转出 / 转入 / 金额 一律**居中**（用户 2026-11）。
+   备注不是 —— 它是一段说明文字，靠左读。 */
+.nt-table-catq .nt-th:nth-child(-n+5),
+.nt-table-catq .nt-cell:nth-child(-n+5) {
+  text-align: center;
+}
+
+.nt-table-catq .nt-cell:nth-child(6) {
+  text-align: left;
+}
 
 .nt-table-catq .nt-cell:nth-child(1),
-.nt-table-catq .nt-cell:nth-child(4) {
+.nt-table-catq .nt-cell:nth-child(5) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.nt-table-catq .nt-cell:nth-child(4) {
-  text-align: right;
-}
-
-.nt-table-catq .nt-cell:nth-child(5) {
+.nt-table-catq .nt-cell:nth-child(6) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
