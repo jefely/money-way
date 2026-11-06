@@ -58,9 +58,27 @@ function clearInlineWidths(table) {  for (const c of table.querySelectorAll('col
  * @param {string} [col] 被拖的列名（data-col）—— 目前只用于日志，宽度统一按整表存
  * @param {number} [width] 拖完后的列宽（px）
  */
+/**
+ * 七张统计小表共用第 1 列宽度（2026-11）：
+ * 拖任意一张的分类列（或节点列），七张一起变 —— 用户要「每个表统一同一个宽度」。
+ * 金额列由 CSS 均分，不存在各自的宽度，所以这里只存一个值。
+ */
+const STAT_TABLES = ['fee', 'income', 'asset', 'liability', 'equity', 'cost', 'node'];
+
 export function onColResize(ctx, tableEl, col, width) {
   const id = tableIdOf(tableEl);
   if (!id) return;
+
+  const theme = currentTheme();
+
+  if (STAT_TABLES.includes(id)) {
+    const w = Math.round(Number(width)) || 62;
+    for (const t of STAT_TABLES) saveTableWidths(ctx, t, [w]);
+    applySettings(loadMergedSettings(ctx, theme), theme);
+    // 七张表都在参数驱动下，清掉拖动期间固化的内联 px
+    for (const t of document.querySelectorAll('table.nt-table-stat')) clearInlineWidths(t);
+    return;
+  }
 
   const ths = [...tableEl.querySelectorAll('thead .nt-th')];
   const widths = ths.map((th) => Math.round(th.getBoundingClientRect().width));
@@ -68,7 +86,7 @@ export function onColResize(ctx, tableEl, col, width) {
   saveTableWidths(ctx, id, widths);
   // 存完立刻把新宽度写回 CSS 变量：切 tab 时表头会重建、内联宽度随之丢失，
   // 只靠「下次启动」才生效的话，中途看着就是白调了。
-  applySettings(loadMergedSettings(ctx, currentTheme()), currentTheme());
+  applySettings(loadMergedSettings(ctx, theme), theme);
   // 同组的小表（统计页一个合计一张表）全部回到变量驱动，这样它们始终一样宽
   for (const t of document.querySelectorAll('table.nt-table')) {
     if (t !== tableEl && tableIdOf(t) === id) clearInlineWidths(t);

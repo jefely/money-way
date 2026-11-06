@@ -80,20 +80,20 @@
 }
 
 /* 每个合计一张独立小表：表与表之间留一行空白，不带边框（用户 2026-11） */
+/* 左右留白（用户 2026-11）：表格不贴屏幕边，两侧各留 12px 且相等；
+   表宽自己占满剩余宽度，再靠 CSS 的 100% 跟着屏幕走。
+   放在这里而不是 .nt-stat-card 上：卡片是 fit-content 时代的产物，
+   留白应该由容器统一给，六张卡片才对得齐。 */
 .nt-stats-tables {
-  padding: 6px 0;
+  padding: 6px 12px;
 }
 
 /* 6 大分类：每张表一个圆角外框，看上去像一张卡片（用户 2026-11）。
    边框必须放在 div 上：border-collapse:collapse 的 table 加 border-radius 不生效。
-   宽度用 fit-content —— div 默认撑满整栏，右边框会落在表格右边好几像素外；
-   fit-content 让卡片右边和最后一列的右边重叠（用户 2026-11）。 */
+   width:100% —— 卡片跟着容器走，不再用 fit-content：表格要占满手机屏宽减左右留白，
+   而不是按列宽之和缩在左边。 */
 .nt-stat-card {
-  width: fit-content;
-  /* **不要写 max-width: 100%**（2026-11 拿掉）：它把卡片压在容器宽上，
-     表格被下面的 overflow:hidden 裁掉最后一列（手机上「期末」整列看不见），
-     而且外层 .nt-tablewrap 还滚不动 —— scrollWidth 被卡片锁死在容器宽。
-     让卡片保持表格的自然宽度（= 各列之和），窄屏交给 .nt-tablewrap 横向滚动。 */
+  width: 100%;
   border: 1px solid var(--nt-bg-line);
   border-radius: 8px;
   overflow: hidden;
@@ -119,25 +119,27 @@
   text-align: center;
 }
 
-/* 6 大分类的分组小表（每类一张，各自一套列宽）。
-   列宽写在每张小表的 <col> 上（内联 var），所以这里不再需要逐表百分比规则。 */
+/* 6 大分类的分组小表（每类一张）。
+   列宽只有第 1 列（分类）是固定 px，由参数 `分类统计/列宽` 驱动、七张表共用；
+   后面 4 个金额列**不写宽度**，table-layout:fixed 会把剩余空间平均分给它们 ——
+   「金额列自动等宽」就是这么来的，不需要 JS 算。
+   拖动分类列右边缘 = 改分类列宽 = 金额区自动变大或变小，四列依旧均分。 */
 .nt-table-stat {
   table-layout: fixed;
-  /* 列宽是固定 px（默认值见 core/table-cols.js），表宽 = 各列之和。
-     这里**不能**写 width:100% —— 那会把 px 列按比例放大，用户给的宽度就失效了。 */
-  width: max-content;
+  /* 占满卡片（卡片已经跟着容器走），所以六张表宽度一致、上下对齐。 */
+  width: 100%;
   min-width: 0;
 }
 
 .nt-table-stat .nt-th {
   height: 26px;
-  font-size: 12px;
+  font-size: var(--nt-stat-head-font, 12px);
   padding: 0 5px;
 }
 
 .nt-table-stat .nt-cell {
   height: 32px;
-  font-size: 14px;
+  font-size: var(--nt-stat-font, 14px);
   padding: 0 5px;
 }
 

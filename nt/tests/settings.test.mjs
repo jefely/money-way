@@ -31,9 +31,10 @@ test('每张表都有列宽键，且长度 = 该表列数', () => {
 
 test('表格列数与「核对过的设计」一致', () => {
   // flow / fee / income / asset / liability / equity / cost / catq / node / query / path / plan / accounts
-  // 2026-11：6 大分类与节点汇总统一成 5 列（第 1 列 + 4 个数值列）
+  // 2026-11：6 大分类与节点汇总的表宽由 CSS 决定（100% + 金额列均分），
+  // 参数里只剩第 1 列（分类 / 节点），所以它们的 cols 长度是 1。
   const counts = TABLES.map((t) => TABLE_COLS[t].cols.length);
-  assert.deepEqual(counts, [8, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 8, 10]);
+  assert.deepEqual(counts, [8, 1, 1, 1, 1, 1, 1, 5, 1, 6, 6, 8, 10]);
 });
 
 test('旧版单份「默认列宽」→ 按列名迁成每表一份', () => {
@@ -99,27 +100,25 @@ test('CSS 变量名是 --nt-col-<表>-<列>，0 变自适应', () => {
   // 实际宽度对不上，横滚到右边时表头会整块移出视口（2026-10 用户实测）。
   assert.equal(byVar.get('--nt-col-path-from'), '83px');
   assert.equal(byVar.get('--nt-col-path-note'), '120px');
-  assert.equal(byVar.get('--nt-col-node-opening'), '96px');
-  // 6 大分类：固定 px 默认值；分类查询仍是 0 = 交给 CSS 百分比漂白
-  assert.equal(byVar.get('--nt-col-asset-cat'), '75px');
-  assert.equal(byVar.get('--nt-col-fee-end'), '111px');
+  assert.equal(byVar.get('--nt-col-node-cat'), '62px');
+  // 6 大分类：第 1 列固定 px；金额列不写宽度（由 CSS 均分），所以没有它们的变量
+  assert.equal(byVar.get('--nt-col-asset-cat'), '62px');
+  assert.equal(byVar.get('--nt-col-fee-cat'), '62px');
+  assert.equal(byVar.get('--nt-col-fee-end'), undefined, '金额列不该再有独立宽度变量');
   assert.equal(byVar.get('--nt-col-catq-note'), '');
 });
 
 test('6 大分类表拖过列宽后，变量变成 px（重开就靠它还原）', () => {
-  // 列序（六类统一）：第 1 列 / 4 个数值列 —— 旧存档只有 4 个值时，
-  // 按位置映射到前 4 列，第 5 列落回该表默认值。
+  // 2026-11：参数里只有第 1 列（分类 / 节点）；金额列由 CSS 均分剩余宽度。
   const n = normalize({
-    '分类-资产/列宽': '120,90,90,90,80',
-    '分类-费用/列宽': '150,102,111,111',
+    '分类-资产/列宽': '120',
+    '分类-费用/列宽': '150',
   }, 'dark');
   const byVar = new Map(
     toCssList(n, 'dark').filter((x) => x.cssVar).map((x) => [x.cssVar, x.value]),
   );
   assert.equal(byVar.get('--nt-col-asset-cat'), '120px');
-  assert.equal(byVar.get('--nt-col-asset-end'), '80px');
   assert.equal(byVar.get('--nt-col-fee-cat'), '150px');
-  assert.equal(byVar.get('--nt-col-fee-opening'), '102px');
 
   // 0 仍是「自适应」：分类查询这种 growByWidth 表 0 → 空串（CSS 兜底），
   // 普通表 0 → auto（和 query 的备注列同一个规则）。

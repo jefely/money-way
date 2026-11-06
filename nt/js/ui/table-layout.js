@@ -367,7 +367,12 @@ function startDrag(tableEl, th, downEv, o) {
 
 /** 给每个表头补一个拖动手柄 */
 export function paintHandles(tableEl) {
+  // 统计小表（.nt-table-stat）只有第 1 列（分类 / 节点）能拖：金额列由 CSS
+  // 均分剩余宽度，给它们放手柄会让人以为能单独调，其实拖任何一列都只是
+  // 在改金额区的总宽（用户 2026-11）。
+  const stat = tableEl.classList.contains('nt-table-stat');
   for (const th of tableEl.querySelectorAll('thead .nt-th')) {
+    if (stat && th.dataset.col !== 'cat') continue;
     if (th.querySelector('.nt-col-handle')) continue;
     const handle = document.createElement('span');
     handle.className = 'nt-col-handle';

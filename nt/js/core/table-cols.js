@@ -35,7 +35,9 @@ export const TABLE_COLS = {
     fill: true,
     noSize: true,
     noLegacy: true,
-    cols: ['cat', 'opening', 'increase', 'decrease', 'end'],
+    // 2026-11：只有第 1 列（分类 / 节点）可拖；后面 4 个金额列由 CSS 均分剩余宽度，
+    // 不存在「每列一个宽度」这回事，所以参数里也只存一个值。
+    cols: ['cat'],
   },
   income: {
     label: '分类-收入',
@@ -43,7 +45,9 @@ export const TABLE_COLS = {
     fill: true,
     noSize: true,
     noLegacy: true,
-    cols: ['cat', 'opening', 'increase', 'decrease', 'end'],
+    // 2026-11：只有第 1 列（分类 / 节点）可拖；后面 4 个金额列由 CSS 均分剩余宽度，
+    // 不存在「每列一个宽度」这回事，所以参数里也只存一个值。
+    cols: ['cat'],
   },
   asset: {
     label: '分类-资产',
@@ -51,7 +55,9 @@ export const TABLE_COLS = {
     fill: true,
     noSize: true,
     noLegacy: true,
-    cols: ['cat', 'opening', 'increase', 'decrease', 'end'],
+    // 2026-11：只有第 1 列（分类 / 节点）可拖；后面 4 个金额列由 CSS 均分剩余宽度，
+    // 不存在「每列一个宽度」这回事，所以参数里也只存一个值。
+    cols: ['cat'],
   },
   liability: {
     label: '分类-负债',
@@ -59,7 +65,9 @@ export const TABLE_COLS = {
     fill: true,
     noSize: true,
     noLegacy: true,
-    cols: ['cat', 'opening', 'increase', 'decrease', 'end'],
+    // 2026-11：只有第 1 列（分类 / 节点）可拖；后面 4 个金额列由 CSS 均分剩余宽度，
+    // 不存在「每列一个宽度」这回事，所以参数里也只存一个值。
+    cols: ['cat'],
   },
   equity: {
     label: '分类-权益',
@@ -67,7 +75,9 @@ export const TABLE_COLS = {
     fill: true,
     noSize: true,
     noLegacy: true,
-    cols: ['cat', 'opening', 'increase', 'decrease', 'end'],
+    // 2026-11：只有第 1 列（分类 / 节点）可拖；后面 4 个金额列由 CSS 均分剩余宽度，
+    // 不存在「每列一个宽度」这回事，所以参数里也只存一个值。
+    cols: ['cat'],
   },
   cost: {
     label: '分类-成本',
@@ -75,7 +85,9 @@ export const TABLE_COLS = {
     fill: true,
     noSize: true,
     noLegacy: true,
-    cols: ['cat', 'opening', 'increase', 'decrease', 'end'],
+    // 2026-11：只有第 1 列（分类 / 节点）可拖；后面 4 个金额列由 CSS 均分剩余宽度，
+    // 不存在「每列一个宽度」这回事，所以参数里也只存一个值。
+    cols: ['cat'],
   },
   catq: {
     label: '分类查询',
@@ -92,7 +104,9 @@ export const TABLE_COLS = {
     fill: true,
     noSize: true,
     noLegacy: true,
-    cols: ['cat', 'opening', 'increase', 'decrease', 'end'],
+    // 2026-11：只有第 1 列（分类 / 节点）可拖；后面 4 个金额列由 CSS 均分剩余宽度，
+    // 不存在「每列一个宽度」这回事，所以参数里也只存一个值。
+    cols: ['cat'],
   },
   query: {
     label: '流水查询',
@@ -141,19 +155,19 @@ export const TABLE_SCREENS = Object.fromEntries(
 export const TABLE_DEFAULT_WIDTHS = {
   // 备注从 116 加到 160（用户 2026-11：备注常被截断）
   flow: '44,84,112,112,96,160,40,40',
-  // 6 大分类 + 节点汇总：2026-11 起全部是 5 列（第 1 列 + 4 个数值列）。
-  // 费用 / 收入 / 成本原来只有 4 列（流量口径），现在补成 5 列；
-  // 旧存档里的 4 个值会按位置映射到前 4 列，第 5 列落回默认值 —— 不用迁移。
-  fee: '62,102,111,111,111',
-  income: '62,102,111,111,111',
-  cost: '62,102,111,111,111',
-  asset: '75,105,105,105,105',
-  liability: '75,105,105,105,105',
-  equity: '75,105,105,105,105',
+  // 6 大分类 + 节点汇总（2026-11）：列宽参数只剩**一个值** —— 第 1 列（分类 / 节点）。
+  // 后面 4 个金额列由 CSS 均分剩余宽度，所以不再有 5 个数字。
+  // 七张表默认同一个值，宽度自然对齐；拖任意一张，七张一起变（见 ui/col-widths.js）。
+  fee: '62',
+  income: '62',
+  cost: '62',
+  asset: '62',
+  liability: '62',
+  equity: '62',
   // 分类查询仍是 0 = 交给 CSS 百分比铺满
   catq: '0,0,0,0,0',
-  // 节点汇总：节点名 | 期初/历史累计 | 本期增 | 本期减 | 期末/净出
-  node: '110,96,96,96,96',
+  // 节点汇总：第 1 列是节点名，和分类表共用同一个宽度
+  node: '62',
   query: '44,0,0,0,0,0',
   // 路径侧栏 6 列（2026-11 用户按自己屏幕调好）：序 27 / 日期 62 / 转出 83 / 转入 87 / 金额 44 / 备注 120
   path: '27,62,83,87,44,120',

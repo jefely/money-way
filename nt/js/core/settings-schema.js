@@ -39,6 +39,8 @@ export const GROUP_FILE = {
   '分类-成本': 'css/stats.css',
   分类查询: 'css/stats.css',
   节点汇总: 'css/stats.css',
+  // 六张分类表 + 节点汇总共用的字号（低分辨率手机要放大才看得清）
+  分类统计: 'css/stats.css',
   流水查询: 'css/query.css',
   路径追踪: 'css/path.css',
   固定开支: 'css/plan.css',
@@ -55,6 +57,9 @@ export const GROUPS = [
   '标签栏', '按钮区', '表格', '信息栏', '按钮尺寸', '列标行',
   // 每张表一组（列标行高/字号 + 数据行高/字号 + 列宽）
   ...TABLE_GROUPS,
+  // 七张统计小表共用的字号：它们不参与「每表一套尺寸」（noSize），
+  // 但低分辨率手机上需要整体放大，所以单独给一组。
+  '分类统计',
   // 环图那 30 项（路径页）单独四组：它们是「基准单位」，由 SVG 渲染器消费，
   // 和上面这些 --nt-col-* 的 CSS 消费方不是一回事。见 core/mw-settings.js。
   ...MW_GROUPS,
@@ -83,6 +88,8 @@ export const GROUP_SCREEN = {
   列标行: 'main',
   // 每张表各归自己的页：流水记录→流水、统计三块+汇总表→统计、…
   ...TABLE_SCREENS,
+  // 统计小表共用的字号归「统计」屏（在统计页才看得出效果）
+  分类统计: 'stats',
   // 环图参数只在路径页看得见效果，所以归「路径」屏，不和主界面挤在一起
   ...Object.fromEntries(MW_GROUPS.map((g) => [g, 'path'])),
 };
@@ -101,6 +108,9 @@ export const GROUP_SCOPE = {
   // 每表尺寸/列宽都是全局变量（--nt-row-h-flow 这种），靠 CSS 的
   // `.nt-table-flow .nt-cell` 这类选择器落到具体表上，所以作用域写 :root。
   ...Object.fromEntries(TABLE_GROUPS.map((g) => [g, 'global'])),
+  // 统计小表的字号也写 :root：CSS 在 stats.css 里用 .nt-table-stat 消费，
+  // 不依赖统计页容器是否已经渲染（切 tab 时变量已经在）。
+  分类统计: 'global',
   // 环图参数写在 :root 上：渲染器从 getComputedStyle(documentElement) 读，
   // 不依赖路径页容器是否存在（切 tab / 未解锁时读到的也是同一份值）。
   ...Object.fromEntries(MW_GROUPS.map((g) => [g, 'global'])),
@@ -222,6 +232,11 @@ export const SCHEMA = [
   { key: '路径追踪/列宽', group: '路径追踪', type: 'cols', table: 'path', def: TABLE_DEFAULT_WIDTHS.path },
   { key: '固定开支/列宽', group: '固定开支', type: 'cols', table: 'plan', def: TABLE_DEFAULT_WIDTHS.plan },
   { key: '账户设置/列宽', group: '账户设置', type: 'cols', table: 'accounts', def: TABLE_DEFAULT_WIDTHS.accounts },
+  // 七张统计小表共用的字号（2026-11）：低分辨率手机上默认 14px 偏小，要能整体放大。
+  // 它们不参与「每表一套尺寸」（TABLE_COLS 里 noSize），所以单独两项，
+  // 走 toCssList 的通用分支就能写成 CSS 变量，不需要新类型。
+  { key: '分类统计/列标字号', group: '分类统计', def: 12, unit: 'px', cssVar: '--nt-stat-head-font', min: 8, max: 24 },
+  { key: '分类统计/数据字号', group: '分类统计', def: 14, unit: 'px', cssVar: '--nt-stat-font', min: 8, max: 28 },
   // 尺寸参数在 core/table-cols.js 里生成（8 表 × 4；路径表不参与）
   ...TABLE_SIZE_SCHEMA,
 
