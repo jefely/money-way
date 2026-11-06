@@ -440,3 +440,12 @@
 .nt-table.nt-table-accounts tbody tr.nt-zone-u > td.nt-cell.nt-zone-tag {
   background: var(--nt-bg);
 }
+
+/* 备注区与账户表之间的分隔空行（用户 2026-11）：
+   不用线、不用色块，纯空白，表示这是另一个功能区。 */
+.nt-gap-row > .nt-cell {
+  height: 14px;
+  padding: 0;
+  border: 0 !important;
+  background: transparent !important;
+}

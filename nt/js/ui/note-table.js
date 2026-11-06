@@ -29,6 +29,9 @@ export function renderNotes(ctx, rerender) {
   const frag = document.createDocumentFragment();
   const notes = ctx.getState().notes || [];
 
+  // 备注区和上面的账户表之间**空一行**（无边框），表示这是另一个功能区
+  //（用户 2026-11：不要用线分割，用空白）。
+  frag.appendChild(noteGap());
   frag.appendChild(noteCols());
   frag.appendChild(noteHead());
   notes.forEach((note, i) => frag.appendChild(noteRow(ctx, note, i, rerender)));
@@ -36,6 +39,18 @@ export function renderNotes(ctx, rerender) {
   // 末尾 10 个空行：空行不显示任何内容（没有「+」、没有占位文字）
   for (let k = 0; k < BLANK_ROWS; k += 1) frag.appendChild(noteNewRow(ctx, rerender));
   return frag;
+}
+
+/* ---------- 与账户表之间的分隔空行 ---------- */
+
+function noteGap() {
+  const tr = document.createElement('tr');
+  tr.className = 'nt-gap-row';
+  const td = document.createElement('td');
+  td.className = 'nt-cell';
+  td.colSpan = 8;
+  tr.appendChild(td);
+  return tr;
 }
 
 /* ---------- 区域标题 ---------- */

@@ -134,16 +134,8 @@ export function mountAccountTable(ctx, tbody, opts) {
       // 每个 A/B/U 区再插一行「简码 | 序 | …」只是把列表割得更碎。
       frag.appendChild(zoneHead(zone));
 
-      if (!inZone.length) {
-        const tr = document.createElement('tr');
-        tr.className = 'nt-row nt-zone-empty';
-        const td = document.createElement('td');
-        td.className = 'nt-cell';
-        td.colSpan = 8;
-        td.textContent = '（这一类还没有节点）';
-        tr.appendChild(td);
-        frag.appendChild(tr);
-      }
+      // 空区域不再插一行「（这一类还没有节点）」—— 区域标题本身已经说明了情况，
+      // 多一行灰字反而把列表割碎（用户 2026-11）。
 
       for (const acc of inZone) {
         if (!rowTpl) break;
