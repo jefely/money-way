@@ -4,7 +4,8 @@
  * 层：第五层 · UI
  *
  * 行结构（用户 2026-10-29 定稿）：
- *   简码 | 序 | 类型 | 关键字 | 内容（colspan=4，右边到还款日列）| 删除（colspan=2）
+ *   简码 | 序 | 类型 | 关键字 | 内容（colspan=2）| 删除（colspan=2）
+ *   一共 8 格，正好对上账户表的 8 列（2026-11 删掉账单日/还款日之后）。
  *
  * 类型 / 关键字都可以不填；填了的话，流水备注栏输入简码时会依次代入：
  *   「类型，关键字，内容」（中文逗号隔开，空的跳过）。
@@ -50,7 +51,7 @@ function noteHead() {
 
   const td = document.createElement('td');
   td.className = 'nt-cell nt-zone-cell';
-  td.colSpan = 9;
+  td.colSpan = 7;
 
   const inner = document.createElement('div');
   inner.className = 'nt-zone-label';
@@ -80,7 +81,7 @@ function noteCols() {
 
   const textTd = document.createElement('td');
   textTd.className = 'nt-cell';
-  textTd.colSpan = 4;
+  textTd.colSpan = 2;
   textTd.textContent = '内容';
   tr.appendChild(textTd);
 
@@ -135,7 +136,7 @@ function noteCells(note, seqText) {
 
   const textTd = document.createElement('td');
   textTd.className = 'nt-cell';
-  textTd.colSpan = 4;
+  textTd.colSpan = 2;
   const text = document.createElement('input');
   text.className = 'nt-cell-input';
   text.type = 'text';
