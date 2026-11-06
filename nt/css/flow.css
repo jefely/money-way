@@ -1300,3 +1300,24 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 .nt-btn-icon[data-nav="settings"] {
   color: var(--nt-text);
 }
+
+/* NT 的「丝绒」质感（用户 2026-11）：
+   纯白字在绿钮上显得发亮发硬，绒面应该是「哑光、有柔光、边缘不刺眼」。
+   做法是文字本身用上下渐变（上亮下暗，模拟绒面的受光），
+   再压一层很淡的软阴影把字「按」进圆面里。 */
+.nt-icon-nt {
+  background: linear-gradient(180deg, #ffffff 12%, #cfe6cf 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+  letter-spacing: 0.05em;
+}
+
+/* 展开成发送态时钮变小、底色变成页面色，把渐变收掉、恢复实心字，
+   否则小尺寸下渐变会糊成一团灰 */
+.nt-composer.open .nt-icon-nt {
+  background: none;
+  color: currentColor;
+  text-shadow: none;
+}
