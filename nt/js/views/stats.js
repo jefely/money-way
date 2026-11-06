@@ -7,11 +7,11 @@
  * 本文件只负责「取范围 → 调核心 → 套模板 → 写页脚」，不算钱。
  */
 
-import { accountRows } from '../core/ledger-stats.js';
+import { nodeStats } from '../core/stats-panels.js';
 import { mountCellRange } from '../ui/cell-range.js';
 import { paintCategoryPanels, bindCategoryQueries } from '../ui/stats-category.js';
 import { mountStatsSplit } from '../ui/stats-split.js';
-import { renderSummaryTables } from '../ui/stats-summary-tables.js';
+import { renderStatTables } from '../ui/stats-group-tables.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 
@@ -90,11 +90,15 @@ export function mountStats(section, ctx) {
   function renderSummary(state, range) {
     if (grid) grid.hidden = true;
     if (summaryWrap) summaryWrap.hidden = false;
-    // 按节点类型分组画：每组一张小表，类型名做成合计行左侧的标签，
-    // 列 = 节点名称 | 序号 | 分类 | 转出 | 转入 | 本期余额 | 历史 ×3 | 期初余额
-    const rows = accountRows(state.accounts, state.transactions, range);
-    renderSummaryTables(summaryHost, rows);
-    ctx.setFooter(`${visibleCount(state)} 个节点 · ${scopeLabel()}`);
+    // 节点汇总：六类各一张小表，5 列（节点 | 期初/历史累计 | 本期增 | 本期减 | 期末/净出）。
+    // 和分类汇总共用同一个构建器，只换第一列与列宽参数。
+    const groups = nodeStats(state.accounts, state.transactions, range);
+    const n = renderStatTables(summaryHost, groups, {
+      firstCol: '节点',
+      table: 'node',
+      empty: '还没有节点',
+    });
+    ctx.setFooter(`${n} 个节点 · ${scopeLabel()}`);
   }
 
   /* ---------- 范围与标签 ---------- */

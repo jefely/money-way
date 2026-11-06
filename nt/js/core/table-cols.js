@@ -35,7 +35,7 @@ export const TABLE_COLS = {
     fill: true,
     noSize: true,
     noLegacy: true,
-    cols: ['cat', 'gross', 'reverse', 'net'],
+    cols: ['cat', 'opening', 'increase', 'decrease', 'end'],
   },
   income: {
     label: '分类-收入',
@@ -43,7 +43,7 @@ export const TABLE_COLS = {
     fill: true,
     noSize: true,
     noLegacy: true,
-    cols: ['cat', 'gross', 'reverse', 'net'],
+    cols: ['cat', 'opening', 'increase', 'decrease', 'end'],
   },
   asset: {
     label: '分类-资产',
@@ -75,7 +75,7 @@ export const TABLE_COLS = {
     fill: true,
     noSize: true,
     noLegacy: true,
-    cols: ['cat', 'gross', 'reverse', 'net'],
+    cols: ['cat', 'opening', 'increase', 'decrease', 'end'],
   },
   catq: {
     label: '分类查询',
@@ -83,14 +83,16 @@ export const TABLE_COLS = {
     growByWidth: true,
     cols: ['date', 'from', 'to', 'amount', 'note'],
   },
-  sum: {
-    label: '汇总表',
+  // 节点汇总（2026-11 用户《统计功能规划》重做，替换原 10 列「汇总表」）：
+  // 六类各一张小表，和分类汇总同一套 5 列，只换第一列（节点名）与列宽参数。
+  // 六类共用这一套——列语义相同，不需要每类一份。
+  node: {
+    label: '节点汇总',
     screen: 'stats',
-    // 2026-11：去掉「类型」列（类型变成分组标签），「当前余额」改「本期余额」，
-    // 末尾补「期初余额」。
-    cols: ['name', 'seq', 'cat', 'out', 'iin', 'balance', 'histOut', 'histIn', 'histBalance', 'opening'],
-    // 金额列统一宽度（用户 2026-11）：拖任意一列，这些列一起变同宽。
-    uniformCols: ['out', 'iin', 'balance', 'histOut', 'histIn', 'histBalance', 'opening'],
+    fill: true,
+    noSize: true,
+    noLegacy: true,
+    cols: ['cat', 'opening', 'increase', 'decrease', 'end'],
   },
   query: {
     label: '流水查询',
@@ -139,17 +141,19 @@ export const TABLE_SCREENS = Object.fromEntries(
 export const TABLE_DEFAULT_WIDTHS = {
   // 备注从 116 加到 160（用户 2026-11：备注常被截断）
   flow: '44,84,112,112,96,160,40,40',
-  // 6 大分类：没有序号列（手机放不下），列 = 分类 | 金额…；存量 5 列、流量 4 列
-  fee: '62,102,111,111',
-  income: '62,102,111,111',
-  cost: '62,102,111,111',
+  // 6 大分类 + 节点汇总：2026-11 起全部是 5 列（第 1 列 + 4 个数值列）。
+  // 费用 / 收入 / 成本原来只有 4 列（流量口径），现在补成 5 列；
+  // 旧存档里的 4 个值会按位置映射到前 4 列，第 5 列落回默认值 —— 不用迁移。
+  fee: '62,102,111,111,111',
+  income: '62,102,111,111,111',
+  cost: '62,102,111,111,111',
   asset: '75,105,105,105,105',
   liability: '75,105,105,105,105',
   equity: '75,105,105,105,105',
   // 分类查询仍是 0 = 交给 CSS 百分比铺满
   catq: '0,0,0,0,0',
-  // 节点名称 | 序号 | 分类 | 转出 | 转入 | 本期余额 | 历史转出 | 历史转入 | 历史结余 | 期初余额
-  sum: '110,44,72,84,84,100,90,90,96,96',
+  // 节点汇总：节点名 | 期初/历史累计 | 本期增 | 本期减 | 期末/净出
+  node: '110,96,96,96,96',
   query: '44,0,0,0,0,0',
   // 路径侧栏 6 列（2026-11 用户按自己屏幕调好）：序 27 / 日期 62 / 转出 83 / 转入 87 / 金额 44 / 备注 120
   path: '27,62,83,87,44,120',

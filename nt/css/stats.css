@@ -90,7 +90,10 @@
    fit-content 让卡片右边和最后一列的右边重叠（用户 2026-11）。 */
 .nt-stat-card {
   width: fit-content;
-  max-width: 100%;
+  /* **不要写 max-width: 100%**（2026-11 拿掉）：它把卡片压在容器宽上，
+     表格被下面的 overflow:hidden 裁掉最后一列（手机上「期末」整列看不见），
+     而且外层 .nt-tablewrap 还滚不动 —— scrollWidth 被卡片锁死在容器宽。
+     让卡片保持表格的自然宽度（= 各列之和），窄屏交给 .nt-tablewrap 横向滚动。 */
   border: 1px solid var(--nt-bg-line);
   border-radius: 8px;
   overflow: hidden;

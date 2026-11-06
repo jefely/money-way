@@ -129,14 +129,14 @@ test('分类视图：每个分类的合计 = 它下面账户逐笔相加；每�
   assert.equal(sumGroups, sumRows, '分类合计与账户合计必须一致');
 });
 
-test('汇总视图：按 资产 → 负债 → 收入 → 权益 → 费用 排序', () => {
+test('汇总视图：按 收入 → 负债 → 权益 → 资产 → 费用 → 成本 排序', () => {
   const rows = accountRows(Object.values(ACC), TX);
   const types = rows.map((r) => r.acc.type);
   const idx = types.map((t) => STAT_TYPE_ORDER.indexOf(t));
   for (let i = 1; i < idx.length; i += 1) {
     assert.ok(idx[i - 1] <= idx[i], `类型顺序错了：${types.join(' / ')}`);
   }
-  assert.equal(types[0], '资产类');
+  assert.equal(types[0], '收入类');
 });
 
 /* ---------- 查询 ---------- */

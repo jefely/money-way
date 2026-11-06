@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.308';
+const CACHE_NAME = 'nt-v1.309';
 
 const ASSETS = [
   './css/base.css',
@@ -101,6 +101,7 @@ const ASSETS = [
   './js/core/settings.js',
   './js/core/state-store.js',
   './js/core/stats.js',
+  './js/core/stats-panels.js',
   './js/core/sync-code.js',
   './js/core/sync-merge.js',
   './js/core/sync-window.js',
@@ -188,7 +189,6 @@ const ASSETS = [
   './js/ui/stats-category.js',
   './js/ui/stats-group-tables.js',
   './js/ui/stats-split.js',
-  './js/ui/stats-summary-tables.js',
   './js/ui/suggest-popover.js',
   './js/ui/sync-dialog.js',
   './js/ui/sync-wheel.js',

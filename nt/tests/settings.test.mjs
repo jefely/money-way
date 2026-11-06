@@ -30,9 +30,10 @@ test('每张表都有列宽键，且长度 = 该表列数', () => {
 });
 
 test('表格列数与「核对过的设计」一致', () => {
-  // flow / fee / income / asset / liability / equity / cost / catq / sum / query / path / plan / accounts
+  // flow / fee / income / asset / liability / equity / cost / catq / node / query / path / plan / accounts
+  // 2026-11：6 大分类与节点汇总统一成 5 列（第 1 列 + 4 个数值列）
   const counts = TABLES.map((t) => TABLE_COLS[t].cols.length);
-  assert.deepEqual(counts, [8, 4, 4, 5, 5, 5, 4, 5, 10, 6, 6, 8, 10]);
+  assert.deepEqual(counts, [8, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 8, 10]);
 });
 
 test('旧版单份「默认列宽」→ 按列名迁成每表一份', () => {
@@ -98,15 +99,16 @@ test('CSS 变量名是 --nt-col-<表>-<列>，0 变自适应', () => {
   // 实际宽度对不上，横滚到右边时表头会整块移出视口（2026-10 用户实测）。
   assert.equal(byVar.get('--nt-col-path-from'), '83px');
   assert.equal(byVar.get('--nt-col-path-note'), '120px');
-  assert.equal(byVar.get('--nt-col-sum-histBalance'), '96px');
+  assert.equal(byVar.get('--nt-col-node-opening'), '96px');
   // 6 大分类：固定 px 默认值；分类查询仍是 0 = 交给 CSS 百分比漂白
   assert.equal(byVar.get('--nt-col-asset-cat'), '75px');
-  assert.equal(byVar.get('--nt-col-fee-net'), '111px');
+  assert.equal(byVar.get('--nt-col-fee-end'), '111px');
   assert.equal(byVar.get('--nt-col-catq-note'), '');
 });
 
 test('6 大分类表拖过列宽后，变量变成 px（重开就靠它还原）', () => {
-  // 列序：存量 = 分类/期初/增加/减少/期末；流量 = 分类/收入支出/退回/净额
+  // 列序（六类统一）：第 1 列 / 4 个数值列 —— 旧存档只有 4 个值时，
+  // 按位置映射到前 4 列，第 5 列落回该表默认值。
   const n = normalize({
     '分类-资产/列宽': '120,90,90,90,80',
     '分类-费用/列宽': '150,102,111,111',
@@ -117,7 +119,7 @@ test('6 大分类表拖过列宽后，变量变成 px（重开就靠它还原）
   assert.equal(byVar.get('--nt-col-asset-cat'), '120px');
   assert.equal(byVar.get('--nt-col-asset-end'), '80px');
   assert.equal(byVar.get('--nt-col-fee-cat'), '150px');
-  assert.equal(byVar.get('--nt-col-fee-gross'), '102px');
+  assert.equal(byVar.get('--nt-col-fee-opening'), '102px');
 
   // 0 仍是「自适应」：分类查询这种 growByWidth 表 0 → 空串（CSS 兜底），
   // 普通表 0 → auto（和 query 的备注列同一个规则）。
@@ -152,8 +154,8 @@ test('COL_KEYS 仍然是「只在末尾追加」的旧映射表（迁移依赖�
    ============================================================ */
 
 test('★ 每张表都有列宽项；有尺寸参数的表还多 4 项', () => {
-  // 6 张不带尺寸的（path + 6 大分类）= 1 项；其余 6 张表 × 4 项尺寸
-  assert.equal(TABLE_SIZE_SCHEMA.length, 24, '6 表 × 4 项');
+  // 8 张不带尺寸的（path + 6 大分类 + 节点汇总）= 1 项；其余 5 张表 × 4 项尺寸
+  assert.equal(TABLE_SIZE_SCHEMA.length, 20, '5 表 × 4 项');
 
   for (const [table, t] of Object.entries(TABLE_COLS)) {
     const items = SCHEMA.filter((s) => s.group === t.label);
@@ -212,7 +214,7 @@ test('★ 旧存档的全局行高/字号迁移到各表，而不是掉回默认
 test('每表明写的值优先于旧全局值', () => {
   const n = normalize({ 数据区行高: 40, '流水记录/数据行高': 36 }, 'dark');
   assert.equal(n['流水记录/数据行高'], 36);
-  assert.equal(n['汇总表/数据行高'], 40, '表里没写的仍吃旧全局值');
+  assert.equal(n['分类查询/数据行高'], 40, '表里没写的仍吃旧全局值');
 });
 
 test('没设过时用每表默认值（26 / 12 / 32 / 14）', () => {
@@ -227,19 +229,19 @@ test('没设过时用每表默认值（26 / 12 / 32 / 14）', () => {
 });
 
 test('每表尺寸走自己的变量名，调一张不动别张', () => {
-  const n = normalize({ '流水记录/数据行高': 40, '汇总表/数据行高': 48 }, 'dark');
+  const n = normalize({ '流水记录/数据行高': 40, '分类查询/数据行高': 48 }, 'dark');
   const byVar = new Map(
     toCssList(n, 'dark').filter((x) => x.cssVar).map((x) => [x.cssVar, x.value]),
   );
   assert.equal(byVar.get('--nt-row-h-flow'), '40px');
-  assert.equal(byVar.get('--nt-row-h-sum'), '48px');
-  assert.equal(byVar.get('--nt-row-h-catq'), '32px', '分类查询不该被连带动');
+  assert.equal(byVar.get('--nt-row-h-catq'), '48px');
+  assert.equal(byVar.get('--nt-row-h-plan'), '32px', '固定开支不该被连带动');
 });
 
 test('每表尺寸也被钳制（行高 5 → 16，500 → 120）', () => {
-  const n = normalize({ '流水记录/数据行高': 5, '汇总表/数据行高': 500 }, 'dark');
+  const n = normalize({ '流水记录/数据行高': 5, '分类查询/数据行高': 500 }, 'dark');
   assert.equal(n['流水记录/数据行高'], 16);
-  assert.equal(n['汇总表/数据行高'], 120);
+  assert.equal(n['分类查询/数据行高'], 120);
 });
 
 test('★ 列宽手柄命中区：7 跟到 14，用户自调值保留', () => {

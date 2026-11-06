@@ -9,12 +9,12 @@
  * 分组小表的构建在 ui/stats-group-tables.js。
  */
 
-import { categoryPanels } from '../core/ledger-stats.js';
+import { categoryStats } from '../core/stats-panels.js';
 import { queryByCategory, resolveCategory, suggestCategories } from '../core/category-query.js';
 import { moneyAlways, shortDate } from '../core/format.js';
 import { paintHandles, syncFrozen } from './table-layout.js';
 import { showCatSuggest, hideCatSuggest, isCatSuggestFor } from './cat-suggest.js';
-import { renderGroupTables } from './stats-group-tables.js';
+import { renderStatTables, TABLE_OF } from './stats-group-tables.js';
 
 /** 分类查询表的列（日期/转出/转入/金额/备注） */
 const QUERY_COLS = [['日期', 'date'], ['转出', 'from'], ['转入', 'to'], ['金额', 'amount'], ['备注', 'note']];
@@ -156,10 +156,11 @@ export function bindCategoryQueries(grid, onChange, getState) {
 export function paintCategoryPanels(grid, state, range) {
   if (!grid) return { categories: 0, matches: 0, query: '' };
 
-  const panels = categoryPanels(state.accounts, state.transactions, range);
-  const categories = renderGroupTables(
+  const groups = categoryStats(state.accounts, state.transactions, range);
+  const categories = renderStatTables(
     grid.querySelector('#nt-stats-groups'),
-    [...panels.stock, ...panels.flow],
+    groups,
+    { firstCol: '分类', tableOf: TABLE_OF },
   );
 
   const qs = [...grid.querySelectorAll('[data-kind="query"]')].map((p) => paintQueryPanel(p, state, range));

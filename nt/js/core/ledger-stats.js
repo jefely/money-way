@@ -21,8 +21,11 @@
 
 import { isDebitType, isPosted } from './schema.js';
 
-/** 统计页的类型分组顺序（与界面一致：先资产，最后费用；成本类跟在资产后面） */
-export const STAT_TYPE_ORDER = ['资产类', '成本类', '负债类', '收入类', '权益类', '费用类'];
+/**
+ * 六类的顺序（2026-11 用户《统计功能规划》定稿）。
+ * 分类汇总与节点汇总共用这一套；口径计算在 core/stats-panels.js。
+ */
+export const STAT_TYPE_ORDER = ['收入类', '负债类', '权益类', '资产类', '费用类', '成本类'];
 
 const EMPTY = {
   opening: 0, balance: 0, periodOut: 0, periodIn: 0,
@@ -157,66 +160,9 @@ export function categoryGroups(accounts, transactions, range) {
   return groups;
 }
 
-const STOCK_TYPES = new Set(['资产类', '负债类', '权益类']);
-
-/** 分类统计要的口径：存量看期初/本期增减/期末；流量只看本期发生与净额。 */
-function periodView(row, type) {
-  const debit = isDebitType(type);
-  if (STOCK_TYPES.has(type)) {
-    const openingSigned = Number(row.historyBalance) || 0;
-    // 所有贷方类（负债 / 权益 / 收入）都按「转出增加、转入减少」，
-    // 和应付同口径；负债的负余额就是多还（借方余额），由界面单独标「多还」。
-    const inc = debit ? row.periodIn : row.periodOut;
-    const dec = debit ? row.periodOut : row.periodIn;
-    return { ...row, kind: 'stock', opening: openingSigned, increase: inc, decrease: dec, end: openingSigned + inc - dec };
-  }
-  // 收入：转出是收入、转入是退回；费用/成本：转入是支出、转出是退回。
-  const gross = debit ? row.periodIn : row.periodOut;
-  const reverse = debit ? row.periodOut : row.periodIn;
-  return { ...row, kind: 'flow', gross, reverse, net: gross - reverse };
-}
-
-/** 合计从分类行直接加总，避免类型合计和分类行出现两套口径。 */
-function sumRows(categories, kind) {
-  const out = { count: 0, category: '' };
-  const keys = kind === 'stock'
-    ? ['opening', 'increase', 'decrease', 'end']
-    : ['gross', 'reverse', 'net'];
-  for (const k of keys) out[k] = 0;
-  for (const c of categories) {
-    out.count += c.count || 0;
-    for (const k of keys) out[k] += c[k] || 0;
-  }
-  return out;
-}
-
-/**
- * 分类统计拆成左右两块：
- *   stock —— 资产 / 负债 / 权益（期初、本期增加、本期减少、期末；负债为正数欠款）
- *   flow  —— 收入 / 费用 / 成本（本期发生、本期退回、净额；没有余额概念）
- * 分类按「期末绝对值 / 净额绝对值」降序，重点在前。
- */
-export function categoryPanels(accounts, transactions, range) {
-  const groups = categoryGroups(accounts, transactions, range);
-  const out = { stock: [], flow: [] };
-  for (const g of groups) {
-    const stock = STOCK_TYPES.has(g.type);
-    const categories = g.categories
-      .map((c) => periodView(c, g.type))
-      .filter((c) => (stock
-        ? (c.opening || c.increase || c.decrease || c.end)
-        : (c.gross || c.reverse || c.net)))
-      .sort((a, b) => (stock ? Math.abs(b.end) - Math.abs(a.end) : Math.abs(b.net) - Math.abs(a.net)));
-    // 整类都是 0 的不占一行：分类统计只看“有金额”的分类，空壳留给汇总视图看。
-    if (!categories.length) continue;
-    out[stock ? 'stock' : 'flow'].push({
-      ...g,
-      total: sumRows(categories, stock ? 'stock' : 'flow'),
-      categories,
-    });
-  }
-  return out;
-}
+/* 口径计算（六类 × 4 列）已移到 core/stats-panels.js：
+   分类汇总与节点汇总只差第一列，四列数值完全相同，所以只有一套 calcStats。
+   这里只保留「单账户汇总」这一层基础数据。 */
 
 /** 汇总视图：每个账户一行，按 类型 → 分类 → 名称 排序。 */
 export function accountRows(accounts, transactions, range) {

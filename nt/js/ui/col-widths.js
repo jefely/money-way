@@ -19,7 +19,6 @@ import { loadMergedSettings } from './debug-themes.js';
 import { saveTableWidths } from './col-save.js';
 import { tableIdOf } from './table-layout.js';
 import { applySettings } from './apply-settings.js';
-import { TABLE_COLS } from '../core/table-cols.js';
 
 function currentTheme() {
   return document.documentElement.getAttribute('data-theme') || 'dark';
@@ -32,8 +31,7 @@ function currentTheme() {
  * **多张小表**：如果只清被拖那张，其它表会保留上一次拖出来的内联宽度，
  * 之后拖任何一张都只动自己 —— 用户看到的就是「上下两张表列宽不同步」。
  */
-function clearInlineWidths(table) {
-  for (const c of table.querySelectorAll('col')) {
+function clearInlineWidths(table) {  for (const c of table.querySelectorAll('col')) {
     // 恢复「参数表达式」而不是清空：统计页小表的 col 宽度只有内联的 var()，
     // 清空后没有 CSS 兜底，整表会塌成内容宽度（用户报「拖一张，另一张列宽乱了」）。
     c.style.width = c.dataset.w || '';
@@ -53,12 +51,11 @@ function clearInlineWidths(table) {
  *   只存一列的话，重开时其余列会回到默认 —— 整表的比例就变了。
  *   统计三块表默认宽度全是 0，更需要整表存才能判断「这张表自定义过」。
  *
- * 汇总表的金额列是「统一宽度」（TABLE_COLS.sum.uniformCols）：
- *   拖其中任意一列，7 列金额一起变成同一宽度（用户 2026-11）。
+ * 每张表一套列宽，拖哪张存哪张；列数与顺序由 TABLE_COLS[id].cols 决定。
  *
  * @param {object} ctx getState / setState / saveNow
  * @param {HTMLElement} tableEl 被拖的那张表
- * @param {string} [col] 被拖的列名（data-col）
+ * @param {string} [col] 被拖的列名（data-col）—— 目前只用于日志，宽度统一按整表存
  * @param {number} [width] 拖完后的列宽（px）
  */
 export function onColResize(ctx, tableEl, col, width) {
@@ -66,22 +63,7 @@ export function onColResize(ctx, tableEl, col, width) {
   if (!id) return;
 
   const ths = [...tableEl.querySelectorAll('thead .nt-th')];
-  const cols = [...tableEl.querySelectorAll('col')];
   const widths = ths.map((th) => Math.round(th.getBoundingClientRect().width));
-
-  // 汇总表：7 个金额列统一宽度 —— 拖任意一列，其余金额列也改成同一宽度
-  const meta = TABLE_COLS[id];
-  const uni = meta && meta.uniformCols;
-  if (uni && col && uni.includes(col) && Number(width) > 0) {
-    const w = Math.round(Number(width));
-    for (const key of uni) {
-      const i = meta.cols.indexOf(key);
-      if (i < 0) continue;
-      widths[i] = w;
-      if (ths[i]) ths[i].style.width = w + 'px';
-      if (cols[i]) cols[i].style.width = w + 'px';
-    }
-  }
 
   saveTableWidths(ctx, id, widths);
   // 存完立刻把新宽度写回 CSS 变量：切 tab 时表头会重建、内联宽度随之丢失，

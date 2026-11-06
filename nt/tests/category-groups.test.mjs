@@ -21,8 +21,8 @@ test('内置类型：按 资产/费用/负债/权益/收入 顺序分组', () =>
     acc('e1', '费用类', '日常'),
   ];
   const groups = categoryGroups(accounts, [], RANGE);
-  // 顺序跟 STAT_TYPE_ORDER：资产 → 负债 → 收入 → 权益 → 费用（只保留出现的）
-  assert.deepEqual(groups.map((g) => g.type), ['资产类', '负债类', '费用类']);
+  // 顺序跟 STAT_TYPE_ORDER：收入 → 负债 → 权益 → 资产 → 费用 → 成本（只保留出现的）
+  assert.deepEqual(groups.map((g) => g.type), ['负债类', '资产类', '费用类']);
   for (const g of groups) {
     assert.ok(g.total, '每组都要有合计（渲染层据此追加合计行）');
     assert.ok(g.categories.length > 0);
