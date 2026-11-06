@@ -142,7 +142,9 @@ export const TABLE_COLS = {
   accounts: {
     label: '账户设置',
     screen: 'settings',
-    cols: ['code', 'seq', 'type', 'cat', 'name', 'opening', 'billDay', 'repayDay', 'up', 'action'],
+    // 2026-11：删掉「账单日 / 还款日」两列 —— 手机宽度有限，
+    // 而且分期表那边本来就填了账单日/还款日，以那边为准。
+    cols: ['code', 'seq', 'type', 'cat', 'name', 'opening', 'up', 'action'],
   },
 };
 
@@ -181,7 +183,8 @@ export const TABLE_DEFAULT_WIDTHS = {
   // 路径侧栏 6 列（2026-11 用户按自己屏幕调好）：序 27 / 日期 62 / 转出 83 / 转入 87 / 金额 44 / 备注 120
   path: '27,62,83,87,44,120',
   plan: '44,64,64,112,112,96,116,40',
-  accounts: '64,44,72,76,110,96,56,56,40,40',
+  // 简码 | 序 | 类型 | 分类 | 节点名称 | 期初 | 上移 | 删除（2026-11 去掉账单日/还款日）
+  accounts: '64,44,72,76,110,96,40,40',
 };
 
 /**

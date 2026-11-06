@@ -45,9 +45,9 @@ test('表格列数与「核对过的设计」一致', () => {
   // flow / fee / income / asset / liability / equity / cost / catq / node / query / path / plan / accounts
   // 2026-11：6 大分类与节点汇总的表宽由 CSS 决定（100% + 金额列均分），
   // 参数里只剩第 1 列（分类 / 节点），所以它们的 cols 长度是 1。
-  // 详情表（catq）加了「序」列，从 5 变 6。
+  // 详情表（catq）加了「序」列，从 5 变 6；账户设置 2026-11 删掉账单日/还款日，从 10 变 8
   const counts = TABLES.map((t) => TABLE_COLS[t].cols.length);
-  assert.deepEqual(counts, [8, 1, 1, 1, 1, 1, 1, 6, 1, 6, 6, 8, 10]);
+  assert.deepEqual(counts, [8, 1, 1, 1, 1, 1, 1, 6, 1, 6, 6, 8, 8]);
 });
 
 test('旧版单份「默认列宽」→ 按列名迁成每表一份', () => {

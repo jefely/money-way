@@ -158,8 +158,6 @@ export function mountAccountTable(ctx, tbody, opts) {
         setCell(tr, 'category', acc.category || '');
         setCell(tr, 'name', acc.name || '');
         setCell(tr, 'opening', moneyOrBlank(openingOf(state, acc.id)));
-        setCell(tr, 'billDay', acc.billDay || '');
-        setCell(tr, 'repayDay', acc.repayDay || '');
 
         bindRow(tr, acc.id);
         frag.appendChild(tr);

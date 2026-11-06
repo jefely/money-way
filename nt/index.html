@@ -52,7 +52,7 @@
           <!-- 账本设置（左页）：工具条右端 ◀ 回流水 -->
           <div class="nt-flow-page" data-flow-page="settings">
             <div class="nt-vbar">
-              <span class="nt-vbar-title">账本设置</span>
+              <span class="nt-vbar-title">节点设置</span>
               <button class="nt-btn nt-btn-sm" type="button" data-act="balance">配平</button>
               <button class="nt-btn nt-btn-sm" type="button" data-act="password">密码</button>
               <button class="nt-btn nt-btn-sm" type="button" data-act="config">配置</button>
@@ -67,15 +67,15 @@
               <table class="nt-table nt-table-accounts">
                 <thead>
                     <tr>
-                      <!-- 列顺序按核对过的设计：简码 · 序 · 类型 · 分类 · 名称 · 期初 · 账单日 · 还款日 · 上移 · 删除 -->
+              <!-- 列顺序：简码 · 序 · 类型 · 分类 · 名称 · 期初 · 上移 · 删除。
+                   账单日 / 还款日两列 2026-11 删掉：手机宽度有限，
+                   而且分期表那边本来就填了账单日/还款日，以那边为准。 -->
                       <th class="nt-th nt-c-code" scope="col" data-col="code">简码</th>
                       <th class="nt-th nt-c-seq" scope="col" data-col="seq">序</th>
                       <th class="nt-th nt-c-type" scope="col" data-col="type">类型</th>
                       <th class="nt-th nt-c-cat" scope="col" data-col="cat">分类</th>
                       <th class="nt-th nt-c-name" scope="col" data-col="name">节点名称</th>
                       <th class="nt-th nt-c-num" scope="col" data-col="opening">期初余额</th>
-                      <th class="nt-th nt-c-day" scope="col" data-col="billDay">账单日</th>
-                      <th class="nt-th nt-c-day" scope="col" data-col="repayDay">还款日</th>
                       <th class="nt-th nt-c-action nt-th-edge" scope="col" data-col="up">上移</th>
                       <th class="nt-th nt-c-action nt-th-edge" scope="col" data-col="action">删除</th>
                     </tr>
