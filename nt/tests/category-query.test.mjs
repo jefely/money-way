@@ -2,12 +2,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { queryByCategory, resolveCategory, suggestCategories } from '../js/core/category-query.js';
+import { queryByCategory, resolveCategory, suggestCategories, queryByNodes, nodeNameOfCode, splitTerms } from '../js/core/category-query.js';
 
 const accounts = [
-  { id: 'a', name: '工资卡', type: '资产类', category: '储蓄' },
-  { id: 'b', name: '现金', type: '资产类', category: '现金' },
-  { id: 'c', name: '餐饮', type: '费用类', category: '日常' },
+  { id: 'a', name: '工资卡', type: '资产类', category: '储蓄', code: 'GZK' },
+  { id: 'b', name: '现金', type: '资产类', category: '现金', code: 'XJ' },
+  { id: 'c', name: '餐饮', type: '费用类', category: '日常', code: 'CY' },
 ];
 
 const tx = (id, date, from_id, to_id, amount, status) => ({
@@ -117,4 +117,37 @@ test('suggestCategories：同分类多账户只出现一次、节点数累加、
 
   const all = suggestCategories(accs, 'c', 8);
   assert.deepEqual(all.map((x) => x.name).sort(), ['宠物', '餐饮'].sort());
+});
+
+/* ---------- 节点详情：多简码 / 多名字 ---------- */
+
+const RANGE = { start: '2026-02-01', end: '2026-02-28' };
+
+test('splitTerms：空格 / 中英文逗号 / 点 都算分隔符', () => {
+  assert.deepEqual(splitTerms('GZK XJ'), ['GZK', 'XJ']);
+  assert.deepEqual(splitTerms('GZK，XJ'), ['GZK', 'XJ']);
+  assert.deepEqual(splitTerms('GZK,XJ'), ['GZK', 'XJ']);
+  assert.deepEqual(splitTerms('GZK.XJ'), ['GZK', 'XJ']);
+  assert.deepEqual(splitTerms('  GZK ,  XJ ，CY . '), ['GZK', 'XJ', 'CY']);
+  assert.deepEqual(splitTerms(''), []);
+});
+
+test('nodeNameOfCode：简码大小写不敏感，认不出返回空串', () => {
+  assert.equal(nodeNameOfCode(accounts, 'GZK'), '工资卡');
+  assert.equal(nodeNameOfCode(accounts, 'gzk'), '工资卡');
+  assert.equal(nodeNameOfCode(accounts, '  XJ '), '现金');
+  assert.equal(nodeNameOfCode(accounts, 'NOPE'), '');
+  assert.equal(nodeNameOfCode(accounts, ''), '');
+});
+
+test('queryByNodes：多个节点合并，同一笔只出现一次', () => {
+  const rows = queryByNodes(txs, accounts, RANGE, ['工资卡', '现金']);
+  const ids = rows.map((r) => r.tx.id);
+  assert.deepEqual(ids, ['t3', 't2', 't1'], '日期倒序，t1/t2 各一次');
+  assert.equal(new Set(ids).size, ids.length, '不能重复');
+});
+
+test('queryByNodes：空词表返回空，不炸', () => {
+  assert.deepEqual(queryByNodes(txs, accounts, RANGE, []), []);
+  assert.deepEqual(queryByNodes(txs, accounts, RANGE, ['', '  ']), []);
 });

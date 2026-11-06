@@ -91,6 +91,53 @@ export function queryByNode(transactions, accounts, range, text) {
 }
 
 /**
+ * 把一串「简码 / 名字」拆成词（用户 2026-11）。
+ * 分隔符：空格、中文逗号、英文逗号、点 —— 都认，混着用也行。
+ */
+export function splitTerms(text) {
+  return String(text || '')
+    .split(/[\s,，.、]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/**
+ * 简码 → 节点名（大小写不敏感）。找不到返回空串。
+ * 节点简码就是账户表里那一列「简码」，用来快速指代一个节点。
+ */
+export function nodeNameOfCode(accounts, code) {
+  const q = String(code || '').trim().toUpperCase();
+  if (!q) return '';
+  const hit = (accounts || []).find(
+    (a) => a && !a.isHidden && String(a.code || '').toUpperCase() === q,
+  );
+  return hit ? String(hit.name || '') : '';
+}
+
+/**
+ * 多个节点各自命中的流水合并成一份（节点视图的详情：可以一次看几个节点）。
+ * 同一笔只出现一次（它可能同时命中两个名字），最后按日期倒序。
+ */
+export function queryByNodes(transactions, accounts, range, names) {
+  const seen = new Set();
+  const out = [];
+  for (const name of names || []) {
+    for (const r of queryByNode(transactions, accounts, range, name)) {
+      const id = r.tx && r.tx.id;
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      out.push(r);
+    }
+  }
+  out.sort((a, b) => {
+    const d = String(b.tx.date || '').localeCompare(String(a.tx.date || ''));
+    if (d) return d;
+    return (Number(b.tx.seq) || 0) - (Number(a.tx.seq) || 0);
+  });
+  return out;
+}
+
+/**
  * 输入框要「自动带入分类名」时用：查询串精确命中**唯一**分类就返回它的全名。
  *
  * 精确 = 分类名全等，或分类名的首字母串全等（「rc」→「日常」）。

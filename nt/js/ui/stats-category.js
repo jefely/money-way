@@ -10,7 +10,8 @@
 
 import { categoryStats } from '../core/stats-panels.js';
 import {
-  queryByCategory, queryByNode, resolveCategory, suggestCategories,
+  queryByCategory, queryByNodes, resolveCategory, suggestCategories,
+  nodeNameOfCode, splitTerms,
 } from '../core/category-query.js';
 import { moneyAlways, shortDate } from '../core/format.js';
 import { flowRowNumbers } from './flow-model.js';
@@ -70,12 +71,16 @@ function paintQueryPanel(panel, state, range, rowNos) {
 
   const q = input ? input.value : '';
   const node = isNodePanel(panel);
+  // 节点详情支持**多个简码 / 名字**（空格、中文逗号、英文逗号、点都能分开），
+  // 一次看几个节点的流水，合并去重后按日期倒序。分类详情仍然是单个分类。
   const rows = q.trim()
-    ? (node ? queryByNode : queryByCategory)(state.transactions, state.accounts, range, q)
+    ? (node
+      ? queryByNodes(state.transactions, state.accounts, range, splitTerms(q))
+      : queryByCategory(state.transactions, state.accounts, range, q))
     : [];
 
   if (!q.trim() || !rows.length) {
-    const hint = node ? '点左侧节点，或输入名字 / 首字母' : '点左侧分类，或输入名字 / 首字母';
+    const hint = node ? '点左侧节点，或输入简码（可用空格 / 逗号分隔多个）' : '点左侧分类，或输入名字 / 首字母';
     const tr = document.createElement('tr');
     tr.className = 'nt-row';
     const td = makeCell(q.trim() ? '没有匹配的流水' : hint, 'nt-cell-empty');
@@ -176,6 +181,26 @@ export function bindStatsDetail(grid, onChange, getState) {
     let timer = 0;
     let lastItems = [];
 
+    /**
+     * 节点详情：把输入里的**简码就地换成节点名**（输入 `ZHC` → 「招行储」）。
+     * 多个简码用空格 / 逗号 / 点隔开时会一起换，统一用中文逗号连起来。
+     * 换完把光标放末尾 —— 用正则做局部替换的话光标位置很难算准，这里不折腾。
+     */
+    const expandCodes = () => {
+      const state = stateNow();
+      if (!state) return;
+      const terms = splitTerms(input.value);
+      let changed = false;
+      const out = terms.map((t) => {
+        const name = nodeNameOfCode(state.accounts, t);
+        if (name && name !== t) { changed = true; return name; }
+        return t;
+      });
+      if (!changed) return;
+      input.value = out.join('，');
+      try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) { /* 忽略 */ }
+    };
+
     const refreshSuggest = () => {
       // 候选只对分类有用（节点名太多，弹出来反而吵）
       if (node) return;
@@ -193,13 +218,18 @@ export function bindStatsDetail(grid, onChange, getState) {
 
     input.addEventListener('input', () => {
       clearTimeout(timer);
-      timer = setTimeout(() => { refreshSuggest(); onChange(); }, 120);
+      timer = setTimeout(() => {
+        if (node) expandCodes();
+        refreshSuggest();
+        onChange();
+      }, 120);
     });
 
     input.addEventListener('keydown', (ev) => {
       if (ev.key !== 'Enter') return;
       ev.preventDefault();
       clearTimeout(timer);
+      if (node) expandCodes();
       const state = stateNow();
       let name = state && !node ? resolveCategory(state.accounts, input.value) : '';
       if (!name && lastItems.length === 1) name = lastItems[0].name;
@@ -215,6 +245,7 @@ export function bindStatsDetail(grid, onChange, getState) {
     input.addEventListener('blur', () => {
       // 点候选时 pointerdown 已 preventDefault，焦点不会真丢；这里只处理 Tab/点空白
       if (isCatSuggestFor(input)) hideCatSuggest();
+      if (node) expandCodes();
     });
 
     if (clear) {
