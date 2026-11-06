@@ -291,26 +291,6 @@ body {
   overflow: auto;
   background: var(--nt-bg);
   contain: layout;
-  /* 滚动条改细（用户 2026-11）：默认竖滚动条约 15px，表格就被挡在它左边、
-     和右侧分界线差一大截。细滚动条约 8px，空白减半且仍看得出「还能滚」。
-     两个属性是两代写法：scrollbar-width 给新 Chrome / Firefox，
-     下面的 ::-webkit-scrollbar 给旧 Chrome / Safari。 */
-  scrollbar-width: thin;
-  scrollbar-color: var(--nt-border-v-color, #c8c8c8) transparent;
-}
-
-.nt-tablewrap::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.nt-tablewrap::-webkit-scrollbar-thumb {
-  background: var(--nt-border-v-color, #c8c8c8);
-  border-radius: 4px;
-}
-
-.nt-tablewrap::-webkit-scrollbar-track {
-  background: transparent;
 }
 
 .nt-th {
