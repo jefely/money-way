@@ -4,7 +4,9 @@
  * 放在这里是为了让 account-table.js 保持在 300 行以内。
  */
 
-export const ACCOUNT_COLS = ['简码', '序', '类型', '分类', '名称', '期初', '账单日', '还款日', '上移', '删除'];
+// 2026-11：删掉「账单日 / 还款日」—— 手机宽度有限，而且分期表那边已经填了。
+// 这张表和 index.html 里账户表的真实表头**必须一致**，否则区域标题行会多出两列。
+export const ACCOUNT_COLS = ['简码', '序', '类型', '分类', '名称', '期初', '上移', '删除'];
 
 /** 区域标题：冻结列只放 A/B/U，长标题放后面的跨列格。 */
 export function zoneHead(zone) {
@@ -18,7 +20,8 @@ export function zoneHead(zone) {
 
   const td = document.createElement('td');
   td.className = 'nt-cell nt-zone-cell';
-  td.colSpan = 9;
+  // 跨列数 = 总列数 - 1（第一列放区域字母 A/B/U）
+  td.colSpan = ACCOUNT_COLS.length - 1;
 
   const inner = document.createElement('div');
   inner.className = 'nt-zone-label';

@@ -364,14 +364,12 @@
 
 .nt-table-catq {
   table-layout: fixed;
-  /* 三道一起上才稳。
-     只写 `width: 100%` 时，shell.css 的 `.nt-table { width: max-content }`
-     在某些层叠顺序下会赢（同优先级，靠加载顺序），表格就缩成「内容那么宽」，
-     备注列自然到不了右边 —— 用户看到的就是「备注列怎么都不拉伸」。
-     max-width 挡「被长备注撑宽」，min-width 挡「被内容压窄」，!important 挡层叠顺序。 */
-  width: 100% !important;
-  min-width: 100% !important;
-  max-width: 100% !important;
+  /* 默认铺满面板（备注列吃剩余 → 右边缘贴住面板右边）；
+     一旦用户拖过列宽，参数里就是 px，`.cols-custom` 会把表宽切成「列宽之和」——
+     那时每一列才是真正独立的（拖一列不动其它列，用户 2026-11）。
+     这里**不能**加 `width: 100% !important`，那会把 cols-custom 整个压掉。 */
+  width: 100%;
+  min-width: 0;
 }
 
 .nt-table-catq .nt-th,

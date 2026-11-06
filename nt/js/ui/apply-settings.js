@@ -37,9 +37,6 @@ function syncColModes(settings, theme) {
     // 统计小表 2026-11 起**永远 100% 宽**（金额列由 CSS 均分剩余宽度），
     // 绝不能切 .cols-custom —— 那个类会把表改成 max-content，金额列就不再均分了。
     if (table.classList.contains('nt-table-stat')) continue;
-    // 详情表同理：最后一列（备注）靠「不写宽度」吃剩余空间，
-    // 切成 max-content 就只剩「备注」两字宽（用户 2026-11 实测）。
-    if (table.classList.contains('nt-table-catq')) continue;
     const widths = parseTableWidths(s[colWidthKey(id)], id);
     // 两种判定，都是「参数说了算」：
     //   growByWidth（统计三块）：0 = 还没自定义（CSS 百分比铺满），有非 0 = 拖过
