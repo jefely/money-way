@@ -1257,10 +1257,17 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  /* 圆钮本体 54px，原来 12px 的字显小（用户 2026-11：再大方一点）。
+     18px 在 54px 的圆里刚好：字母高约 13px、宽约 24px，四周还留得住边距。 */
+  font-size: 18px;
   font-weight: 900;
   letter-spacing: 0.02em;
   line-height: 1;
+}
+
+/* 展开成发送态时圆钮缩到 38px，字号跟着收一档，否则顶边 */
+.nt-composer.open .nt-icon-nt {
+  font-size: 13px;
 }
 
 /* ---------- 图标按钮里的箭头（用户 2026-11） ----------
