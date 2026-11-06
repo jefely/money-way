@@ -46,5 +46,26 @@ export function registerServiceWorker() {
     return;
   }
 
-  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => {});
+  // 新 SW 接管的那一刻自动刷新一次。
+  //
+  // 为什么需要：sw.js 用的是 stale-while-revalidate（离线优先），命中缓存就
+  // 立刻返回旧文件、后台再更新。所以**当前这一页**一定是用旧 CSS/JS 渲染的，
+  // 新版本要等下次打开才生效 —— 用户看到的就是「明明更新了，样式还是老的」，
+  // 得手动开两次。这里在换班瞬间重载，一次到位。
+  //
+  // 只在「原本就有控制器」时重载：首次安装也会触发 controllerchange，
+  // 那一次页面本来就是最新的，重载只会白闪一下。
+  const hadController = !!navigator.serviceWorker.controller;
+  let swapped = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (swapped || !hadController) return;
+    swapped = true;
+    location.reload();
+  });
+
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+    // 注册完主动问一次有没有新版：浏览器默认只在导航时检查 sw.js，
+    // 一直开着不关的窗口可能几小时都发现不了更新。
+    .then((reg) => reg.update().catch(() => {}))
+    .catch(() => {});
 }
