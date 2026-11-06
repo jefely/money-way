@@ -64,6 +64,12 @@ export function mountComposer(section, ctx, rowHost, refresh) {
   const EDGE = 8;
   let suppressClick = false;
 
+  /** 当前**可视**视口尺寸：软键盘弹出时只有 visualViewport 是真值 */
+  const viewH = () => (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+  const viewW = () => (window.visualViewport && window.visualViewport.width) || window.innerWidth;
+  /** 无键盘时的基准高度（键盘高度 = baseHeight - viewH()） */
+  const baseHeight = viewH();
+
   // 用户拖到的位置（距视口右/下）：气泡就钉在这里
   let posRight = 16;
   let posBottom = 16;
@@ -88,14 +94,33 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     const open = bar.classList.contains('open');
     const w = open ? panelWidth() : 54;
     const right = open
-      ? Math.max(EDGE, Math.min(posRight, window.innerWidth - w - EDGE))
+      ? Math.max(EDGE, Math.min(posRight, viewW() - w - EDGE))
       : posRight;
+    // 软键盘弹出时 window.innerHeight 往往**不变**（尤其 iOS），
+    // 真正缩的是 visualViewport.height。这里按它算「离屏幕底还有多远」，
+    // 泡泡才会被推到键盘上方，而不是被键盘盖住或挤飞（用户 2026-11）。
+    const vh = viewH();
+    const kb = Math.max(0, baseHeight - vh);
     bar.style.right = Math.round(right) + 'px';
-    bar.style.bottom = Math.round(posBottom) + 'px';
+    bar.style.bottom = Math.round(Math.max(EDGE, posBottom - kb)) + 'px';
   }
   applyPos();
 
   window.addEventListener('resize', applyPos);
+
+  /* ---------- 软键盘：跟随可视视口 ----------
+     iOS / Android 对「键盘是否改变 layout viewport」的处理完全不同，
+     唯一靠得住的是 visualViewport：它的 resize/scroll 在键盘弹出、收起时都会触发。
+     没有这个 API 的老浏览器退回 window.resize（行为差一截，但不会更差）。 */
+  const vv = window.visualViewport;
+  if (vv) {
+    const onVV = () => {
+      // 键盘弹出有动画，立即读到的尺寸可能还是旧值 —— 让出一帧再定位
+      setTimeout(applyPos, 0);
+    };
+    vv.addEventListener('resize', onVV);
+    vv.addEventListener('scroll', onVV);
+  }
 
   const drag = { active: false, moved: false, sx: 0, sy: 0, sr: 0, sb: 0 };
 
