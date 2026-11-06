@@ -13,6 +13,7 @@
 
 import { statAmount } from '../core/format.js';
 import { STAT_COLS, STAT_FIELDS, STAT_ORDER } from '../core/stats-panels.js';
+import { typeColor } from '../graph/mw-layers.js';
 import { applyFitFont } from './stat-fit.js';
 import { mountStatColResize } from './stat-resize.js';
 import { syncFrozen } from './table-layout.js';
@@ -68,13 +69,16 @@ function groupName(type) {
 }
 
 /**
- * 一行的 4 个金额格（合计行与数据行共用）
+ * 一行的 4 个金额格（合计行与数据行共用）。
+ * 值为 0 的格子加 `nt-cell-zero`：暗淡显示，一眼分清「没有」和「有数」。
  */
 function amountCells(src, type) {
   return STAT_FIELDS.map((k, i) => {
     // 第 1 / 第 4 列是余额性质，负债类才需要「多还」；中间两列是发生额，恒正
     const signed = i === 0 || i === 3;
-    return makeCell(amount(src[k], type, signed), 'nt-cell-num');
+    const n = Number(src[k]) || 0;
+    const zero = Math.abs(n) < 0.005;
+    return makeCell(amount(n, type, signed), 'nt-cell-num' + (zero ? ' nt-cell-zero' : ''));
   });
 }
 
@@ -147,8 +151,12 @@ function buildTable(g, table, firstCol, opts) {
   el.appendChild(cg);
 
   const thead = document.createElement('thead');
-  // 合计行在表头**上边**：类型名放在第 1 列，金额只留数字
-  thead.appendChild(makeRow(groupName(type), amountCells(g.total || {}, type), true));
+  // 合计行在表头**上边**：类型名放在第 1 列，金额只留数字。
+  // 圆点只标**类型**（收入 / 负债 / 资产…），颜色取环图的类型固定色系
+  //（graph/mw-layers.js 的 typeColor：费用红 / 资产蓝 / 收入绿 / 负债橙 / 权益紫 / 成本灰）。
+  thead.appendChild(makeRow(
+    groupName(type), amountCells(g.total || {}, type), true, null, typeColor(type),
+  ));
 
   const headRow = document.createElement('tr');
   labels.forEach((label, i) => {
@@ -164,8 +172,8 @@ function buildTable(g, table, firstCol, opts) {
 
   const tbody = document.createElement('tbody');
   for (const r of g.rows) {
-    const dot = typeof o.colorOf === 'function' ? o.colorOf(r.key) : '';
-    tbody.appendChild(makeRow(r.key, amountCells(r, type), false, r.key, dot));
+    // 行名不加圆点 —— 圆点表示「这是哪一类」，不是「这是哪个分类 / 节点」（用户 2026-11）
+    tbody.appendChild(makeRow(r.key, amountCells(r, type), false, r.key));
   }
   el.appendChild(tbody);
   return el;
@@ -185,12 +193,11 @@ function markCustom(tableEl, table) {
  * @param {HTMLElement} host 容器
  * @param {Array} groups core/stats-panels.js 的输出
  * @param {{firstCol:string, kind?:'category'|'node', table?:string, tableOf?:object,
- *          empty?:string, colorOf?:(key:string)=>string,
- *          onResize?:(w:number)=>void}} opts
+ *          empty?:string, onResize?:(w:number)=>void}} opts
  *        kind   = 'category'（默认）或 'node'，决定第 1 列宽度参数与默认值
  *        table  = 六类共用一个列宽参数（节点视图）
  *        tableOf = 每类一套（分类视图）
- *        colorOf = 分类名的环图配色，给了就在名字前画圆点
+ *        onResize = 拖完分类列宽度的回调（写共享参数）
  * @returns {number} 数据行总数
  */
 export function renderStatTables(host, groups, opts) {

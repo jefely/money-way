@@ -174,6 +174,20 @@
   text-align: center;
 }
 
+/* 节点表第 1 列**靠左**（用户 2026-11）：节点名长短差太多
+   （「招行信1007」和「花呗」并排），居中会让每一行的起点参差不齐。 */
+.nt-table-node tbody .nt-cell:nth-child(1) {
+  text-align: left;
+}
+
+/* 金额为 0 的格子暗淡显示：一眼分清「这一项没有」和「这一项有数」。
+   只用 opacity，不换颜色 —— `--nt-text-muted` 在深色主题下本身就偏亮
+   （实测 rgb(224,224,224)），再叠一层颜色反而看不出「暗」；
+   透明度对两套主题都成立（背景透出来）。 */
+.nt-table-stat .nt-cell-zero {
+  opacity: 0.45;
+}
+
 /* 汇总表：序号列居中（第 2 列）、分类列居中（第 3 列） */
 .nt-table-sum tbody .nt-cell:nth-child(2),
 .nt-table-sum tbody .nt-cell:nth-child(3) {
