@@ -99,24 +99,26 @@ test('资产：期初余额 / 本期流入 / 本期流出 / 期末余额', () =>
   assert.equal(a.c4, 1200);
 });
 
-test('费用：历史累计 = 到本期开始前的转入 − 转出（历史退回也要扣）', () => {
+test('费用：本期累计 = 到本期结束的累计净额（退回要扣）', () => {
   const e = row(categoryStats(accounts, transactions, range), '费用类', '餐饮');
-  // 1 月花 150、退回 30 → 历史累计 120；2 月的 200/10 只进本期三个数。
-  // 如果算到本期结束，这里会是 310 —— 这条断言就是为了钉住「开始前」。
-  assert.equal(e.c1, 120);
+  // 1 月 150/30 + 2 月 200/10 → (150+200) − (30+10) = 310。
+  // 注意它看的是「本期结束」，和其余五类的「本期开始前」不同 —— 费用要的是
+  // 「这类到今天一共花了多少」，所以叫本期累计。
+  assert.equal(e.c1, 310);
   assert.equal(e.c2, 200);
   assert.equal(e.c3, 10);
 });
 
-test('费用：递推成立 —— 下期历史累计 = 本期历史累计 + 本期净出', () => {
-  const feb = row(categoryStats(accounts, transactions, range), '费用类', '餐饮');
-  const march = row(
-    categoryStats(accounts, transactions, { start: '2026-03-01', end: '2026-03-31' }),
+test('费用：滚动递推 —— 本期累计 = 上期累计 + 本期净出', () => {
+  const jan = row(
+    categoryStats(accounts, transactions, { start: '2026-01-01', end: '2026-01-31' }),
     '费用类',
     '餐饮',
   );
-  assert.equal(march.c1, feb.c1 + feb.c4, '3 月累计 = 2 月的 120 + 2 月净出 190');
-  assert.equal(march.c1, 310);
+  const feb = row(categoryStats(accounts, transactions, range), '费用类', '餐饮');
+  assert.equal(jan.c1, 120, '1 月累计 = 150 − 30');
+  assert.equal(feb.c1, jan.c1 + feb.c4, '2 月累计 = 1 月的 120 + 2 月净出 190');
+  assert.equal(feb.c1, 310);
 });
 
 test('费用：第 4 列是本期净出，不是期末余额', () => {
@@ -179,7 +181,7 @@ test('节点汇总：第一列是节点名，四列数值与分类口径逐项�
 
 test('每类 4 列的表头各不相同，且费用没有「期末」', () => {
   assert.deepEqual(STAT_COLS.资产类, ['期初余额', '本期流入', '本期流出', '期末余额']);
-  assert.deepEqual(STAT_COLS.费用类, ['历史累计', '本期支出', '本期退回', '本期净出']);
+  assert.deepEqual(STAT_COLS.费用类, ['本期累计', '本期支出', '本期退回', '本期净出']);
   assert.equal(STAT_COLS.负债类[1], '本期新增');
   assert.equal(STAT_COLS.负债类[2], '本期偿还');
   assert.equal(STAT_COLS.收入类[0], '期初累计');
@@ -187,14 +189,14 @@ test('每类 4 列的表头各不相同，且费用没有「期末」', () => {
   assert.ok(!STAT_COLS.费用类.includes('期末余额'));
 });
 
-test('statCells：A 极与 B 极方向相反，费用同 A 极、只差第 4 列', () => {
+test('statCells：A 极与 B 极方向相反，费用同 A 极、只差第 1 和第 4 列', () => {
   const s = { periodIn: 100, periodOut: 30, historyIn: 1000, historyOut: 400 };
   // B 极（负债）：增 = 转出、减 = 转入
   assert.deepEqual(statCells(s, '负债类'), { c1: -600, c2: 30, c3: 100, c4: -670 });
   // A 极（资产）：增 = 转入、减 = 转出，第 4 列 = 期初 + 增 − 减
   assert.deepEqual(statCells(s, '资产类'), { c1: 600, c2: 100, c3: 30, c4: 670 });
-  // 费用：前 3 列与资产完全一致，第 4 列只报本期净出（不含历史累计）
-  assert.deepEqual(statCells(s, '费用类'), { c1: 600, c2: 100, c3: 30, c4: 70 });
+  // 费用：第 1 列是到本期结束的累计（= 资产的期末 670），第 4 列只报本期净出
+  assert.deepEqual(statCells(s, '费用类'), { c1: 670, c2: 100, c3: 30, c4: 70 });
   // 成本与资产同口径
   assert.deepEqual(statCells(s, '成本类'), statCells(s, '资产类'));
 });
