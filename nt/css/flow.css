@@ -984,7 +984,10 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   width: 52px;
   height: 52px;
   padding: 0;
-  border-radius: 50%;
+  /* **固定 26px，不是 50%**：50% 是按当前宽高现算的，宽度从 52 长到 360 的
+     过程中，圆角半径跟着横向拉伸，中间态就成了椭圆（用户 2026-11 实测）。
+     26 = 高度的一半：收起正好是圆、展开正好是胶囊、过渡中始终是胶囊。 */
+  border-radius: 26px;
   overflow: hidden;
   background: radial-gradient(circle at 32% 26%,
       color-mix(in srgb, var(--nt-primary-light, var(--nt-primary)) 85%, #ffffff) 0%,
@@ -1064,7 +1067,7 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   height: 52px;
   padding: 0;
   border: 0;
-  border-radius: 50%;
+  border-radius: 26px;
   background: transparent;
   color: #ffffff;
   cursor: grab;
@@ -1083,7 +1086,7 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   width: 52px;
   height: 52px;
   margin: 0;
-  border-radius: 50%;
+  border-radius: 26px;
   background: var(--nt-primary);
   color: #ffffff;
 }
