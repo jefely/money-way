@@ -190,8 +190,12 @@ export function openingOf(state, id) {
 }
 
 /**
- * 期初日期：账本里最早一笔流水的前一天 23:59:59 —— 保证期初永远排在第一笔之前
- * （用户 2026-10-30 指定的「最早流水之前 1 秒」）。没有流水时沿用 2000-01-01。
+ * 期初日期：账本里最早一笔流水的**前一天**，纯日期 `YYYY-MM-DD`。
+ *
+ * 早先这里返回的是「前一天 23:59:59」（带时间），想保证期初排在第一条之前 ——
+ * 但水流的日期字段全系统只认 `YYYY-MM-DD`（校验 V5 的正则就是这条），
+ * 于是每笔期初流水都被判成「日期非法」，一开账本就报 17 个错（用户 2026-11）。
+ * 用整天的「前一天」同样排在第一条之前，而且格式和其它流水完全一致。
  */
 export function openingDateFor(txs) {
   let first = '';
@@ -208,7 +212,7 @@ export function openingDateFor(txs) {
   const y = dt.getFullYear();
   const m = String(dt.getMonth() + 1).padStart(2, '0');
   const d = String(dt.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}T23:59:59`;
+  return `${y}-${m}-${d}`;
 }
 
 /** 把全部期初流水的日期对齐到 openingDateFor（没有变化就原样返回） */

@@ -55,7 +55,9 @@ export function validate(input) {
     if (fromId && toId && fromId === toId) {
       issues.push({ code: 'V4', level: LEVEL.ERROR, message: RULES.V4, ref: { index: i, id: t && t.id } });
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    // 期初流水的日期由系统算（openingDateFor），不是用户填的，也不参与校验：
+    // 旧账本里存的是「前一天 23:59:59」那种带时间的值，不该因此报 17 个错。
+    if (!t.opening && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       issues.push({ code: 'V5', level: LEVEL.ERROR, message: RULES.V5, ref: { index: i, id: t && t.id } });
     }
   });
