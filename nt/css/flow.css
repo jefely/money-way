@@ -1006,31 +1006,27 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 }
 
 .nt-composer.open {
-  /* 2026-11 定稿（用户第四轮：光晕散得太开、落影太弱，整个控件"飘"着）：
-     扎实的关键是**把光收短、把影压深**，不是加大发光。
-       · 光晕半径 22px → 10px，透明度 20% → 12%：只留贴边一层薄光
-       · 落影加重且收紧（6px/18px → 4px/14px，透明度 .2 → .3）：有影才有"坐在桌面上"的重量
-       · 玻璃 72% → 86%：更实，字更清楚
-       · gap 6px → 4px、padding 8px → 6px：输入框和圆钮贴紧，读起来是一个整体 */
   gap: 4px;
   width: min(360px, calc(100vw - 32px));
   padding: 6px;
   border-radius: 28px;
-  /* 透明度先按用户要求设 50%（2026-11）：比 86% 透，下面的流水能透出来 */
+  /* 真透明（用户 2026-11）：底色只留 50%。 */
   background: color-mix(in srgb, var(--nt-bg-cell) 50%, transparent);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  backdrop-filter: blur(16px) saturate(160%);
-  border: 1px solid color-mix(in srgb, var(--nt-primary) 40%, var(--nt-bg-line));
-  /* 收起态的 .nt-composer 是 overflow: hidden（要把渐变圆角裁干净），
-     但展开后那条规则还在 —— 外发光会被整个裁掉，只剩内圈亮线，
-     这就是「看着不扎实」的真正原因。展开时放开裁剪。 */
+  /* **不要 backdrop-filter**。它会把背后的流水糊成一片，视觉上反而像
+     「不透明的一块磨砂玻璃」—— 这就是用户说的「看上去是模糊的」。
+     去掉之后背景是清晰透上来的，才叫透明。 */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  /* 极细的灰色外框：只要轮廓，不要主色混边 */
+  border: 1px solid var(--nt-bg-line);
+  /* 收起态是 overflow: hidden（要把渐变圆角裁干净），展开后那条规则还在，
+     外发光会被整个裁掉 —— 展开时放开裁剪。 */
   overflow: visible;
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--nt-primary) 20%, transparent),
-    0 0 14px color-mix(in srgb, var(--nt-primary) 26%, transparent),
-    0 4px 14px rgba(0, 0, 0, 0.30),
-    0 1px 2px rgba(0, 0, 0, 0.20);
+  /* 纯色发光（用户 2026-11）：只留主色那一圈，**取消所有黑色投影**。
+     深色主题下黑投影会和主色光混成灰边，看着脏。 */
+  box-shadow: 0 0 16px 2px color-mix(in srgb, var(--nt-primary) 22%, transparent);
 }
+
 .nt-composer-input {
   /* 收起态要真正压成 0 宽：只靠 flex:1 + min-width:0 时，
      input 自带的 padding/border 仍会占掉十几像素（圆钮被挤偏） */
