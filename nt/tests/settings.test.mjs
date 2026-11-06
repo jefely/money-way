@@ -22,10 +22,20 @@ const TABLES = Object.keys(TABLE_COLS);
 test('每张表都有列宽键，且长度 = 该表列数', () => {
   const n = normalize({}, 'dark');
   for (const t of TABLES) {
+    // 七张统计小表没有自己的列宽键：它们共用「分类统计/列宽」一个值
+    if (TABLE_COLS[t].noGroup) continue;
     const key = colWidthKey(t);
     assert.ok(key in n, `缺参数 ${key}`);
     assert.equal(n[key].split(',').length, TABLE_COLS[t].cols.length, `${key} 长度不对`);
     assert.equal(n[key], TABLE_DEFAULT_WIDTHS[t], `${key} 应等于该表默认值`);
+  }
+});
+
+test('七张统计表共用同一个列宽参数，不是各存一份再同步', () => {
+  const n = normalize({}, 'dark');
+  assert.equal(n['分类统计/列宽'], 62, '默认 62');
+  for (const t of ['fee', 'income', 'asset', 'liability', 'equity', 'cost', 'node']) {
+    assert.ok(!(colWidthKey(t) in n), `${t} 不该再有自己的列宽键`);
   }
 });
 
@@ -90,7 +100,10 @@ test('CSS 变量名是 --nt-col-<表>-<列>，0 变自适应', () => {
 
   // 统计三块表（growByWidth）默认全 0 = 交给 CSS 的百分比铺满；
   // 它们的变量值是空串（apply-settings 收到空值会 removeProperty），其余 6 张表是 px。
-  const want = TABLES.reduce((k, t) => k + TABLE_COLS[t].cols.length, 0);
+  // 统计小表只贡献一条 --nt-col-stat-cat（七张表共用），其余表按列各一条
+  const want = TABLES
+    .filter((t) => !TABLE_COLS[t].noGroup)
+    .reduce((k, t) => k + TABLE_COLS[t].cols.length, 0) + 1;
   assert.equal(list.length, want);
 
   const byVar = new Map(list.map((x) => [x.cssVar, x.value]));
@@ -100,30 +113,29 @@ test('CSS 变量名是 --nt-col-<表>-<列>，0 变自适应', () => {
   // 实际宽度对不上，横滚到右边时表头会整块移出视口（2026-10 用户实测）。
   assert.equal(byVar.get('--nt-col-path-from'), '83px');
   assert.equal(byVar.get('--nt-col-path-note'), '120px');
-  assert.equal(byVar.get('--nt-col-node-cat'), '62px');
-  // 6 大分类：第 1 列固定 px；金额列不写宽度（由 CSS 均分），所以没有它们的变量
-  assert.equal(byVar.get('--nt-col-asset-cat'), '62px');
-  assert.equal(byVar.get('--nt-col-fee-cat'), '62px');
-  assert.equal(byVar.get('--nt-col-fee-end'), undefined, '金额列不该再有独立宽度变量');
+  // 七张统计表：只有一条分类列宽变量，金额列没有独立变量
+  assert.equal(byVar.get('--nt-col-stat-cat'), '62px');
+  assert.ok(!byVar.has('--nt-col-fee-cat'), '统计表不该再有按表拆的列宽变量');
   assert.equal(byVar.get('--nt-col-catq-note'), '');
 });
 
-test('6 大分类表拖过列宽后，变量变成 px（重开就靠它还原）', () => {
-  // 2026-11：参数里只有第 1 列（分类 / 节点）；金额列由 CSS 均分剩余宽度。
-  const n = normalize({
-    '分类-资产/列宽': '120',
-    '分类-费用/列宽': '150',
-  }, 'dark');
+test('七张统计表共用一条列宽变量（拖一张，全部一起变）', () => {
+  const n = normalize({ '分类统计/列宽': '150' }, 'dark');
   const byVar = new Map(
     toCssList(n, 'dark').filter((x) => x.cssVar).map((x) => [x.cssVar, x.value]),
   );
-  assert.equal(byVar.get('--nt-col-asset-cat'), '120px');
-  assert.equal(byVar.get('--nt-col-fee-cat'), '150px');
+  assert.equal(byVar.get('--nt-col-stat-cat'), '150px');
+  assert.ok(!byVar.has('--nt-col-fee-cat'), '不该再有按表拆的列宽变量');
 
   // 0 仍是「自适应」：分类查询这种 growByWidth 表 0 → 空串（CSS 兜底），
   // 普通表 0 → auto（和 query 的备注列同一个规则）。
   assert.equal(byVar.get('--nt-col-catq-note'), '');
   assert.equal(byVar.get('--nt-col-query-note'), 'auto');
+});
+
+test('分类列宽有上下限（拖过头也不会把金额列挤没）', () => {
+  assert.equal(normalize({ '分类统计/列宽': 10 }, 'dark')['分类统计/列宽'], 40);
+  assert.equal(normalize({ '分类统计/列宽': 999 }, 'dark')['分类统计/列宽'], 240);
 });
 
 test('同一个列名在不同表里互不影响', () => {
@@ -157,6 +169,8 @@ test('★ 每张表都有列宽项；有尺寸参数的表还多 4 项', () => {
   assert.equal(TABLE_SIZE_SCHEMA.length, 20, '5 表 × 4 项');
 
   for (const [table, t] of Object.entries(TABLE_COLS)) {
+    // 七张统计小表没有自己的参数组（共用「分类统计」）
+    if (t.noGroup) continue;
     const items = SCHEMA.filter((s) => s.group === t.label);
     const noSize = table === 'path' || t.noSize;
     const want = noSize ? 1 : 5;
@@ -180,6 +194,7 @@ test('★ 每个表组都有自己的屏：tab 一一对应，没有孤儿组', 
   assert.deepEqual(ids, ['main', 'flow', 'stats', 'query', 'path', 'plan', 'settings']);
 
   for (const t of Object.values(TABLE_COLS)) {
+    if (t.noGroup) continue; // 七张统计小表共用「分类统计」组
     assert.ok(GROUPS.includes(t.label), `${t.label} 不在 GROUPS`);
     assert.ok(ids.includes(GROUP_SCREEN[t.label]), `${t.label} 的屏幕不存在`);
   }

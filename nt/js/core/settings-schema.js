@@ -220,19 +220,15 @@ export const SCHEMA = [
      想恢复默认列宽用面板底部的「恢复默认」。 */
   { key: '流水记录/列宽', group: '流水记录', type: 'cols', table: 'flow', def: TABLE_DEFAULT_WIDTHS.flow },
   // 统计页 6 大分类各一张表（2026-11）：每张表独立一套列宽
-  { key: '分类-费用/列宽', group: '分类-费用', type: 'cols', table: 'fee', def: TABLE_DEFAULT_WIDTHS.fee },
-  { key: '分类-收入/列宽', group: '分类-收入', type: 'cols', table: 'income', def: TABLE_DEFAULT_WIDTHS.income },
-  { key: '分类-资产/列宽', group: '分类-资产', type: 'cols', table: 'asset', def: TABLE_DEFAULT_WIDTHS.asset },
-  { key: '分类-负债/列宽', group: '分类-负债', type: 'cols', table: 'liability', def: TABLE_DEFAULT_WIDTHS.liability },
-  { key: '分类-权益/列宽', group: '分类-权益', type: 'cols', table: 'equity', def: TABLE_DEFAULT_WIDTHS.equity },
-  { key: '分类-成本/列宽', group: '分类-成本', type: 'cols', table: 'cost', def: TABLE_DEFAULT_WIDTHS.cost },
   { key: '分类查询/列宽', group: '分类查询', type: 'cols', table: 'catq', def: TABLE_DEFAULT_WIDTHS.catq },
-  { key: '节点汇总/列宽', group: '节点汇总', type: 'cols', table: 'node', def: TABLE_DEFAULT_WIDTHS.node },
   { key: '流水查询/列宽', group: '流水查询', type: 'cols', table: 'query', def: TABLE_DEFAULT_WIDTHS.query },
   { key: '路径追踪/列宽', group: '路径追踪', type: 'cols', table: 'path', def: TABLE_DEFAULT_WIDTHS.path },
   { key: '固定开支/列宽', group: '固定开支', type: 'cols', table: 'plan', def: TABLE_DEFAULT_WIDTHS.plan },
   { key: '账户设置/列宽', group: '账户设置', type: 'cols', table: 'accounts', def: TABLE_DEFAULT_WIDTHS.accounts },
-  // 七张统计小表共用的字号（2026-11）：低分辨率手机上默认 14px 偏小，要能整体放大。
+  // 七张统计小表**共用一个**列宽（2026-11 用户指定：不是一个表改其它表跟着同步，
+  // 而是它们本来就是同一个值）。变量名不带表名，CSS 里七张表都读它。
+  { key: '分类统计/列宽', group: '分类统计', def: 62, unit: 'px', cssVar: '--nt-col-stat-cat', min: 40, max: 240 },
+  // 七张统计小表共用的字号：低分辨率手机上默认 14px 偏小，要能整体放大。
   // 它们不参与「每表一套尺寸」（TABLE_COLS 里 noSize），所以单独两项，
   // 走 toCssList 的通用分支就能写成 CSS 变量，不需要新类型。
   { key: '分类统计/列标字号', group: '分类统计', def: 12, unit: 'px', cssVar: '--nt-stat-head-font', min: 8, max: 24 },

@@ -87,14 +87,15 @@ function buildTable(g, table, firstCol) {
   const el = document.createElement('table');
   el.className = 'nt-table nt-table-stat nt-table-' + table;
 
-  // 只有第 1 列（分类 / 节点）是固定 px，由 `分类统计/列宽` 参数驱动、七张表共用。
+  // 只有第 1 列（分类 / 节点）是固定 px，七张表**共用一个参数和一条 CSS 变量**
+  //（`分类统计/列宽` → `--nt-col-stat-cat`，用户 2026-11：不是同步数值，是本来就同源）。
   // 后面 4 个金额列**故意不写宽度**：table-layout:fixed 会把剩余空间平均分给它们，
   // 所以「金额列自动等宽」不用 JS 算，拖分类列右边缘时它们自己就重新均分了。
   const cg = document.createElement('colgroup');
   COL_KEYS.forEach((key, i) => {
     const col = document.createElement('col');
     if (i === 0) {
-      const expr = 'var(--nt-col-' + table + '-cat, ' + (defs[0] || 62) + 'px)';
+      const expr = 'var(--nt-col-stat-cat, ' + (defs[0] || 62) + 'px)';
       col.style.width = expr;
       // 记住「参数表达式」：拖动后 col 会被写成 px，清内联时要恢复成它
       col.dataset.w = expr;

@@ -37,6 +37,7 @@ export const TABLE_COLS = {
     noLegacy: true,
     // 2026-11：只有第 1 列（分类 / 节点）可拖；后面 4 个金额列由 CSS 均分剩余宽度，
     // 不存在「每列一个宽度」这回事，所以参数里也只存一个值。
+    noGroup: true,
     cols: ['cat'],
   },
   income: {
@@ -47,6 +48,7 @@ export const TABLE_COLS = {
     noLegacy: true,
     // 2026-11：只有第 1 列（分类 / 节点）可拖；后面 4 个金额列由 CSS 均分剩余宽度，
     // 不存在「每列一个宽度」这回事，所以参数里也只存一个值。
+    noGroup: true,
     cols: ['cat'],
   },
   asset: {
@@ -57,6 +59,7 @@ export const TABLE_COLS = {
     noLegacy: true,
     // 2026-11：只有第 1 列（分类 / 节点）可拖；后面 4 个金额列由 CSS 均分剩余宽度，
     // 不存在「每列一个宽度」这回事，所以参数里也只存一个值。
+    noGroup: true,
     cols: ['cat'],
   },
   liability: {
@@ -67,6 +70,7 @@ export const TABLE_COLS = {
     noLegacy: true,
     // 2026-11：只有第 1 列（分类 / 节点）可拖；后面 4 个金额列由 CSS 均分剩余宽度，
     // 不存在「每列一个宽度」这回事，所以参数里也只存一个值。
+    noGroup: true,
     cols: ['cat'],
   },
   equity: {
@@ -77,6 +81,7 @@ export const TABLE_COLS = {
     noLegacy: true,
     // 2026-11：只有第 1 列（分类 / 节点）可拖；后面 4 个金额列由 CSS 均分剩余宽度，
     // 不存在「每列一个宽度」这回事，所以参数里也只存一个值。
+    noGroup: true,
     cols: ['cat'],
   },
   cost: {
@@ -87,6 +92,7 @@ export const TABLE_COLS = {
     noLegacy: true,
     // 2026-11：只有第 1 列（分类 / 节点）可拖；后面 4 个金额列由 CSS 均分剩余宽度，
     // 不存在「每列一个宽度」这回事，所以参数里也只存一个值。
+    noGroup: true,
     cols: ['cat'],
   },
   catq: {
@@ -106,6 +112,7 @@ export const TABLE_COLS = {
     noLegacy: true,
     // 2026-11：只有第 1 列（分类 / 节点）可拖；后面 4 个金额列由 CSS 均分剩余宽度，
     // 不存在「每列一个宽度」这回事，所以参数里也只存一个值。
+    noGroup: true,
     cols: ['cat'],
   },
   query: {
@@ -252,5 +259,9 @@ export const TABLE_SIZE_SCHEMA = SIZE_TABLES.flatMap((table) =>
     cssVar: f.cssVar + table,
   })));
 
-/** 面板上的 7 个表组（顺序 = TABLE_COLS 的顺序；路径追踪那组只有列宽一项） */
-export const TABLE_GROUPS = Object.values(TABLE_COLS).map((t) => t.label);
+/** 面板上的 7 个表组（顺序 = TABLE_COLS 的顺序；路径追踪那组只有列宽一项）
+ *  noGroup 的表（七张统计小表）不进参数面板：它们的列宽只有一个共享参数
+ *  `分类统计/列宽`，不需要每张表一组空壳。 */
+export const TABLE_GROUPS = Object.values(TABLE_COLS)
+  .filter((t) => !t.noGroup)
+  .map((t) => t.label);

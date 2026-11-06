@@ -16,7 +16,7 @@
  */
 
 import { loadMergedSettings } from './debug-themes.js';
-import { saveTableWidths } from './col-save.js';
+import { saveTableWidths, saveUserValue } from './col-save.js';
 import { tableIdOf } from './table-layout.js';
 import { applySettings } from './apply-settings.js';
 
@@ -59,9 +59,10 @@ function clearInlineWidths(table) {  for (const c of table.querySelectorAll('col
  * @param {number} [width] 拖完后的列宽（px）
  */
 /**
- * 七张统计小表共用第 1 列宽度（2026-11）：
- * 拖任意一张的分类列（或节点列），七张一起变 —— 用户要「每个表统一同一个宽度」。
- * 金额列由 CSS 均分，不存在各自的宽度，所以这里只存一个值。
+ * 七张统计小表**共用同一个列宽参数**（2026-11 用户指定）：
+ * 拖任意一张的分类列（或节点列），七张一起变 —— 不是「一个表改、其它表跟着同步」，
+ * 而是它们本来就读同一个 `分类统计/列宽` → `--nt-col-stat-cat`。
+ * 金额列由 CSS 均分，不存在各自的宽度。
  */
 const STAT_TABLES = ['fee', 'income', 'asset', 'liability', 'equity', 'cost', 'node'];
 
@@ -72,10 +73,9 @@ export function onColResize(ctx, tableEl, col, width) {
   const theme = currentTheme();
 
   if (STAT_TABLES.includes(id)) {
-    const w = Math.round(Number(width)) || 62;
-    for (const t of STAT_TABLES) saveTableWidths(ctx, t, [w]);
+    saveUserValue(ctx, '分类统计/列宽', Math.round(Number(width)) || 62);
     applySettings(loadMergedSettings(ctx, theme), theme);
-    // 七张表都在参数驱动下，清掉拖动期间固化的内联 px
+    // 七张表都在同一条变量下，清掉拖动期间固化的内联 px
     for (const t of document.querySelectorAll('table.nt-table-stat')) clearInlineWidths(t);
     return;
   }

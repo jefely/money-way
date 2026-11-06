@@ -38,11 +38,30 @@ export function saveTableColWidth(ctx, table, col, width) {
 }
 
 /**
+ * 写一个「单值」参数（不是按表拆的列宽数组）。
+ *
+ * 七张统计小表共用的分类列宽走这里：一个参数、一条 CSS 变量
+ * （`分类统计/列宽` → `--nt-col-stat-cat`），七张表都读它。
+ * 用户 2026-11 明确要求「不是调整一个其它表同步数值，而是本来就同一个」。
+ *
+ * @param {object} ctx
+ * @param {string} key 参数键
+ * @param {number|string} value
+ */
+export function saveUserValue(ctx, key, value) {
+  const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const user = { ...loadUserSettings(ctx, theme), [key]: String(value) };
+  saveThemeSettings(ctx, theme, user, 'user');
+  if (typeof ctx.saveNow === 'function') ctx.saveNow();
+  return true;
+}
+
+/**
  * 整张表的列宽一起写进「用户设置」。
  *
  * 拖动一张表时，所有列都已经被固化成了实际 px（见 table-layout 的
  * enterCustomMode），只存被拖那一列会让其余列在重开时回到默认，
- * 整表比例就变了。统计三块表还靠「有没有非 0」判断是否自定义过。
+ * 整表比例就变了。
  *
  * @param {object} ctx
  * @param {string} table 表 key
