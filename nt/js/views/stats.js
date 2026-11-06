@@ -54,19 +54,32 @@ export function mountStats(section, ctx) {
 
   bindCaps();
   bindScope();
-  // 手机左右滑动：分类表 → 分类详情 → 节点表 → 节点详情 → 循环。
-  // 窄屏是单栏状态机（stats.css 的 data-pane），滑动只改状态，不滚容器，
-  // 所以不会出现「停在两栏中间」的半边态。
+  // 手机左右滑动。两个方向走的是**两条不同的路**（用户 2026-11 定义）：
+  //
+  //   左滑（从右往左，深入链）：
+  //     分类主页 → 分类详情 → 节点主页 → 节点详情 → 分类主页 …
+  //   右滑（从左往右）：
+  //     分类主页 ⇄ 节点主页 直接对跳；详情页则退回**自己的**主页
+  //
+  // 右滑那两条主页之间的对跳是用户明确要求的；「详情 → 自己的主页」是补的 ——
+  // 不补的话详情页右滑就没有反应，手感像是坏了。
+  const SWIPE_LEFT = {
+    'category:list': { cap: 'category', pane: 'detail' },
+    'category:detail': { cap: 'summary', pane: 'list' },
+    'summary:list': { cap: 'summary', pane: 'detail' },
+    'summary:detail': { cap: 'category', pane: 'list' },
+  };
+  const SWIPE_RIGHT = {
+    'category:list': { cap: 'summary', pane: 'list' },
+    'summary:list': { cap: 'category', pane: 'list' },
+    'category:detail': { cap: 'category', pane: 'list' },
+    'summary:detail': { cap: 'summary', pane: 'list' },
+  };
+
   mountStatsSwipe(section, (dir) => {
-    const panes = [
-      { cap: 'category', pane: 'list' },
-      { cap: 'category', pane: 'detail' },
-      { cap: 'summary', pane: 'list' },
-      { cap: 'summary', pane: 'detail' },
-    ];
-    const i = panes.findIndex((p) => p.cap === sel.cap && p.pane === sel.pane);
-    const at = i < 0 ? 0 : i;
-    const next = panes[(at + (dir > 0 ? 1 : panes.length - 1)) % panes.length];
+    const key = sel.cap + ':' + sel.pane;
+    const next = (dir > 0 ? SWIPE_LEFT : SWIPE_RIGHT)[key];
+    if (!next) return;
     sel.pane = next.pane;
     setCap(next.cap, true);
   });
