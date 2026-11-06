@@ -484,3 +484,10 @@
 .nt-table.nt-table-accounts tbody tr.nt-zone-head > td.nt-cell:first-child:not([colspan]) {
   background: transparent !important;
 }
+
+/* 备注标题行上方补一条分隔线（用户 2026-11）：
+   它上面是备注的列标题行，两者之间原本没有线，两行糊成一片。
+   border-collapse: separate 不会自动合并边框，所以单独补，不去动列标题行的下边框。 */
+.nt-table.nt-table-accounts tbody tr.nt-zone-note > td.nt-cell {
+  border-top: 1px solid var(--nt-bg-line);
+}
