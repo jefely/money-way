@@ -50,9 +50,13 @@ export function mountSettings(section, ctx) {
     if (!bar) return;
     // 绑定范围是**整个文档**：密码 / 主题 / 布局 三个按钮 2026-11 搬到了
     // 「设置」页（原来的校验页），不在这个容器的 vbar 里了。
-    // 不认识的 act（流水页的 add / 导出…）在这里没有任何分支，静默忽略。
+    // 但只能绑**本页认识的** act —— 否则会把流水页的「导入 / 导出 / 添加 / 同步」
+    // 一起接住，落到下面的兜底弹窗「该功能在后续版本接入」（用户 2026-11 实测）。
+    const MINE = new Set(['balance', 'theme', 'layout', 'config', 'password']);
     for (const el of document.querySelectorAll('[data-act]')) {
-      el.addEventListener('click', () => onAction(el.getAttribute('data-act')));
+      const act = el.getAttribute('data-act');
+      if (!MINE.has(act)) continue;
+      el.addEventListener('click', () => onAction(act));
     }
   }
 
