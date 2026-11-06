@@ -978,23 +978,23 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   display: flex;
   align-items: center;
   gap: 0;
-  /* 收起态 54 → 50（用户 2026-11：泡泡大了点）。50 正好等于展开态输入框的外缘高度。 */
-  width: 50px;
-  height: 50px;
+  /* ===== 收起态：一颗**凸起的球**（2026-11 重新设计） =====
+     52px 既是收起直径、也是展开高度 —— 切换时尺寸不变，不会「一展开就缩小」。
+     球面靠三层：径向渐变（光源在左上 32%/26%）+ 顶部内高光 + 底部内阴影。 */
+  width: 52px;
+  height: 52px;
   padding: 0;
-  border-radius: 25px;
+  border-radius: 50%;
   overflow: hidden;
-  background: linear-gradient(135deg,
-      var(--nt-primary-light, var(--nt-primary)) 0%,
-      var(--nt-primary) 55%,
+  background: radial-gradient(circle at 32% 26%,
+      color-mix(in srgb, var(--nt-primary-light, var(--nt-primary)) 85%, #ffffff) 0%,
+      var(--nt-primary) 46%,
       var(--nt-primary-dark, var(--nt-primary)) 100%);
-  /* 质感（用户 2026-11）：顶部一道高光、底部一道内阴影 —— 圆钮才有"球面"，
-     不再是一块纯色圆片。落影保留，让它坐在桌面上。 */
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    inset 0 -3px 6px rgba(0, 0, 0, 0.22),
-    0 10px 26px rgba(0, 0, 0, 0.42),
-    0 2px 6px rgba(0, 0, 0, 0.30);
+    inset 0 2px 3px rgba(255, 255, 255, 0.35),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.28),
+    0 8px 20px rgba(0, 0, 0, 0.35),
+    0 0 24px color-mix(in srgb, var(--nt-primary) 30%, transparent);
   /* 键盘弹出时是「平滑上浮」而不是被挤一下；
      拖动过程中用 .dragging 关掉过渡，跟手才不迟滞 */
   transition: width 0.22s ease, padding 0.22s ease, border-radius 0.22s ease,
@@ -1007,25 +1007,26 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 }
 
 .nt-composer.open {
-  gap: 4px;
+  /* ===== 展开态：一条**扁平的玻璃**（2026-11 重新设计） =====
+     和收起态同高 52px，切换时只有宽度在变。
+     玻璃 = 半透明底 + 细边 + 外发光；**没有内阴影**，所以它是平的，不是球。 */
+  gap: 0;
   width: min(360px, calc(100vw - 32px));
-  padding: 6px;
-  border-radius: 28px;
-  /* 真透明（用户 2026-11）：底色只留 50%。 */
-  background: color-mix(in srgb, var(--nt-bg-cell) 50%, transparent);
-  /* **不要 backdrop-filter**。它会把背后的流水糊成一片，视觉上反而像
-     「不透明的一块磨砂玻璃」—— 这就是用户说的「看上去是模糊的」。
-     去掉之后背景是清晰透上来的，才叫透明。 */
+  padding: 0 0 0 18px;
+  border-radius: 26px;
+  /* 真透明：底色只留 55%。不要 backdrop-filter —— 它会把背后的流水糊成一片，
+     视觉上反而像「不透明的一块磨砂」，正好是「看不出透明」的原因。 */
+  background: color-mix(in srgb, var(--nt-bg-cell) 55%, transparent);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
-  /* 极细的灰色外框：只要轮廓，不要主色混边 */
-  border: 1px solid var(--nt-bg-line);
-  /* 收起态是 overflow: hidden（要把渐变圆角裁干净），展开后那条规则还在，
-     外发光会被整个裁掉 —— 展开时放开裁剪。 */
+  /* 细边：主色混一点线色，只要轮廓 */
+  border: 1px solid color-mix(in srgb, var(--nt-primary) 30%, var(--nt-bg-line));
+  /* 收起态是 overflow: hidden（裁渐变圆角），展开后那条还在会裁掉外发光 */
   overflow: visible;
-  /* 纯色发光（用户 2026-11）：只留主色那一圈，**取消所有黑色投影**。
-     深色主题下黑投影会和主色光混成灰边，看着脏。 */
-  box-shadow: 0 0 16px 2px color-mix(in srgb, var(--nt-primary) 22%, transparent);
+  /* 纯色发光，不叠黑投影（黑的和主色光混起来会发灰） */
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--nt-primary) 16%, transparent),
+    0 0 22px color-mix(in srgb, var(--nt-primary) 30%, transparent);
 }
 
 .nt-composer-input {
@@ -1034,11 +1035,11 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   flex: 0 1 0;
   width: 0;
   min-width: 0;
-  height: 38px;
+  height: 46px;
   padding: 0;
   border-width: 0;
-  /* 半圆头（高 38 的一半）：和小圆钮一起组成「左半圆 + 右半圆」的胶囊 */
-  border-radius: 19px;
+  /* 半圆头（高 46 的一半）：和小圆钮一起组成胶囊 */
+  border-radius: 23px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.12s ease;
@@ -1059,8 +1060,8 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 54px;
-  height: 54px;
+  width: 52px;
+  height: 52px;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -1068,8 +1069,7 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   color: #ffffff;
   cursor: grab;
   touch-action: none;
-  transition: width 0.2s ease, height 0.2s ease, background 0.15s ease,
-    color 0.15s ease, transform 0.12s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
 }
 
 .nt-composer-btn:active {
@@ -1078,15 +1078,12 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 }
 
 .nt-composer.open .nt-composer-btn {
-  /* 展开时**不缩**（用户 2026-11：不应该「一展开反而变小」）。
-     容器高 = 6 + 38 + 6 = 50，圆钮也 50 —— 用负 margin 抵消上下内边距，
-     让它的外缘和输入框的外缘齐平。 */
-  width: 50px;
-  height: 50px;
-  margin: -6px -6px -6px 0;
-  border-radius: 25px;
-  /* 展开态也用主色（用户 2026-11）：原来是 var(--nt-bg) 浅灰底，
-     白字贴上去几乎看不见。主色底 + 白字在四个主题下都成立。 */
+  /* 展开时**保持 52 × 52**（用户 2026-11：不该一展开就缩小）。
+     它和容器同高，右端正好是个半圆头；**没有内阴影**，所以是平的，不是球。 */
+  width: 52px;
+  height: 52px;
+  margin: 0;
+  border-radius: 50%;
   background: var(--nt-primary);
   color: #ffffff;
 }
@@ -1293,7 +1290,7 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 
 /* 展开成发送态时圆钮缩到 38px，字号跟着收一档，否则顶边 */
 .nt-composer.open .nt-icon-nt {
-  font-size: 13px;
+  font-size: 15px;
 }
 
 /* ---------- 图标按钮里的箭头（用户 2026-11） ----------
