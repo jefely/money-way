@@ -12,6 +12,7 @@ import { mountCellRange } from '../ui/cell-range.js';
 import { saveSharedWidth } from '../ui/col-widths.js';
 import { paintCategoryPanels, paintDetailPanel, bindStatsDetail } from '../ui/stats-category.js';
 import { mountStatsSplit } from '../ui/stats-split.js';
+import { mountStatsSwipe } from '../ui/stats-swipe.js';
 import { renderStatTables } from '../ui/stats-group-tables.js';
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -50,6 +51,8 @@ export function mountStats(section, ctx) {
 
   bindCaps();
   bindScope();
+  // 手机左右滑动切换「分类 / 节点」，两个视图循环（向左滑下一个，向右滑上一个）
+  mountStatsSwipe(section, () => setCap(sel.cap === 'category' ? 'summary' : 'category'));
   // 两个视图各有一块「详情」：分类按分类查、节点按节点查，绑定逻辑是同一份
   bindStatsDetail(grid, () => render(), () => ctx.getState());
   if (summaryWrap) bindStatsDetail(summaryWrap, () => render(), () => ctx.getState());
@@ -179,12 +182,18 @@ export function mountStats(section, ctx) {
     caps.addEventListener('click', (ev) => {
       const b = ev.target.closest('.nt-cap');
       if (!b) return;
-      sel.cap = b.getAttribute('data-cap');
-      for (const x of caps.querySelectorAll('.nt-cap')) {
-        x.setAttribute('aria-selected', x === b ? 'true' : 'false');
-      }
-      render();
+      setCap(b.getAttribute('data-cap'));
     });
+  }
+
+  /** 切到某个视图（分类 / 节点）：更新胶囊选中态后重画。滑动切换也走这里。 */
+  function setCap(name) {
+    if (!name) return;
+    sel.cap = name;
+    for (const x of caps.querySelectorAll('.nt-cap')) {
+      x.setAttribute('aria-selected', x.getAttribute('data-cap') === name ? 'true' : 'false');
+    }
+    render();
   }
 
   function bindScope() {

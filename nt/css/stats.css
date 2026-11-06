@@ -338,11 +338,14 @@
 
 .nt-table-catq {
   table-layout: fixed;
-  /* 表格撑满面板：`width:100%` 是主约束，`min-width` 再加一道保险 ——
-     只要容器是这块面板，表格右边缘就一定和面板右边缘重合（用户 2026-11：
-     备注列必须贴到区域边缘，右侧不许留白）。 */
-  width: 100%;
-  min-width: 100%;
+  /* 三道一起上才稳。
+     只写 `width: 100%` 时，shell.css 的 `.nt-table { width: max-content }`
+     在某些层叠顺序下会赢（同优先级，靠加载顺序），表格就缩成「内容那么宽」，
+     备注列自然到不了右边 —— 用户看到的就是「备注列怎么都不拉伸」。
+     max-width 挡「被长备注撑宽」，min-width 挡「被内容压窄」，!important 挡层叠顺序。 */
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
 }
 
 .nt-table-catq .nt-th,

@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.323';
+const CACHE_NAME = 'nt-v1.324';
 
 const ASSETS = [
   './css/base.css',
@@ -245,6 +245,23 @@ self.addEventListener('message', (e) => {
   if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
+/* 代码和样式走 **network-first**，其余走 stale-while-revalidate。
+ *
+ * 为什么必须分开（2026-11 用户反复踩）：
+ *   stale-while-revalidate 命中缓存就**立刻返回旧文件**，后台再去更新。
+ *   对图片这类「慢一点无所谓」的资源很好，但对 css/js 是灾难 ——
+ *   改完样式后用户打开看到的永远是上一版，得手动开两次、或者点「更新」。
+ *   用户报的「备注列怎么都不拉伸」就是这么来的：服务端已经是新 CSS，
+ *   浏览器一直在跑旧的那份。
+ *
+ * network-first 的代价只有一次网络往返：`fetch` 默认走 HTTP 缓存
+ * （GitHub Pages 是 max-age=600），命中时几乎零成本；断网时 fetch 会快速失败，
+ * 落到下面的 cache 分支，离线能力照样在。
+ * 注意这里**不能**用 `cache: 'reload'` —— 那会绕过 HTTP 缓存，
+ * 130 多个模块每个都重新下载，首屏会明显变慢。
+ */
+const NETWORK_FIRST = /\.(?:js|css)(?:\?|$)/;
+
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
 
@@ -257,7 +274,22 @@ self.addEventListener('fetch', (e) => {
   if (!sameOrigin) return;
 
   e.respondWith((async () => {
+    const path = new URL(e.request.url).pathname;
     const cached = await caches.match(e.request);
+
+    if (NETWORK_FIRST.test(path) || path.endsWith('/') || path.endsWith('.html')) {
+      try {
+        // 默认 cache 模式：走 HTTP 缓存，不额外压网络
+        const res = await fetch(e.request);
+        if (res && res.ok && res.type === 'basic') {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((c) => c.put(e.request, copy)).catch(() => {});
+        }
+        return res;
+      } catch (err) {
+        return cached || Response.error();
+      }
+    }
 
     if (cached) {
       // 后台更新缓存，不阻塞返回 —— 下一次打开就是新版
