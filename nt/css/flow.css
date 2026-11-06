@@ -1355,3 +1355,21 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
     0 0 0 1px color-mix(in srgb, var(--nt-primary) 38%, transparent),
     0 0 26px 4px color-mix(in srgb, var(--nt-primary) 42%, transparent);
 }
+
+/* NT 字色的两种性格（用户 2026-11）：
+   · **绿色泡泡（alt2）**：白色 + 凹陷阴影，像刻进圆面；
+   · **其它主题（含紫色 dark）**：回到「融合」—— 用白和主色混出来的浅紫白，
+     和泡泡同色系、不抢眼，只留一点点阴影保证能读。
+   这条写在最后，覆盖上面基础规则里的白字 + 凹陷阴影。 */
+.nt-icon-nt {
+  color: color-mix(in srgb, #ffffff 80%, var(--nt-primary));
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.30);
+}
+
+[data-theme="alt2"] .nt-icon-nt {
+  color: #ffffff;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.40),
+    0 -1px 2px rgba(0, 0, 0, 0.60),
+    0 -2px 4px rgba(0, 0, 0, 0.28);
+}
