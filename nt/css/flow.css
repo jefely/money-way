@@ -1262,3 +1262,34 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   letter-spacing: 0.02em;
   line-height: 1;
 }
+
+/* ---------- 图标按钮里的箭头（用户 2026-11） ----------
+   撤销 / 重做 / 返回原来用字符（↺ ↻ ←）：字符的粗细和大小取决于系统字体，
+   三个按钮和旁边的齿轮放在一起时，颜色偏灰、尺寸偏小、笔画偏细，很不一致。
+   现在统一成内联 SVG：颜色走 currentColor（和齿轮同一个变量），
+   粗细由 stroke-width 定死，尺寸由 width/height 定死，跨平台完全一致。 */
+.nt-arrow {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* 视觉居中：字符基线造成的偏移在 SVG 上不存在，这里只微调半个像素 */
+  display: block;
+}
+
+/* 返回箭头：比撤销/重做**短一截、粗一档**（用户 2026-11）——
+   它表示"回上一页"，动作比撤销更重，长度收在 16px、笔画加到 3.2。 */
+.nt-arrow-back {
+  width: 16px;
+  height: 16px;
+  stroke-width: 3.2;
+}
+
+/* 这三个按钮的颜色统一跟齿轮走（正文色），不再是那种灰扑扑的字符色 */
+.nt-btn-icon:has(.nt-arrow),
+.nt-btn-icon[data-nav="settings"] {
+  color: var(--nt-text);
+}
