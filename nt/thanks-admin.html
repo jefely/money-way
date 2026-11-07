@@ -52,7 +52,12 @@
     <div class="row">
       <button type="button" id="btn-bakeqr">生成 qr-baked.js（内嵌）</button>
     </div>
-    <div class="hint">不设就只显示感谢墙，不显示收款码。<b>内嵌</b>是双保险：内嵌后要改码必须改主程序。</div>
+    <div class="row">
+      <label class="hint m0"><input type="checkbox" id="qr-remote"> 已内嵌，远程不再存收款码（推荐）</label>
+    </div>
+    <div class="hint">不设就只显示感谢墙，不显示收款码。<b>内嵌</b>是双保险：内嵌后要改码必须改主程序。
+      勾上「远程不再存」能把 <code>thanks.enc.json</code> 从几百 KB 降到几 KB（图片已经在
+      <code>qr-baked.js</code> 里了），手机上解密也更快。</div>
   </div>
 
   <div class="card">
@@ -348,7 +353,10 @@ import { generateKeyPair, unlockPrivateKey, signPayload } from './js/browser/tha
     try {
       var donors = list.map(function (n) { return { n: n }; });
       images.forEach(function (im) { donors.push({ img: im.data }); });
-      var payload = { qr: qr, donors: donors };
+      // 收款码已经内嵌到 qr-baked.js 时，远程这份就不必再存一遍：
+      // 图片转 base64 有 300+ KB，是 thanks.enc.json 体积的全部来源。
+      var remoteQr = $('qr-remote').checked ? '' : qr;
+      var payload = { qr: remoteQr, donors: donors };
       var salt = crypto.getRandomValues(new Uint8Array(16));
       var iv = crypto.getRandomValues(new Uint8Array(12));
       var key = await deriveKey(salt, ['encrypt']);
