@@ -55,21 +55,30 @@ function indexOf(accounts) {
 }
 
 /**
- * 节点的路径：沿 parentId 向上，用「：」连。不含自己。
- * 没有上级就返回空串 —— 由调用方决定退回分类还是类型。
+ * 关键字链（用户 2026-11-08 的升级规则）：
+ *
+ *   自己**总是**出现在链里（最深层）；
+ *   往上走，祖先只要还是「未定型的节点」（`type` 为空 = U 区，没被升级）
+ *   就继续用「：」串进来；碰到一个**已定型**的祖先就停 —— 它已经是正式节点，
+ *   不再占用备注前缀。
+ *
+ *   餐饮（U 区）+ 丙怀（U 区）      → 餐饮：丙怀
+ *   餐饮（U 区）+ 丙怀（费用类）     → 餐饮：丙怀
+ *   餐饮（费用类）+ 丙怀（费用类）   → 丙怀
  */
-export function pathOf(accounts, acc) {
+export function keywordChain(accounts, acc) {
   if (!acc) return '';
   const map = indexOf(accounts);
-  const names = [];
+  const names = [norm(acc.name)].filter(Boolean);
   let cur = acc;
   for (let i = 0; i < 20; i += 1) {
     const up = cur && cur.parentId ? map.get(String(cur.parentId)) : null;
     if (!up) break;
+    if (norm(up.type)) break;          // 已升级成正式节点 → 不再进链
     names.unshift(norm(up.name));
     cur = up;
   }
-  return names.filter(Boolean).join('：');
+  return names.join('：');
 }
 
 /** 短名：别名表命中就用它，否则原文 */
@@ -100,19 +109,13 @@ export function shortNote(state, tx, opts) {
   const other = map.get(String(tx && tx.to_id)) || map.get(String(tx && tx.from_id)) || null;
   const mine = map.get(String(tx && tx.from_id)) || null;
 
-  // 路径：优先上级链；没有上级就用节点自己的名字（它就是这一层的名字）；
-  // 连节点都没有才退回分类 / 类型。**不编造层级**。
-  const path = pathOf(accounts, other)
-    || norm(other && other.name)
-    || norm(other && other.category)
-    || norm(other && other.type);
-  const key = shortKey((tx && tx.noteKeyword) || (other && other.name), aliases);
+  // 前缀 = 关键字链：自己总在，往上只收「还没升级」的祖先（见 keywordChain）
+  const chain = keywordChain(accounts, other);
+  const key = chain || shortKey((tx && tx.noteKeyword) || (other && other.name), aliases);
   const when = stamp(tx && tx.date, timeIn(tx && tx.note));
 
   const seg = [];
-  if (path && key) seg.push(path + '：' + key);
-  else if (path) seg.push(path);
-  else if (key) seg.push(key);
+  if (key) seg.push(key);
   seg.push(when);
   if (o.withAccount !== false) {
     const acc = accountLabel(mine);
@@ -128,7 +131,24 @@ export function shortestNote(state, tx, opts) {
   const aliases = o.aliases || (state && state.aliases) || [];
   const map = indexOf(accounts);
   const other = map.get(String(tx && tx.to_id)) || map.get(String(tx && tx.from_id)) || null;
-  const key = shortKey((tx && tx.noteKeyword) || (other && other.name), aliases);
+  const key = shortKey(norm(other && other.name) || (tx && tx.noteKeyword), aliases);
   const when = stamp(tx && tx.date, timeIn(tx && tx.note));
   return [key, when].filter(Boolean).join('，');
+}
+
+/**
+ * 备注栏实际显示的串：**按这条流水的对方节点有没有升级自动选**。
+ *
+ *   还没定型（U 区）→ 第 ② 层：`餐饮：丙怀，2608081317，交行储8380`
+ *   已定型（有类型）→ 第 ③ 层：`丙怀，2608081317`
+ *
+ * 这正是用户说的「关键字1 升级成节点后，关键字2 就变成了 1」。
+ */
+export function displayNote(state, tx, opts) {
+  const accounts = (state && state.accounts) || [];
+  const map = indexOf(accounts);
+  const other = map.get(String(tx && tx.to_id)) || map.get(String(tx && tx.from_id)) || null;
+  return norm(other && other.type)
+    ? shortestNote(state, tx, opts)
+    : shortNote(state, tx, opts);
 }

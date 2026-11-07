@@ -3,98 +3,103 @@
  *
  *   node --test nt/tests/keyword-engine.test.mjs
  *
- * 断言直接用用户 2026-11-08 给的实例：
- *   原文  餐饮美食：丙怀餐饮，2026-08-08 13:17，丙怀餐饮，交通银行储蓄卡(8380)
- *   ②    餐饮：丙怀，2608081317，交行储8380
- *   ③    丙怀，2608081317
+ * 三层 + 升级规则（用户 2026-11-08）：
+ *   ① 识别结果（原文）
+ *   ② 备注区条目：`关键字1：关键字2，YYMMDDHHMM，账户`
+ *   ③ 关键字1 升级成正式节点后，备注栏显示：`关键字2，YYMMDDHHMM`
+ *
+ * 升级的判定 = 节点的 `type` 有没有填（U 区 = 还没升级）。
+ * 链的规则：自己总在链里；往上只收「还没升级」的祖先，碰到已定型的就停。
  */
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  compactTime, stamp, timeIn, pathOf, shortKey, shortNote, shortestNote,
+  compactTime, stamp, timeIn, keywordChain, shortKey, shortNote, shortestNote, displayNote,
 } from '../js/core/keyword-engine.js';
 
-const STATE = {
+const ALIASES = [
+  { term: '丙怀餐饮', target: '丙怀' },
+  { term: '云南嘉华食品有限公司', target: '嘉华' },
+];
+
+/** 两个都没定型（U 区） */
+const S_UU = {
   accounts: [
     { id: 'food', name: '餐饮' },
     { id: 'bing', name: '丙怀', parentId: 'food' },
-    { id: 'shop', name: '糕点' },
-    { id: 'jiahua', name: '嘉华', parentId: 'shop' },
     { id: 'cmb', name: '交行储8380' },
-    { id: 'cmb2', name: '招行储7912' },
   ],
-  aliases: [
-    { term: '丙怀餐饮', target: '丙怀' },
-    { term: '云南嘉华食品有限公司', target: '嘉华' },
-    { term: '百度顺风车费用', target: '百度打车' },
-  ],
+  aliases: ALIASES,
 };
 
-test('compactTime / stamp：2026-08-08 13:17 → 2608081317', () => {
+/** 祖先没定型、自己是正式节点 */
+const S_UL = {
+  accounts: [
+    { id: 'food', name: '餐饮' },
+    { id: 'bing', name: '丙怀', parentId: 'food', type: '费用类' },
+    { id: 'cmb', name: '交行储8380' },
+  ],
+  aliases: ALIASES,
+};
+
+/** 两个都定型 */
+const S_LL = {
+  accounts: [
+    { id: 'food', name: '餐饮', type: '费用类' },
+    { id: 'bing', name: '丙怀', parentId: 'food', type: '费用类' },
+    { id: 'cmb', name: '交行储8380' },
+  ],
+  aliases: ALIASES,
+};
+
+const TX = {
+  date: '2026-08-08',
+  note: '餐饮美食：丙怀餐饮，2026-08-08 13:17，丙怀餐饮，交通银行储蓄卡(8380)',
+  noteKeyword: '丙怀餐饮',
+  from_id: 'cmb',
+  to_id: 'bing',
+};
+
+test('时间压缩：2026-08-08 13:17 → 2608081317', () => {
   assert.equal(stamp('2026-08-08', '13:17'), '2608081317');
   assert.equal(stamp('2026-07-28', '10:23'), '2607281023');
   assert.equal(stamp('2026-10-18', '20:35'), '2610182035');
   assert.equal(compactTime('2026-10-22', '07:22'), '10220722');
-});
-
-test('timeIn：从备注原文里抠出 HH:MM', () => {
-  assert.equal(timeIn('餐饮美食：丙怀餐饮，2026-08-08 13:17，丙怀餐饮'), '13:17');
+  assert.equal(timeIn('餐饮美食：丙怀餐饮，2026-08-08 13:17'), '13:17');
   assert.equal(timeIn('没有时间'), '');
 });
 
-test('pathOf：沿 parentId 向上，名字用「：」连', () => {
-  const byId = Object.fromEntries(STATE.accounts.map((a) => [a.id, a]));
-  assert.equal(pathOf(STATE.accounts, byId.bing), '餐饮');
-  assert.equal(pathOf(STATE.accounts, byId.food), '');
+test('链：两个都没定型 → 餐饮：丙怀', () => {
+  const byId = Object.fromEntries(S_UU.accounts.map((a) => [a.id, a]));
+  assert.equal(keywordChain(S_UU.accounts, byId.bing), '餐饮：丙怀');
 });
 
-test('shortKey：别名命中就换短名', () => {
-  assert.equal(shortKey('丙怀餐饮', STATE.aliases), '丙怀');
-  assert.equal(shortKey('没见过的名字', STATE.aliases), '没见过的名字');
+test('链：祖先没定型、自己已定型 → 餐饮：丙怀', () => {
+  const byId = Object.fromEntries(S_UL.accounts.map((a) => [a.id, a]));
+  assert.equal(keywordChain(S_UL.accounts, byId.bing), '餐饮：丙怀');
 });
 
-test('② 层：餐饮：丙怀，2608081317，交行储8380', () => {
-  const tx = {
-    date: '2026-08-08',
-    note: '餐饮美食：丙怀餐饮，2026-08-08 13:17，丙怀餐饮，交通银行储蓄卡(8380)',
-    noteKeyword: '丙怀餐饮',
-    from_id: 'cmb',
-    to_id: 'bing',
-  };
-  assert.equal(shortNote(STATE, tx), '餐饮：丙怀，2608081317，交行储8380');
+test('链：两个都定型 → 只剩丙怀（关键字1 已升级，关键字2 顶上）', () => {
+  const byId = Object.fromEntries(S_LL.accounts.map((a) => [a.id, a]));
+  assert.equal(keywordChain(S_LL.accounts, byId.bing), '丙怀');
 });
 
-test('③ 层：丙怀，2608081317', () => {
-  const tx = {
-    date: '2026-08-08',
-    note: '餐饮美食：丙怀餐饮，2026-08-08 13:17，丙怀餐饮',
-    noteKeyword: '丙怀餐饮',
-    from_id: 'cmb',
-    to_id: 'bing',
-  };
-  assert.equal(shortestNote(STATE, tx), '丙怀，2608081317');
+test('别名：长商户名换短名', () => {
+  assert.equal(shortKey('丙怀餐饮', ALIASES), '丙怀');
+  assert.equal(shortKey('没见过的名字', ALIASES), '没见过的名字');
 });
 
-test('② 层：糕点：嘉华，2610182035，交行储8380', () => {
-  const tx = {
-    date: '2026-10-18',
-    note: '餐饮美食：云南嘉华食品有限公司，2026-10-18 20:35，二维码支付',
-    noteKeyword: '云南嘉华食品有限公司',
-    from_id: 'cmb',
-    to_id: 'jiahua',
-  };
-  assert.equal(shortNote(STATE, tx), '糕点：嘉华，2610182035，交行储8380');
+test('② 层（备注区条目）：餐饮：丙怀，2608081317，交行储8380', () => {
+  assert.equal(shortNote(S_UU, TX), '餐饮：丙怀，2608081317，交行储8380');
 });
 
-test('没有上级也没别名：退回分类/原文，不编造', () => {
-  const tx = {
-    date: '2026-11-01',
-    note: '随便写的',
-    noteKeyword: '某个商户',
-    from_id: 'cmb',
-    to_id: 'shop',
-  };
-  assert.equal(shortNote(STATE, tx), '糕点：某个商户，2611010000，交行储8380');
+test('③ 层（升级后备注栏）：丙怀，2608081317', () => {
+  assert.equal(shortestNote(S_LL, TX), '丙怀，2608081317');
+});
+
+test('displayNote：没升级用 ② 层，升级了用 ③ 层', () => {
+  assert.equal(displayNote(S_UU, TX), '餐饮：丙怀，2608081317，交行储8380');
+  assert.equal(displayNote(S_LL, TX), '丙怀，2608081317');
 });
