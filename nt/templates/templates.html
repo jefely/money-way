@@ -150,10 +150,12 @@
       <label class="nt-visually-hidden" for="nt-setup-pw2">再输一次</label>
       <input class="nt-input nt-gate-input" id="nt-setup-pw2" type="password"
              autocomplete="new-password" placeholder="再输一次" required>
-      <!-- 提示词（可选）：解锁时显示在密码框下面，忘了密码时给自己看 -->
+      <!-- 提示词（可选）：解锁时显示在密码框下面，忘了密码时给自己看。
+           可以是一句暗语，也可以是一句励志短语 —— 只有你知道它指什么。 -->
       <label class="nt-visually-hidden" for="nt-setup-hint">提示词</label>
       <input class="nt-input nt-gate-input nt-gate-hint-input" id="nt-setup-hint" type="text"
-             autocomplete="off" placeholder="提示词（可选）：忘了密码时给自己看">
+             autocomplete="off" maxlength="60"
+             placeholder="提示词（可选）：一句暗语或给自己的一句话">
       <label class="nt-gate-confirm">
         <input type="checkbox" id="nt-setup-ack">
         <span>我知道：忘记密码将永久丢失全部数据，没有任何找回途径</span>

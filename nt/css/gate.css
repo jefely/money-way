@@ -69,8 +69,13 @@
 }
 
 /* 解锁界面的提示词：紧贴密码框下面一行，有内容才出现（hidden 时整行消失）。
-   不写「提示词：」前缀 —— 内容本身就是提示；左对齐，与输入框同一条边。 */
+   不写「提示词」标签 —— 内容本身就是提示；左对齐，与输入框同一条边。
+   最多两行：它可以是「暗语」或一句励志短语，再长就省略，免得把解锁框顶下去。 */
 .nt-gate-pw-hint {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   margin: -4px 0 0;
   font-size: 12px;
   line-height: 1.5;
