@@ -13,17 +13,27 @@
  */
 
 import { addAccount, addNote, addTransaction } from './state-store.js';
+import { displayNote } from './keyword-engine.js';
 import { collectNewAccounts, planBillImport } from './bill-plan.js';
 
 const norm = (v) => String(v == null ? '' : v).trim();
 
-/** 从「10:39」或备注开头的「10:39 …」里取分钟数 */
+/** 时间 → 顺序键「HHMM」。兼容两种备注：旧格式 `19:08 …` 和新压缩串 `…2608081317…` */
+function timeKeyOf(note) {
+  const s = String(note == null ? '' : note);
+  const colon = /(\d{2}):(\d{2})/.exec(s);
+  if (colon) return colon[1] + colon[2];
+  const stamp = /(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/.exec(s);
+  return stamp ? stamp[4] + stamp[5] : '';
+}
+
+/** 从「10:39」或备注开头的「10:39 …」或压缩串里取分钟数 */
 function minutesOf(v) {
-  const m = /(\d{1,2}):(\d{2})/.exec(String(v == null ? '' : v));
-  if (!m) return null;
-  const hh = Number(m[1]);
+  const key = timeKeyOf(v);
+  if (!key) return null;
+  const hh = Number(key.slice(0, 2));
   if (hh > 23) return null;
-  return hh * 60 + Number(m[2]);
+  return hh * 60 + Number(key.slice(2));
 }
 
 /**
@@ -65,9 +75,8 @@ export function sortByDate(state) {
   const head = list.filter(isOpening);
   const rest = list.filter((t) => !isOpening(t));
   const key = (t) => {
-    // 备注格式是「类型：关键字，日期 时间，内容」——时间不再固定在最前面
-  const m = /(\d{2}:\d{2})/.exec(String((t && t.note) || ''));
-    return String((t && t.date) || '') + ' ' + (m ? m[1] : '');
+    // 备注里可能是旧格式 `19:08 …`，也可能是压缩串 `…，2608081317，…`
+    return String((t && t.date) || '') + ' ' + timeKeyOf(t && t.note);
   };
   rest.sort((x, y) => {
     const a = key(x);
@@ -113,7 +122,7 @@ export function applyBillPlan(state, res, opts) {
       if (byName.has(want.name)) continue;
       const before = st.accounts.length;
       // 节点统计分类 = 账单的「交易分类」；节点会计类型 = 费用 / 收入（六大核心元素里的两个）
-      st = addAccount(st, { name: want.name, type: want.type, category: want.category });
+      st = addAccount(st, { name: want.name, type: want.type, category: want.category, fresh: true });
       const acc = st.accounts[before];
       if (acc) { byName.set(want.name, acc); created += 1; }
     }
@@ -154,12 +163,26 @@ export function applyBillPlan(state, res, opts) {
     else if (isSuspect({ ...row, fromId, toId }, existing)) mark = true;
     if (row.billId) seenBill.add(row.billId);
 
+    // 备注栏**只存压缩串**（用户 2026-11-08）：第 ② 层或第 ③ 层，不存账单原文。
+    // 对方节点在这条流水里的位置：支出看 to，收入看 from，资金流转看 to。
+    const otherId = row.dir === 'in' ? fromId : toId;
+    const noteText = displayNote(st, {
+      date: row.date,
+      noteKeyword: row.noteKeyword,
+      from_id: fromId,
+      to_id: toId,
+    }, {
+      otherId,
+      time: row.time,
+      aliases: o.aliases || (res && res.aliases),
+    });
+
     st = addTransaction(st, {
       date: row.date,
       from_id: fromId || null,
       to_id: toId || null,
       amount: row.amount,
-      note: row.note,
+      note: noteText || row.note,
       billId: row.billId || undefined,
       // 备注分类 / 备注关键字（六大核心元素的后两个）
       noteType: row.noteType || undefined,

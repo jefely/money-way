@@ -16,7 +16,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  compactTime, stamp, timeIn, keywordChain, shortKey, shortNote, shortestNote, displayNote,
+  compactTime, stamp, timeIn, keywordChain, shortKey, shortNote, shortestNote, displayNote, specialOf,
 } from '../js/core/keyword-engine.js';
 
 const ALIASES = [
@@ -88,7 +88,13 @@ test('链：两个都定型 → 只剩丙怀（关键字1 已升级，关键字2
 
 test('别名：长商户名换短名', () => {
   assert.equal(shortKey('丙怀餐饮', ALIASES), '丙怀');
-  assert.equal(shortKey('没见过的名字', ALIASES), '没见过的名字');
+});
+
+test('最特殊的字符：去行政区、去组织形式，留下有辨识度的那段', () => {
+  assert.equal(specialOf('盘龙区杨万启餐饮服务店'), '杨万启');
+  assert.equal(specialOf('云南嘉华食品有限公司'), '嘉华');
+  assert.equal(specialOf('丙怀餐饮'), '丙怀');
+  assert.equal(specialOf('盘龙区天秀小吃店（个体工商户）'), '天秀小吃');
 });
 
 test('② 层（备注区条目）：餐饮：丙怀，2608081317，交行储8380', () => {

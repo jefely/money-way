@@ -79,6 +79,9 @@ export function idOf(state, name) {
 
 export function addAccount(state, patch) {
   const acc = createAccount(patch);
+  // fresh = 导入时自动建的临时节点（用户还没确认过）。**只在新建时打**，
+  // 改过之后由 updateAccount 重建自然消失 —— 那正是「用户确认了」的意思。
+  if (patch && patch.fresh === true) acc.fresh = true;
   return { ...state, accounts: [...state.accounts, acc] };
 }
 

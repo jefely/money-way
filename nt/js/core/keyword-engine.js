@@ -66,26 +66,69 @@ function indexOf(accounts) {
  *   餐饮（U 区）+ 丙怀（费用类）     → 餐饮：丙怀
  *   餐饮（费用类）+ 丙怀（费用类）   → 丙怀
  */
-export function keywordChain(accounts, acc) {
+export function keywordChain(accounts, acc, aliases) {
   if (!acc) return '';
   const map = indexOf(accounts);
-  const names = [norm(acc.name)].filter(Boolean);
+  const names = [shortKey(norm(acc.name), aliases)].filter(Boolean);
   let cur = acc;
   for (let i = 0; i < 20; i += 1) {
     const up = cur && cur.parentId ? map.get(String(cur.parentId)) : null;
     if (!up) break;
-    if (norm(up.type)) break;          // 已升级成正式节点 → 不再进链
-    names.unshift(norm(up.name));
+    if (norm(up.type) && up.fresh !== true) break;   // 已升级成正式节点 → 不再进链
+    names.unshift(shortKey(norm(up.name), aliases));
     cur = up;
   }
   return names.join('：');
 }
 
-/** 短名：别名表命中就用它，否则原文 */
+/** 省级前缀（去不掉就会把「云南嘉华」当成整个名字） */
+const PROVINCES = [
+  '北京', '上海', '天津', '重庆', '河北', '山西', '辽宁', '吉林', '黑龙江', '江苏', '浙江',
+  '安徽', '福建', '江西', '山东', '河南', '湖北', '湖南', '广东', '海南', '四川', '贵州',
+  '云南', '陕西', '甘肃', '青海', '内蒙古', '广西', '西藏', '宁夏', '新疆',
+];
+
+/** 组织形式 / 行业后缀（长的先删，删到没有为止） */
+const SUFFIXES = [
+  '有限责任公司', '股份有限公司', '有限公司', '公司',
+  '个体工商户', '个体户', '经营部', '商行', '门店', '服务店', '便利店',
+  '餐饮店', '食品店', '店',
+  '餐饮', '食品', '美食', '服务', '运营', '科技', '网络', '信息', '技术', '贸易', '商贸', '超市',
+];
+
+/**
+ * 「最特殊的字符」——从一条商户名里挑出最有辨识度的部分（用户 2026-11-08）：
+ *
+ *   盘龙区杨万启餐饮服务店   → 杨万启     （去行政区、去「餐饮服务店」）
+ *   云南嘉华食品有限公司     → 嘉华       （去省名、去「食品有限公司」）
+ *   丙怀餐饮                 → 丙怀
+ *   盘龙区天秀小吃店         → 天秀小吃   （只去一个「店」）
+ *
+ * 规则是词表 + 行政区前缀，**不猜**：删到只剩 2 字以下就退回原名，
+ * 宁可不缩，也不把名字缩成看不懂的东西。
+ */
+export function specialOf(name) {
+  const raw = norm(name);
+  let s = raw.replace(/[（(][^)）]*[)）]/g, '').trim();
+  for (const p of PROVINCES) {
+    if (s.startsWith(p)) { s = s.slice(p.length); break; }
+  }
+  s = s.replace(/^[\u4e00-\u9fa5]{1,4}?(?:市|区|县|镇|街道)/, '');
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const suf of SUFFIXES) {
+      if (s.length > suf.length && s.endsWith(suf)) { s = s.slice(0, -suf.length); changed = true; break; }
+    }
+  }
+  return s.length >= 2 ? s : raw;
+}
+
+/** 短名：别名表命中就用它；否则从名字里挑最特殊的字符 */
 export function shortKey(keyword, aliases) {
   const k = norm(keyword);
   if (!k) return '';
-  return aliasGet(aliases, k) || k;
+  return aliasGet(aliases, k) || specialOf(k);
 }
 
 /** 账户显示：优先简码，其次名字 */
@@ -143,12 +186,38 @@ export function shortestNote(state, tx, opts) {
  *   已定型（有类型）→ 第 ③ 层：`丙怀，2608081317`
  *
  * 这正是用户说的「关键字1 升级成节点后，关键字2 就变成了 1」。
+ * 备注栏里**只存这个短串，不再存原文**（用户 2026-11-08 明确）。
+ *
+ * @param {object} state
+ * @param {object} tx 至少要有 date / note / noteKeyword / from_id / to_id
+ * @param {{aliases?:Array, otherId?:string, time?:string}} [opts]
+ *        otherId：明确指定「对方节点」（导入时用，避免收入方向取错）
+ *        time：时间从 row.time 直接给（短串里没有 HH:MM 可抠）
  */
 export function displayNote(state, tx, opts) {
+  const o = opts || {};
   const accounts = (state && state.accounts) || [];
   const map = indexOf(accounts);
-  const other = map.get(String(tx && tx.to_id)) || map.get(String(tx && tx.from_id)) || null;
-  return norm(other && other.type)
-    ? shortestNote(state, tx, opts)
-    : shortNote(state, tx, opts);
+  const otherId = o.otherId != null && o.otherId !== ''
+    ? String(o.otherId)
+    : String((tx && tx.to_id) || (tx && tx.from_id) || '');
+  const other = map.get(otherId) || null;
+  const when = o.time != null ? o.time : timeIn(tx && tx.note);
+
+  if (!other) {
+    // 连对方节点都没有（缺一侧的草稿）：只留关键字 + 时间
+    const aliases = o.aliases || (state && state.aliases) || [];
+    const key = shortKey((tx && tx.noteKeyword) || '', aliases);
+    return [key, stamp(tx && tx.date, when)].filter(Boolean).join('，');
+  }
+  // 「已升级」= 有类型、并且不是导入时自动建的临时节点（fresh）
+  if (norm(other.type) && other.fresh !== true) {
+    const aliases = o.aliases || (state && state.aliases) || [];
+    const key = shortKey(norm(other.name) || (tx && tx.noteKeyword), aliases);
+    return [key, stamp(tx && tx.date, when)].filter(Boolean).join('，');
+  }
+  return shortNote(state, { ...tx, to_id: other.id, from_id: (tx && tx.from_id) || '' }, {
+    ...o,
+    aliases: o.aliases || (state && state.aliases) || [],
+  });
 }
