@@ -1,4 +1,4 @@
-﻿// 数据：三家账单（支付宝 / 微信支付 / 招商银行）的识别与解析
+// 数据：三家账单（支付宝 / 微信支付 / 招商银行）的识别与解析
 /**
  * 账单解析
  * 层：第一层 · core
@@ -61,8 +61,58 @@ export const BILL_PRESETS = [
       method: [],
       tradeNo: ['流水号', '交易流水号', '参考号'],
     },
+    // 招行导出的「表头」是合并单元格，列名全挤在第 0 列；
+    // 按关键词定位会让 date/amount/party 一律指向第 0 列，
+    // 于是把日期文本当金额。它的列位置其实是固定的，直接按位置读。
+    // currency 用来跳过标题行（标题里也有「2025-10-21 -- 2026-10-21」）
+    fixedMap: { date: 0, amount: 2, party: 9, currency: 1 },
   },
 ];
+
+/** 固定列模式下，找第一行真正的数据行 */
+function findFixedDataStart(rows, preset) {
+  const fm = preset.fixedMap;
+  if (!fm) return -1;
+  for (let i = 0; i < Math.min(rows.length, 40); i += 1) {
+    const cells = rows[i] || [];
+    if (cells.length < 3) continue;
+    if (!parseBillDate(cells[fm.date])) continue;
+    if (fm.currency != null
+        && !/^[A-Z]{3}$/.test(String(cells[fm.currency] || '').trim())) continue;
+    return i;
+  }
+  return -1;
+}
+
+/** 招行的第 1 列是币种（CNY），这是它和其它表最明显的区别 */
+function looksLikeCmb(rows, start) {
+  const cells = rows[start] || [];
+  return /^[A-Z]{3}$/.test(String(cells[1] || '').trim());
+}
+
+export function detectBill(rows) {
+  let best = { preset: null, idx: -1, map: {}, score: 0 };
+
+  // 招行导出里有多段合并表头，按关键词会命中第二段、漏掉前半截数据。
+  // 币种列 + 首列日期足够确认，直接按固定列从第一行数据读。
+  for (const p of BILL_PRESETS) {
+    if (!p.fixedMap) continue;
+    const start = findFixedDataStart(rows, p);
+    if (start >= 0 && looksLikeCmb(rows, start)) {
+      return { preset: p, idx: start - 1, map: p.fixedMap, score: 100 };
+    }
+  }
+
+  for (const p of BILL_PRESETS) {
+    const r = findBillHeader(rows, p);
+    // 至少要有日期 + 金额才算认出来
+    if (r.idx >= 0 && r.map.date != null && r.map.amount != null && r.score > best.score) {
+      best = { preset: p, idx: r.idx, map: r.map, score: r.score };
+    }
+  }
+
+  return best;
+}
 
 /** 需要识别的字段顺序 */
 const FIELDS = ['category', 'date', 'dir', 'amount', 'party', 'item', 'method', 'tradeNo', 'note'];
@@ -100,6 +150,10 @@ export function findBillHeader(rows, preset) {
       }
     }
 
+    // 合并单元格的「表头」会把所有列名塞进同一个 cell，
+    // 于是 date/amount/party 全部指向第 0 列 —— 这种行不能当表头
+    if (map.date != null && map.amount != null && map.date === map.amount) continue;
+
     // 有日期和金额最像表头
     if (map.date != null && map.amount != null) score += 2;
 
@@ -110,26 +164,7 @@ export function findBillHeader(rows, preset) {
 }
 
 /**
- * 试遍所有 preset，挑得分最高的。
- *
- * @param {string[][]} rows
- * @returns {{preset:object|null, idx:number, map:object, score:number}}
- */
-export function detectBill(rows) {
-  let best = { preset: null, idx: -1, map: {}, score: 0 };
-
-  for (const p of BILL_PRESETS) {
-    const r = findBillHeader(rows, p);
-    // 至少要有日期 + 金额才算认出来
-    if (r.idx >= 0 && r.map.date != null && r.map.amount != null && r.score > best.score) {
-      best = { preset: p, idx: r.idx, map: r.map, score: r.score };
-    }
-  }
-
-  return best;
-}
-
-/** 解析金额：去掉 ¥/￥/逗号/空格，保留负号与括号负数 */
+ * 解析金额：去掉 ¥/￥/逗号/空格，保留负号与括号负数 */
 export function parseBillAmount(v) {
   let s = String(v == null ? '' : v).trim();
   if (!s) return null;
