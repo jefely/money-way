@@ -8,7 +8,7 @@
  */
 
 import { filterTransactions, queryTotals, exactAccount, sameAccountQuery } from '../core/query-engine.js';
-import { parseDateRange, compactDate, weekOf } from '../core/date-query.js';
+import { parseDateRange, compactDate, compactMonth, weekOf } from '../core/date-query.js';
 import { renderRows, renderEmpty } from '../ui/table.js';
 import { tpl } from '../ui/render-transactions.js';
 import { money, moneyAlways, shortDate, todayIso } from '../core/format.js';
@@ -33,7 +33,7 @@ function presetDateText(kind) {
     return w ? compactDate(w.from) + '-' + compactDate(w.to) : compactDate(iso);
   }
   // 整月：4 位 = YYMM，parseDateRange 会展开成当月一号 ~ 当月最后一天
-  if (kind === 'month') return iso.slice(2, 4) + iso.slice(5, 7);
+  if (kind === 'month') return compactMonth(iso);
   return compactDate(iso);
 }
 

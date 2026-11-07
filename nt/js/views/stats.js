@@ -213,6 +213,11 @@ export function mountStats(section, ctx) {
       }
     } else if (sel.scope === 'range') {
       pills.appendChild(dateInput(sel.start, (v) => { sel.start = v; render(); }));
+      // 两个日期框中间加一个「至」（用户 2026-11-07）：光并排两个日期框看不出是区间
+      const sep = document.createElement('span');
+      sep.className = 'nt-pills-sep';
+      sep.textContent = '至';
+      pills.appendChild(sep);
       pills.appendChild(dateInput(sel.end, (v) => { sel.end = v; render(); }));
     }
   }

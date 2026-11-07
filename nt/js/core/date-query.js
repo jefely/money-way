@@ -86,6 +86,13 @@ export function compactDate(iso) {
   return d.slice(2, 4) + d.slice(5, 7) + d.slice(8, 10);
 }
 
+/** ISO 日期 → 整月的短写法（`2026-11-07` → `2611`）；认不出返回 '' */
+export function compactMonth(iso) {
+  const d = String(iso || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return '';
+  return d.slice(2, 4) + d.slice(5, 7);
+}
+
 /**
  * ISO 日期**所在的一周**（周一到周日）的起止。
  *

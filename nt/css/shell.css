@@ -256,17 +256,26 @@ body {
   font-size: 11px;
 }
 
-/* 区间：两个日期框**各占一半**。
+/* 区间：两个日期框**各占一半**，中间夹一个「至」。
    6 列网格会把它们塞进 1/6 的格子，而 input[type=date] 有自己的最小宽度
    （日期数字 + 日历图标约 120px），塞不下就溢出格子、两个框叠在一起
-   （用户 2026-11-07 手机截图）。这里改成两列，并允许输入框跟着格子收窄。 */
+   （用户 2026-11-07 手机截图）。这里改成「1fr auto 1fr」，并允许输入框跟着格子收窄。 */
 .nt-pills[data-scope="range"] {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
 }
 
 .nt-pills[data-scope="range"] .nt-input {
   width: 100%;
   min-width: 0;
+}
+
+.nt-pills-sep {
+  padding: 0 2px;
+  font-size: 12px;
+  color: var(--nt-text-muted);
+  text-align: center;
+  user-select: none;
 }
 
 .nt-pills[hidden] {

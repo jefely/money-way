@@ -12,7 +12,8 @@
 import { fetchGraphData } from '../graph/mw-data-fetcher.js';
 import { computeSlots } from '../graph/mw-slot-calculator.js';
 import { visibleIdx, emptyFilter, commitNodeValue } from '../ui/path-filter.js';
-import { money } from '../core/format.js';
+import { money, todayIso } from '../core/format.js';
+import { compactMonth } from '../core/date-query.js';
 import { buildChord } from '../graph/mw-path-calculator.js';
 import { buildArcs, nodeColor } from '../graph/mw-layers.js';
 import { traceFlowPath, traceByAccount, sideForType } from '../graph/path-tracer.js';
@@ -181,6 +182,24 @@ export function mountPath(section, ctx) {
   /* 左栏筛选条件：五个框各自过滤，命中才算进列表（规则在 ui/path-filter.js） */
   let filter = emptyFilter();
 
+  /**
+   * 日期框默认填**本月**（用户 2026-11-07：「环图左侧边栏默认填入本月的日期，2611 这样」）。
+   * 写法就是筛选框自己的语法（4 位 = YYMM，见 core/date-query），
+   * 和查询页三段默认日期同一套。用户自己动过日期框之后就不再覆盖他；
+   * 应用开着跨月、且他没动过时，切回本页会跟着换成本月。
+   */
+  let dateEdited = false;
+  const dateEl = document.getElementById('pw-qf-date');
+  if (dateEl) dateEl.addEventListener('input', () => { dateEdited = true; });
+
+  function applyMonthPreset() {
+    const next = compactMonth(todayIso(new Date()));
+    if (!next) return;
+    filter.date = next;
+    if (dateEl) dateEl.value = next;
+  }
+  applyMonthPreset();
+
   /** 按当前筛选条件过滤 tx 下标 */
   function visibleIdxOf(txs) {
     const idx = ctx.getIndex();
@@ -246,6 +265,8 @@ export function mountPath(section, ctx) {
         const el = document.getElementById('pw-qf-' + k);
         if (el) el.value = '';
       }
+      // 用户明确清空：别再拿「本月」盖回来
+      dateEdited = true;
       focus = null;
       render();
     },
@@ -289,6 +310,11 @@ export function mountPath(section, ctx) {
   section.addEventListener('pointercancel', () => { tap = null; });
 
   function render() {
+    // 跨月了、而且日期框没被用户动过 → 跟着换成本月，不让他停在「上个月」
+    if (!dateEdited) {
+      const next = compactMonth(todayIso(new Date()));
+      if (next && filter.date !== next) applyMonthPreset();
+    }
     syncToolsTop();
     // 环图参数：半径/环厚/字号/线宽/透明度都在这里，改一项面板就重排一次
     const p = readMwParams();

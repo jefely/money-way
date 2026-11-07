@@ -6,7 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { parseDateRange, expandStart, expandEnd, dateInRange, compactDate, weekOf } from '../js/core/date-query.js';
+import { parseDateRange, expandStart, expandEnd, dateInRange, compactDate, compactMonth, weekOf } from '../js/core/date-query.js';
 
 test('单日：260801 → 当天', () => {
   assert.deepEqual(parseDateRange('260801'), { from: '2026-08-01', to: '2026-08-01' });
@@ -55,6 +55,14 @@ test('compactDate：ISO → 筛选框短写法', () => {
   assert.equal(compactDate('2026-11-07'), '261107');
   assert.equal(compactDate('20261107'), '', '不是 ISO 就返回空串');
   assert.equal(compactDate(''), '');
+});
+
+test('compactMonth：ISO → 整月短写法（路径页日期框默认值）', () => {
+  assert.equal(compactMonth('2026-11-07'), '2611');
+  assert.equal(compactMonth('2026-01-31'), '2601');
+  assert.deepEqual(parseDateRange(compactMonth('2026-11-07')), { from: '2026-11-01', to: '2026-11-30' });
+  assert.equal(compactMonth('2611'), '');
+  assert.equal(compactMonth(''), '');
 });
 
 test('weekOf：周一为一周之首，跨年也对', () => {
