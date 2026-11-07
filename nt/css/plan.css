@@ -297,12 +297,15 @@
   border-bottom: 0;
 }
 
-/* 每条分期的「左上角」——第一行、第一格（银行账户）——打主题色底（用户 2026-11-07）。
+/* 每条分期的「左上角」——第一行、第一格（银行账户）——用**激活按钮那套主题色**
+   （和选中标签页 / 激活的「分期」按钮同一个 `--nt-primary` + 白字，用户 2026-11-07）。
    这一格是**冻结列**（sticky left:0），底色必须不透明，否则横滑时后面的内容会透出来；
    选择器带 .nt-row + .nt-inst-main，是为了压过 shell.css 里给冻结列设的
-   `.nt-table-inst .nt-cell:nth-child(1):not([colspan]) { background: … }`（那一条特异度更高）。 */
+   `.nt-table-inst .nt-cell:nth-child(1):not([colspan]) { background: … }`（那一条特异度更高）。
+   空行是 ui/inst-blanks.js 另一套画法，打不到这里 —— 空行保持原样。 */
 .nt-table-inst .nt-row.nt-inst-main > .nt-cell.nt-inst-acc {
-  background: color-mix(in srgb, var(--nt-primary) 30%, var(--nt-bg-cell, var(--nt-bg)));
+  background: var(--nt-primary);
+  color: #fff;
 }
 
 .nt-inst-sub .nt-cell {
