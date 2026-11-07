@@ -209,16 +209,17 @@ test('关键字：同一商户出现 3 次才单独成节点，低频的只进�
   assert.ok(wants.includes('餐饮美食'));        // 低频：归到交易分类
 });
 
-test('资金流转的关键字是「还款 / 提现」，不是商户全名', () => {
+test('资金流转的关键字是「动作：对象」，不是商户全名', () => {
   const items = [
     row({ date: '2026-10-09', amount: 490.82, category: '信用借还', party: '花呗|信用购', item: '自动还款-花呗|信用购', method: '招商银行储蓄卡(7912)' }),
     row({ date: '2026-10-06', amount: 792, category: '账户存取', party: '招商银行', item: '提现-实时提现', method: '余额' }),
   ];
   const plan = planBillImport(items, { accounts: ACC, presetId: 'alipay' });
-  assert.ok(plan.keywords.includes('还款'));
-  assert.ok(plan.keywords.includes('提现'));
-  assert.equal(plan.rows[0].noteKeyword, '还款');
-  assert.equal(plan.rows[1].noteKeyword, '提现');
+  // 认出对方节点就带上对象：还款：花呗 / 提现：招行储7912
+  assert.ok(plan.keywords.some((k) => k.startsWith('还款')));
+  assert.ok(plan.keywords.some((k) => k.startsWith('提现')));
+  assert.equal(plan.rows[0].noteKeyword, '还款：花呗');
+  assert.equal(plan.rows[1].noteKeyword, '提现：招行储7912');
 });
 
 test('还款：账单给了信用卡尾号 → 建议新建负债节点，名字带尾号', () => {

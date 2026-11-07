@@ -296,9 +296,14 @@ export function planBillImport(items, opts) {
       // 资金流转：**绝不跳过**（用户 2026-11-08）。两端都认得出 → 转账；
       // 只认出一端 → 照样落地，另一端留空（U 区规则会存成草稿，
       // 用户在流水表里补上另一端就转正）。
-      const kw = neutralKeyword(it);
+      // 资金流转的关键字（用户 2026-11-08）：**不能只写「还款」**——
+      // 重要的是还给谁。认出对方节点就写成 `还款：信用卡(2026)`，
+      // 认不出才退回动作本身（还款 / 提现 / 转账 / 退款）。
+      const act = neutralKeyword(it);
+      const t0 = neutralPlan(it, ctx);
+      const kw = t0 && t0.toName ? act + '：' + t0.toName : act;
       keywords.add(kw);
-      const t = neutralPlan(it, ctx);
+      const t = t0;
       if (t) {
         row = {
           ...row,
