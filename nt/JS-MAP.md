@@ -9,6 +9,7 @@
 | `app.js` | 单页壳入口：门禁 → state → 7 视图装配 → tab 路由 |
 | `browser/db.js` | （无界面）IndexedDB 数据库封装 |
 | `browser/idb.js` | （无界面）IndexedDB 打开 |
+| `browser/thanks-sign.js` | 感谢墙签名（Ed25519，Web Crypto） |
 | `core/account-config.js` | （未标注界面）账户配置（纯函数） |
 | `core/account-index.js` | （无界面）账户索引 |
 | `core/account-match.js` | （无界面）新账户名 → 类型 / 分类 |

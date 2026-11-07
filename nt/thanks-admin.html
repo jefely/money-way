@@ -67,7 +67,26 @@
   </div>
 
   <div class="card">
-    <label>③ 生成 / 载入</label>
+    <label>③ 签名密钥（防篡改）</label>
+    <div class="row">
+      <input type="password" id="key-pass" placeholder="密钥口令（自己定，≥12 位）" autocomplete="off">
+      <button type="button" id="btn-genkey">生成新密钥对</button>
+      <button type="button" id="btn-unlock">解锁私钥</button>
+    </div>
+    <div class="hint" id="key-msg">未解锁。首次用「生成新密钥对」；之后每次用「解锁私钥」。</div>
+    <div class="row" id="key-files" hidden>
+      <button type="button" id="btn-dlkey">下载 thanks-key.enc.json</button>
+      <button type="button" id="btn-copypub">复制公钥</button>
+    </div>
+    <textarea id="pubkey" readonly hidden placeholder="公钥（贴进 thanks-wall.js 的 PUB_KEY）"></textarea>
+    <div class="hint lh19">
+      私钥用口令加密后存成 <code>thanks-key.enc.json</code> 放进仓库；公钥是公开的，写死在
+      <code>js/ui/thanks-wall.js</code> 里。换掉名单文件但没有私钥 → 签名对不上 → 客户端整块不显示。
+    </div>
+  </div>
+
+  <div class="card">
+    <label>④ 生成 / 载入</label>
     <div class="row">
       <button type="button" class="primary" id="btn-enc">加密并生成</button>
       <button type="button" id="btn-load">从仓库载入当前名单</button>
@@ -81,16 +100,20 @@
   <div class="card">
     <label>怎么用</label>
     <div class="hint lh19">
-      1. 生成后点「下载 thanks.enc.json」；<br>
-      2. 用它替换仓库里的 <code>nt/thanks.enc.json</code>（GitHub 网页上传或 git 提交都行）；<br>
-      3. 提交后，用户打开「校验 → 赞助感谢」会自动拉取并解密；离线时用上一次的缓存。<br>
+      1. 首次：设一个口令 → 「生成新密钥对」→ 下载 <code>thanks-key.enc.json</code>；
+         页面会给出公钥，把它填进 <code>nt/js/ui/thanks-wall.js</code> 的 <code>PUB_KEY</code>（贴一次就行）。<br>
+      2. 之后每次：输口令 → 「解锁私钥」→ 编辑名单 → 「加密并生成」→ 下载 → 覆盖仓库里的
+         <code>nt/thanks.enc.json</code>。<br>
+      3. 提交后，用户打开「设置 → 赞助感谢」会自动拉取、验签、解密；离线时用上一次的缓存。<br>
       <br>
-      <b>关于加密</b>：密钥内置在 <code>nt/js/ui/thanks-wall.js</code> 里，这是纯静态站点，
-      所以本质是<b>混淆</b>——挡得住随手查看，挡不住铁了心的人。
+      <b>关于加密与签名</b>：加密密钥内置在 <code>thanks-wall.js</code> 里，只能挡住随手查看；
+      <b>真正防篡改的是签名</b> —— 私钥只在你本地，别人换掉文件也签不出合法签名。
     </div>
   </div>
 </div>
-<script>
+<script type="module">
+import { generateKeyPair, unlockPrivateKey, signPayload } from './js/browser/thanks-sign.js';
+
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var namesEl = $('names'), outEl = $('out'), msgEl = $('msg'), cntEl = $('cnt'), imgsEl = $('imgs');
@@ -195,6 +218,84 @@
   };
   namesEl.addEventListener('input', updateCount);
 
+  /* ---------- ③ 签名密钥 ---------- */
+  var privKey = null;
+  var encPriv = null;
+  var pubJwk = null;
+
+  function keyMsg(text, kind) {
+    var el = $('key-msg');
+    el.className = 'hint' + (kind ? ' ' + kind : '');
+    el.textContent = text;
+  }
+
+  function downloadText(text, name) {
+    var blob = new Blob([text], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  }
+
+  async function showPub(jwk) {
+    pubJwk = jwk;
+    $('pubkey').value = 'const PUB_KEY = ' + JSON.stringify(jwk, null, 2) + ';';
+    $('pubkey').hidden = false;
+    $('key-files').hidden = false;
+  }
+
+  $('btn-genkey').onclick = async function () {
+    var pass = $('key-pass').value;
+    if (String(pass).length < 12) { keyMsg('口令至少 12 位（它会保护私钥文件）', 'err'); return; }
+    keyMsg('生成中…');
+    try {
+      var r = await generateKeyPair(pass);
+      encPriv = r.encPriv;
+      privKey = await unlockPrivateKey(encPriv, pass);
+      await showPub(r.pubJwk);
+      keyMsg('已生成并解锁。下载 thanks-key.enc.json 放进 nt/，把公钥贴进 thanks-wall.js。', 'ok');
+    } catch (e) {
+      keyMsg('失败：' + e.message, 'err');
+    }
+  };
+
+  $('btn-unlock').onclick = async function () {
+    var pass = $('key-pass').value;
+    if (!pass) { keyMsg('先输口令', 'err'); return; }
+    keyMsg('解锁中…');
+    try {
+      if (!encPriv) {
+        var res = await fetch('./thanks-key.enc.json?t=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) throw new Error('仓库里没有 thanks-key.enc.json（先「生成新密钥对」）');
+        encPriv = await res.json();
+      }
+      privKey = await unlockPrivateKey(encPriv, pass);
+      $('key-files').hidden = false;
+      keyMsg('已解锁，现在生成的内容会自动带签名。', 'ok');
+    } catch (e) {
+      privKey = null;
+      keyMsg('解锁失败：' + (e && e.message ? e.message : '口令不对或文件损坏'), 'err');
+    }
+  };
+
+  $('btn-dlkey').onclick = function () {
+    if (!encPriv) { keyMsg('还没生成密钥', 'err'); return; }
+    downloadText(JSON.stringify(encPriv, null, 2) + '\n', 'thanks-key.enc.json');
+  };
+
+  $('btn-copypub').onclick = async function () {
+    if (!pubJwk && !$('pubkey').value) { keyMsg('还没生成密钥', 'err'); return; }
+    var text = $('pubkey').value;
+    try {
+      await navigator.clipboard.writeText(text);
+      keyMsg('公钥已复制，贴进 thanks-wall.js 的 PUB_KEY。', 'ok');
+    } catch (e) {
+      $('pubkey').select(); document.execCommand('copy');
+      keyMsg('公钥已复制。', 'ok');
+    }
+  };
+
   $('btn-enc').onclick = async function () {
     var list = names();
     if (!qr && !list.length && !images.length) {
@@ -212,9 +313,13 @@
       var ct = new Uint8Array(await crypto.subtle.encrypt(
         { name: 'AES-GCM', iv: iv }, key, new TextEncoder().encode(JSON.stringify(payload))
       ));
-      outEl.value = JSON.stringify({ v: 1, salt: b64(salt), iv: b64(iv), ct: b64(ct) }, null, 2) + '\n';
+      var box = { v: 1, salt: b64(salt), iv: b64(iv), ct: b64(ct) };
+      if (!privKey) throw new Error('还没解锁私钥（③ 里输口令点「解锁私钥」）');
+      // 签的是加密后的整份内容：客户端不解密就能先拒绝掉被换过的文件
+      box.sig = await signPayload(privKey, box);
+      outEl.value = JSON.stringify(box, null, 2) + '\n';
       msgEl.className = 'hint ok';
-      msgEl.textContent = '生成成功：' + list.length + ' 个名字 + ' + images.length + ' 张图片'
+      msgEl.textContent = '生成成功（已签名）：' + list.length + ' 个名字 + ' + images.length + ' 张图片'
         + (qr ? ' + 收款码' : '') + '。下载后替换 nt/thanks.enc.json。';
     } catch (e) {
       msgEl.className = 'hint err'; msgEl.textContent = '失败：' + e.message;

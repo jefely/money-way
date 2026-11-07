@@ -96,12 +96,44 @@ function b64ToBytes(b64) {
   return out;
 }
 
-/** 解 { v, salt, iv, ct }（base64）→ 明文对象 */
+/**
+ * 校验签名（防篡改）。
+ *
+ * `thanks.enc.json` 是仓库里的静态文件，加密密钥就写在本文件里 —— 加密只能
+ * 挡住随手查看，挡不住「用同一把密钥换掉内容再重新加密」。真正能挡住的是签名：
+ * 私钥只在站长本地，别人换掉文件也签不出合法签名。
+ *
+ * PUB_KEY 为空 = 还没启用签名（旧文件照常解密）。一旦填入公钥，
+ * 没有 sig 或 sig 不对就一律拒绝，避免「删掉 sig 降级即可绕过」。
+ */
+const PUB_KEY = null;
+
+async function checkSignature(box) {
+  if (!PUB_KEY) return true;
+  if (!box || !box.sig) return false;
+  try {
+    const subtle = crypto.subtle;
+    const key = await subtle.importKey(
+      'jwk', PUB_KEY, { name: 'Ed25519' }, false, ['verify']);
+    const signed = { v: box.v, salt: box.salt, iv: box.iv, ct: box.ct };
+    const keys = Object.keys(signed).sort();
+    const data = new TextEncoder().encode(JSON.stringify(signed, keys));
+    return await subtle.verify(
+      { name: 'Ed25519' }, key, b64ToBytes(box.sig), data);
+  } catch (e) {
+    return false;
+  }
+}
+
+/** 解 { v, salt, iv, ct, sig? }（base64）→ 明文对象 */
 export async function decryptWall(box) {
   if (!box || !box.ct || !box.salt || !box.iv) throw new Error('格式不对');
   const subtle = (typeof crypto !== 'undefined' && crypto.subtle) ? crypto.subtle : null;
   if (!subtle) throw new Error('这个浏览器不支持 WebCrypto');
 
+  if (!(await checkSignature(box))) {
+    throw new Error('签名校验失败：内容可能被替换过');
+  }
   const raw = new TextEncoder().encode(secret());
   const base = await subtle.importKey('raw', raw, 'PBKDF2', false, ['deriveKey']);
   const key = await subtle.deriveKey(
