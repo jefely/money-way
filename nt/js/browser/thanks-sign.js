@@ -81,10 +81,19 @@ export async function unlockPrivateKey(encPriv, passphrase) {
   return crypto.subtle.importKey('jwk', jwk, { name: 'Ed25519' }, false, ['sign']);
 }
 
-/** 待签名的规范化文本：键排序，避免字段顺序影响结果 */
+/**
+ * 待签名的规范化文本：键按字母序重建。
+ *
+ * 注意 JSON.stringify 的第二个参数是**属性白名单**，不是排序器 ——
+ * 直接传 keys 只会筛字段，输出顺序仍取决于对象自身的属性顺序，
+ * 于是签名端和验证端只要字段集不同就永远对不上。
+ * 必须真的重建一个按序插入的对象。
+ */
 export function canonical(payload) {
-  const keys = Object.keys(payload || {}).sort();
-  return JSON.stringify(payload, keys);
+  const src = payload || {};
+  const out = {};
+  for (const k of Object.keys(src).sort()) out[k] = src[k];
+  return JSON.stringify(out);
 }
 
 /**

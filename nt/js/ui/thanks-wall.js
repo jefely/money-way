@@ -126,9 +126,10 @@ async function checkSignature(box) {
     const subtle = crypto.subtle;
     const key = await subtle.importKey(
       'jwk', PUB_KEY, { name: 'Ed25519' }, false, ['verify']);
-    const signed = { v: box.v, salt: box.salt, iv: box.iv, ct: box.ct };
-    const keys = Object.keys(signed).sort();
-    const data = new TextEncoder().encode(JSON.stringify(signed, keys));
+    // 只签这四个字段，且按字母序重建 —— 与 thanks-sign.js 的 canonical() 一致。
+    // 不能把整个 box 传进去：它多一个 sig 字段，字段集一变签名就对不上。
+    const signed = { ct: box.ct, iv: box.iv, salt: box.salt, v: box.v };
+    const data = new TextEncoder().encode(JSON.stringify(signed));
     return await subtle.verify(
       { name: 'Ed25519' }, key, b64ToBytes(box.sig), data);
   } catch (e) {
