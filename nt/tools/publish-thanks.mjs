@@ -96,6 +96,21 @@ async function main() {
   console.log('1. 校验签名');
   await checkSig();
 
+  if (commit) {
+    // 只有版本号会变的话，发出去等于空跑一版
+    const st = execFileSync('git', ['status', '--porcelain', 'nt/'],
+      { cwd: ROOT, encoding: 'utf8' });
+    const real = st.split('\n').filter((l) => l.trim()
+      && !/js\/core\/version\.js|nt\/sw\.js/.test(l));
+    if (!real.length) {
+      console.log('\n⚠ nt/ 下没有实际改动（只会改 version.js / sw.js）。');
+      console.log('  如果确实只想升版本，用 bump 命令；否则先改内容再来。');
+      return;
+    }
+    console.log('  待提交：');
+    real.slice(0, 8).forEach((l) => console.log('    ' + l.trim()));
+  }
+
   let ver = null;
   if (commit) {
     console.log('\n2. 升版本');
