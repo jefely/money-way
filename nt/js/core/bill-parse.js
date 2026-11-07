@@ -64,8 +64,9 @@ export const BILL_PRESETS = [
     // 招行导出的「表头」是合并单元格，列名全挤在第 0 列；
     // 按关键词定位会让 date/amount/party 一律指向第 0 列，
     // 于是把日期文本当金额。它的列位置其实是固定的，直接按位置读。
-    // currency 用来跳过标题行（标题里也有「2025-10-21 -- 2026-10-21」）
-    fixedMap: { date: 0, amount: 2, party: 9, currency: 1 },
+    // currency 用来跳过标题行（标题里也有「2025-10-21 -- 2026-10-21」）；
+    // item = 交易摘要（汇入汇款 / 快捷支付 / 银联代收…），是它唯一可用的分类维度。
+    fixedMap: { date: 0, amount: 2, party: 9, item: 6, currency: 1 },
   },
 ];
 
@@ -115,7 +116,7 @@ export function detectBill(rows) {
 }
 
 /** 需要识别的字段顺序 */
-const FIELDS = ['category', 'date', 'dir', 'amount', 'party', 'item', 'method', 'tradeNo', 'note'];
+const FIELDS = ['category', 'date', 'time', 'dir', 'amount', 'party', 'item', 'method', 'tradeNo', 'note'];
 
 /**
  * 在一张表里认出表头行。
@@ -164,6 +165,25 @@ export function findBillHeader(rows, preset) {
 }
 
 /**
+ * 从账单头部的说明里找线索。目前只取卡号尾四位 ——
+ * 招行的「账号：6214********7912」是唯一能说明「这是哪张卡」的信息，
+ * 没有它，一千多笔流水全缺转出方（按 U 区规则一条也入不了账）。
+ *
+ * @returns {{cardTail?:string}}
+ */
+export function extractBillHints(rows) {
+  const head = (rows || []).slice(0, 40);
+  for (const cells of head) {
+    const line = (cells || []).map((c) => String(c == null ? '' : c)).join(' ');
+    const m = /(?:账号|卡号|账户)[：:]\s*([\d*]{8,})/.exec(line);
+    if (!m) continue;
+    const digits = m[1].replace(/\*/g, '');
+    if (digits.length >= 4) return { cardTail: digits.slice(-4) };
+  }
+  return {};
+}
+
+/**
  * 解析金额：去掉 ¥/￥/逗号/空格，保留负号与括号负数 */
 export function parseBillAmount(v) {
   let s = String(v == null ? '' : v).trim();
@@ -202,9 +222,11 @@ export function parseBillDate(v) {
     return null;
   }
 
-  // ② 5 位纯数字 = Excel 序列号（46296 也是 2026-10 那一片）
-  if (/^\d{5}$/.test(s)) {
-    const iso = excelSerialToISO(Number(s));
+  // ② Excel 序列号。5 位整数 46296 是序列号；**带小数也一样** ——
+  //    微信导出的「交易时间」就是 46317.443981481483（日期 + 当天时刻）。
+  //    不先处理它，正则会把它读成 4629-07-29（实测踩过）。
+  if (/^\d{5}(\.\d+)?$/.test(s)) {
+    const iso = excelSerialToISO(Math.floor(Number(s)));
     if (iso) return iso;
   }
 
@@ -218,6 +240,28 @@ export function parseBillDate(v) {
 
   const t = normalizeDate(s);
   return t && /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : null;
+}
+
+/**
+ * 解析发生时间 HH:MM。
+ * 两种来源：文本里的「10:39:20」，或 Excel 序列号的小数部分（0.44398… = 10:39）。
+ * 同一天要按时间排，账单本身是最新在前，直接导入会把当天顺序弄反。
+ */
+export function parseBillTime(v) {
+  const s = String(v == null ? '' : v).trim();
+  if (!s) return '';
+  const n = Number(s);
+  if (/^\d{5}(\.\d+)?$/.test(s) && Number.isFinite(n)) {
+    const secs = Math.round((n % 1) * 86400) % 86400;
+    const hh = Math.floor(secs / 3600);
+    const mm = Math.floor((secs % 3600) / 60);
+    return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+  }
+  const m = /(\d{1,2}):(\d{2})/.exec(s);
+  if (!m) return '';
+  const hh = Number(m[1]);
+  if (hh > 23) return '';
+  return String(hh).padStart(2, '0') + ':' + m[2];
 }
 
 /**
@@ -239,14 +283,22 @@ export function billRowsToItems(rows, hit) {
     const cells = rows[i] || [];
     if (!cells.some((c) => String(c || '').trim() !== '')) continue;
 
-    const date = parseBillDate(pick(cells, 'date'));
+    const dateRaw = pick(cells, 'date');
+    const date = parseBillDate(dateRaw);
     const amount = parseBillAmount(pick(cells, 'amount'));
     if (!date || amount == null) continue;
 
+    // 发生时间：有的银行单独一列（招行），支付宝/微信塞在「交易时间」里；
+    // 微信的「交易时间」整个是 Excel 序列号，时间藏在小数部分。
+    const timeSrc = pick(cells, 'time') || dateRaw;
+    const time = parseBillTime(timeSrc);
+
     out.push({
       date,
+      time,
       amount,
       dir: pick(cells, 'dir'),
+      category: pick(cells, 'category'),
       party: pick(cells, 'party'),
       item: pick(cells, 'item'),
       method: pick(cells, 'method'),

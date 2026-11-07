@@ -1184,6 +1184,19 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 [data-theme="dark"] .nt-seq-untyped,
 [data-theme="alt2"] .nt-seq-untyped { color: #ffd54a; }
 
+/* 导入时的「疑似重复」：同一笔同时出现在两个账单里，整行红字等用户删
+   （用户 2026-11：不自动去重，标出来让人自己挑） */
+.nt-table-flow tbody tr.nt-row-suspect .nt-cell,
+.nt-table-flow tbody tr.nt-row-suspect input {
+  color: #c62828;
+}
+[data-theme="dark"] .nt-table-flow tbody tr.nt-row-suspect .nt-cell,
+[data-theme="dark"] .nt-table-flow tbody tr.nt-row-suspect input,
+[data-theme="alt2"] .nt-table-flow tbody tr.nt-row-suspect .nt-cell,
+[data-theme="alt2"] .nt-table-flow tbody tr.nt-row-suspect input {
+  color: #ff8a80;
+}
+
 .nt-fly-ghost {
   position: fixed;
   z-index: 80;

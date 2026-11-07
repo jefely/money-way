@@ -26,6 +26,7 @@ import { bindPlanRowActions, scrollToLast as scrollLast } from '../ui/plan-rows.
 import { mountCellRange } from '../ui/cell-range.js';
 import { showUndo } from '../ui/undo-bar.js';
 import { openImportHub } from '../ui/import-hub.js';
+import { applyBillPlan } from '../core/bill-apply.js';
 import { openExportDialog } from '../ui/export-dialog.js';
 
 export function mountFlow(section, ctx) {
@@ -112,6 +113,24 @@ export function mountFlow(section, ctx) {
    */
   function importItems(res) {
     let st = ctx.getState();
+
+    // 账单（支付宝 / 微信 / 招行）：走「六大核心元素」的强提取。
+    // 节点按交易分类或商户自动建，方向按收/支，日期按用户填的起始日过滤。
+    if (res && res.kind === 'bill') {
+      const r = applyBillPlan(st, res, { from: res.fromDate, myAccountId: res.myAccountId });
+      ctx.setState(r.state);
+      ctx.save();
+      render();
+      const s = r.stats;
+      ctx.setFooter(`导入 ${s.added} 笔`
+        + (s.dup ? `，标红疑似重复 ${s.dup} 笔（可逐条删）` : '')
+        + (s.created ? `，新建节点 ${s.created} 个` : '')
+        + (s.before ? `，早于起始日跳过 ${s.before} 笔` : '')
+        + (s.neutral ? `，中性交易跳过 ${s.neutral} 笔` : '')
+        + (s.blank ? `，${s.blank} 笔缺一侧（按 U 区规则未入账）` : ''));
+      return;
+    }
+
     const idx = ctx.getIndex();
 
     const acc = (v) => {
@@ -121,10 +140,6 @@ export function mountFlow(section, ctx) {
     };
 
     // 兜底「我的账户」：第一个资产类账户
-    const fallbackSelf = (state) => {
-      const list = (state.accounts || []).filter((a) => a && a.type === '资产类');
-      return list.length ? list[0] : null;
-    };
 
     // 待分类账户按需创建（一次导入最多建一个）；st 会被换成含它的新 state
     let pendingAcc = null;
@@ -151,27 +166,14 @@ export function mountFlow(section, ctx) {
       let loose = false;      // 这一笔有没有一侧落到「待分类」
       let dead = false;       // 两端都空 / 两端同账户 → 没有意义，跳过
 
-      if (res.kind === 'generic') {
-        const f = acc(it.from);
-        const t = acc(it.to);
-        if (f) fromId = f.id;
-        else if (String(it.from || '').trim()) { fromId = pending().id; loose = true; }
-        if (t) toId = t.id;
-        else if (String(it.to || '').trim()) { toId = pending().id; loose = true; }
-        if (!fromId && !toId) dead = true;
-      } else {
-        // 账单：单边。支出 = 我的账户 → 对方；收入 = 对方 → 我的账户
-        const self = acc(it.method) || fallbackSelf(st);
-        const other = acc(it.party);
-
-        const selfId = self ? self.id : pending().id;
-        const otherId = other ? other.id : pending().id;
-        if (!self || !other) loose = true;
-
-        const isIncome = /收入/.test(it.dir || '');
-        if (isIncome) { fromId = otherId; toId = selfId; }
-        else { fromId = selfId; toId = otherId; }
-      }
+      // 通用表：两端都是账户名
+      const f = acc(it.from);
+      const t = acc(it.to);
+      if (f) fromId = f.id;
+      else if (String(it.from || '').trim()) { fromId = pending().id; loose = true; }
+      if (t) toId = t.id;
+      else if (String(it.to || '').trim()) { toId = pending().id; loose = true; }
+      if (!fromId && !toId) dead = true;
 
       // 自己转自己：金额不落地，只会让统计多一笔假流水
       if (!dead && fromId && toId && fromId === toId) dead = true;
@@ -399,6 +401,7 @@ function bindToolbar(section, ctx, h) {
       openImportHub({
         mergeText: (text) => (ctx.mergeText ? ctx.mergeText(text) : 0),
         setFooter: (t) => ctx.setFooter(t),
+        accounts: ctx.getState().accounts,
         onImport: (res) => { if (o.onImport) o.onImport(res); },
         onImportTemplate: (state, stats) => { if (o.onImportTemplate) o.onImportTemplate(state, stats); },
         restoreBackup: (text, password) => (ctx.restoreBackup ? ctx.restoreBackup(text, password) : Promise.reject(new Error('不能恢复'))),

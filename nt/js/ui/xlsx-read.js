@@ -1,4 +1,4 @@
-﻿// 界面：xlsx 读取（ZIP 展开）
+// 界面：xlsx 读取（ZIP 展开）
 /**
  * xlsx 读取
  * 层：第五层 · UI
@@ -109,6 +109,38 @@ export async function readXlsx(buf) {
 }
 
 /**
+ * 文本解码：BOM → UTF-8 → （出现替换字符时）GBK。
+ *
+ * 支付宝和招行导出的 CSV 是 **GBK**。直接 `file.text()`（按 UTF-8 读）
+ * 会整篇变成乱码，于是连表头都认不出 —— 用户看到的就是「没认出表头」。
+ * 这是账单导入最隐蔽的一处失败：文件本身没错，错在读法。
+ *
+ * @param {ArrayBuffer|Uint8Array} bytes
+ * @returns {string}
+ */
+export function decodeBytes(bytes) {
+  const buf = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+
+  if (buf.length >= 3 && buf[0] === 0xEF && buf[1] === 0xBB && buf[2] === 0xBF) {
+    return new TextDecoder('utf-8').decode(buf.subarray(3));
+  }
+  if (buf.length >= 2 && buf[0] === 0xFF && buf[1] === 0xFE) {
+    return new TextDecoder('utf-16le').decode(buf.subarray(2));
+  }
+  if (buf.length >= 2 && buf[0] === 0xFE && buf[1] === 0xFF) {
+    return new TextDecoder('utf-16be').decode(buf.subarray(2));
+  }
+
+  const utf8 = new TextDecoder('utf-8').decode(buf);
+  if (!utf8.includes('\uFFFD')) return utf8;
+  try {
+    return new TextDecoder('gbk').decode(buf);
+  } catch (e) {
+    return utf8;
+  }
+}
+
+/**
  * 读用户选的文件：按扩展名分派。
  * @param {File} file
  * @returns {Promise<{sheets:{name:string,rows:string[][]}[]}>}
@@ -120,7 +152,7 @@ export async function readAnyTable(file) {
     return readXlsx(await file.arrayBuffer());
   }
 
-  const text = await file.text();
+  const text = decodeBytes(await file.arrayBuffer());
   // .csv / .txt / 无扩展名：按 CSV 解析成一张表
   return { sheets: [{ name: file.name || '导入', rows: tidyRows(parseCsv(text)) }] };
 }

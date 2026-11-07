@@ -19,7 +19,10 @@
 | `core/backup-file.js` | （无界面）加密备份文件格式 |
 | `core/backup-reminder.js` | （无界面）备份提醒判定 |
 | `core/balance-calculator.js` | （无界面）余额计算 |
+| `core/bill-apply.js` | （无界面）账单导入落库：补账户 → 写流水 → 判重 |
+| `core/bill-match.js` | （无界面）账单账户匹配：支付方式 → 我的账户，商户/分类 → 对方账户 |
 | `core/bill-parse.js` | 三家账单（支付宝 / 微信支付 / 招商银行）的识别与解析 |
+| `core/bill-plan.js` | （无界面）账单 → 导入计划：方向、账户、日期过滤、备注线索 |
 | `core/calc-engine.js` | （无界面）计算引擎：余额 / 双式恒等 / 实物成本台账 |
 | `core/category-query.js` | 分类查询（纯函数） |
 | `core/color.js` | （无界面）颜色转换 |
@@ -121,6 +124,7 @@
 | `ui/fly-in.js` | 流水 tab → 入账飞入 |
 | `ui/gate.js` | 锁屏 / 首次设密码 |
 | `ui/global-undo.js` | 全局撤销 / 重做的动作与快捷键 |
+| `ui/import-bill.js` | 导入预览里的「账单」面板（起始日期 + 六元素统计） |
 | `ui/import-dialog.js` | 导入 Excel / CSV / 账单 |
 | `ui/import-hub.js` | 流水工具条「导入」→ 先弹入口（选文件 / 粘贴文本） |
 | `ui/import-map.js` | 导入 → 手动指定列 |

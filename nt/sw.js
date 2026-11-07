@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.458';
+const CACHE_NAME = 'nt-v1.459';
 
 const ASSETS = [
   './css/base.css',
@@ -59,7 +59,10 @@ const ASSETS = [
   './js/core/backup-file.js',
   './js/core/backup-reminder.js',
   './js/core/balance-calculator.js',
+  './js/core/bill-apply.js',
+  './js/core/bill-match.js',
   './js/core/bill-parse.js',
+  './js/core/bill-plan.js',
   './js/core/calc-engine.js',
   './js/core/category-query.js',
   './js/core/color.js',
@@ -161,6 +164,7 @@ const ASSETS = [
   './js/ui/fly-in.js',
   './js/ui/gate.js',
   './js/ui/global-undo.js',
+  './js/ui/import-bill.js',
   './js/ui/import-dialog.js',
   './js/ui/import-hub.js',
   './js/ui/import-map.js',

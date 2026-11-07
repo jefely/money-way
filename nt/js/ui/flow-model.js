@@ -92,6 +92,8 @@ function buildRealRows(state) {
     fixed: !t.opening && fixedTx.has(String(t.id)),
     // 断链提示：有 ID 但映射不到名字（账户被删过）
     broken: (!!t.from_id && !accMap.has(t.from_id)) || (!!t.to_id && !accMap.has(t.to_id)),
+    // 导入时的疑似重复（同一笔同时出现在微信/支付宝和银行账单里）→ 流水表标红
+    suspect: !!t.suspect,
     mark: markerOf(t, state.accounts),
   }));
 }

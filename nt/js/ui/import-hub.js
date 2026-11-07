@@ -59,6 +59,8 @@ export function openImportHub(opts) {
           onImport: o.onImport,
           onImportTemplate: o.onImportTemplate,
           onBackup: (text) => askPassword(text, o),
+          // 账单自动建节点时要用账户表（判断「零钱」「招行储」是否已存在）
+          accounts: typeof o.getAccounts === 'function' ? o.getAccounts() : o.accounts,
         });
       });
       bar.appendChild(pick);

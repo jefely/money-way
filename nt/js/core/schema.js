@@ -148,6 +148,8 @@ export function createTransaction(patch = {}) {
     ...(patch.refund ? { refund: true } : {}),
     ...(patch.inst ? { inst: patch.inst } : {}),
     ...(patch.opening ? { opening: true } : {}),
+    // 导入时的「疑似重复」标记：**不拦、只标红**，由用户在流水表里逐条删（用户 2026-11）
+    ...(patch.suspect ? { suspect: true } : {}),
   };
   if (patch.status === 'draft') tx.status = 'draft';
   if (patch.planKey) {

@@ -13,6 +13,7 @@ import * as NtModal from './modal.js';
 import { readAnyTable } from './xlsx-read.js';
 import { analyzeTable } from '../core/import-table.js';
 import { openColumnMapper } from './import-map.js';
+import { mountBillPreview } from './import-bill.js';
 import { pickTemplateSheets } from '../core/xlsx-template.js';
 import {
   parseSettingsRows, parseFlowRows, parseFixedRows, parseInstRows, stateFromTemplate,
@@ -259,6 +260,9 @@ function showPreview(result, o, rows) {
         return;
       }
 
+      // 账单：起始日期 + 六元素统计（日期之前的不再核对）
+      if (result.kind === 'bill') mountBillPreview(body, result, { accounts: o.accounts });
+
       // 预览前 5 行
       const ul = document.createElement('ul');
       ul.className = 'nt-import-preview';
@@ -309,7 +313,7 @@ function showPreview(result, o, rows) {
       : [
         { label: '取消', kind: 'ghost', close: true },
         {
-          label: `导入 ${result.items.length} 笔`,
+          label: result.kind === 'bill' ? '导入账单' : `导入 ${result.items.length} 笔`,
           kind: 'primary',
           onClick: () => {
             // modal 默认在 onClick 之后自动关闭（close !== false）

@@ -10,7 +10,7 @@
  * 只做纯计算，不碰文件、不碰 DOM。
  */
 
-import { detectBill, findBillHeader, billRowsToItems, billFingerprint, parseBillDate, parseBillAmount } from './bill-parse.js';
+import { detectBill, findBillHeader, billRowsToItems, billFingerprint, parseBillDate, parseBillAmount, extractBillHints } from './bill-parse.js';
 import { BILL_PRESETS } from './bill-parse.js';
 
 /** 通用表的列名关键词 */
@@ -96,9 +96,11 @@ export function analyzeTable(rows) {
     if (items.length) {
       return {
         kind: 'bill',
+        presetId: bill.preset.id,
         presetName: bill.preset.name,
         headerIdx: bill.idx,
         map: bill.map,
+        hints: extractBillHints(clean),
         items,
         needAccount: bill.preset.id !== 'cmb',   // 招行有卡号列，其余要人工选支付方式
         note: `识别为${bill.preset.name}账单，共 ${items.length} 笔`,

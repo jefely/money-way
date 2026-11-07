@@ -197,6 +197,12 @@ function dataRow(r, i, rowTpl) {
   }
 
   if (r.isVirtual) decorateVirtualRow(tr);
+
+  // 疑似重复（同一笔同时出现在两个账单里）：整行红字，由用户自己删掉多余的
+  if (r.suspect) {
+    tr.classList.add('nt-row-suspect');
+    tr.title = '疑似重复：这笔可能也出现在另一个账单里，确认后删掉多余的一条';
+  }
   return tr;
 }
 
