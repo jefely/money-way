@@ -143,11 +143,12 @@
   width: 100%;
 }
 
-.nt-table-accounts .nt-th[data-col="code"]    { width: var(--nt-col-accounts-code, 64px); }
-.nt-table-accounts .nt-th[data-col="seq"]     { width: var(--nt-col-accounts-seq, 44px); }
-.nt-table-accounts .nt-th[data-col="type"]    { width: var(--nt-col-accounts-type, 66px); }
-.nt-table-accounts .nt-th[data-col="cat"]     { width: var(--nt-col-accounts-cat, 70px); }
-.nt-table-accounts .nt-th[data-col="name"]    { width: var(--nt-col-accounts-name, 110px); }
+/* 默认值 = core/table-cols.js 的 TABLE_DEFAULT_WIDTHS.accounts（2026-11-07 用户给定） */
+.nt-table-accounts .nt-th[data-col="code"]    { width: var(--nt-col-accounts-code, 48px); }
+.nt-table-accounts .nt-th[data-col="seq"]     { width: var(--nt-col-accounts-seq, 37px); }
+.nt-table-accounts .nt-th[data-col="type"]    { width: var(--nt-col-accounts-type, 58px); }
+.nt-table-accounts .nt-th[data-col="cat"]     { width: var(--nt-col-accounts-cat, 49px); }
+.nt-table-accounts .nt-th[data-col="name"]    { width: var(--nt-col-accounts-name, 97px); }
 .nt-table-accounts .nt-th[data-col="opening"] { width: auto; }
 /* 按钮列：**正方形**（用户 2026-11）—— 宽度直接取行高，格子宽高相等，
    点起来也更好按。行高由「账户设置/数据行高」控制（--nt-row-h），

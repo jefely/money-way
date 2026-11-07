@@ -22,12 +22,11 @@ import { TABLE_COLS, TABLE_DEFAULT_WIDTHS, parseTableWidths } from '../core/tabl
 import { fitWidths, maxDragWidth } from '../core/table-fit.js';
 
 /**
- * 节点设置：每列在手机上「最多需要多宽」。
- * 按**数据字号 14px** 实测内容宽 + 内边距 6 + 余量：
- *   [资产] 37 · 现金 28 · 关键字（备注区表头）30 · 招行储7912 61 · ZHG 24
- * 少 1px 就会看到半个括号（2026-11 截图里 `[资产` 少了个右括号）。
+ * 节点设置：压到极限时每列的下限（14px 字号下实测的内容宽 + 内边距）。
+ *   ZHG 32 · [资产] 45 · 储蓄 36 · 关键字（备注区表头）38 · 招行储7912 70
+ * 只在「屏幕比参数总宽还窄」时才用到；正常屏上一律用参数值。
  */
-const ACC_CAPS = { code: 42, seq: 24, type: 46, cat: 46, name: 80 };
+const ACC_MINS = { code: 42, seq: 20, type: 46, cat: 38, name: 72 };
 /** 节点设置：可压的列（期初吃剩余，移/删是正方形按钮） */
 const ACC_SOFT = ['code', 'seq', 'type', 'cat', 'name'];
 /** 节点设置：期初余额至少留多宽（"123,456.78" 约 66 + 内边距 6 + 余量） */
@@ -69,7 +68,9 @@ function btnPx(tableEl) {
 }
 
 /**
- * 节点设置：把五列压进一屏。幂等 —— 够宽时把覆盖摘掉，回到参数值。
+ * 节点设置：把五列压进一屏。
+ * 参数够宽时**一个像素都不动**（返回 null → 摘掉覆盖，回到参数值）；
+ * 屏比参数总宽窄时按原比例压，只在下限处兜底。
  * @param {HTMLTableElement} tableEl
  */
 export function fitAccounts(tableEl) {
@@ -83,7 +84,7 @@ export function fitAccounts(tableEl) {
   const widths = paramWidths(tableEl, 'accounts');
   const list = ACC_SOFT.map((c) => widths[cols.indexOf(c)]);
   const budget = avail - btnPx(tableEl) * 2 - ACC_SHARE_MIN;
-  const target = fitWidths(list, ACC_SOFT.map((c) => ACC_CAPS[c]), budget, 28);
+  const target = fitWidths(list, budget, ACC_MINS, ACC_SOFT);
 
   ACC_SOFT.forEach((c, i) => {
     const v = varOf('accounts', c);
