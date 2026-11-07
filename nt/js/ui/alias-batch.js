@@ -14,6 +14,7 @@ import { mergeAccountInto } from '../core/account-merge.js';
 import { updateAccount, removeNote } from '../core/state-store.js';
 import { aliasPutMany, pendingKeywords } from '../core/alias-table.js';
 import { openNoteStats } from './note-stats.js';
+import { openNodeRelations } from './node-relations.js';
 
 const norm = (v) => String(v == null ? '' : v).trim();
 
@@ -43,6 +44,12 @@ export function noteTools(ctx, rerender) {
   stats.type = 'button';
   stats.addEventListener('click', () => openNoteStats(ctx));
   box.appendChild(stats);
+
+  // 节点上下级（用户 2026-11-08：关系由用户在配置表里确立）
+  const rel = el('button', 'nt-btn nt-btn-sm nt-note-batch', '节点关系');
+  rel.type = 'button';
+  rel.addEventListener('click', () => openNodeRelations(ctx, rerender));
+  box.appendChild(rel);
   return box;
 }
 

@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.471';
+const CACHE_NAME = 'nt-v1.472';
 
 const ASSETS = [
   './css/base.css',
@@ -93,6 +93,7 @@ const ASSETS = [
   './js/core/migrate.js',
   './js/core/mw-settings.js',
   './js/core/note-stats.js',
+  './js/core/node-relations.js',
   './js/core/opening-migrator.js',
   './js/core/opening-tx.js',
   './js/core/phrase-entry.js',
@@ -188,6 +189,7 @@ const ASSETS = [
   './js/ui/note-popover.js',
   './js/ui/note-stats.js',
   './js/ui/note-table.js',
+  './js/ui/node-relations.js',
   './js/ui/path-debug.js',
   './js/ui/path-filter.js',
   './js/ui/path-flow-table.js',

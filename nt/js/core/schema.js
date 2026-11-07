@@ -100,6 +100,9 @@ export function createAccount(patch = {}) {
     isHidden: !!patch.isHidden,
   };
 
+  // 上级节点（可选，用户 2026-11-08）：不填就是根 —— **没有关系不等于「未分类」**。
+  if (patch.parentId) acc.parentId = String(patch.parentId);
+
   // 序号：允许跳号（如 …63、80、100）；没填就不写这个字段
   const seq = Number(patch.seq);
   if (Number.isFinite(seq) && seq > 0) acc.seq = Math.round(seq);

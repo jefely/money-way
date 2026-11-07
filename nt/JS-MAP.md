@@ -52,6 +52,7 @@
 | `core/meta.js` | （未标注界面）项目地址（常量） |
 | `core/migrate.js` | （无界面）旧数据迁移 |
 | `core/mw-settings.js` | （无界面）环图参数 SCHEMA + 默认值 |
+| `core/node-relations.js` | 节点上下级（一棵由用户自己确立的树） |
 | `core/note-stats.js` | 备注统计（关键字 → 金额，再按备注类型分组合计） |
 | `core/opening-migrator.js` | （无界面）期初迁移 |
 | `core/opening-tx.js` | 期初流水的方向 |
@@ -145,6 +146,7 @@
 | `ui/modal.js` | 全局 → 统一弹窗（<dialog>） |
 | `ui/mw-params.js` | 全局：环图参数（CSS 变量 → 数字） |
 | `ui/mw-svg-renderer.js` | 路径 tab / path.html → SVG 渲染 |
+| `ui/node-relations.js` | 节点关系（上下级配置表） |
 | `ui/note-popover.js` | 流水 / 查询 → 长备注 |
 | `ui/note-stats.js` | 备注统计（关键字 → 金额，再按备注类型分两级） |
 | `ui/note-table.js` | 设置页的备注区（独立于账户的 A/B 区） |
