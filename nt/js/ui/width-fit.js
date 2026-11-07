@@ -120,17 +120,61 @@ export function fitFlow(tableEl) {
   tableEl.style.minWidth = Math.round(sum + FLOW_NOTE_MIN) + 'px';
 }
 
+/** 分类/节点列表：备注列在窄屏上「想要多宽」（没拖过时用这个） */
+const CATQ_NOTE_MIN = 90;
+/** 分类/节点列表：备注列的下限（拖到头停住，内容允许被截 —— 用户 2026-11 授权） */
+const CATQ_NOTE_FLOOR = 16;
+/** 分类/节点列表：前 5 列压到极限时的下限（14px 实测内容宽 + 内边距） */
+const CATQ_MINS = { seq: 28, date: 52, from: 56, to: 56, amount: 52 };
+/** 分类/节点列表：有独立列宽、可拖的那几列（备注吃剩余，不在此列） */
+const CATQ_SOFT = ['seq', 'date', 'from', 'to', 'amount'];
+
+/**
+ * 分类/节点列表：前 5 列压进容器，**备注列吃剩余**。
+ *
+ * 和节点设置同一个模型，区别只在「备注要留多少」：
+ * 参数里备注那一格存的就是**上次拖出来的实际宽度**（CSS 不消费它，只给这里当期望值），
+ * 所以拖过一次之后，这条按「备注 = 上次的宽度」算预算 —— 五列正好放得下，
+ * 不会再压一次（否则就是对用户的手势反悔）。
+ * 没拖过时（参数是 0）按 90 留，先给备注一个能看的地方。
+ */
+export function fitCatq(tableEl) {
+  if (!tableEl) return;
+  const wrap = tableEl.closest('.nt-tablewrap');
+  const avail = wrap ? wrap.clientWidth : 0;
+  if (!avail) return;
+
+  const cols = TABLE_COLS.catq.cols;
+  const widths = paramWidths(tableEl, 'catq');
+  const noteNow = widths[cols.indexOf('note')] || 0;
+  const noteWant = noteNow >= 24 ? noteNow : CATQ_NOTE_MIN;
+  const list = CATQ_SOFT.map((c) => widths[cols.indexOf(c)]);
+  const target = fitWidths(list, avail - noteWant, CATQ_MINS, CATQ_SOFT);
+
+  CATQ_SOFT.forEach((c, i) => {
+    const v = varOf('catq', c);
+    if (target) tableEl.style.setProperty(v, target[i] + 'px');
+    else tableEl.style.removeProperty(v);
+  });
+}
+
 /**
  * 拖动某一列时的上限（0 = 不另外限制）。
- * 节点设置：期初余额是唯一弹性来源，拖到头就是它到 ACC_SHARE_MIN 的那一刻。
+ * 节点设置 / 分类列表 / 节点列表：弹性来源都只有一列（期初余额 / 备注），
+ * 拖到头 = 它到下限的那一刻；表宽不变，拖不出横滑。
  * 流水记录：备注的下限由最小宽度保证，拖动不需要额外限制（表会跟着变宽）。
  */
 export function dragMaxWidth(tableEl, startW) {
-  if (!tableEl || !tableEl.classList.contains('nt-table-accounts')) return 0;
-  const th = tableEl.querySelector('thead .nt-th[data-col="opening"]');
+  if (!tableEl) return 0;
+  const absorb = tableEl.classList.contains('nt-table-accounts') ? 'opening'
+    : tableEl.classList.contains('nt-table-catq') ? 'note'
+      : '';
+  if (!absorb) return 0;
+  const th = tableEl.querySelector('thead .nt-th[data-col="' + absorb + '"]');
   const now = th ? th.getBoundingClientRect().width : 0;
   if (!now) return 0;
-  return maxDragWidth(startW, now, ACC_SHARE_MIN);
+  const floor = absorb === 'opening' ? ACC_SHARE_MIN : CATQ_NOTE_FLOOR;
+  return maxDragWidth(startW, now, floor);
 }
 
 /**
@@ -138,23 +182,29 @@ export function dragMaxWidth(tableEl, startW) {
  *   · nt-layout —— 面板改参数 / 拖动保存之后（applySettings 派发）
  *   · ResizeObserver —— 视图展开 / 转屏 / 窗口变化
  *   · window.resize —— 老机型没有 ResizeObserver 时兜底
- * 拖动过程中不重算节点设置（那时宽度由手指决定，重算会把它弹回去）。
+ * 拖动过程中不重算（那时宽度由手指决定，重算会把它弹回去）。
  */
 export function mountWidthFit() {
   const acc = document.querySelector('table.nt-table-accounts');
   const flow = document.querySelector('table.nt-table-flow');
-  if (!acc && !flow) return;
+  const catqs = [...document.querySelectorAll('table.nt-table-catq')];
+  if (!acc && !flow && !catqs.length) return;
   const run = () => {
     if (document.body.classList.contains('nt-col-resizing')) return;
     if (acc) fitAccounts(acc);
     if (flow) fitFlow(flow);
+    for (const t of catqs) fitCatq(t);
   };
   window.addEventListener('nt-layout', run);
   window.addEventListener('resize', run);
   window.addEventListener('orientationchange', run);
-  if (typeof ResizeObserver === 'function' && acc) {
-    const wrap = acc.closest('.nt-tablewrap');
-    if (wrap) new ResizeObserver(run).observe(wrap);
+  if (typeof ResizeObserver === 'function') {
+    // 两张 catq 表在统计页的左右两栏，宽度可能不同 —— 各观察各的
+    for (const t of [acc, ...catqs]) {
+      if (!t) continue;
+      const wrap = t.closest('.nt-tablewrap');
+      if (wrap) new ResizeObserver(run).observe(wrap);
+    }
   }
   run();
 }
