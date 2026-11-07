@@ -96,6 +96,35 @@ const SUFFIXES = [
   '餐饮', '食品', '美食', '服务', '运营', '科技', '网络', '信息', '技术', '贸易', '商贸', '超市',
 ];
 
+/** 商品说明里每笔都长的通用词：它们区分不了流水，不该进关键字 */
+const ITEM_NOISE = /保费|缴清|承保|投保|续保|大病版|健康福|缴费|支付|收款|消费|充值|订单|商品|服务|业务|扣款|退款|元|日用品|餐饮|购物|交通|娱乐|医疗|服饰|食品|饮料|水果|蔬菜/;
+
+/**
+ * 商品说明 → 能区分流水的短标签（用户 2026-11-08：最多两个）。
+ *
+ *   2026.7月28日保费缴清-健康福·重疾1号(大病版)-**润  → 润，重疾
+ *
+ * 做法：去日期 / 去括号 / 去遮蔽星号 / 按分隔符切开 / 去通用词 / 留 2~4 字，
+ * 取**最后两个**（越靠后越具体）、倒序排（人名这类最短的放前面）。
+ */
+export function itemTags(text) {
+  const t = String(text == null ? '' : text)
+    .replace(/\d{4}[.\-/年]\d{1,2}[.\-/月]\d{1,2}日?/g, ' ')
+    .replace(/[（(][^)）]*[)）]/g, ' ')
+    .replace(/[*＊]+/g, ' ')
+    .replace(/\d+/g, ' ');
+  const parts = t.split(/[-－—·、,，。;；:：/\s]+/).map((s) => s.trim()).filter(Boolean);
+  const words = [];
+  for (const p of parts) {
+    if (ITEM_NOISE.test(p)) continue;
+    const w = p.replace(/^(新|老)|(店|号|版)$/g, '').trim();
+    if (!w || w.length > 4) continue;
+    if (!/[\u4e00-\u9fa5]/.test(w)) continue;
+    words.push(w);
+  }
+  return words.slice(-2).reverse();
+}
+
 /**
  * 「最特殊的字符」——从一条商户名里挑出最有辨识度的部分（用户 2026-11-08）：
  *

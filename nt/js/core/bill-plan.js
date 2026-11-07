@@ -16,7 +16,7 @@ import {
   matchAccountText, matchMerchantAccount, matchPayAccount, suggestMyAccount, suggestOtherAccount,
 } from './bill-match.js';
 import { aliasGet } from './alias-table.js';
-import { specialOf } from './keyword-engine.js';
+import { specialOf, itemTags } from './keyword-engine.js';
 import { money } from './format.js';
 
 const norm = (v) => String(v == null ? '' : v).trim();
@@ -111,9 +111,11 @@ function planOne(item, ctx) {
   // 用户已经确认过一次的归类，不该每次导入都从零猜。
   const aliasTarget = aliasGet(ctx.aliases, p);
   if (suggest && aliasTarget) suggest.name = aliasTarget;
-  // 备注关键字用「最特殊的字段」（用户 2026-11-08）：
-  // 厦门葭实梓网络科技有限公司 → 厦门葭实梓；这样备注区的列表读得下去。
-  const hotKey = aliasTarget || specialOf(p) || p;
+  // 备注关键字：**优先用商品说明里能区分流水的短标签**（用户 2026-11-08）：
+  //   「2026.7月28日保费缴清-健康福·重疾1号(大病版)-**润」→ 润，重疾
+  // 商品说明里没有可用标签时，才退到商户名里「最特殊的字符」。
+  const tags = itemTags(item.item);
+  const hotKey = aliasTarget || (tags.length ? tags.join('，') : '') || specialOf(p) || p;
   const mySuggest = my ? null : suggestMyAccount(item.method);
 
   return {
