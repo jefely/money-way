@@ -245,28 +245,49 @@
   border-color: var(--nt-primary);
 }
 
-/* 导入窗口：文件导入 / 文本导入两段（用户 2026-11 的布局） */
+/* 导入窗口：三段（账单 / 备份 / 文本），标题行右侧放按钮 */
+.nt-imp-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 12px 0 8px;
+}
+
+.nt-imp-lead {
+  min-width: 0;
+}
+
+.nt-imp-lead .nt-imp-h {
+  margin: 0;
+}
+
+.nt-imp-lead .nt-imp-sub {
+  margin: 2px 0 0;
+}
+
+.nt-imp-acts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
 .nt-imp-h {
   font-weight: 700;
-  margin: 10px 0 2px;
   color: var(--nt-text);
 }
 
 .nt-imp-sub {
-  margin: 0 0 8px;
   color: var(--nt-text-muted);
 }
 
 .nt-imp-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
   margin-bottom: 10px;
-}
-
-.nt-imp-row-end {
-  justify-content: flex-end;
 }
 
 .nt-imp-cell {
@@ -285,6 +306,7 @@
   max-width: 190px;
 }
 
+.nt-imp-head .nt-btn,
 .nt-imp-row .nt-btn {
   flex: 0 0 auto;
   height: 28px;
@@ -307,5 +329,5 @@
   font-size: 12px;
   line-height: 1.6;
   resize: vertical;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }

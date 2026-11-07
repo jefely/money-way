@@ -15,6 +15,7 @@
 import {
   matchMerchantAccount, matchPayAccount, suggestMyAccount, suggestOtherAccount,
 } from './bill-match.js';
+import { money } from './format.js';
 
 const norm = (v) => String(v == null ? '' : v).trim();
 
@@ -183,4 +184,11 @@ export function collectNewAccounts(plan) {
     add(row.otherSuggest);
   }
   return [...seen.values()];
+}
+
+/** 一行导入计划 → 预览里的一行文字（UI 与测试共用同一口径） */
+export function previewLine(row) {
+  const sign = row.dir === 'out' ? '-' : '+';
+  const to = row.toName || (row.otherSuggest && row.otherSuggest.name) || '?';
+  return `${row.date}  ${sign}${money(row.amount)}  ${row.fromName || '?'} → ${to}  ${row.note || ''}`.trim();
 }

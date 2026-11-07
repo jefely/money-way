@@ -10,6 +10,16 @@
 
 import { planBillImport } from '../core/bill-plan.js';
 
+/** 只列真实账户：期初余额（isHidden）不是「我的账户」，列进来会被误选 */
+export function myAccountPick(accounts, presetId, cardTail) {
+  const picks = (accounts || []).filter((a) => a && !a.isHidden && a.id !== '__OPENING__');
+  const re = presetId === 'wechat' ? /微信|零钱/ : presetId === 'alipay' ? /支付宝|余额/ : null;
+  let hit = re ? picks.find((a) => re.test(String(a.name || ''))) : null;
+  if (!hit && cardTail) hit = picks.find((a) => String(a.name || '').includes(cardTail));
+  if (!hit) hit = picks.find((a) => a.type === '资产类');
+  return hit || null;
+}
+
 const money = (v) => (Number(v) || 0).toFixed(2);
 
 /**

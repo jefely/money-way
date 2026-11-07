@@ -14,11 +14,12 @@
 import * as NtModal from './modal.js';
 import { readAnyTable } from './xlsx-read.js';
 import { analyzeTable } from '../core/import-table.js';
-import { planBillImport } from '../core/bill-plan.js';
+import { planBillImport, previewLine } from '../core/bill-plan.js';
+import { myAccountPick } from './import-bill.js';
 import { money } from '../core/format.js';
 import { pickTemplateSheets } from '../core/xlsx-template.js';
 import { isBackupText } from '../core/backup-file.js';
-import { askPassword, loadBackupFile } from './import-backup.js';
+import { readBackupFile, backupSummary } from './import-backup.js';
 import { pickTextFile } from './file-io.js';
 
 const PLACEHOLDER = [
@@ -46,28 +47,26 @@ function labelOf(text, control) {
   return label;
 }
 
+/** 一段：标题 + 说明在左，按钮在右（照「添加账本·流水记录」的样式） */
+function section(title, desc, buttons) {
+  const head = el('div', 'nt-imp-head');
+  const lead = el('div', 'nt-imp-lead');
+  lead.appendChild(hint(title, true));
+  lead.appendChild(hint(desc));
+  head.appendChild(lead);
+  if (buttons && buttons.length) {
+    const acts = el('div', 'nt-imp-acts');
+    for (const b of buttons) acts.appendChild(b);
+    head.appendChild(acts);
+  }
+  return head;
+}
+
 const button = (text, cls) => {
   const b = el('button', cls || 'nt-btn nt-btn-sm', text);
   b.type = 'button';
   return b;
 };
-
-/** 清单里只放真实账户：期初余额（isHidden）不是「我的账户」 */
-function myAccountPick(accounts, presetId, cardTail) {
-  const picks = (accounts || []).filter((a) => a && !a.isHidden && a.id !== '__OPENING__');
-  const re = presetId === 'wechat' ? /微信|零钱/ : presetId === 'alipay' ? /支付宝|余额/ : null;
-  let hit = re ? picks.find((a) => re.test(String(a.name || ''))) : null;
-  if (!hit && cardTail) hit = picks.find((a) => String(a.name || '').includes(cardTail));
-  if (!hit) hit = picks.find((a) => a.type === '资产类');
-  return hit || null;
-}
-
-/** 一行账单/表格 → 预览里的一行文字 */
-function previewLine(row) {
-  const sign = row.dir === 'out' ? '-' : '+';
-  const to = row.toName || (row.otherSuggest && row.otherSuggest.name) || '?';
-  return `${row.date}  ${sign}${money(row.amount)}  ${row.fromName || '?'} → ${to}  ${row.note || ''}`.trim();
-}
 
 /**
  * @param {{
@@ -91,6 +90,9 @@ export function openImportHub(opts) {
   let mySel = null;
   let myWrap = null;
   let backupErr = null;
+  let backup = null;
+  let pwWrap = null;
+  let pwEl = null;
 
   const refresh = () => {
     if (!previewEl) return;
@@ -196,9 +198,47 @@ export function openImportHub(opts) {
 
   function openBackupFile() {
     pickFile('.lz,.txt,.json,.xlsx', async (file) => {
+      if (!file) return;
+      backup = null;
       if (backupErr) backupErr.textContent = '';
-      await loadBackupFile(file, o, (msg) => { if (backupErr) backupErr.textContent = msg; });
+      if (pwWrap) pwWrap.hidden = true;
+      try {
+        backup = await readBackupFile(file);
+        if (previewEl) previewEl.value = backupSummary(backup);
+        if (pwWrap) pwWrap.hidden = backup.kind !== 'backup';
+      } catch (e) {
+        if (previewEl) previewEl.value = '';
+        if (backupErr) backupErr.textContent = (e && e.message) || String(e);
+      }
     });
+  }
+
+  async function doBackupImport() {
+    if (!backup) {
+      if (backupErr) backupErr.textContent = '先「打开」一个备份文件';
+      return;
+    }
+    if (backup.kind === 'backup') {
+      const pw = (pwEl && pwEl.value) || '';
+      if (!pw) {
+        if (backupErr) backupErr.textContent = '需要账本密码';
+        return;
+      }
+      if (typeof o.restoreBackup !== 'function') {
+        if (backupErr) backupErr.textContent = '当前不能恢复加密备份';
+        return;
+      }
+      try {
+        const state = await o.restoreBackup(backup.text, pw);
+        if (dlg) dlg.close();
+        if (typeof o.onRestore === 'function') o.onRestore(state);
+      } catch (e) {
+        if (backupErr) backupErr.textContent = '解不开：密码不对，或文件已损坏';
+      }
+      return;
+    }
+    if (dlg) dlg.close();
+    if (typeof o.onImportTemplate === 'function') o.onImportTemplate(backup.state, backup.stats);
   }
 
   async function openTextFile() {
@@ -226,7 +266,7 @@ export function openImportHub(opts) {
     const text = String((ta && ta.value) || '').trim();
     if (!text) return;
     if (isBackupText(text)) {
-      askPassword(text, o);
+      if (backupErr) backupErr.textContent = '这是加密备份，请用上面的「备份文件导入」。';
       return;
     }
     if (typeof o.mergeText !== 'function') return;
@@ -247,17 +287,16 @@ export function openImportHub(opts) {
     title: '导入',
     autoFocus: false,
     build: (body) => {
-      body.appendChild(hint('账单导入', true));
-      body.appendChild(hint('（支付宝 / 微信 / 招商银行导出的 Excel、CSV）'));
+      const openBill = button('打开', 'nt-btn nt-btn-sm nt-exp-main');
+      openBill.addEventListener('click', openBillFile);
+      const goBill = button('导入', 'nt-btn nt-btn-sm');
+      goBill.addEventListener('click', doImport);
+      body.appendChild(section('账单导入', '（支付宝 / 微信 / 招商银行导出的 Excel、CSV）', [openBill, goBill]));
 
       const row = el('div', 'nt-imp-row');
       fromEl = el('input');
       fromEl.type = 'date';
       row.appendChild(labelOf('起始日期', fromEl));
-      const openBtn = button('打开', 'nt-btn nt-btn-sm nt-exp-main');
-      openBtn.addEventListener('click', openBillFile);
-      row.appendChild(openBtn);
-
       mySel = el('select');
       myWrap = labelOf('我的账户', mySel);
       for (const acc of accounts.filter((a) => a && !a.isHidden && a.id !== '__OPENING__')) {
@@ -266,9 +305,6 @@ export function openImportHub(opts) {
         mySel.appendChild(opt);
       }
       row.appendChild(myWrap);
-      const goBtn = button('导入', 'nt-btn nt-btn-sm');
-      goBtn.addEventListener('click', doImport);
-      row.appendChild(goBtn);
       body.appendChild(row);
 
       body.appendChild(hint('导入预览：', true));
@@ -278,27 +314,26 @@ export function openImportHub(opts) {
       previewEl.spellcheck = false;
       body.appendChild(previewEl);
 
-      body.appendChild(hint('备份文件导入', true));
-      body.appendChild(hint('（.lz 快照 / 加密备份 / 整本 Excel 备份，会替换当前账本）'));
-      const brow = el('div', 'nt-imp-row nt-imp-row-end');
       const bOpen = button('打开', 'nt-btn nt-btn-sm');
       bOpen.addEventListener('click', openBackupFile);
-      brow.appendChild(bOpen);
-      body.appendChild(brow);
+      const bGo = button('覆盖并导入', 'nt-btn nt-btn-sm');
+      bGo.addEventListener('click', doBackupImport);
+      body.appendChild(section('备份文件导入', '（.lz 快照 / 加密备份 / 整本 Excel 备份，会替换当前账本）', [bOpen, bGo]));
       backupErr = el('p', 'nt-sync-hint nt-imp-sub nt-import-map-err');
       body.appendChild(backupErr);
+      pwWrap = el('div', 'nt-imp-row');
+      pwWrap.hidden = true;
+      pwEl = el('input');
+      pwEl.type = 'password';
+      pwEl.placeholder = '账本密码';
+      pwWrap.appendChild(labelOf('密码', pwEl));
+      body.appendChild(pwWrap);
 
-      body.appendChild(hint('文本导入', true));
-      body.appendChild(hint('（粘贴流水记录文本，合并进当前账本）'));
-
-      const trow = el('div', 'nt-imp-row nt-imp-row-end');
       const tOpen = button('打开', 'nt-btn nt-btn-sm');
       tOpen.addEventListener('click', openTextFile);
-      trow.appendChild(tOpen);
       const tGo = button('导入', 'nt-btn nt-btn-sm');
       tGo.addEventListener('click', doTextImport);
-      trow.appendChild(tGo);
-      body.appendChild(trow);
+      body.appendChild(section('文本导入', '（粘贴流水记录文本，合并进当前账本）', [tOpen, tGo]));
 
       ta = el('textarea', 'nt-exp-out');
       ta.spellcheck = false;
