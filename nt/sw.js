@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.475';
+const CACHE_NAME = 'nt-v1.476';
 
 const ASSETS = [
   './css/base.css',
@@ -83,6 +83,7 @@ const ASSETS = [
   './js/core/import-table.js',
   './js/core/installment-cells.js',
   './js/core/installment-engine.js',
+  './js/core/keyword-engine.js',
   './js/core/ledger-adapter.js',
   './js/core/ledger-file.js',
   './js/core/ledger-stats.js',
