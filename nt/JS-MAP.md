@@ -43,7 +43,7 @@
 | `core/import-table.js` | 导入 Excel / CSV / 账单（纯逻辑，Node 可跑） |
 | `core/installment-cells.js` | 分期的「每期手填」矩阵（纯函数，Node 可跑） |
 | `core/installment-engine.js` | （无界面）分期引擎 |
-| `core/keyword-dict.js` | 关键字词表（**有序**：越靠前越能精确具象对象） |
+| `core/keyword-dict.js` | 关键字词表（**有序 + 分区**：越靠前越能精确具象对象） |
 | `core/keyword-engine.js` | 关键字引擎（把一条流水压成手机上看得下的短串） |
 | `core/ledger-adapter.js` | （无界面）旧账本 → 事件模型的单向投影（只读） |
 | `core/ledger-file.js` | （未标注界面）账本文件（纯函数） |

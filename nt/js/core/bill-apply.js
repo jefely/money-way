@@ -13,7 +13,8 @@
  */
 
 import { addAccount, addNote, addTransaction } from './state-store.js';
-import { keywordChain, shortKey, specialOf, stamp } from './keyword-engine.js';
+import { keywordChain, shortKey, specialOf, stamp, itemTags } from './keyword-engine.js';
+import { formatTags } from './keyword-dict.js';
 import { collectNewAccounts, planBillImport } from './bill-plan.js';
 
 const norm = (v) => String(v == null ? '' : v).trim();
@@ -173,17 +174,17 @@ export function applyBillPlan(state, res, opts) {
     if (row.billId) seenBill.add(row.billId);
 
     // 备注栏（用户 2026-11-08 定稿）：
-    //   转出/转入识别可靠 → **只放有辨识度的特殊标签**，没有就整个留空；
-    //   识别不可靠（对方是导入时临时建的节点、或根本缺一端）→ 才列出第二层
-    //   `关键字1：关键字2，YYMMDDHHMM` 当线索。日期不再无脑进备注。
+    //   转出/转入识别可靠 → 只放**有辨识度的特殊标签**（`对象：归属人，其余`），
+    //   没有就整个留空；缺一端 → 才列出第二层线索。
+    //   日期不再无脑进备注。
     const otherId = row.dir === 'in' ? fromId : toId;
     const otherAcc = (st.accounts || []).find((a) => a && a.id === otherId) || null;
     const nodeName = norm(otherAcc && otherAcc.name);
-    const reliable = !!fromId && !!toId && !!otherAcc;
-    const special = specialOf(row.itemText || '');
-    const usable = special && special.length <= SPECIAL_MAX && !GENERIC_ITEM.test(special);
-    const redundant = !usable || !nodeName
-      || special === nodeName || nodeName.includes(special) || special.includes(nodeName);
+    // 词表命中的标签，去掉与节点名重复的那些（节点名已经占了一列）
+    const tags = itemTags(row.itemText || '').filter(
+      (w) => w && !nodeName.includes(w) && !w.includes(nodeName),
+    );
+    const special = formatTags(tags);
 
     let noteText = '';
     if (!fromId || !toId) {
@@ -191,8 +192,8 @@ export function applyBillPlan(state, res, opts) {
       const chain = keywordChain(st.accounts, otherAcc, o.aliases || (res && res.aliases));
       noteText = [chain, stamp(row.date, row.time)].filter(Boolean).join('，');
     } else {
-      // 两端都判断出来了：只留值得单独写的特殊字段，没有就空着
-      noteText = redundant ? '' : special;
+      // 两端都判断出来了：只留值得单独写的特殊标签，没有就空着
+      noteText = special;
     }
 
     st = addTransaction(st, {
