@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    NT账本 · 基础层（重置 + 排版）
    —— 颜色变量已移到 css/theme.css，这里只管「与主题无关」的东西。
    ============================================================ */
@@ -78,7 +78,7 @@ button {
   color: #ffffff;
 }
 
-/* 白屏兜底提示 */
+/* 白屏兜底提示 —— 颜色跟主题走（用户 2026-11-07：紫色按钮不随主题变） */
 #nt-boot-fallback {
   position: fixed;
   inset: 0;
@@ -89,8 +89,8 @@ button {
   justify-content: center;
   gap: 12px;
   padding: 32px 24px;
-  background: #0e0b16;
-  color: #f2eeff;
+  background: var(--nt-bg, #0e0b16);
+  color: var(--nt-text, #f2eeff);
   font-size: 14px;
   line-height: 1.7;
   text-align: center;
@@ -107,7 +107,7 @@ button {
 
 .nt-boot-fb-msg {
   max-width: 320px;
-  color: #b9b2d0;
+  color: var(--nt-text-muted, #b9b2d0);
   font-size: 13px;
 }
 
@@ -116,9 +116,16 @@ button {
   padding: 8px 20px;
   border: 0;
   border-radius: 6px;
-  background: #8b6cff;
+  /* 和「更新 / 激活按钮」同一套主题色（用户 2026-11-07） */
+  background: var(--nt-primary, #8b6cff);
   color: #fff;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+}
+
+/* 点下去就锁住：清缓存要几秒，期间按钮不能再点（用户点一次就该等它自己跑完） */
+.nt-boot-fb-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }

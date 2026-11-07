@@ -163,6 +163,11 @@ export async function hardReload(opts) {
   try {
     if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
       const reg = await navigator.serviceWorker.getRegistration();
+      // 新 SW 有没有**真的装好**：装好了它的预缓存就是新的，不需要再清缓存；
+      // 没装好（离线 / 拿不到新 sw.js）才退回「清缓存」那条老路。
+      // 老路有副作用：清完那一跳全部走网络，手机冷启动要 5～8 秒，
+      // 轻则白屏久一点，重则触发「页面没能启动」兜底（用户 2026-11-07）。
+      let installed = false;
 
       if (reg) {
         // ① 检查新版
@@ -175,11 +180,15 @@ export async function hardReload(opts) {
             const timer = setTimeout(resolve, 3000);
             incoming.addEventListener('statechange', () => {
               if (incoming.state === 'installed' || incoming.state === 'activated') {
+                installed = true;
                 clearTimeout(timer);
                 resolve();
               }
             });
           });
+        }
+        if (incoming && (incoming.state === 'installed' || incoming.state === 'activated')) {
+          installed = true;
         }
 
         // ③ 让它接管
@@ -204,11 +213,14 @@ export async function hardReload(opts) {
         });
       }
 
-      // ④ 清缓存：这一步才是「一定拿到新文件」的保证
-      try {
-        const names = await caches.keys();
-        await Promise.all(names.map((n) => caches.delete(n)));
-      } catch (e) { /* 忽略 */ }
+      // ④ 新 SW 没装好才清缓存。装好了就**不清**：它的预缓存已经是新文件，
+      // 清掉反而让那一跳全部走网络 —— 慢，还可能撞上「页面没能启动」。
+      if (!installed) {
+        try {
+          const names = await caches.keys();
+          await Promise.all(names.map((n) => caches.delete(n)));
+        } catch (e) { /* 忽略 */ }
+      }
     }
   } catch (e) {
     /* 任何一步失败都不该让用户卡住，直接刷新即可 */

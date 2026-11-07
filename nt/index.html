@@ -364,6 +364,10 @@
           b.className = 'nt-boot-fb-btn';
           b.textContent = '清缓存并重载';
           b.addEventListener('click', async function () {
+            // 点一次就够：先把按钮锁住，别让人连点（清缓存要几秒，
+            // 连点只会把同一件事做三遍，用户 2026-11-07 反馈的「点一次执行 5 次」）
+            b.disabled = true;
+            b.textContent = '正在清理…';
             try {
               var names = await caches.keys();
               await Promise.all(names.map(function (n) { return caches.delete(n); }));
@@ -391,7 +395,11 @@
           if (t && t.tagName === 'SCRIPT') show('脚本加载失败：' + (t.src || ''));
         }, true);
 
-        // 3.5 秒后还没出锁屏 / 主界面 = 没起来
+        // 多久还没出锁屏 / 主界面 = 没起来。
+        // 以前写死 3.5 秒：手机冷启动 + 刚点过更新（缓存已清、全部走网络）
+        // 经常要 5～8 秒，于是误报「页面没能启动」（用户 2026-11-07）。
+        // 带 ?fresh= 的那一跳更慢，给它 15 秒。
+        var SLOW_MS = /[?&]fresh=/.test(location.search) ? 15000 : 8000;
         setTimeout(function () {
           var hasGate = document.querySelector('.lock-card, #nt-setup-form, #nt-lock-form');
           var hasApp = document.getElementById('nt-app');
@@ -399,7 +407,7 @@
           if (!hasGate && !appShown) {
             show('模块没有加载完。多半是旧缓存指向了已删除的文件，点下面的按钮清一次。');
           }
-        }, 3500);
+        }, SLOW_MS);
 
         window.__ntBootOk = function () {
           var box = document.getElementById('nt-boot-fallback');

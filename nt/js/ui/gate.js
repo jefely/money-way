@@ -43,6 +43,11 @@ export function showGate(hasVault, handlers) {
   if (!host) return;
   host.textContent = '';
   host.hidden = false;
+  // 兜底提示如果已经弹出来了，这一刻要收起来：
+  // 它铺满整屏、z-index 最高，会盖住门禁卡片 —— 表现就是
+  // 「键盘弹出来了（输入框拿到焦点），但看不到密码框」（用户 2026-11-07）。
+  const fb = document.getElementById('nt-boot-fallback');
+  if (fb) fb.hidden = true;
 
   if (hasVault) mountLock(host, handlers);
   else mountSetup(host, handlers);
