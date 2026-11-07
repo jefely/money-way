@@ -79,11 +79,11 @@ NT 本地调试: http://127.0.0.1:8080/nt/index.html?debug=1
 
 | 项 | 值 |
 |---|---|
-| 版本 | `nt-v1.457` |
+| 版本 | `nt-v1.458` |
 | 最新提交 | 见 `git log -1` |
-| 线上 | 已确认 `nt-v1.457` |
-| 测试 | 全部测试文件；**652 通过**（58 个文件，含 `mw-params.test.mjs`） |
-| 公约 | `check-rules` 通过，283 个文件，300 行/文件 |
+| 线上 | 已确认 `nt-v1.458` |
+| 测试 | 全部测试文件；**655 通过**（58 个文件，含 `mw-params.test.mjs`） |
+| 公约 | `check-rules` 通过，284 个文件，300 行/文件 |
 | 工作区 | 干净 |
 
 ### 新内核的桥已经搭好（2026-11-07）
@@ -153,7 +153,7 @@ node nt/tools/check-rules.mjs
 Get-ChildItem nt\tests\*.mjs | ForEach-Object { node $_.FullName }
 ```
 
-期望：公约通过；**652 pass / 0 fail**（58 个文件）。
+期望：公约通过；**655 pass / 0 fail**（58 个文件）。
 
 > **必须逐个 `node <file>` 跑**。`node --test nt/tests/*.test.mjs` 在本机沙箱里会
 > `spawn EPERM`（子进程拿不到命名管道），曾把 144 个文件全报成语法错误 —— 那是假警报。
@@ -350,6 +350,14 @@ Emulation.setDeviceMetricsOverride({
 - 固定表对齐：名称左、金额右、账单/还款居中。
 - 环图 tooltip 在指针上方。
 - 建议弹层用 pointerdown 选择。
+
+### 7.5 U 区：类型不填，决不入账（2026-11 用户裁决）
+
+- 一条流水只有「两端账户都存在、**都有类型**、金额 > 0」才算已入账。
+- 缺类型 / 断链 / 零额：写库时自动标 `status:'draft'`，不进余额、统计、环图、同步码。
+- 补上类型 → 自动转正；清空类型或删账户 → 自动降级（`schema.syncPostStatus`）。
+- 流水表序号给**黄色「未定类型」**标记（`markerOf` 返回 `untyped`），红色 `missing` 是缺端。
+- 连带修掉：给 U 区账户改名字，不会再把它悄悄变成资产类（`updateAccount` 保留空类型）。
 
 ---
 

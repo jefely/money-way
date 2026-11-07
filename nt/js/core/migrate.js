@@ -24,6 +24,7 @@ import {
   OPENING_ACCOUNT_ID,
   createAccount,
   createTransaction,
+  syncPostStatus,
 } from './schema.js';
 import { openingEnds, normalizeOpeningDirections } from './opening-tx.js';
 
@@ -192,7 +193,10 @@ export function migrate(raw) {
   };
 
   return {
-    state: normalizeOpeningDirections(state),
+    // 迁移完再同步一次入账资格：老账本里「空类型账户 + 已入账」的流水
+    // 按 U 区规则降成草稿，避免它们继续以 B 极混进余额（用户 2026-11 裁决）。
+    // 只降不升：老数据里显式标了 draft 的，仍然是 draft。
+    state: syncPostStatus(normalizeOpeningDirections(state), { upgrade: false }),
     migrated: true,
     from: from,
     to: SCHEMA_VERSION,

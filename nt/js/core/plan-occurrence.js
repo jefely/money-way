@@ -8,7 +8,7 @@
  * 之后改已确认流水的账户，会写回对应模板的转出 / 转入。
  */
 
-import { createTransaction } from './schema.js';
+import { createTransaction, syncPostStatus } from './schema.js';
 import { computeInstallment, dayInMonth } from './installment-engine.js';
 
 export function planKey(sourceId, month) {
@@ -91,7 +91,8 @@ export function materializeDueFixed(state, today) {
   }
 
   if (!additions.length) return base;
-  return { ...base, transactions: transactions.concat(additions) };
+  // 计划落账也会碰到空类型账户：按 U 区规则，它们一律留成草稿。
+  return syncPostStatus({ ...base, transactions: transactions.concat(additions) }, { upgrade: false });
 }
 
 export function visiblePlans(list, state) {
@@ -113,11 +114,11 @@ export function confirmOccurrence(state, spec, today) {
     planKey: key,
     planSourceId: s.sourceId || '',
   });
-  return {
+  return syncPostStatus({
     ...base,
     voidedPlans: ((base.voidedPlans) || []).filter((k) => k !== key),
     transactions: [...(base.transactions || []), tx],
-  };
+  }, { upgrade: false });
 }
 
 /** 只作废这一期。调用方不应删 scheduled。 */

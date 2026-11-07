@@ -118,9 +118,12 @@ test('草稿流水 → RAW 事件：不进余额、只进缓冲池计数', () =>
 
 /* ============ 断链：原样投影并报告 ============ */
 
-test('断链流水：报告 NO_TO，dangling 与差额如实报出，但逐账户仍一致', () => {
-  let st = sampleState();
-  st = addTransaction(st, { id: 't-noend', date: '2026-11-04', from_id: 'bank', to_id: null, amount: 100 });
+test('断链流水（旧账里的脏数据）：报告 NO_TO，dangling 与差额如实报出', () => {
+  // 绕过 addTransaction 直接塞：模拟「规则生效之前就已经入账」的旧数据。
+  // 现在新录入的断链流水在写库时就被降成草稿了，见 drafts.test.mjs。
+  const st = raw(sampleState(), {
+    id: 't-noend', date: '2026-11-04', from_id: 'bank', to_id: null, amount: 100, note: '', seq: 7,
+  });
   const book = adaptBook(st);
 
   const hit = book.issues.filter((i) => i.txId === 't-noend').map((i) => i.code);

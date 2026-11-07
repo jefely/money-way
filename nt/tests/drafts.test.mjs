@@ -6,7 +6,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createState, addAccount, addTransaction, updateAccount, removeAccount } from '../js/core/state-store.js';
+import {
+  createState, addAccount, addTransaction, updateAccount, removeAccount,
+  ensureAccountByText, migrateOpeningToTransactions,
+} from '../js/core/state-store.js';
 import { createTransaction, isPosted, ACCOUNT_TYPE } from '../js/core/schema.js';
 import { balanceOf } from '../js/core/balance-calculator.js';
 import { aggregateBuckets, bucketOf } from '../js/core/stats.js';
@@ -123,7 +126,13 @@ test('xlsx 有状态列；缺列 = 已入账', () => {
   assert.equal(next.items[0].status, 'draft');
   assert.equal(next.items[1].status, undefined);
 
-  const built = stateFromTemplate({ accounts: [], flow: next, fixed: [], inst: [] });
+  const built = stateFromTemplate({
+    // 流水要绑得上账户才算入账（2026-11 U 区规则）；这里补上账户段
+    accounts: [{ name: '银行卡', type: '资产类' }, { name: '餐饮', type: '费用类' }],
+    flow: next,
+    fixed: [],
+    inst: [],
+  });
   assert.equal(built.state.transactions[0].status, 'draft');
   assert.equal(built.state.transactions[1].status, undefined);
 });
@@ -159,13 +168,14 @@ test('补上类型后，两端齐全的草稿自动入账；标记跟着变', ()
   assert.equal(balanceOf(s.accounts.find((a) => a.id === 'b'), s.transactions).balance, 50);
 });
 
-test('已入账但缺一端或金额无效，序号仍是缺端', () => {
+test('缺一端 / 金额无效：一律留成草稿，序号仍是缺端', () => {
   let s = createState();
   s = addAccount(s, { id: 'a', code: 'JH', name: '交行储8380', type: ACCOUNT_TYPE.ASSET, category: '储蓄' });
   s = addTransaction(s, { date: '2026-09-18', from_id: 'a', to_id: null, amount: 2, note: '' });
   const tx = s.transactions[s.transactions.length - 1];
-  assert.equal(tx.status, undefined);
-  assert.equal(isPosted(tx), true);
+  // 2026-11 裁决：入不了账就不许算已入账 —— 缺一端直接留成草稿
+  assert.equal(tx.status, 'draft');
+  assert.equal(isPosted(tx), false);
   assert.equal(markerOf(tx, s.accounts), 'missing');
   s = addTransaction(s, { date: '2026-09-18', from_id: 'a', to_id: 'a', amount: 0 });
   assert.equal(markerOf(s.transactions[s.transactions.length - 1], s.accounts), 'missing');
@@ -180,4 +190,64 @@ test('缺一端是空心标记；删账户时清掉指向它的映射', () => {
   s = removeAccount(s, 'a');
   assert.equal(s.mappings['咖啡'], undefined);
   assert.equal(s.mappings['其他'], 'z');
+});
+
+/* ============ U 区：类型不填，决不入账（2026-11 用户裁决） ============ */
+
+test('★ U 区账户类型为空：流水一律不入账；补上类型才入账', () => {
+  let s = createState();
+  s = addAccount(s, { id: 'bank', name: '银行卡', type: ACCOUNT_TYPE.ASSET, category: '储蓄' });
+
+  // 走真实入口：认不出的名字 → 空类型账户
+  const r = ensureAccountByText(s, '张三');
+  s = r.state;
+  const u = s.accounts.find((a) => a.id === r.id);
+  assert.equal(u.type, '', 'U 区账户的 type 就是空串');
+
+  s = addTransaction(s, { id: 't1', date: '2026-11-05', from_id: 'bank', to_id: u.id, amount: 100 });
+  const tx = s.transactions.find((t) => t.id === 't1');
+  assert.equal(tx.status, 'draft', '类型不填 → 不入账');
+  assert.equal(isPosted(tx), false);
+  assert.equal(markerOf(tx, s.accounts), 'untyped', '序号给黄色未定类型标记');
+  assert.equal(balanceOf(u, s.transactions).balance, 0);
+  assert.equal(balanceOf(s.accounts.find((a) => a.id === 'bank'), s.transactions).balance, 0, '对手方也不动');
+
+  // 补上类型 → 自动转正
+  s = updateAccount(s, u.id, { type: ACCOUNT_TYPE.EXPENSE });
+  const after = s.transactions.find((t) => t.id === 't1');
+  assert.equal(after.status, undefined);
+  assert.equal(balanceOf(s.accounts.find((a) => a.id === u.id), s.transactions).balance, 100);
+
+  // 再把类型清空 → 降回草稿，余额归零
+  s = updateAccount(s, u.id, { type: '' });
+  assert.equal(s.transactions.find((t) => t.id === 't1').status, 'draft');
+  assert.equal(balanceOf(s.accounts.find((a) => a.id === u.id), s.transactions).balance, 0);
+});
+
+test('U 区账户的期初流水同样不入账', () => {
+  let s = createState();
+  s = {
+    ...s,
+    accounts: [...s.accounts, {
+      id: 'u1', name: '某物', type: '', code: '', category: '', isHidden: false, opening: 500,
+    }],
+  };
+  const r = migrateOpeningToTransactions(s);
+  assert.equal(r.added, 1);
+  const opening = r.state.transactions.find((t) => t.opening);
+  assert.equal(opening.status, 'draft');
+  assert.equal(balanceOf(r.state.accounts.find((a) => a.id === 'u1'), r.state.transactions).balance, 0);
+});
+
+test('删账户后，引用它的流水降为草稿，不再单边进余额', () => {
+  let s = createState();
+  s = addAccount(s, { id: 'a', name: '甲', type: ACCOUNT_TYPE.ASSET });
+  s = addAccount(s, { id: 'b', name: '乙', type: ACCOUNT_TYPE.EXPENSE });
+  s = addTransaction(s, { id: 't1', date: '2026-11-06', from_id: 'a', to_id: 'b', amount: 30 });
+  assert.equal(balanceOf(s.accounts.find((x) => x.id === 'a'), s.transactions).balance, -30);
+
+  s = removeAccount(s, 'b');
+  const tx = s.transactions.find((t) => t.id === 't1');
+  assert.equal(tx.status, 'draft');
+  assert.equal(balanceOf(s.accounts.find((x) => x.id === 'a'), s.transactions).balance, 0, '断链流水不再单边扣款');
 });

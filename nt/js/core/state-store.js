@@ -14,7 +14,7 @@ import {
   indexAccounts, findAccountByName, OPENING_ACCOUNT, OPENING_ACCOUNT_ID,
   normalizeCode, ALL_ACCOUNT_TYPES,
 } from './schema.js';
-import { promoteDrafts, dropMappingsFor } from './draft-book.js';
+import { syncPostStatus, dropMappingsFor } from './draft-book.js';
 import { openingEnds, openingAccountId } from './opening-tx.js';
 import { matchAccountName } from './account-match.js';
 import { noteTarget } from './lexicon.js';
@@ -85,9 +85,19 @@ export function addAccount(state, patch) {
 export function updateAccount(state, id, patch) {
   const next = {
     ...state,
-    accounts: state.accounts.map((a) => (a.id === id ? createAccount({ ...a, ...patch }) : a)),
+    accounts: state.accounts.map((a) => {
+      if (a.id !== id) return a;
+      const merged = { ...a, ...patch };
+      const acc = createAccount(merged);
+      // U 区：类型留空就是留空。createAccount 的「空类型默认资产类」只适用于**新建**；
+      // 不能因为改个名字就把未分类账户悄悄变成资产类 —— 那会顺手把它的流水入账，
+      // 正好是「类型不填决不入账」要防的事。
+      if (!String(merged.type == null ? '' : merged.type).trim()) acc.type = '';
+      return acc;
+    }),
   };
-  return promoteDrafts(next);
+  // 类型改了要双向同步：补齐类型 → 草稿转正；清空类型 / 断链 → 已入账降回草稿。
+  return syncPostStatus(next);
 }
 
 /**
@@ -125,7 +135,7 @@ export function ensureAccountByText(state, text) {
     fresh: true,
   };
   const next = { ...state, accounts: [...(state.accounts || []), acc] };
-  return { state: promoteDrafts(next), id: acc.id, held: '' };
+  return { state: syncPostStatus(next), id: acc.id, held: '' };
 }
 
 /**
@@ -142,21 +152,27 @@ export function removeAccount(state, id) {
   const next = { ...state, accounts: state.accounts.filter((a) => a.id !== id) };
   const deleted = Array.isArray(state.deletedAccounts) ? state.deletedAccounts : [];
   const marked = deleted.includes(id) ? deleted : [...deleted, id];
-  return dropMappingsFor({ ...next, deletedAccounts: marked }, id);
+  // 账户没了 → 引用它的流水变成断链，按 U 区规则同样不入账（降级为草稿）。
+  // 流水本身一个字不动，只是不再参与余额；流水表序号会显示红色缺端标记。
+  const pruned = syncPostStatus({ ...next, deletedAccounts: marked }, { upgrade: false });
+  return dropMappingsFor(pruned, id);
 }
 
 /* ---------- 流水：增删改 ---------- */
 
 export function addTransaction(state, patch) {
   const tx = createTransaction({ seq: patch.seq || nextSeq(state), ...patch });
-  return { ...state, transactions: [...state.transactions, tx] };
+  // 入账资格在这里定：U 区（空类型）或断链的流水一律留成草稿。
+  // 只降不升 —— 用户显式写的 draft 不因为写库就自动入账。
+  return syncPostStatus({ ...state, transactions: [...state.transactions, tx] }, { upgrade: false });
 }
 
 export function updateTransaction(state, id, patch) {
-  return {
+  const next = {
     ...state,
     transactions: state.transactions.map((t) => (t.id === id ? { ...t, ...patch } : t)),
   };
+  return syncPostStatus(next, { upgrade: false });
 }
 
 export function removeTransaction(state, id) {
@@ -240,7 +256,8 @@ export function migrateOpeningToTransactions(state, openingDate = '2000-01-01') 
 
   if (!added.length) return { state: out, added: 0 };
   out.transactions = [...added, ...out.transactions];
-  return { state: out, added: added.length };
+  // 期初流水也要过一遍入账资格：空类型账户的期初同样不入账（U 区规则）。
+  return { state: syncPostStatus(out, { upgrade: false }), added: added.length };
 }
 
 /** 可见账户（排除 isHidden 的期初账户） */

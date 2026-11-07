@@ -8,23 +8,15 @@
  * mappings 是 { 短语: accountId }，随 state 加密。
  */
 
-import { indexAccounts, isPosted } from './schema.js';
+import { canPost, indexAccounts, isPosted, syncPostStatus } from './schema.js';
 import { syncPlanFromEdit } from './plan-occurrence.js';
+
+// 入账判定搬到了 schema.js（plan-occurrence 也要用，放在这里会形成循环依赖）。
+// 这里 re-export 保持旧的 import 路径可用。
+export { canPost, syncPostStatus } from './schema.js';
 
 function byId(accounts) {
   return accounts instanceof Map ? accounts : indexAccounts(accounts);
-}
-
-/** 两端齐全且都有类型、金额为正，才可以丢掉 draft 标记。 */
-export function canPost(tx, accounts) {
-  if (!tx || !tx.from_id || !tx.to_id) return false;
-  if (!(Number(tx.amount) > 0)) return false;
-  const map = byId(accounts);
-  const from = map.get(tx.from_id);
-  const to = map.get(tx.to_id);
-  if (!from || !to) return false;
-  if (!String(from.type || '').trim() || !String(to.type || '').trim()) return false;
-  return true;
 }
 
 /** 满足条件的草稿去掉 status（缺 status = 已入账）。 */
@@ -75,14 +67,14 @@ export function mappingFor(state, phrase) {
   return id ? String(id) : null;
 }
 
-/** 格子里改了转入：记下「备注 → 账户」，再尝试把草稿入账。 */
+/** 格子里改了转入：记下「备注 → 账户」，再同步入账资格。 */
 export function afterTxEdit(state, id, field) {
   let next = syncPlanFromEdit(state, id);
   if (field === 'to') {
     const tx = ((state && state.transactions) || []).find((t) => t && t.id === id);
     if (tx && tx.note && tx.to_id) next = learnMapping(next, tx.note, tx.to_id);
   }
-  return promoteDrafts(next);
+  return syncPostStatus(next);
 }
 
 /** 删掉指向这个账户的映射。账户没了，映射不能留着。 */

@@ -162,6 +162,64 @@ export function isPosted(tx) {
   return !!tx && tx.status !== 'draft';
 }
 
+/**
+ * 入账资格：两端账户都在、都有类型、金额 > 0。
+ *
+ * **U 区账户的 type 是空串 —— 类型不填就决不入账**（用户 2026-11 裁决：
+ * 「入账没意义，只会增加混乱」）。所以这里不把空类型当资产类兜底，
+ * 而是直接判为不可入账；断链（账户被删）同样不可入账。
+ *
+ * @param {object} tx
+ * @param {Array|Map} accounts 全量账户表
+ */
+export function canPost(tx, accounts) {
+  if (!tx || !tx.from_id || !tx.to_id) return false;
+  if (!(Number(tx.amount) > 0)) return false;
+  const map = accounts instanceof Map ? accounts : indexAccounts(accounts);
+  const from = map.get(tx.from_id);
+  const to = map.get(tx.to_id);
+  if (!from || !to) return false;
+  if (!String(from.type || '').trim() || !String(to.type || '').trim()) return false;
+  return true;
+}
+
+/**
+ * 入账资格同步：不能入账的标 draft；`upgrade` 为真时，能入账的草稿去 draft。
+ *
+ * 两个方向要分开用：
+ *   · 新建流水（`upgrade: false`）—— 只降不升。用户显式留下的草稿
+ *     （例如两端齐全但故意标 draft）不该因为写库就被自动入账。
+ *   · 改了账户类型（默认双向）—— 补上类型要能转正，清空类型要能降级。
+ *
+ * 为什么在写库时打标，而不是让 `isPosted()` 去查账户表：
+ * `isPosted(tx)` 只看流水自己；让它查表就得改所有调用点的签名。
+ * 状态在这里定准，余额 / 统计 / 环图 / 同步 / 校验一处都不用动。
+ *
+ * 幂等：已经正确的流水原样返回（同一个对象），无变化时 state 原引用返回。
+ */
+export function syncPostStatus(state, opts) {
+  const upgrade = !(opts && opts.upgrade === false);
+  const accounts = (state && state.accounts) || [];
+  let changed = false;
+  const transactions = ((state && state.transactions) || []).map((t) => {
+    if (!t) return t;
+    const ok = canPost(t, accounts);
+    const draft = t.status === 'draft';
+    if (ok && draft && upgrade) {
+      changed = true;
+      const next = { ...t };
+      delete next.status;
+      return next;
+    }
+    if (!ok && !draft) {
+      changed = true;
+      return { ...t, status: 'draft' };
+    }
+    return t;
+  });
+  return changed ? { ...state, transactions } : state;
+}
+
 /* ---------- 计划流水（固定收支 + 分期，统一结构） ---------- */
 
 /** 频率 */
