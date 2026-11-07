@@ -12,7 +12,7 @@
  * 纯函数：返回新 state，不改入参。
  */
 
-import { addAccount, addTransaction } from './state-store.js';
+import { addAccount, addNote, addTransaction } from './state-store.js';
 import { collectNewAccounts, planBillImport } from './bill-plan.js';
 
 const norm = (v) => String(v == null ? '' : v).trim();
@@ -117,6 +117,13 @@ export function applyBillPlan(state, res, opts) {
     }
   }
 
+  // ①b 待归类关键字登记到备注区（用户 2026-11-08）：
+  // 高频商户先以关键字身份存在，用户在备注区把它改成真实节点名后再合并。
+  for (const kw of plan.keywords || []) {
+    if ((st.notes || []).some((n) => norm(n.keyword) === kw)) continue;
+    st = addNote(st, { keyword: kw });
+  }
+
   // ② 导入前已有流水的快照 —— 只跟它比，同批内的多笔真实消费不互相标红
   const existing = (st.transactions || []).slice();
   const seenBill = new Set((st.transactions || []).map((t) => norm(t.billId)).filter(Boolean));
@@ -129,8 +136,14 @@ export function applyBillPlan(state, res, opts) {
     const resolve = (sug) => (sug && byName.has(sug.name) ? byName.get(sug.name).id : '');
     let fromId = row.fromId;
     let toId = row.toId;
-    if (!fromId) fromId = row.dir === 'out' ? resolve(row.mySuggest) : resolve(row.otherSuggest);
-    if (!toId) toId = row.dir === 'out' ? resolve(row.otherSuggest) : resolve(row.mySuggest);
+    if (row.transfer) {
+      // 资金流转：缺哪端就用哪端的建议（还款的另一端常常是一张要新建的信用卡）
+      if (!fromId) fromId = resolve(row.fromSuggest);
+      if (!toId) toId = resolve(row.toSuggest);
+    } else {
+      if (!fromId) fromId = row.dir === 'out' ? resolve(row.mySuggest) : resolve(row.otherSuggest);
+      if (!toId) toId = row.dir === 'out' ? resolve(row.otherSuggest) : resolve(row.mySuggest);
+    }
     if (!fromId || !toId) blank += 1;
 
     // 疑似重复：**只标红，不跳过** —— 删哪一条由用户在流水表里定

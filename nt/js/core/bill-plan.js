@@ -45,6 +45,24 @@ export function directionOf(item, presetId) {
   return 'neutral';
 }
 
+/**
+ * 商户出现这么多次才算「关键字」（用户 2026-11-08）：
+ * 只出现 1~2 次的商户不值得单独成节点，它只是一条普通备注；
+ * 高频的才给它一个待归类的节点，等用户在备注区改名为真实节点。
+ */
+export const KEYWORD_MIN = 3;
+
+/** 资金流转的备注关键字：还款 / 提现 / 退款 / 转账 */
+export function neutralKeyword(item) {
+  const cat = norm(item && item.category);
+  const it = norm(item && item.item);
+  const both = cat + ' ' + it;
+  if (/信用|还款/.test(both)) return '还款';
+  if (/存取|提现/.test(both)) return '提现';
+  if (/退款/.test(both)) return '退款';
+  return '转账';
+}
+
 /** 一行账单 → 流水计划（含六大核心元素） */
 function planOne(item, ctx) {
   const { accounts, rules, myAccountId, presetId, cardTail } = ctx;
@@ -72,8 +90,13 @@ function planOne(item, ctx) {
 
   // 六大核心元素：转出节点 / 转入节点 / 节点统计分类 / 节点会计类型 /
   // 备注分类 / 备注关键字。前两个是 id，第三四个挂在节点上，后两个是流水字段。
-  // 名字来源按账单类型分：支付宝用交易分类，招行用交易摘要，微信用交易对方
-  const prefer = presetId === 'alipay' ? 'category' : (presetId === 'cmb' ? 'item' : '');
+  //
+  // 对方节点叫什么（用户 2026-11-08）：**高频商户用商户名**（味丰源 → 待归类节点，
+  // 用户在备注区改名后就能并进真实节点）；低频商户用交易分类（支付宝）或交易摘要（招行），
+  // 商户名只进备注关键字 —— 否则 365 笔账单会凭空长出八十个节点。
+  const p = norm(item.party);
+  const hot = !!p && p !== '/' && ((ctx.freq && ctx.freq.get(p)) || 0) >= KEYWORD_MIN;
+  const prefer = presetId === 'cmb' ? 'item' : (presetId === 'alipay' && !hot ? 'category' : '');
   const suggest = other
     ? null
     : suggestOtherAccount(item.party, item.item, item.category, dir, prefer);
@@ -99,25 +122,44 @@ function planOne(item, ctx) {
     /** 备注分类 / 备注关键字 */
     noteType: norm(item.category),
     noteKeyword: norm(item.party),
+    /** 高频商户且还没有同名节点 → 要在备注区登记成「待归类关键字」 */
+    hotKeyword: hot && !other ? p : '',
     note: note.slice(0, 160),
     billId: norm(item.tradeNo),
   };
 }
 
 /**
+ * 还款的对方通常是一张信用卡：账单里如果给了「信用卡(1234)」这类标记，
+ * 就按尾号在节点列表里匹配（matchAccountText 会认 3 位以上数字）；
+ * 匹配不到就建议建一个负债节点，名字用尾号 —— 用户之后可以改名。
+ * @returns {{name:string, type:string, category:string}|null}
+ */
+export function creditCardSuggest(party, item) {
+  const text = norm(party) + ' ' + norm(item);
+  if (!/信用卡|还款|信用购|花呗|借呗|白条/.test(text)) return null;
+  const tail = (text.match(/\d{4,}/) || [])[0] || '';
+  if (tail) return { name: `信用卡(${tail})`, type: '负债类', category: '信用' };
+  if (/信用卡/.test(text)) return { name: '信用卡', type: '负债类', category: '信用' };
+  return null;
+}
+
+/**
  * 中性交易 → 一笔「账户间转账」（两端都必须是账本里**已有**的账户）。
  *
  * 账单里「不计收支」/`/` 的行不是收支，是三种资金流转：
- *   ① 还款（分类「信用借还」）：储蓄卡/余额宝 → 花呗/借呗
+ *   ① 还款（分类「信用借还」）：储蓄卡/余额宝 → 花呗/借呗/信用卡
  *   ② 退款（分类「退款」）：原费用节点 → 退回的那个账户（卡或花呗）
  *   ③ 搬钱 / 理财（「账户存取」「投资理财」）：余额宝 ⇄ 余额 ⇄ 银行卡（含提现、申赎）
  *
- * 方向靠账单自带的分类 + 商品说明里的动词判断。**认不出就返回 null，不猜** ——
+ * 方向靠账单自带的分类 + 商品说明里的动词判断。**认不出就不猜** ——
  * 宁可少导一笔，也不要凭空造一笔反向转账（那会把两个账户的余额同时弄错）。
+ * 认出一端、另一端是「该新建的信用卡」时，返回 `toSuggest` 让调用方去建节点。
  *
  * @param {object} item analyzeTable().items 的一行
  * @param {{accounts:Array, rules?:Array}} ctx
- * @returns {{dir:'transfer', fromId:string, toId:string}|null}
+ * @returns {{dir:'transfer', fromId:string, toId:string, fromName:string, toName:string,
+ *            toSuggest?:object}|null}
  */
 export function neutralPlan(item, ctx) {
   const o = ctx || {};
@@ -131,18 +173,33 @@ export function neutralPlan(item, ctx) {
   const partyAcc = matchAccountText(accounts, party);
   const itemAcc = matchAccountText(accounts, it);
 
-  const done = (from, to) => (from && to && from.id !== to.id
-    ? {
-      dir: 'transfer',
-      fromId: from.id,
-      toId: to.id,
-      fromName: norm(from.name),
-      toName: norm(to.name),
+  const done = (from, to, sug) => {
+    if (from && to && from.id !== to.id) {
+      return {
+        dir: 'transfer',
+        fromId: from.id,
+        toId: to.id,
+        fromName: norm(from.name),
+        toName: norm(to.name),
+      };
     }
-    : null);
+    if (from && sug) {
+      return {
+        dir: 'transfer',
+        fromId: from.id,
+        toId: '',
+        fromName: norm(from.name),
+        toName: sug.name,
+        toSuggest: sug,
+      };
+    }
+    return null;
+  };
 
-  // ① 还款：钱从卡/余额宝出去，花呗/借呗的欠款减少
-  if (/信用|还款/.test(cat) || /还款/.test(it)) return done(pay, partyAcc);
+  // ① 还款：钱从卡/余额宝出去，花呗/借呗/信用卡的欠款减少
+  if (/信用|还款/.test(cat) || /还款/.test(it)) {
+    return done(pay, partyAcc, partyAcc ? null : creditCardSuggest(party, it));
+  }
 
   // ② 退款：原费用节点 → 退回的账户（退到花呗时 method 就是「花呗」）
   if (/退款/.test(cat) || /^退款/.test(it)) {
@@ -166,11 +223,14 @@ export function neutralPlan(item, ctx) {
  * @param {Array} items   analyzeTable().items
  * @param {{
  *   accounts: Array, from?: string, to?: string, presetId?: string,
- *   myAccountId?: string, rules?: Array, includeNeutral?: boolean,
+ *   myAccountId?: string, rules?: Array,
  * }} opts
  * @returns {{
- *   rows: Array, stats: {
- *     total:number, kept:number, before:number, after:number, neutral:number,
+ *   rows: Array,
+ *   keywords: string[],
+ *   stats: {
+ *     total:number, kept:number, before:number, after:number,
+ *     transfer:number, pending:number,
  *     myMatched:number, otherMatched:number, willCreate:number,
  *     minDate:string, maxDate:string, sumOut:number, sumIn:number,
  *   }
@@ -178,25 +238,35 @@ export function neutralPlan(item, ctx) {
  */
 export function planBillImport(items, opts) {
   const o = opts || {};
+  const list = items || [];
+
+  // 商户频次：决定哪些商户值得单独成「待归类」节点（低频的只进备注）
+  const freq = new Map();
+  for (const it of list) {
+    const p = norm(it && it.party);
+    if (p && p !== '/') freq.set(p, (freq.get(p) || 0) + 1);
+  }
+
   const ctx = {
     accounts: o.accounts || [],
     rules: o.rules || [],
     myAccountId: norm(o.myAccountId),
     presetId: norm(o.presetId),
     cardTail: norm(o.cardTail),
+    freq,
   };
   const from = norm(o.from);
   const to = norm(o.to);
-  const includeNeutral = !!o.includeNeutral;
 
   const rows = [];
+  const keywords = new Set();
   const stats = {
-    total: 0, kept: 0, before: 0, after: 0, neutral: 0, transfer: 0,
+    total: 0, kept: 0, before: 0, after: 0, transfer: 0, pending: 0,
     myMatched: 0, otherMatched: 0, willCreate: 0,
     minDate: '', maxDate: '', sumOut: 0, sumIn: 0,
   };
 
-  for (const it of items || []) {
+  for (const it of list) {
     if (!it || !it.date) continue;
     stats.total += 1;
     if (from && it.date < from) { stats.before += 1; continue; }
@@ -204,28 +274,57 @@ export function planBillImport(items, opts) {
 
     let row = planOne(it, ctx);
     if (row.dir === 'neutral') {
-      const t = includeNeutral ? neutralPlan(it, ctx) : null;
-      // 认不出两端的中性行照样跳过，但单独计数 —— 用户要能看到「有多少笔没导」
-      if (!t) { stats.neutral += 1; continue; }
-      row = {
-        ...row,
-        dir: 'transfer',
-        transfer: true,
-        fromId: t.fromId,
-        toId: t.toId,
-        fromName: t.fromName,
-        toName: t.toName,
-        mySuggest: null,
-        otherSuggest: null,
-      };
-      stats.transfer += 1;
+      // 资金流转：**绝不跳过**（用户 2026-11-08）。两端都认得出 → 转账；
+      // 只认出一端 → 照样落地，另一端留空（U 区规则会存成草稿，
+      // 用户在流水表里补上另一端就转正）。
+      const kw = neutralKeyword(it);
+      keywords.add(kw);
+      const t = neutralPlan(it, ctx);
+      if (t) {
+        row = {
+          ...row,
+          dir: 'transfer',
+          transfer: true,
+          fromId: t.fromId,
+          toId: t.toId,
+          fromName: t.fromName,
+          toName: t.toName,
+          toSuggest: t.toSuggest || null,
+          noteKeyword: kw,
+          hotKeyword: '',
+          mySuggest: null,
+          otherSuggest: null,
+          pending: t.toId ? undefined : true,
+        };
+        if (t.toId) stats.transfer += 1;
+        else stats.pending += 1;
+      } else {
+        const pay = matchPayAccount(ctx.accounts, it.method);
+        row = {
+          ...row,
+          dir: 'transfer',
+          transfer: true,
+          pending: true,
+          fromId: pay ? pay.id : '',
+          toId: '',
+          fromName: pay ? norm(pay.name) : '',
+          toName: '',
+          otherId: '',
+          noteKeyword: kw,
+          hotKeyword: '',
+          mySuggest: null,
+          otherSuggest: null,
+        };
+        stats.pending += 1;
+      }
     }
+    if (row.hotKeyword) keywords.add(row.hotKeyword);
     if (row.amount <= 0) continue;
 
     if (row.myId) stats.myMatched += 1;
     if (row.otherId) stats.otherMatched += 1;
     else if (!row.transfer) stats.willCreate += 1;
-    // 转账不计入收/支总额（否则还款、搬钱会把「支出」撑大）
+    // 资金流转不进「消费 / 收入」合计（它们是账户之间搬钱，不是花掉）
     if (!row.transfer) {
       if (row.dir === 'out') stats.sumOut += row.amount;
       else if (row.dir === 'in') stats.sumIn += row.amount;
@@ -239,7 +338,7 @@ export function planBillImport(items, opts) {
   stats.kept = rows.length;
   stats.sumOut = Math.round(stats.sumOut * 100) / 100;
   stats.sumIn = Math.round(stats.sumIn * 100) / 100;
-  return { rows, stats };
+  return { rows, stats, keywords: [...keywords] };
 }
 
 /**
@@ -257,6 +356,8 @@ export function collectNewAccounts(plan) {
   for (const row of plan.rows || []) {
     add(row.mySuggest);
     add(row.otherSuggest);
+    add(row.fromSuggest);
+    add(row.toSuggest);
   }
   return [...seen.values()];
 }

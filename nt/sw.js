@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.468';
+const CACHE_NAME = 'nt-v1.469';
 
 const ASSETS = [
   './css/base.css',
@@ -53,6 +53,7 @@ const ASSETS = [
   './js/core/account-config.js',
   './js/core/account-index.js',
   './js/core/account-match.js',
+  './js/core/account-merge.js',
   './js/core/account-order.js',
   './js/core/account-resolver.js',
   './js/core/auth-manager.js',

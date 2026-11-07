@@ -127,7 +127,7 @@ export function mountFlow(section, ctx) {
         + (s.created ? `，新建节点 ${s.created} 个` : '')
         + (s.transfer ? `，资金流转按转账导入 ${s.transfer} 笔` : '')
         + (s.before ? `，早于起始日跳过 ${s.before} 笔` : '')
-        + (s.neutral ? `，资金流转账户对不上跳过 ${s.neutral} 笔` : '')
+        + (s.pending ? `，${s.pending} 笔资金流转待补另一端` : '')
         + (s.blank ? `，${s.blank} 笔缺一侧（按 U 区规则未入账）` : ''));
       return;
     }

@@ -8,7 +8,7 @@
  * 这里只造 DOM 与统计文字，解析与落库都在 core（bill-plan / bill-apply）。
  */
 
-import { planBillImport } from '../core/bill-plan.js';
+import { planBillImport, collectNewAccounts } from '../core/bill-plan.js';
 
 /** 只列真实账户：期初余额（isHidden）不是「我的账户」，列进来会被误选 */
 export function myAccountPick(accounts, presetId, cardTail) {
@@ -97,18 +97,16 @@ export function mountBillPreview(body, result, opts) {
       from,
       presetId: result.presetId,
       myAccountId,
-      includeNeutral: true,
     });
     const s = plan.stats;
     stats.textContent = `共 ${s.total} 笔`
       + (from ? `，起始日之后 ${s.kept} 笔（早于它跳过 ${s.before} 笔）` : `，可导入 ${s.kept} 笔`)
-      + `　支出 ${s.sumOut ? money(s.sumOut) : '0.00'} / 收入 ${s.sumIn ? money(s.sumIn) : '0.00'}`
+      + `　消费 ${s.sumOut ? money(s.sumOut) : '0.00'} / 收入 ${s.sumIn ? money(s.sumIn) : '0.00'}`
       + (s.transfer ? `　资金流转 ${s.transfer} 笔按转账导入` : '')
-      + (s.neutral ? `　资金流转 ${s.neutral} 笔账户对不上跳过` : '')
-      + (s.willCreate ? `　将按分类新建 ${s.willCreate} 个节点` : '');
+      + (s.pending ? `　资金流转 ${s.pending} 笔待补另一端` : '')
+      + (collectNewAccounts(plan).length ? `　新建 ${collectNewAccounts(plan).length} 个节点` : '');
     result.fromDate = from;
     result.myAccountId = myAccountId;
-    result.includeNeutral = true;
     return plan;
   };
 

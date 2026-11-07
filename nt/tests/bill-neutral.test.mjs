@@ -12,7 +12,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { neutralPlan, planBillImport, previewLine } from '../js/core/bill-plan.js';
+import { neutralPlan, planBillImport, previewLine, collectNewAccounts } from '../js/core/bill-plan.js';
+import { applyBillPlan } from '../js/core/bill-apply.js';
+import { createState, addAccount } from '../js/core/state-store.js';
 
 const ACC = [
   { id: 'a1', name: '招行储7912' },
@@ -156,16 +158,16 @@ test('退款：商户节点存在 → 商户 → 退回的卡', () => {
   assert.equal(r.toId, 'a1');
 });
 
-test('planBillImport：转账进入 rows 但不计入支出/收入', () => {
+test('planBillImport：转账进入 rows 但不计入消费/收入', () => {
   const items = [
     row({ date: '2026-10-09', amount: 490.82, category: '信用借还', party: '花呗|信用购', item: '自动还款-花呗|信用购', method: '招商银行储蓄卡(7912)', tradeNo: 't1' }),
     row({ date: '2026-10-08', amount: 12.5, dir: '支出', category: '餐饮', party: '某米线店', item: '米线', method: '支付宝余额', tradeNo: 't2' }),
     row({ date: '2026-10-03', amount: 7007, category: '转账红包', party: '李俊锋', item: '转账到银行卡-转账', method: '余额宝', tradeNo: 't3' }),
   ];
-  const plan = planBillImport(items, { accounts: ACC, presetId: 'alipay', includeNeutral: true });
+  const plan = planBillImport(items, { accounts: ACC, presetId: 'alipay' });
   assert.equal(plan.stats.transfer, 1);
-  assert.equal(plan.stats.neutral, 1);
-  assert.equal(plan.stats.kept, 2);
+  assert.equal(plan.stats.pending, 1);
+  assert.equal(plan.stats.kept, 3);
   assert.equal(plan.stats.sumOut, 12.5);
   assert.equal(plan.stats.sumIn, 0);
 
@@ -175,12 +177,94 @@ test('planBillImport：转账进入 rows 但不计入支出/收入', () => {
   assert.match(previewLine(tr), /⇄/);
 });
 
-test('planBillImport：不开 includeNeutral 时，中性行仍然只计数不导入', () => {
+test('planBillImport：认不出两端的资金流转照样落地（只留一端，等用户补）', () => {
   const items = [
-    row({ date: '2026-10-09', amount: 490.82, category: '信用借还', party: '花呗|信用购', item: '自动还款-花呗|信用购', method: '招商银行储蓄卡(7912)' }),
+    row({ date: '2026-10-03', amount: 7007, category: '转账红包', party: '李俊锋', item: '转账到银行卡-转账', method: '余额宝' }),
   ];
   const plan = planBillImport(items, { accounts: ACC, presetId: 'alipay' });
   assert.equal(plan.stats.transfer, 0);
-  assert.equal(plan.stats.neutral, 1);
-  assert.equal(plan.rows.length, 0);
+  assert.equal(plan.stats.pending, 1);
+  assert.equal(plan.rows.length, 1);
+  assert.equal(plan.rows[0].fromId, 'a3');   // 余额宝：钱从这出去
+  assert.equal(plan.rows[0].toId, '');       // 另一端留空，等用户填
+  assert.equal(plan.rows[0].noteKeyword, '转账');
+});
+
+test('关键字：同一商户出现 3 次才单独成节点，低频的只进备注', () => {
+  const mk = (party, cat, i) => row({
+    date: '2026-10-' + String(10 + i).padStart(2, '0'),
+    amount: 10, dir: '支出', category: cat, party, item: '商品',
+    method: '支付宝余额', tradeNo: 'k' + i,
+  });
+  const items = [
+    mk('味丰源', '餐饮美食', 0), mk('味丰源', '餐饮美食', 1), mk('味丰源', '餐饮美食', 2),
+    mk('某小店', '餐饮美食', 3), mk('某小店', '餐饮美食', 4),
+  ];
+  const plan = planBillImport(items, { accounts: ACC, presetId: 'alipay' });
+  assert.ok(plan.keywords.includes('味丰源'));
+  assert.ok(!plan.keywords.includes('某小店'));
+
+  const wants = collectNewAccounts(plan).map((w) => w.name);
+  assert.ok(wants.includes('味丰源'));          // 高频：商户名自成节点
+  assert.ok(wants.includes('餐饮美食'));        // 低频：归到交易分类
+});
+
+test('资金流转的关键字是「还款 / 提现」，不是商户全名', () => {
+  const items = [
+    row({ date: '2026-10-09', amount: 490.82, category: '信用借还', party: '花呗|信用购', item: '自动还款-花呗|信用购', method: '招商银行储蓄卡(7912)' }),
+    row({ date: '2026-10-06', amount: 792, category: '账户存取', party: '招商银行', item: '提现-实时提现', method: '余额' }),
+  ];
+  const plan = planBillImport(items, { accounts: ACC, presetId: 'alipay' });
+  assert.ok(plan.keywords.includes('还款'));
+  assert.ok(plan.keywords.includes('提现'));
+  assert.equal(plan.rows[0].noteKeyword, '还款');
+  assert.equal(plan.rows[1].noteKeyword, '提现');
+});
+
+test('还款：账单给了信用卡尾号 → 建议新建负债节点，名字带尾号', () => {
+  const r = neutralPlan(row({
+    amount: 3000,
+    category: '还款',
+    party: '招商银行信用卡',
+    item: '信用卡还款 尾号1234',
+    method: '招商银行储蓄卡(7912)',
+  }), ctx);
+  assert.ok(r);
+  assert.equal(r.fromId, 'a1');
+  assert.equal(r.toId, '');
+  assert.equal(r.toSuggest.name, '信用卡(1234)');
+  assert.equal(r.toSuggest.type, '负债类');
+});
+
+test('还款：信用卡尾号在节点列表里已有 → 直接指过去，不再新建', () => {
+  const withCard = { accounts: [...ACC, { id: 'c1', name: '招行信用卡1234' }] };
+  const r = neutralPlan(row({
+    amount: 3000,
+    category: '还款',
+    party: '招行信用卡1234',
+    item: '还款',
+    method: '招商银行储蓄卡(7912)',
+  }), withCard);
+  assert.ok(r);
+  assert.equal(r.toId, 'c1');
+  assert.equal(r.toSuggest, undefined);
+});
+
+test('applyBillPlan：还款的信用卡节点会被真建出来，流水指向它', () => {
+  let st = createState();
+  st = addAccount(st, { id: 'cmb', name: '招商银行储蓄卡(7912)', type: '资产类', category: '储蓄' });
+  const res = {
+    kind: 'bill',
+    presetId: 'alipay',
+    items: [row({
+      date: '2026-10-09', amount: 3000, category: '还款',
+      party: '招商银行信用卡', item: '信用卡还款 尾号1234', method: '招商银行储蓄卡(7912)',
+    })],
+  };
+  const out = applyBillPlan(st, res, {});
+  const card = out.state.accounts.find((a) => a.name === '信用卡(1234)');
+  assert.ok(card, '应该建出信用卡(1234)');
+  const t = out.state.transactions[0];
+  assert.equal(t.from_id, 'cmb');
+  assert.equal(t.to_id, card.id);
 });

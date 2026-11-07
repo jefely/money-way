@@ -18,7 +18,7 @@
 
 import * as NtModal from './modal.js';
 import { sourceFromFile, sourceFromText } from './import-source.js';
-import { planBillImport } from '../core/bill-plan.js';
+import { planBillImport, collectNewAccounts } from '../core/bill-plan.js';
 import { myAccountPick } from './import-bill.js';
 import { money } from '../core/format.js';
 import { backupSummary } from './import-backup.js';
@@ -108,15 +108,15 @@ export function openImportHub(opts) {
       from,
       presetId: r.presetId,
       myAccountId: mySel ? mySel.value || '' : '',
-      includeNeutral: true,
     });
     const s = plan.stats;
     const lines = [r.note];
     lines.push(from ? `起始日之后 ${s.kept} 笔（早于它跳过 ${s.before} 笔）` : `可导入 ${s.kept} 笔`);
-    lines.push(`支出 ${money(s.sumOut)} / 收入 ${money(s.sumIn)}`);
-    if (s.transfer) lines.push(`其中 ${s.transfer} 笔是资金流转，按「账户间转账」导入（不算收支）`);
-    if (s.neutral) lines.push(`另有 ${s.neutral} 笔资金流转两头账户对不上，跳过`);
-    if (s.willCreate) lines.push(`将按分类新建 ${s.willCreate} 个节点`);
+    lines.push(`消费 ${money(s.sumOut)} / 收入 ${money(s.sumIn)}`);
+    if (s.transfer) lines.push(`资金流转 ${s.transfer} 笔（还款 / 提现 / 搬钱）照常记成账户间转账`);
+    if (s.pending) lines.push(`资金流转 ${s.pending} 笔只认出一端：先写进流水，等你补另一端`);
+    const wants = collectNewAccounts(plan).length;
+    if (wants) lines.push(`新建 ${wants} 个节点：高频商户单独成节点，可在备注区改名合并`);
     return lines.join('\n');
   }
 

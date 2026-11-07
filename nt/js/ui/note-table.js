@@ -12,7 +12,8 @@
  * 备注体系只做统计分类，不参与任何金额 / 账户校验。
  */
 
-import { addNote, updateNote, removeNote, noteTypesOf } from '../core/state-store.js';
+import { addNote, updateNote, removeNote, noteTypesOf, updateAccount } from '../core/state-store.js';
+import { mergeAccountInto } from '../core/account-merge.js';
 import { bindTypePicker } from './type-picker.js';
 import * as NtModal from './modal.js';
 import { normalizeCode, isValidCode } from '../core/schema.js';
@@ -229,10 +230,50 @@ function noteRow(ctx, note, index, rerender) {
   });
 
   c.keyword.addEventListener('change', () => {
-    ctx.setState(updateNote(ctx.getState(), note.id, {
-      keyword: String(c.keyword.value || '').trim(),
-    }));
+    const old = String(note.keyword || '').trim();
+    const next = String(c.keyword.value || '').trim();
+    const st = ctx.getState();
+    const oldAcc = old ? (st.accounts || []).find((a) => a && a.name === old) : null;
+    const newAcc = next ? (st.accounts || []).find((a) => a && a.name === next) : null;
+
+    // 没有对应的待归类节点（普通备注）→ 只改备注
+    if (!oldAcc || !next || next === old) {
+      ctx.setState(updateNote(st, note.id, { keyword: next }));
+      ctx.saveNow();
+      return;
+    }
+
+    // 新名字正好是一个已有节点 → 问一句再合并
+    if (newAcc && newAcc.id !== oldAcc.id) {
+      const n = (st.transactions || [])
+        .filter((t) => t && (t.from_id === oldAcc.id || t.to_id === oldAcc.id)).length;
+      NtModal.open({
+        title: '合并到已有节点？',
+        body: `「${old}」名下 ${n} 笔流水会全部并到「${next}」，备注里保留「${old}」。`,
+        actions: [
+          { label: '不合并', kind: 'ghost', close: true, onClick: () => { c.keyword.value = old; } },
+          {
+            label: '合并',
+            kind: 'primary',
+            close: true,
+            onClick: () => {
+              const r = mergeAccountInto(ctx.getState(), oldAcc.id, newAcc.id);
+              ctx.setState(removeNote(r.state, note.id));
+              ctx.saveNow();
+              rerender();
+              if (ctx.setFooter) ctx.setFooter(`已把「${old}」的 ${r.moved} 笔流水并进「${next}」`);
+            },
+          },
+        ],
+      });
+      return;
+    }
+
+    // 新名字还没有节点 → 就把这个待归类节点改名（用户设的「早餐」）
+    ctx.setState(removeNote(updateAccount(st, oldAcc.id, { name: next }), note.id));
     ctx.saveNow();
+    rerender();
+    if (ctx.setFooter) ctx.setFooter(`节点「${old}」改名为「${next}」，备注关键字保留在流水里`);
   });
 
   c.text.addEventListener('change', () => {
