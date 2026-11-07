@@ -480,7 +480,7 @@ $t = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
 
 ## 12. 2026-11-08 账单导入重构（最新，接续先读这一节）
 
-> 版本 `nt-v1.464` · 668 条测试 · 290 个文件 · 公约通过
+> 版本 `nt-v1.465` · 668 条测试 · 290 个文件 · 公约通过
 > §7.6 是 v1.459 时的口径（功能正确），**UI 布局以本节为准**。
 
 ### 一句话状态
@@ -500,6 +500,20 @@ $t = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
 | `e576d43` v1.462 | 预览并进导入窗口（去掉第二层弹窗），按用户样式重排 |
 | `e1cc013` v1.463 | 拆成「账单导入 / 备份文件导入 / 文本导入」三段 |
 | `7d3afcf` v1.464 | 三段统一成「标题在左、按钮在右」；备份导入不再弹二次确认 |
+| `a56486b` v1.465 | 账单与备份**合并成一个「文件导入」**（一个「打开」自动认类型）；两段圆角框；按钮照用户给的第三图；**覆盖前恢复警告弹窗** |
+
+### v1.465 的布局口径（用户 2026-11-08 定，照第三张图）
+
+- **两段，不是三段**：账单和备份合成一个「文件导入」。一个「打开」自动认
+  `.lz` 快照 / 整本 Excel 备份 / 加密备份文本 / 账单表格，「导入」按认出来的类型走
+  （备份 → 覆盖账本，其余 → 写流水）。判定顺序在 `import-hub.js` 的 `loadFile()`。
+- **每段一个圆角框**（`.nt-imp-group`），照「添加账本 · 流水记录」的分组框：
+  细边框 + `--nt-radius` + `--nt-bg-cell` 底，段间距 10px。
+- **按钮位置**：文件导入的「打开」与**起始日期行**同高、「导入」与**我的账户行**同高，
+  都靠右（`.nt-imp-field` 是 `grid: 1fr auto`）；文本导入的两个按钮在标题行右侧。
+- **覆盖当前账本前必须再问一次**（`import-backup.js` 的 `confirmOverwrite`）。
+  它自己叠一个 `<dialog>` 而不用 `NtModal.confirmDanger` —— 后者 `open()` 开头会
+  `closeAll()`，会把导入窗一起关掉。**取消后仍站在导入窗里，文件不用重选。**
 
 ### 关键文件
 
@@ -508,8 +522,8 @@ core/bill-parse.js     表头识别、日期(序列号)、金额、方向、卡�
 core/bill-match.js     支付方式→我的账户；商户/分类→对方节点
 core/bill-plan.js      日期过滤 + 方向 + 六元素 + previewLine
 core/bill-apply.js     补节点、写流水、标红重复、按日期重排
-ui/import-hub.js       三段式导入窗口（唯一入口）
-ui/import-backup.js    备份类型判定与读取（不弹窗）
+ui/import-hub.js       两段式导入窗口（文件 / 文本，唯一入口）
+ui/import-backup.js    备份类型判定与读取 + 覆盖警告弹窗（confirmOverwrite，自己叠 dialog）
 ui/import-bill.js      账单预览（旧的二级弹窗路径，仍保留）
 tests/bill-import.test.mjs  13 条
 ```
