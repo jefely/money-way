@@ -16,6 +16,7 @@ import {
 import { moneyAlways, shortDate } from '../core/format.js';
 import { flowRowNumbers } from './flow-model.js';
 import { paintHandles, syncFrozen } from './table-layout.js';
+import { fitShareTable } from './width-fit.js';
 import { showCatSuggest, hideCatSuggest, isCatSuggestFor } from './cat-suggest.js';
 import { renderStatTables, TABLE_OF } from './stats-group-tables.js';
 

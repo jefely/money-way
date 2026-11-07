@@ -405,9 +405,12 @@
   min-width: 0;
 }
 
-/* 金额列（第 5 列）：**靠右**（用户 2026-11）。
-   不写的话它跟别的格子一样居中 —— 金额是最该右对齐的一列，位数才对得齐。 */
-.nt-table-catq .nt-th:nth-child(5),
+/* 金额列（第 5 列）：**数据靠右**（位数才对得齐），
+   **表头「金额」两个字居中**（用户 2026-11-07：表头跟着靠右看着别扭）。 */
+.nt-table-catq .nt-th:nth-child(5) {
+  text-align: center;
+}
+
 .nt-table-catq .nt-cell:nth-child(5) {
   text-align: right;
 }
