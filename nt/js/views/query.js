@@ -8,21 +8,40 @@
  */
 
 import { filterTransactions, queryTotals, exactAccount, sameAccountQuery } from '../core/query-engine.js';
-import { parseDateRange } from '../core/date-query.js';
+import { parseDateRange, compactDate, weekOf } from '../core/date-query.js';
 import { renderRows, renderEmpty } from '../ui/table.js';
 import { tpl } from '../ui/render-transactions.js';
-import { money, moneyAlways, shortDate } from '../core/format.js';
+import { money, moneyAlways, shortDate, todayIso } from '../core/format.js';
 import { markerOf } from '../core/draft-book.js';
 
 const NAMES = ['A', 'B', 'C'];
+/**
+ * 三段查询的默认日期（用户 2026-11-07）：
+ *   A = 今天、B = 本日所在那周（周一~周日）、C = 本月。
+ * 进页面就有结果可看，不用先手打一遍日期。
+ */
+const DEFAULT_DATES = ['today', 'week', 'month'];
+
+/** 默认日期文本 —— 写法就用筛选框自己的语法（260801 / 260801-260807 / 2608） */
+function presetDateText(kind) {
+  const iso = todayIso(new Date());
+  if (!iso) return '';
+  if (kind === 'week') {
+    const w = weekOf(iso);
+    return w ? compactDate(w.from) + '-' + compactDate(w.to) : compactDate(iso);
+  }
+  // 整月：4 位 = YYMM，parseDateRange 会展开成当月一号 ~ 当月最后一天
+  if (kind === 'month') return iso.slice(2, 4) + iso.slice(5, 7);
+  return compactDate(iso);
+}
 
 export function mountQuery(section, ctx) {
   const grid = section.querySelector('#nt-query-grid');
   grid.textContent = '';
 
-  const panels = NAMES.map((name) => buildPanel(grid, name));
+  const panels = NAMES.map((name, i) => buildPanel(grid, name, DEFAULT_DATES[i]));
 
-  function buildPanel(host, name) {
+  function buildPanel(host, name, dateKind) {
     const node = tpl('tpl-query-panel').cloneNode(true);
     node.querySelector('.nt-query-title').textContent = `流水查询 ${name}`;
 
@@ -31,6 +50,16 @@ export function mountQuery(section, ctx) {
     const totalEl = node.querySelector('[data-total]');
     const inputs = node.querySelectorAll('[data-cond]');
     const p = { name, cond, body, totalEl };
+
+    // 预填默认日期（程序赋值不触发 input，所以 cond 要手动同步）
+    const preset = presetDateText(dateKind);
+    if (preset) {
+      const r = parseDateRange(preset);
+      cond.dateFrom = r ? r.from : '';
+      cond.dateTo = r ? r.to : '';
+      const dateInput = node.querySelector('[data-cond="dateRange"]');
+      if (dateInput) dateInput.value = preset;
+    }
 
     for (const input of inputs) {
       input.addEventListener('input', () => {

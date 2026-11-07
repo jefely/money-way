@@ -78,3 +78,34 @@ export function dateInRange(isoDate, text) {
   if (!d) return false;
   return d >= r.from && d <= r.to;
 }
+
+/** ISO 日期 → 筛选框里的短写法（`2026-08-01` → `260801`）；认不出返回 '' */
+export function compactDate(iso) {
+  const d = String(iso || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return '';
+  return d.slice(2, 4) + d.slice(5, 7) + d.slice(8, 10);
+}
+
+/**
+ * ISO 日期**所在的一周**（周一到周日）的起止。
+ *
+ * 用户 2026-11-07：流水查询 2 默认填「本日所在星期的区间日期」。
+ * 周一为一周之首（国内习惯）；用本地年月日构造，避免 `new Date('2026-11-07')`
+ * 按 UTC 解析后在东八区偏成前一天。
+ *
+ * @param {string} iso 'YYYY-MM-DD'
+ * @returns {{from:string,to:string}|null}
+ */
+export function weekOf(iso) {
+  const d = String(iso || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return null;
+  const base = new Date(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 1, Number(d.slice(8, 10)));
+  if (Number.isNaN(base.getTime())) return null;
+  const dow = (base.getDay() + 6) % 7;            // 周一 = 0
+  const start = new Date(base);
+  start.setDate(base.getDate() - dow);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  const fmt = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+  return { from: fmt(start), to: fmt(end) };
+}
