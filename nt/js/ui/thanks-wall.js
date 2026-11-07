@@ -14,6 +14,8 @@
  * 第一次打开就离线则显示空墙。
  */
 
+import { QR_BAKED } from '../core/qr-baked.js';
+
 const ENC_URL = './thanks.enc.json';
 const CACHE_KEY = 'nt_thanks_cache_v1';
 
@@ -242,7 +244,8 @@ export function mountThanksWall(opts) {
 
   function paintQr(data) {
     qrWrap.textContent = '';
-    const src = data && data.qr;
+    // 内嵌那份优先：它要改必须改主程序，远程那份即使签名实现有洞也换不掉它
+    const src = QR_BAKED || (data && data.qr);
     if (!src) return;
     const img = document.createElement('img');
     img.className = 'nt-thanks-qr';

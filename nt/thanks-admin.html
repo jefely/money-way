@@ -49,7 +49,10 @@
       <span id="qr-name" class="hint m0"></span>
     </div>
     <div class="row"><img id="qr-preview" class="qr" alt="" hidden></div>
-    <div class="hint">不设就只显示感谢墙，不显示收款码。</div>
+    <div class="row">
+      <button type="button" id="btn-bakeqr">生成 qr-baked.js（内嵌）</button>
+    </div>
+    <div class="hint">不设就只显示感谢墙，不显示收款码。<b>内嵌</b>是双保险：内嵌后要改码必须改主程序。</div>
   </div>
 
   <div class="card">
@@ -71,17 +74,23 @@
     <div class="row">
       <input type="password" id="key-pass" placeholder="密钥口令（自己定，≥12 位）" autocomplete="off">
       <button type="button" id="btn-genkey">生成新密钥对</button>
-      <button type="button" id="btn-unlock">解锁私钥</button>
     </div>
-    <div class="hint" id="key-msg">未解锁。首次用「生成新密钥对」；之后每次用「解锁私钥」。</div>
+    <div class="row">
+      <button type="button" id="pick-key">选择密钥文件</button>
+      <button type="button" id="btn-unlock">解锁私钥</button>
+      <span id="key-file-name" class="hint m0"></span>
+    </div>
+    <div class="hint" id="key-msg">未解锁。首次用「生成新密钥对」；之后每次先「选择密钥文件」再输口令解锁。</div>
     <div class="row" id="key-files" hidden>
       <button type="button" id="btn-dlkey">下载 thanks-key.enc.json</button>
       <button type="button" id="btn-copypub">复制公钥</button>
     </div>
     <textarea id="pubkey" readonly hidden placeholder="公钥（贴进 thanks-wall.js 的 PUB_KEY）"></textarea>
     <div class="hint lh19">
-      私钥用口令加密后存成 <code>thanks-key.enc.json</code> 放进仓库；公钥是公开的，写死在
-      <code>js/ui/thanks-wall.js</code> 里。换掉名单文件但没有私钥 → 签名对不上 → 客户端整块不显示。
+      <b>私钥文件不提交仓库</b>：生成后下载到自己电脑 / 网盘 / U 盘保管，换设备时带上它。
+      它用口令加密，丢了口令就没法再更新名单（只能换新密钥对 + 发版）。<br>
+      公钥是公开的，写死在 <code>js/ui/thanks-wall.js</code> 里。别人换掉名单文件但没有私钥，
+      签不出合法签名 → 客户端整块不显示。
     </div>
   </div>
 
@@ -100,14 +109,15 @@
   <div class="card">
     <label>怎么用</label>
     <div class="hint lh19">
-      1. 首次：设一个口令 → 「生成新密钥对」→ 下载 <code>thanks-key.enc.json</code>；
-         页面会给出公钥，把它填进 <code>nt/js/ui/thanks-wall.js</code> 的 <code>PUB_KEY</code>（贴一次就行）。<br>
-      2. 之后每次：输口令 → 「解锁私钥」→ 编辑名单 → 「加密并生成」→ 下载 → 覆盖仓库里的
+      1. 首次：设一个口令 → 「生成新密钥对」→ 下载 <code>thanks-key.enc.json</code>
+         <b>自己保存</b>（别提交仓库）；页面会给出公钥，把它填进
+         <code>nt/js/ui/thanks-wall.js</code> 的 <code>PUB_KEY</code>（贴一次就行）。<br>
+      2. 之后每次：选密钥文件 + 输口令 → 解锁 → 编辑名单 → 「加密并生成」→ 下载 → 覆盖仓库里的
          <code>nt/thanks.enc.json</code>。<br>
       3. 提交后，用户打开「设置 → 赞助感谢」会自动拉取、验签、解密；离线时用上一次的缓存。<br>
       <br>
       <b>关于加密与签名</b>：加密密钥内置在 <code>thanks-wall.js</code> 里，只能挡住随手查看；
-      <b>真正防篡改的是签名</b> —— 私钥只在你本地，别人换掉文件也签不出合法签名。
+      <b>真正防篡改的是签名</b> —— 私钥不提交、只在你手上，别人换掉文件也签不出合法签名。
     </div>
   </div>
 </div>
@@ -260,27 +270,46 @@ import { generateKeyPair, unlockPrivateKey, signPayload } from './js/browser/tha
     }
   };
 
+  // 私钥文件由用户自己保管（不进仓库），所以只能选文件读，不能从站点拉
+  var keyPicker = document.createElement('input');
+  keyPicker.type = 'file';
+  keyPicker.accept = '.json,application/json';
+  keyPicker.style.display = 'none';
+  document.body.appendChild(keyPicker);
+
+  $('pick-key').onclick = function () { keyPicker.value = ''; keyPicker.click(); };
+
+  keyPicker.onchange = async function () {
+    var f = keyPicker.files && keyPicker.files[0];
+    if (!f) return;
+    try {
+      encPriv = JSON.parse(await f.text());
+      if (!encPriv || !encPriv.ct) throw new Error('不是密钥文件');
+      $('key-file-name').textContent = f.name;
+      $('key-files').hidden = false;
+      keyMsg('已读取 ' + f.name + '，输入口令后点「解锁私钥」。', 'ok');
+    } catch (e) {
+      encPriv = null;
+      keyMsg('读不出来：' + (e && e.message ? e.message : '文件损坏'), 'err');
+    }
+  };
+
   $('btn-unlock').onclick = async function () {
     var pass = $('key-pass').value;
     if (!pass) { keyMsg('先输口令', 'err'); return; }
+    if (!encPriv) { keyMsg('先点「选择密钥文件」', 'err'); return; }
     keyMsg('解锁中…');
     try {
-      if (!encPriv) {
-        var res = await fetch('./thanks-key.enc.json?t=' + Date.now(), { cache: 'no-store' });
-        if (!res.ok) throw new Error('仓库里没有 thanks-key.enc.json（先「生成新密钥对」）');
-        encPriv = await res.json();
-      }
       privKey = await unlockPrivateKey(encPriv, pass);
       $('key-files').hidden = false;
       keyMsg('已解锁，现在生成的内容会自动带签名。', 'ok');
     } catch (e) {
       privKey = null;
-      keyMsg('解锁失败：' + (e && e.message ? e.message : '口令不对或文件损坏'), 'err');
+      keyMsg('解锁失败：口令不对或文件损坏', 'err');
     }
   };
 
-  $('btn-dlkey').onclick = function () {
-    if (!encPriv) { keyMsg('还没生成密钥', 'err'); return; }
+  $('btn-dlkey').onclick = function () {    if (!encPriv) { keyMsg('还没生成密钥', 'err'); return; }
     downloadText(JSON.stringify(encPriv, null, 2) + '\n', 'thanks-key.enc.json');
   };
 
@@ -294,6 +323,19 @@ import { generateKeyPair, unlockPrivateKey, signPayload } from './js/browser/tha
       $('pubkey').select(); document.execCommand('copy');
       keyMsg('公钥已复制。', 'ok');
     }
+  };
+
+  // 生成内嵌版收款码：整份文件覆盖 nt/js/core/qr-baked.js
+  $('btn-bakeqr').onclick = function () {
+    if (!qr) { msgEl.className = 'hint err'; msgEl.textContent = '先选一张收款码 PNG'; return; }
+    var head = '// 数据：内嵌的赞助收款码\n'
+      + '/**\n'
+      + ' * 由 nt/thanks-admin.html 的「生成 qr-baked.js」产出。\n'
+      + ' * 整份文件覆盖 nt/js/core/qr-baked.js 即可；空串 = 回退到远程那份（仍受签名保护）。\n'
+      + ' */\n';
+    downloadText(head + "export const QR_BAKED = '" + qr + "';\n", 'qr-baked.js');
+    msgEl.className = 'hint ok';
+    msgEl.textContent = '已生成 qr-baked.js：覆盖 nt/js/core/qr-baked.js 后发版。';
   };
 
   $('btn-enc').onclick = async function () {

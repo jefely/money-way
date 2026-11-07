@@ -52,6 +52,7 @@
 | `core/phrase-slots.js` | 一句话 → 六大元素（转出 / 转入 / 节点类型 / 节点分类 / 备注分类 / 备注关键字） |
 | `core/pinyin.js` | 汉字 → 拼音首字母（纯函数） |
 | `core/plan-occurrence.js` | （无界面）计划发生：确认到今天 / 作废一期 |
+| `core/qr-baked.js` | 内嵌的赞助收款码 |
 | `core/qr-encode.js` | （未标注界面）QR 编码入口（纯函数） |
 | `core/qr-matrix.js` | （未标注界面）QR 矩阵构造（纯函数） |
 | `core/qr-rs.js` | （未标注界面）QR 里用到的有限域与纠错（纯函数） |
