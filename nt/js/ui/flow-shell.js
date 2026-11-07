@@ -59,8 +59,12 @@ export function mountFlowShell(section, hooks) {
   requestAnimationFrame(place);
   setTimeout(place, 60);
   window.addEventListener('resize', () => {
-    applyWide();
-    if (wide()) shell.scrollLeft = 0;
+    // 只有**模式变了**才重新定位：并排 → 单页要停回流水页（以前会停在左页，
+    // 一缩小就变成「节点设置」，用户 2026-11-07 报的）；单页 → 并排归 0。
+    // 模式没变就别动 —— 键盘弹出、手机转屏都会触发 resize，不能把用户滑到的那页拽走。
+    const before = shell.classList.contains('nt-flow-wide');
+    const now = applyWide();
+    if (before !== now) shell.scrollLeft = now ? 0 : shell.clientWidth;
   });
 
   const toSettings = section.querySelector('[data-nav="settings"]');
