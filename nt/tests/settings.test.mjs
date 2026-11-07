@@ -33,7 +33,7 @@ test('每张表都有列宽键，且长度 = 该表列数', () => {
 
 test('分类与节点各有一个共享列宽参数，不是每张表存一份再同步', () => {
   const n = normalize({}, 'dark');
-  assert.equal(n['分类统计/列宽'], 72);
+  assert.equal(n['分类统计/列宽'], 50);
   assert.equal(n['节点统计/列宽'], 108);
   assert.notEqual(n['分类统计/列宽'], n['节点统计/列宽'], '节点名普遍更长，默认必须更宽');
   for (const t of ['fee', 'income', 'asset', 'liability', 'equity', 'cost', 'node']) {
@@ -117,7 +117,7 @@ test('CSS 变量名是 --nt-col-<表>-<列>，0 变自适应', () => {
   assert.equal(byVar.get('--nt-col-path-from'), '83px');
   assert.equal(byVar.get('--nt-col-path-note'), '120px');
   // 七张统计表：分类列和节点列各一条共享变量，金额列没有独立变量
-  assert.equal(byVar.get('--nt-col-stat-cat'), '72px');
+  assert.equal(byVar.get('--nt-col-stat-cat'), '50px');
   assert.equal(byVar.get('--nt-col-node-cat'), '108px');
   assert.ok(!byVar.has('--nt-col-fee-cat'), '统计表不该再有按表拆的列宽变量');
   assert.equal(byVar.get('--nt-col-catq-note'), '');
