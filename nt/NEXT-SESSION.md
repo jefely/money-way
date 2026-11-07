@@ -82,7 +82,7 @@ NT 本地调试: http://127.0.0.1:8080/nt/index.html?debug=1
 | 版本 | `nt-v1.460` |
 | 最新提交 | 见 `git log -1` |
 | 线上 | 已确认 `nt-v1.460` |
-| 测试 | 全部测试文件；**669 通过**（58 个文件，含 `mw-params.test.mjs`） |
+| 测试 | 全部测试文件；**668 通过**（58 个文件，含 `mw-params.test.mjs`） |
 | 公约 | `check-rules` 通过，289 个文件，300 行/文件 |
 | 工作区 | 干净 |
 
@@ -153,7 +153,7 @@ node nt/tools/check-rules.mjs
 Get-ChildItem nt\tests\*.mjs | ForEach-Object { node $_.FullName }
 ```
 
-期望：公约通过；**669 pass / 0 fail**（58 个文件）。
+期望：公约通过；**668 pass / 0 fail**（58 个文件）。
 
 > **必须逐个 `node <file>` 跑**。`node --test nt/tests/*.test.mjs` 在本机沙箱里会
 > `spawn EPERM`（子进程拿不到命名管道），曾把 144 个文件全报成语法错误 —— 那是假警报。
