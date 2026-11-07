@@ -55,11 +55,22 @@ export function registerServiceWorker() {
   //
   // 只在「原本就有控制器」时重载：首次安装也会触发 controllerchange，
   // 那一次页面本来就是最新的，重载只会白闪一下。
+  //
+  // **账本已解锁时绝不刷新**（2026-11-07 用户实测的「用一会儿自己退回解锁页」）：
+  //   · sw.js 的 install 里 skipWaiting、activate 里 clients.claim，所以只要
+  //     发过新版，正在用的这一页会被新 SW 接管、controllerchange 立刻触发；
+  //   · 而密钥只活在内存里（core/auth-manager），刷新 = 密钥没了 = 直接回解锁页，
+  //     正在填的那一行也跟着没了；
+  //   · 新 SW 已经接管，**下次打开自然就是新文件**，这一页继续跑旧代码没有任何损失。
   const hadController = !!navigator.serviceWorker.controller;
   let swapped = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (swapped || !hadController) return;
     swapped = true;
+    const gate = document.getElementById('nt-gate');
+    const onGate = !!gate && !gate.hidden;
+    // 只在「还停在解锁/建库页」时才重载
+    if (!onGate) return;
     location.reload();
   });
 
