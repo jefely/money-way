@@ -7,6 +7,7 @@
 | JS 文件 | 对应界面位置 |
 |---|---|
 | `app.js` | 单页壳入口：门禁 → state → 7 视图装配 → tab 路由 |
+| `browser/alias-store.js` | （无界面）软件级别名表的落盘 |
 | `browser/db.js` | （无界面）IndexedDB 数据库封装 |
 | `browser/idb.js` | （无界面）IndexedDB 打开 |
 | `browser/thanks-sign.js` | 感谢墙签名（Ed25519，Web Crypto） |
@@ -16,6 +17,7 @@
 | `core/account-merge.js` | 节点合并（把待归类关键字并进真实节点） |
 | `core/account-order.js` | （未标注界面）数据基座：账户的分区、序号与排序（纯函数，无浏览器 API） |
 | `core/account-resolver.js` | （无界面）账户名/简码解析 |
+| `core/alias-table.js` | 别名表（说法 → 规范节点名） |
 | `core/auth-manager.js` | （无界面）主密码校验/修改 |
 | `core/backup-file.js` | （无界面）加密备份文件格式 |
 | `core/backup-reminder.js` | （无界面）备份提醒判定 |
@@ -101,6 +103,7 @@
 | `ui/account-new.js` | 设置页 —— 新增账户行 / 期初 |
 | `ui/account-table.js` | 账户表（表格内直接编辑） |
 | `ui/add-dialog.js` | 流水工具条「添加/导入」→ 添加账本·流水 弹窗 |
+| `ui/alias-batch.js` | 备注区的「批量归类」——一张列表，打勾 + 目标节点，一次合并完 |
 | `ui/apply-settings.js` | 全局：把界面参数写成 CSS 变量（主题/列宽） |
 | `ui/backup-guard.js` | 主屏幕备份提醒 |
 | `ui/cat-suggest.js` | 统计 → 分类查询的候选气泡（输入首字母弹出分类） |

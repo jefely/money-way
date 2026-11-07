@@ -15,6 +15,7 @@
 import {
   matchAccountText, matchMerchantAccount, matchPayAccount, suggestMyAccount, suggestOtherAccount,
 } from './bill-match.js';
+import { aliasGet } from './alias-table.js';
 import { money } from './format.js';
 
 const norm = (v) => String(v == null ? '' : v).trim();
@@ -100,6 +101,10 @@ function planOne(item, ctx) {
   const suggest = other
     ? null
     : suggestOtherAccount(item.party, item.item, item.category, dir, prefer);
+  // 别名表命中时直接用那个规范名（味丰源 → 早餐）：
+  // 用户已经确认过一次的归类，不该每次导入都从零猜。
+  const aliasTarget = aliasGet(ctx.aliases, p);
+  if (suggest && aliasTarget) suggest.name = aliasTarget;
   const mySuggest = my ? null : suggestMyAccount(item.method);
 
   return {
@@ -123,7 +128,7 @@ function planOne(item, ctx) {
     noteType: norm(item.category),
     noteKeyword: norm(item.party),
     /** 高频商户且还没有同名节点 → 要在备注区登记成「待归类关键字」 */
-    hotKeyword: hot && !other ? p : '',
+    hotKeyword: hot && !other && !aliasTarget ? p : '',
     note: note.slice(0, 160),
     billId: norm(item.tradeNo),
   };
@@ -250,6 +255,7 @@ export function planBillImport(items, opts) {
   const ctx = {
     accounts: o.accounts || [],
     rules: o.rules || [],
+    aliases: o.aliases || [],
     myAccountId: norm(o.myAccountId),
     presetId: norm(o.presetId),
     cardTail: norm(o.cardTail),

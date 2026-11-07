@@ -14,6 +14,8 @@
 
 import { addNote, updateNote, removeNote, noteTypesOf, updateAccount } from '../core/state-store.js';
 import { mergeAccountInto } from '../core/account-merge.js';
+import { aliasPut, pendingKeywords } from '../core/alias-table.js';
+import { openBatch } from './alias-batch.js';
 import { bindTypePicker } from './type-picker.js';
 import * as NtModal from './modal.js';
 import { normalizeCode, isValidCode } from '../core/schema.js';
@@ -34,7 +36,7 @@ export function renderNotes(ctx, rerender) {
   //（用户 2026-11：不要用线分割，用空白）。
   frag.appendChild(noteGap());
   frag.appendChild(noteCols());
-  frag.appendChild(noteHead());
+  frag.appendChild(noteHead(ctx, rerender));
   notes.forEach((note, i) => frag.appendChild(noteRow(ctx, note, i, rerender)));
 
   // 末尾 10 个空行：空行不显示任何内容（没有「+」、没有占位文字）
@@ -56,7 +58,7 @@ function noteGap() {
 
 /* ---------- 区域标题 ---------- */
 
-function noteHead() {
+function noteHead(ctx, rerender) {
   const head = document.createElement('tr');
   head.className = 'nt-zone-head nt-zone-note';
 
@@ -75,6 +77,16 @@ function noteHead() {
   hint.className = 'nt-zone-hint nt-note-hint';
   hint.textContent = '成员归属/项目说明';
   inner.appendChild(hint);
+
+  // 待归类关键字一次性处理（用户 2026-11-08：列表 + 打勾 + 一次完成）
+  const pending = pendingKeywords(ctx.getState()).length;
+  if (pending) {
+    const go = document.createElement('button');
+    go.type = 'button'; go.className = 'nt-btn nt-btn-sm nt-note-batch';
+    go.textContent = `批量归类 ${pending} 项`;
+    go.addEventListener('click', () => openBatch(ctx, rerender));
+    inner.appendChild(go);
+  }
   td.appendChild(inner);
 
   head.appendChild(tag);
@@ -186,6 +198,13 @@ function moveNoteUp(ctx, note, rerender) {
   rerender();
 }
 
+/** 记住「说法 → 节点名」：这是软件级别名表的写入点（下次导入/记账直接认） */
+function rememberAlias(ctx, term, target) {
+  if (typeof ctx.saveAliases !== 'function' || !term || !target) return;
+  const run = (list) => { try { ctx.saveAliases(aliasPut(list, term, target)); } catch (e) { /* ignore */ } };
+  (typeof ctx.loadAliases === 'function' ? ctx.loadAliases() : Promise.resolve([])).then(run).catch(() => {});
+}
+
 /* ---------- 已有备注 ---------- */
 
 function noteRow(ctx, note, index, rerender) {
@@ -260,6 +279,7 @@ function noteRow(ctx, note, index, rerender) {
               const r = mergeAccountInto(ctx.getState(), oldAcc.id, newAcc.id);
               ctx.setState(removeNote(r.state, note.id));
               ctx.saveNow();
+              rememberAlias(ctx, old, next);
               rerender();
               if (ctx.setFooter) ctx.setFooter(`已把「${old}」的 ${r.moved} 笔流水并进「${next}」`);
             },
@@ -272,6 +292,7 @@ function noteRow(ctx, note, index, rerender) {
     // 新名字还没有节点 → 就把这个待归类节点改名（用户设的「早餐」）
     ctx.setState(removeNote(updateAccount(st, oldAcc.id, { name: next }), note.id));
     ctx.saveNow();
+    rememberAlias(ctx, old, next);
     rerender();
     if (ctx.setFooter) ctx.setFooter(`节点「${old}」改名为「${next}」，备注关键字保留在流水里`);
   });

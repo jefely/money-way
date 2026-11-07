@@ -74,6 +74,7 @@ function field(label, control, buttons) {
 export function openImportHub(opts) {
   const o = opts || {};
   const accounts = typeof o.getAccounts === 'function' ? o.getAccounts() : (o.accounts || []);
+  const aliases = Array.isArray(o.aliases) ? o.aliases : [];
 
   let dlg = null;
   let ta = null;
@@ -108,6 +109,7 @@ export function openImportHub(opts) {
       from,
       presetId: r.presetId,
       myAccountId: mySel ? mySel.value || '' : '',
+      aliases,
     });
     const s = plan.stats;
     const lines = [r.note];
@@ -208,6 +210,8 @@ export function openImportHub(opts) {
     r.myAccountId = mySel ? mySel.value || '' : '';
     // 资金流转（还款 / 提现 / 余额宝来回）按账户间转账导入，不再直接丢掉
     r.includeNeutral = true;
+    // 别名表跟着这次导入走：命中过的说法直接归位（味丰源 → 早餐）
+    r.aliases = aliases;
     if (dlg) dlg.close();
     if (typeof o.onImport === 'function') o.onImport(r);
   }

@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.469';
+const CACHE_NAME = 'nt-v1.470';
 
 const ASSETS = [
   './css/base.css',
@@ -49,6 +49,7 @@ const ASSETS = [
   './js/browser/thanks-sign.js',
   './js/app.js',
   './js/browser/db.js',
+  './js/browser/alias-store.js',
   './js/browser/idb.js',
   './js/core/account-config.js',
   './js/core/account-index.js',
@@ -56,6 +57,7 @@ const ASSETS = [
   './js/core/account-merge.js',
   './js/core/account-order.js',
   './js/core/account-resolver.js',
+  './js/core/alias-table.js',
   './js/core/auth-manager.js',
   './js/core/backup-file.js',
   './js/core/backup-reminder.js',
@@ -141,6 +143,7 @@ const ASSETS = [
   './js/ui/account-new.js',
   './js/ui/account-table.js',
   './js/ui/add-dialog.js',
+  './js/ui/alias-batch.js',
   './js/ui/apply-settings.js',
   './js/ui/backup-guard.js',
   './js/ui/cat-suggest.js',

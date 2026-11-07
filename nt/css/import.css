@@ -375,3 +375,46 @@
   font-size: 13px;
 }
 
+
+/* 批量归类（备注区）：列表 + 打勾 + 一次合并 */
+.nt-alias-list {
+  margin-top: 8px;
+}
+
+.nt-alias-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto 110px;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.nt-alias-check {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--nt-primary);
+}
+
+.nt-alias-kw {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.nt-alias-n {
+  font-size: 11px;
+  color: var(--nt-text-muted);
+  white-space: nowrap;
+}
+
+.nt-alias-target {
+  width: 100%;
+  min-width: 0;
+}
+
+.nt-note-batch {
+  margin-left: 8px;
+  vertical-align: middle;
+}

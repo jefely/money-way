@@ -96,6 +96,7 @@ export function applyBillPlan(state, res, opts) {
     myAccountId: o.myAccountId,
     cardTail: (res && res.hints && res.hints.cardTail) || o.cardTail,
     rules: o.rules,
+    aliases: o.aliases || (res && res.aliases),
     includeNeutral: o.includeNeutral,
   });
 

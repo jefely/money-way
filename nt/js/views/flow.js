@@ -152,10 +152,7 @@ export function mountFlow(section, ctx) {
       return pendingAcc;
     };
 
-    let added = 0;
-    let skipped = 0;
-    let guessed = 0;
-    let dup = 0;
+    let added = 0, skipped = 0, guessed = 0, dup = 0;
     const bag = fingerprintBag(st.transactions);
 
     for (const it of res.items) {
@@ -397,15 +394,19 @@ function bindToolbar(section, ctx, h) {
   const imp = section.querySelector('[data-act="import"]');
   if (imp) {
     imp.addEventListener('click', () => {
-      openImportHub({
+      const open = (aliases) => openImportHub({
         mergeText: (text) => (ctx.mergeText ? ctx.mergeText(text) : 0),
         setFooter: (t) => ctx.setFooter(t),
         accounts: ctx.getState().accounts,
+        aliases: aliases || [],
         onImport: (res) => { if (o.onImport) o.onImport(res); },
         onImportTemplate: (state, stats) => { if (o.onImportTemplate) o.onImportTemplate(state, stats); },
         restoreBackup: (text, password) => (ctx.restoreBackup ? ctx.restoreBackup(text, password) : Promise.reject(new Error('不能恢复'))),
         onRestore: (next) => { if (o.onRestore) o.onRestore(next); },
       });
+      // 别名表是软件级的（跨账本），开窗口前取一次；读不到就按空表走
+      (typeof ctx.loadAliases === 'function' ? ctx.loadAliases() : Promise.resolve([]))
+        .then(open).catch(() => open([]));
     });
   }
 

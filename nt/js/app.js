@@ -14,6 +14,7 @@ import { bindTabs } from './ui/tabs.js';
 import { showGate, hideGate } from './ui/gate.js';
 import { openAccountsWith } from './ui/account-actions.js';
 import { hasVault, createVault, unlockVault, saveState, destroyVault, changeVaultPassword, buildEncryptedBackup, restoreEncryptedBackup } from './browser/db.js';
+import { loadAliases, saveAliases } from './browser/alias-store.js';
 import { createUndo } from './core/undo-stack.js';
 import { makeResetAccounts, makeResetBook } from './ui/reset-actions.js';
 import { backupFileName } from './core/backup-file.js';
@@ -216,6 +217,9 @@ function mountViews() {
     encryptedBackupText: () => buildEncryptedBackup(getState()),
     markBackup: () => markBackupDone(Date.now()),
     restoreBackup: (text, password) => restoreEncryptedBackup(text, password),
+    // 软件级别名表：跨账本共享，不进 state（见 browser/alias-store.js）
+    loadAliases: () => loadAliases(),
+    saveAliases: (items) => saveAliases(items),
     // 换主密码：逻辑在 browser/db.js → core/vault-rekey.js，
     // 这里只把「当前内存 state」递过去（换完密码不会丢掉未保存的编辑）。
     changePassword: (oldPw, newPw) => changeVaultPassword(oldPw, newPw, getState()),
