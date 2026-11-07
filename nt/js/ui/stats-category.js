@@ -113,6 +113,21 @@ function paintQueryPanel(panel, state, range, rowNos) {
     tr.appendChild(noteCell);
     tbody.appendChild(tr);
   }
+
+  // 列表按时间正序（core/category-query）：最新一笔在最底下 —— 打开/换一个分类时
+  // 直接滚到底看最新（用户 2026-11-07）。
+  //
+  // 两个坑：
+  //   ① 窄屏一次只显示一栏，这一栏没展开时 clientHeight 是 0，滚不了 —— 那就
+  //     **不记 paintedQ**，等切到这一栏、重画时再滚；
+  //   ② views/stats.js 的 render() 末尾会把滚动位置复原成渲染前的值，
+  //     同步写会被盖掉，所以放到 rAF 里。
+  const wrap = panel.querySelector('.nt-tablewrap');
+  const painted = q.trim();
+  if (wrap && wrap.clientHeight > 0 && panel.dataset.paintedQ !== painted) {
+    panel.dataset.paintedQ = painted;
+    requestAnimationFrame(() => { wrap.scrollTop = wrap.scrollHeight; });
+  }
   return { matches: rows.length, query: q.trim() };
 }
 

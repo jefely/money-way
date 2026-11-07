@@ -26,8 +26,9 @@ const range = { start: '2026-02-01', end: '2026-02-28' };
 
 test('按转出或转入账户的分类命中', () => {
   const r = queryByCategory(txs, accounts, range, '储蓄');
-  assert.deepEqual(r.map((x) => x.tx.id).sort(), ['t1', 't2']);
-  assert.equal(r[0].to.name, '工资卡');
+  assert.deepEqual(r.map((x) => x.tx.id), ['t1', 't2'], '按时间正序（2026-11-07 起）');
+  // t2 = 现金 → 工资卡：转入方是「工资卡」，这笔靠**转入**命中储蓄
+  assert.equal(r[1].to.name, '工资卡');
 });
 
 test('时间段过滤：区间外的流水不出现', () => {
@@ -45,10 +46,10 @@ test('空关键字返回空，不把整本账倒出来', () => {
   assert.deepEqual(queryByCategory(txs, accounts, range, '   '), []);
 });
 
-test('无命中返回空数组；日期倒序', () => {
+test('无命中返回空数组；日期正序（最新一笔在最下面）', () => {
   assert.deepEqual(queryByCategory(txs, accounts, range, '不存在'), []);
   const r = queryByCategory(txs, accounts, range, '储蓄');
-  assert.equal(r[0].tx.date >= r[1].tx.date, true);
+  assert.equal(r[0].tx.date <= r[1].tx.date, true);
 });
 
 /* ---------- 拼音首字母（2026-11） ---------- */
@@ -143,7 +144,7 @@ test('nodeNameOfCode：简码大小写不敏感，认不出返回空串', () => 
 test('queryByNodes：多个节点合并，同一笔只出现一次', () => {
   const rows = queryByNodes(txs, accounts, RANGE, ['工资卡', '现金']);
   const ids = rows.map((r) => r.tx.id);
-  assert.deepEqual(ids, ['t3', 't2', 't1'], '日期倒序，t1/t2 各一次');
+  assert.deepEqual(ids, ['t1', 't2', 't3'], '日期正序，t1/t2 各一次');
   assert.equal(new Set(ids).size, ids.length, '不能重复');
 });
 

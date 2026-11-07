@@ -19,6 +19,19 @@ function inRange(date, start, end) {
   return true;
 }
 
+/**
+ * 列表排序：**按时间正序**（和流水表同向，序号也是从小往大）。
+ *
+ * 用户 2026-11-07：「分类列表和节点列表不用倒序显示，进入时显示列表的最下方就行」——
+ * 所以正序排、最新一笔落在最底下，打开时滚到底（见 ui/stats-category.js）。
+ * 日期相同再按 seq（录入顺序）比，保证同一天的多笔有稳定次序。
+ */
+function cmpByTimeAsc(aDate, aSeq, bDate, bSeq) {
+  const d = String(aDate || '').localeCompare(String(bDate || ''));
+  if (d) return d;
+  return (Number(aSeq) || 0) - (Number(bSeq) || 0);
+}
+
 /** 分类 → 首字母串（同一分类只算一次；分类数很少，但流水很多） */
 function initialsMap(accounts, field) {
   const map = new Map();
@@ -66,11 +79,7 @@ function queryBy(transactions, accounts, range, text, field, useInitials) {
   return (transactions || [])
     .filter((t) => t && isPosted(t) && inRange(t.date, start, end))
     .filter((t) => hit(byId.get(t.from_id)) || hit(byId.get(t.to_id)))
-    .sort((a, b) => {
-      const d = String(b.date || '').localeCompare(String(a.date || ''));
-      if (d) return d;
-      return (Number(b.seq) || 0) - (Number(a.seq) || 0);
-    })
+    .sort((a, b) => cmpByTimeAsc(a.date, a.seq, b.date, b.seq))
     .map((t) => ({ tx: t, from: byId.get(t.from_id) || null, to: byId.get(t.to_id) || null }));
 }
 
@@ -114,11 +123,7 @@ export function queryByType(transactions, accounts, range, type) {
   return (transactions || [])
     .filter((t) => t && isPosted(t) && inRange(t.date, start, end))
     .filter((t) => hit(byId.get(t.from_id)) || hit(byId.get(t.to_id)))
-    .sort((a, b) => {
-      const d = String(b.date || '').localeCompare(String(a.date || ''));
-      if (d) return d;
-      return (Number(b.seq) || 0) - (Number(a.seq) || 0);
-    })
+    .sort((a, b) => cmpByTimeAsc(a.date, a.seq, b.date, b.seq))
     .map((t) => ({ tx: t, from: byId.get(t.from_id) || null, to: byId.get(t.to_id) || null }));
 }
 
@@ -161,11 +166,7 @@ export function queryByNodes(transactions, accounts, range, names) {
       out.push(r);
     }
   }
-  out.sort((a, b) => {
-    const d = String(b.tx.date || '').localeCompare(String(a.tx.date || ''));
-    if (d) return d;
-    return (Number(b.tx.seq) || 0) - (Number(a.tx.seq) || 0);
-  });
+  out.sort((a, b) => cmpByTimeAsc(a.tx.date, a.tx.seq, b.tx.date, b.tx.seq));
   return out;
 }
 
