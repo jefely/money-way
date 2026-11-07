@@ -16,7 +16,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  compactTime, stamp, timeIn, keywordChain, shortKey, shortNote, shortestNote, displayNote, specialOf,
+  compactTime, stamp, timeIn, keywordChain, shortKey, shortNote, shortestNote, displayNote, specialOf, itemTags,
 } from '../js/core/keyword-engine.js';
 
 const ALIASES = [
@@ -95,6 +95,18 @@ test('最特殊的字符：去行政区、去组织形式，留下有辨识度�
   assert.equal(specialOf('云南嘉华食品有限公司'), '嘉华');
   assert.equal(specialOf('丙怀餐饮'), '丙怀');
   assert.equal(specialOf('盘龙区天秀小吃店（个体工商户）'), '天秀小吃');
+});
+
+test('有序词表：长商品名只取最靠前的具体词', () => {
+  assert.deepEqual(itemTags('天鹅德式高音八孔竖笛8孔六孔小学生儿童成人专用演奏初中生笛子'), ['竖笛']);
+  assert.deepEqual(itemTags('2条男士三角内裤男生低腰冰丝无痕'), ['内裤']);
+  assert.deepEqual(itemTags('中国联通流量卡无线限量全国通用大流量网卡5g'), ['流量卡']);
+});
+
+test('有序词表：泛类词不单独当关键字，通用词命中也返回空', () => {
+  assert.deepEqual(itemTags('DeepSeek-API服务(xx@qq.com)'), []);
+  assert.deepEqual(itemTags('手机充值'), []);
+  assert.deepEqual(itemTags('收钱码收款'), []);
 });
 
 test('② 层（备注区条目）：餐饮：丙怀，2608081317，交行储8380', () => {

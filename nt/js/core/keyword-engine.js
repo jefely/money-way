@@ -19,6 +19,7 @@
  */
 
 import { aliasGet } from './alias-table.js';
+import { dictHits } from './keyword-dict.js';
 
 const norm = (v) => String(v == null ? '' : v).trim();
 
@@ -102,12 +103,20 @@ const ITEM_NOISE = /保费|缴清|承保|投保|续保|大病版|健康福|缴�
 /**
  * 商品说明 → 能区分流水的短标签（用户 2026-11-08：最多两个）。
  *
- *   2026.7月28日保费缴清-健康福·重疾1号(大病版)-**润  → 润，重疾
+ *   **优先查有序词表**（`keyword-dict.js`）：词表按特例性排序，靠前的更具体，
+ *   命中就按词表顺序收，最多两个 ——「天鹅…竖笛…笛子」命中的是「竖笛」。
  *
- * 做法：去日期 / 去括号 / 去遮蔽星号 / 按分隔符切开 / 去通用词 / 留 2~4 字，
- * 取**最后两个**（越靠后越具体）、倒序排（人名这类最短的放前面）。
+ *   词表完全没命中时，才退回切分规则：
+ *   `2026.7月28日保费缴清-健康福·重疾1号(大病版)-**润` → 润，重疾
  */
 export function itemTags(text) {
+  const hit = dictHits(text);
+  if (hit.length) return hit;
+  return fallbackTags(text);
+}
+
+/** 词表没命中时的切分兜底：去日期/括号/遮蔽星号，按分隔符切开，取最后两个 */
+function fallbackTags(text) {
   const t = String(text == null ? '' : text)
     .replace(/\d{4}[.\-/年]\d{1,2}[.\-/月]\d{1,2}日?/g, ' ')
     .replace(/[（(][^)）]*[)）]/g, ' ')
