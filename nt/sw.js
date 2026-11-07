@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.484';
+const CACHE_NAME = 'nt-v1.485';
 
 const ASSETS = [
   './css/base.css',
