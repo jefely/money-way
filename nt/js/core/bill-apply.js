@@ -46,8 +46,10 @@ function isSuspect(row, existing) {
     const sameFrom = row.fromId && t.from_id === row.fromId;
     const sameTo = row.toId && t.to_id === row.toId;
     if (!sameFrom && !sameTo) continue;
+    // 时间是 00:00 等于「这笔没给时间」（招行整份账单都只有日期）——
+    // 拿它去比会把所有银行记录都排除掉，所以只有两边都真有时间时才比。
     const b = minutesOf(t.note);
-    if (a != null && b != null && Math.abs(a - b) > 120) continue;
+    if (a != null && a !== 0 && b != null && b !== 0 && Math.abs(a - b) > 120) continue;
     return true;
   }
   return false;
