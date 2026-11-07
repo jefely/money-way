@@ -16,6 +16,7 @@ import {
   matchAccountText, matchMerchantAccount, matchPayAccount, suggestMyAccount, suggestOtherAccount,
 } from './bill-match.js';
 import { aliasGet } from './alias-table.js';
+import { specialOf } from './keyword-engine.js';
 import { money } from './format.js';
 
 const norm = (v) => String(v == null ? '' : v).trim();
@@ -110,6 +111,9 @@ function planOne(item, ctx) {
   // 用户已经确认过一次的归类，不该每次导入都从零猜。
   const aliasTarget = aliasGet(ctx.aliases, p);
   if (suggest && aliasTarget) suggest.name = aliasTarget;
+  // 备注关键字用「最特殊的字段」（用户 2026-11-08）：
+  // 厦门葭实梓网络科技有限公司 → 厦门葭实梓；这样备注区的列表读得下去。
+  const hotKey = aliasTarget || specialOf(p) || p;
   const mySuggest = my ? null : suggestMyAccount(item.method);
 
   return {
@@ -129,13 +133,13 @@ function planOne(item, ctx) {
     /** 节点统计分类 */
     otherCategory: other ? norm(other.category) : (suggest ? suggest.category : ''),
     otherSuggest: suggest,
-    /** 备注分类 / 备注关键字 */
+    /** 备注分类 / 备注关键字（关键字用「最特殊的字段」，用户 2026-11-08） */
     noteType: norm(item.category),
-    noteKeyword: norm(item.party),
+    noteKeyword: hotKey,
     /** 商品说明原文：生成备注时要从这里挑「最特殊」的字段（不能重复节点名） */
     itemText: norm(item.item),
     /** 高频商户且还没有同名节点 → 要在备注区登记成「待归类关键字」 */
-    hotKeyword: hot && !other && !aliasTarget ? p : '',
+    hotKeyword: hot && !other && !aliasTarget ? hotKey : '',
     note: note.slice(0, 160),
     billId: norm(item.tradeNo),
   };

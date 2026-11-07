@@ -161,7 +161,8 @@ test('★ 六元素：转出/转入 / 节点分类 / 节点类型 / 备注分类
   assert.equal(row.otherType, '费用类', '节点会计类型');
   assert.equal(row.otherCategory, '餐饮', '节点统计分类（取已有账户的）');
   assert.equal(row.noteType, '商户消费', '备注分类');
-  assert.equal(row.noteKeyword, '某米线店', '备注关键字');
+  // 备注关键字取「最特殊的字段」：某米线店 → 某米线（去掉「店」这个通用后缀）
+  assert.equal(row.noteKeyword, '某米线', '备注关键字');
   // 备注格式（用户 2026-11-08）：类型：关键字，日期 时间，内容，内容
   assert.equal(row.note, '商户消费：某米线店，2026-10-22 10:39，米线，零钱');
   assert.equal(row.note.includes('｜'), false, '不再用全角竖线');
