@@ -97,15 +97,18 @@ export function mountBillPreview(body, result, opts) {
       from,
       presetId: result.presetId,
       myAccountId,
+      includeNeutral: true,
     });
     const s = plan.stats;
     stats.textContent = `共 ${s.total} 笔`
       + (from ? `，起始日之后 ${s.kept} 笔（早于它跳过 ${s.before} 笔）` : `，可导入 ${s.kept} 笔`)
       + `　支出 ${s.sumOut ? money(s.sumOut) : '0.00'} / 收入 ${s.sumIn ? money(s.sumIn) : '0.00'}`
-      + (s.neutral ? `　中性交易 ${s.neutral} 笔跳过` : '')
+      + (s.transfer ? `　资金流转 ${s.transfer} 笔按转账导入` : '')
+      + (s.neutral ? `　资金流转 ${s.neutral} 笔账户对不上跳过` : '')
       + (s.willCreate ? `　将按分类新建 ${s.willCreate} 个节点` : '');
     result.fromDate = from;
     result.myAccountId = myAccountId;
+    result.includeNeutral = true;
     return plan;
   };
 

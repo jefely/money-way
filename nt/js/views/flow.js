@@ -117,7 +117,7 @@ export function mountFlow(section, ctx) {
     // 账单（支付宝 / 微信 / 招行）：走「六大核心元素」的强提取。
     // 节点按交易分类或商户自动建，方向按收/支，日期按用户填的起始日过滤。
     if (res && res.kind === 'bill') {
-      const r = applyBillPlan(st, res, { from: res.fromDate, myAccountId: res.myAccountId });
+      const r = applyBillPlan(st, res, { from: res.fromDate, myAccountId: res.myAccountId, includeNeutral: res.includeNeutral });
       ctx.setState(r.state);
       ctx.save();
       render();
@@ -125,8 +125,9 @@ export function mountFlow(section, ctx) {
       ctx.setFooter(`导入 ${s.added} 笔`
         + (s.dup ? `，标红疑似重复 ${s.dup} 笔（可逐条删）` : '')
         + (s.created ? `，新建节点 ${s.created} 个` : '')
+        + (s.transfer ? `，资金流转按转账导入 ${s.transfer} 笔` : '')
         + (s.before ? `，早于起始日跳过 ${s.before} 笔` : '')
-        + (s.neutral ? `，中性交易跳过 ${s.neutral} 笔` : '')
+        + (s.neutral ? `，资金流转账户对不上跳过 ${s.neutral} 笔` : '')
         + (s.blank ? `，${s.blank} 笔缺一侧（按 U 区规则未入账）` : ''));
       return;
     }
@@ -161,11 +162,9 @@ export function mountFlow(section, ctx) {
       const amount = Math.abs(Number(it.amount) || 0);
       if (!amount) { skipped += 1; continue; }
 
-      let fromId = null;
-      let toId = null;
+      let fromId = null; let toId = null;
       let loose = false;      // 这一笔有没有一侧落到「待分类」
       let dead = false;       // 两端都空 / 两端同账户 → 没有意义，跳过
-
       // 通用表：两端都是账户名
       const f = acc(it.from);
       const t = acc(it.to);

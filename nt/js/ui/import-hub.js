@@ -108,12 +108,14 @@ export function openImportHub(opts) {
       from,
       presetId: r.presetId,
       myAccountId: mySel ? mySel.value || '' : '',
+      includeNeutral: true,
     });
     const s = plan.stats;
     const lines = [r.note];
     lines.push(from ? `起始日之后 ${s.kept} 笔（早于它跳过 ${s.before} 笔）` : `可导入 ${s.kept} 笔`);
     lines.push(`支出 ${money(s.sumOut)} / 收入 ${money(s.sumIn)}`);
-    if (s.neutral) lines.push(`中性交易 ${s.neutral} 笔跳过（不计收支 / 转账）`);
+    if (s.transfer) lines.push(`其中 ${s.transfer} 笔是资金流转，按「账户间转账」导入（不算收支）`);
+    if (s.neutral) lines.push(`另有 ${s.neutral} 笔资金流转两头账户对不上，跳过`);
     if (s.willCreate) lines.push(`将按分类新建 ${s.willCreate} 个节点`);
     return lines.join('\n');
   }
@@ -204,6 +206,8 @@ export function openImportHub(opts) {
     if (!r.items || !r.items.length) { setErr('这份内容里没有可导入的记录'); return; }
     r.fromDate = fromEl ? fromEl.value || '' : '';
     r.myAccountId = mySel ? mySel.value || '' : '';
+    // 资金流转（还款 / 提现 / 余额宝来回）按账户间转账导入，不再直接丢掉
+    r.includeNeutral = true;
     if (dlg) dlg.close();
     if (typeof o.onImport === 'function') o.onImport(r);
   }
