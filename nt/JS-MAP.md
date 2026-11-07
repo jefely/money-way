@@ -127,8 +127,9 @@
 | `ui/import-backup.js` | 备份文件读取（.lz 快照 / 加密备份 / 整本 Excel 备份） |
 | `ui/import-bill.js` | 导入预览里的「账单」面板（起始日期 + 六元素统计） |
 | `ui/import-dialog.js` | 导入 Excel / CSV / 账单 |
-| `ui/import-hub.js` | 流水工具条「导入」→ 一个窗口里同时做文件导入和文本导入 |
+| `ui/import-hub.js` | 流水工具条「导入」→ 一个窗口、一个输入框 |
 | `ui/import-map.js` | 导入 → 手动指定列 |
+| `ui/import-source.js` | 导入源识别（文件 / 粘贴文本 → 账单 / 通用表 / 备份 / 流水文本） |
 | `ui/inst-add.js` | 分期表上方的「新增」表单 |
 | `ui/inst-blanks.js` | 分期表后面的固定空行（纯占位） |
 | `ui/inst-layout.js` | 分期表的列宽记忆 / 新增定位 |

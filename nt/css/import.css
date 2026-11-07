@@ -245,8 +245,8 @@
   border-color: var(--nt-primary);
 }
 
-/* 导入窗口：两段（文件 / 文本），每段一个圆角框 —— 照「添加账本 · 流水记录」的分组框。
-   按钮位置照用户给的第三图：「打开」与起始日期行同高、「导入」与我的账户行同高，都靠右。 */
+/* 导入窗口：一个圆角框、一个输入框（用户 2026-11-08 定）
+   [打开][粘贴] → 文本框 → 识别结果 + 需要补的输入 → [导入] */
 .nt-imp-group {
   margin-bottom: 10px;
   padding: 8px 10px 10px;
@@ -259,31 +259,11 @@
   margin-bottom: 0;
 }
 
-.nt-imp-head {
+/* 「打开」和「粘贴」是同级操作，都在输入框上面 */
+.nt-imp-bar {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 10px;
-  margin: 0 0 8px;
-}
-
-.nt-imp-lead {
-  min-width: 0;
-}
-
-.nt-imp-lead .nt-imp-h {
-  margin: 0;
-}
-
-.nt-imp-lead .nt-imp-sub {
-  margin: 2px 0 0;
-}
-
-.nt-imp-acts {
-  display: flex;
-  align-items: center;
   gap: 6px;
-  flex: 0 0 auto;
+  margin-bottom: 8px;
 }
 
 .nt-imp-h {
@@ -293,6 +273,42 @@
 
 .nt-imp-sub {
   color: var(--nt-text-muted);
+}
+
+/* 唯一的输入框：粘贴的文本，或「已读取：xxx」提示。
+   选择器带上分组框，否则 modal.css 的 `.nt-modal-body textarea{min-height:120px}` 会压回 120。 */
+.nt-imp-group .nt-imp-box {
+  display: block;
+  width: 100%;
+  height: 190px;
+  padding: 8px 10px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 8px;
+  background: var(--nt-bg-cell);
+  color: var(--nt-text);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.6;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+/* 识别结果（多行文字） */
+.nt-imp-status {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--nt-text-muted);
+  white-space: pre-wrap;
+}
+
+.nt-imp-status:empty {
+  display: none;
+}
+
+/* 识别后才出现的输入 */
+.nt-imp-need {
+  margin-top: 8px;
 }
 
 /* 字段行：[标签 + 控件][按钮…] —— 一行可以放两个按钮（打开 / 导入） */
@@ -332,8 +348,8 @@
   max-width: 190px;
 }
 
-.nt-imp-head .nt-btn,
-.nt-imp-field .nt-btn {
+.nt-imp-field .nt-btn,
+.nt-imp-bar .nt-btn {
   flex: 0 0 auto;
   height: 28px;
   padding: 0 12px;
@@ -346,23 +362,16 @@
   margin: 0;
 }
 
-/* 选择器带上分组框：modal.css 的 `.nt-modal-body textarea { min-height:120px }`
-   特异性比单个类高，不加这一层 180px 会被压回 120px（用户 2026-11-08 要求加高）。 */
-.nt-imp-group .nt-imp-preview {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 180px;
-  max-height: 34vh;
-  padding: 8px 10px;
-  border: 1px solid var(--nt-bg-line);
-  border-radius: 8px;
-  background: var(--nt-bg-cell);
-  color: var(--nt-text);
-  font: inherit;
-  font-size: 12px;
-  line-height: 1.6;
-  resize: vertical;
-  margin-bottom: 8px;
+/* 最后一步：导入（放最后定义，覆盖上面 28px 的按钮高） */
+.nt-imp-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.nt-imp-foot .nt-btn {
+  height: 32px;
+  padding: 0 20px;
+  font-size: 13px;
 }
 

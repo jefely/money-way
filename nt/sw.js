@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.466';
+const CACHE_NAME = 'nt-v1.467';
 
 const ASSETS = [
   './css/base.css',
@@ -169,6 +169,7 @@ const ASSETS = [
   './js/ui/import-dialog.js',
   './js/ui/import-hub.js',
   './js/ui/import-map.js',
+  './js/ui/import-source.js',
   './js/ui/inst-add.js',
   './js/ui/inst-blanks.js',
   './js/ui/inst-layout.js',

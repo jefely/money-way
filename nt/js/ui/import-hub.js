@@ -1,29 +1,27 @@
-// 界面：流水工具条「导入」→ 一个窗口里同时做文件导入和文本导入
+// 界面：流水工具条「导入」→ 一个窗口、一个输入框
 /**
  * 导入入口（UI 层）
  *
- * 用户 2026-11：不要再弹第二层「导入预览」，把预览并进这个窗口；
- * 2026-11-08 再合并：账单和备份不再各占一段 —— 一个「打开」自动认类型，
- * 「导入」按认出来的类型走（账单写流水 / 备份覆盖账本）。
+ * 用户 2026-11-08 定：不要再有「文件导入 / 文本导入」两个框。
+ * 手机上不一定能存文件，把密文从剪贴板直接粘进来是正规路径：
  *
- * 布局照给定样式（两个圆角分组框，按钮靠右）：
- *   文件导入（起始日期 [打开] / 我的账户 [导入] + 预览框）
- *   文本导入（标题行右侧 [打开][导入] + 文本框）
+ *   [打开] [粘贴]                ← 同级操作，都在框上面
+ *   [ 唯一的文本框 ]              ← 粘贴的内容；打开文件时这里显示「已读取：…」
+ *   [ 识别结果 + 需要补的输入 ]    ← 账单：起始日期 + 我的账户
+ *                                   密文：密码
+ *                                   备份：输入「覆盖」两个字
+ *   [ 导入 ]                     ← 最后一步；条件不满足会提示，不会静默失败
  *
- * 解析全在 core（xlsx-read / import-table / bill-plan），这里只管
- * 选择文件、拼预览文字、把结果交给 onImport。
+ * 识别在 import-source（文件 / 文本 → bill / table / backup / text），
+ * 这里只拼界面、分派动作。
  */
 
 import * as NtModal from './modal.js';
-import { readAnyTable, decodeBytes } from './xlsx-read.js';
-import { analyzeTable } from '../core/import-table.js';
-import { planBillImport, previewLine } from '../core/bill-plan.js';
+import { sourceFromFile, sourceFromText } from './import-source.js';
+import { planBillImport } from '../core/bill-plan.js';
 import { myAccountPick } from './import-bill.js';
 import { money } from '../core/format.js';
-import { pickTemplateSheets } from '../core/xlsx-template.js';
-import { isBackupText } from '../core/backup-file.js';
-import { readBackupFile, backupSummary, confirmOverwrite } from './import-backup.js';
-import { pickTextFile } from './file-io.js';
+import { backupSummary } from './import-backup.js';
 
 const PLACEHOLDER = [
   '账户：',
@@ -49,35 +47,7 @@ const button = (text, cls) => {
   return b;
 };
 
-/**
- * 一个圆角功能区块：标题 + 说明在左、按钮在右
- *（照「添加账本 · 流水记录」弹窗的两个分组框）。
- * @param {string} title
- * @param {string} desc
- * @returns {{box:HTMLElement, head:HTMLElement}}
- */
-function group(title, desc) {
-  const box = el('section', 'nt-imp-group');
-  const head = el('div', 'nt-imp-head');
-  const lead = el('div', 'nt-imp-lead');
-  lead.appendChild(hint(title, true));
-  lead.appendChild(hint(desc));
-  head.appendChild(lead);
-  box.appendChild(head);
-  return { box, head };
-}
-
-/** 标题行右侧的按钮组 */
-function actsInto(head, buttons) {
-  const acts = el('div', 'nt-imp-acts');
-  for (const b of buttons) acts.appendChild(b);
-  head.appendChild(acts);
-}
-
-/**
- * 字段行：标签 + 控件，右边可跟一个或多个按钮。
- * 用户 2026-11-08：「打开」和「导入」放同一行、在起始日期输入框后面。
- */
+/** 字段行：标签 + 控件，右边可跟按钮 */
 function field(label, control, buttons) {
   const row = el('div', 'nt-imp-field');
   const cell = el('label', 'nt-imp-cell');
@@ -95,7 +65,8 @@ function field(label, control, buttons) {
  *   getAccounts?:()=>Array, accounts?:Array,
  *   onImport?:(result:object)=>void,
  *   onImportTemplate?:(state:object, stats:object)=>void,
- *   onBackup?:(text:string)=>void,
+ *   restoreBackup?:(text:string, password:string)=>Promise<object>,
+ *   onRestore?:(state:object)=>void,
  *   mergeText?:(text:string)=>number,
  *   setFooter?:(text:string)=>void,
  * }} opts
@@ -105,130 +76,80 @@ export function openImportHub(opts) {
   const accounts = typeof o.getAccounts === 'function' ? o.getAccounts() : (o.accounts || []);
 
   let dlg = null;
-  let result = null;
   let ta = null;
-  let previewEl = null;
+  let statusEl = null;
+  let need = null;
+  let errEl = null;
   let fromEl = null;
   let mySel = null;
-  let myRow = null;
-  let slot = null;
-  let backupErr = null;
-  let backup = null;
-  let pwRow = null;
   let pwEl = null;
+  let coverEl = null;
+  let billRow = null;
+  let myRow = null;
+  let pwRow = null;
+  let coverWrap = null;
+  let source = null;
 
-  /**
-   * 预览下面那一行只有一个位置，两种用途二选一：
-   *   'my' = 我的账户（识别成账单，要选计入哪个账户）
-   *   'pw' = 账本密码（识别成加密备份）
-   *   其它 = 整行不出现（默认就是这样，用户 2026-11-08 明确要求）
-   */
-  function setSlot(which) {
-    if (myRow) myRow.hidden = which !== 'my';
+  const setErr = (msg) => { if (errEl) errEl.textContent = msg || ''; };
+
+  /** 识别后要补的输入：'bill' = 起始日期 + 我的账户；'pw' = 密码；'cover' = 输入「覆盖」 */
+  function setNeed(which) {
+    if (billRow) billRow.hidden = which !== 'bill';
+    if (myRow) myRow.hidden = which !== 'bill';
     if (pwRow) pwRow.hidden = which !== 'pw';
-    if (slot) slot.hidden = !which;
+    if (coverWrap) coverWrap.hidden = which !== 'cover';
+    if (need) need.hidden = !which;
   }
 
-  const refresh = () => {
-    if (!previewEl || backup) return;
-    if (!result) { previewEl.value = ''; return; }
+  function billStatus(r) {
     const from = fromEl ? fromEl.value || '' : '';
-    const myId = mySel ? mySel.value || '' : '';
-
-    if (result.kind === 'bill') {
-      const plan = planBillImport(result.items, {
-        accounts,
-        from,
-        presetId: result.presetId,
-        myAccountId: myId,
-      });
-      const s = plan.stats;
-      const lines = [result.note];
-      lines.push(from ? `起始日之后 ${s.kept} 笔（早于它跳过 ${s.before} 笔）` : `可导入 ${s.kept} 笔`);
-      lines.push(`支出 ${money(s.sumOut)} / 收入 ${money(s.sumIn)}`);
-      if (s.neutral) lines.push(`中性交易 ${s.neutral} 笔跳过（不计收支 / 转账）`);
-      if (s.willCreate) lines.push(`将按分类新建 ${s.willCreate} 个节点`);
-      lines.push('');
-      for (const row of plan.rows.slice(0, 10)) lines.push(previewLine(row));
-      if (plan.rows.length > 10) lines.push(`…… 还有 ${plan.rows.length - 10} 笔`);
-      previewEl.value = lines.join('\n');
-      return;
-    }
-
-    if (result.kind === 'generic') {
-      const lines = [result.note, ''];
-      for (const it of result.items.slice(0, 10)) {
-        lines.push(`${it.date}  ${money(it.amount)}  ${it.from || '?'} → ${it.to || '?'}  ${it.note || ''}`.trim());
-      }
-      if (result.items.length > 10) lines.push(`…… 还有 ${result.items.length - 10} 笔`);
-      previewEl.value = lines.join('\n');
-      return;
-    }
-
-    previewEl.value = `${result.note}\n\n`
-      + '可以换一个文件；如果是任意表格，也可以把内容粘到下面的「文本导入」。';
-  };
-
-  /** 账单：把解析结果挂上去，再刷预览 */
-  function showBill(book, file) {
-    const sheet = book.sheets[0];
-    if (!sheet) throw new Error('这个文件里没有可读的表');
-    const r = analyzeTable(sheet.rows);
-    r.fileName = file.name;
-    r.sheetName = sheet.name;
-    result = r;
-    const pick = r.kind === 'bill' ? myAccountPick(accounts, r.presetId, r.hints && r.hints.cardTail) : null;
-    if (pick) mySel.value = pick.id;
-    setSlot(r.kind === 'bill' ? 'my' : '');
-    refresh();
+    const plan = planBillImport(r.items, {
+      accounts,
+      from,
+      presetId: r.presetId,
+      myAccountId: mySel ? mySel.value || '' : '',
+    });
+    const s = plan.stats;
+    const lines = [r.note];
+    lines.push(from ? `起始日之后 ${s.kept} 笔（早于它跳过 ${s.before} 笔）` : `可导入 ${s.kept} 笔`);
+    lines.push(`支出 ${money(s.sumOut)} / 收入 ${money(s.sumIn)}`);
+    if (s.neutral) lines.push(`中性交易 ${s.neutral} 笔跳过（不计收支 / 转账）`);
+    if (s.willCreate) lines.push(`将按分类新建 ${s.willCreate} 个节点`);
+    return lines.join('\n');
   }
 
-  /** 备份：显示「读懂了什么」，加密备份才要密码 */
-  function showBackup(b) {
-    backup = b;
-    if (previewEl) previewEl.value = backupSummary(b);
-    setSlot(b.kind === 'backup' ? 'pw' : '');
+  function statusOf(s) {
+    if (s.kind === 'bill') return billStatus(s.result);
+    if (s.kind === 'table') return `${s.result.note}\n通用表格：直接点「导入」写入流水。`;
+    if (s.kind === 'backup') return backupSummary(s.backup);
+    return '这是一段账本流水文本：点「导入」合并进当前账本。';
   }
 
-  /**
-   * 一个「打开」认所有文件（用户 2026-11-08：账单和备份合并成一个入口）。
-   * 顺序：.lz → xlsx 里的整本备份 → 加密备份文本 → 剩下的都当账单/表格。
-   */
-  async function loadFile(file) {
-    if (!file) return;
-    const name = String(file.name || '');
-    result = null; backup = null;
-    if (backupErr) backupErr.textContent = '';
-    setSlot('');
-    if (pwEl) pwEl.value = '';
-    if (previewEl) previewEl.value = `正在读取 ${name} …`;
-
-    try {
-      if (/\.lz$/i.test(name)) {
-        showBackup(await readBackupFile(file));
-        return;
-      }
-      if (/\.xlsx?$/i.test(name)) {
-        const book = await readAnyTable(file);
-        if (pickTemplateSheets(book.sheets).isTemplate) {
-          showBackup(await readBackupFile(file));
-          return;
-        }
-        showBill(book, file);
-        return;
-      }
-      if (isBackupText(decodeBytes(await file.arrayBuffer()))) {
-        showBackup(await readBackupFile(file));
-        return;
-      }
-      showBill(await readAnyTable(file), file);
-    } catch (e) {
-      if (previewEl) previewEl.value = '读取失败：' + ((e && e.message) || e);
+  /** 把一个源挂到界面上：状态文字 + 需要补的输入 */
+  function applySource(s) {
+    source = s;
+    setErr('');
+    if (!s) {
+      if (statusEl) statusEl.textContent = '';
+      setNeed('');
+      return;
     }
+    if (s.kind === 'bill' && mySel) {
+      const pick = myAccountPick(accounts, s.result.presetId, s.result.hints && s.result.hints.cardTail);
+      if (pick) mySel.value = pick.id;
+    }
+    if (s.kind === 'bill') setNeed('bill');
+    else if (s.kind === 'backup') setNeed(s.backup.kind === 'backup' ? 'pw' : 'cover');
+    else setNeed('');
+    if (statusEl) statusEl.textContent = statusOf(s);
+  }
+
+  function refreshStatus() {
+    if (source && statusEl) statusEl.textContent = statusOf(source);
   }
 
   function pickFile(accept, onPick) {
-    const input = document.createElement('input');
+    const input = el('input');
     input.type = 'file';
     input.accept = accept;
     input.style.display = 'none';
@@ -241,77 +162,57 @@ export function openImportHub(opts) {
     input.click();
   }
 
-  const openFile = () => pickFile('.lz,.xlsx,.xls,.csv,.txt,.tsv,.json', loadFile);
-
-  async function doBackupImport() {
-    if (!backup) { if (backupErr) backupErr.textContent = '先「打开」一个备份文件'; return; }
-    const b = backup;
-    const pw = (pwEl && pwEl.value) || '';
-    if (b.kind === 'backup') {
-      if (!pw) {
-        if (backupErr) backupErr.textContent = '需要账本密码';
-        return;
-      }
-      if (typeof o.restoreBackup !== 'function') {
-        if (backupErr) backupErr.textContent = '当前不能恢复加密备份';
-        return;
-      }
+  async function loadFile(file) {
+    if (!file) return;
+    const name = String(file.name || '');
+    applySource(null);
+    if (ta) {
+      ta.value = '';
+      ta.placeholder = `已读取：${name}\n这里也可以粘贴（账单内容 / 密文 / 流水文本）`;
     }
-    // 覆盖当前账本必须再问一次（用户 2026-11-08 明确保留这个警告）
-    if (!(await confirmOverwrite(backupSummary(b)))) return;
-
-    if (b.kind === 'backup') {
-      try {
-        const state = await o.restoreBackup(b.text, pw);
-        if (dlg) dlg.close();
-        if (typeof o.onRestore === 'function') o.onRestore(state);
-      } catch (e) {
-        if (backupErr) backupErr.textContent = '解不开：密码不对，或文件已损坏';
-      }
-      return;
-    }
-    if (dlg) dlg.close();
-    if (typeof o.onImportTemplate === 'function') o.onImportTemplate(b.state, b.stats);
-  }
-
-  async function openTextFile() {
+    if (statusEl) statusEl.textContent = `正在读取 ${name} …`;
     try {
-      const picked = await pickTextFile('.txt,.csv,.md,.tsv,text/plain');
-      ta.value = picked.text;
-      ta.focus();
-    } catch (e) { /* 用户取消 */ }
+      applySource(await sourceFromFile(file));
+    } catch (e) {
+      applySource(null);
+      setErr('读取失败：' + ((e && e.message) || e));
+    }
   }
 
-  function doImport() {
-    if (!result || !result.items || !result.items.length) {
-      if (previewEl) previewEl.value = '还没有可导入的记录：先「打开」一个账单文件。';
+  /** 粘贴：直接读剪贴板；读不到就让用户长按输入框自己粘（手机上的常规做法） */
+  async function pasteText() {
+    const clip = navigator.clipboard;
+    if (!clip || typeof clip.readText !== 'function') {
+      setErr('这个浏览器不能直接读剪贴板：长按上面的框，用系统的「粘贴」');
+      if (ta) ta.focus();
       return;
     }
-    result.fromDate = fromEl ? fromEl.value || '' : '';
-    result.myAccountId = mySel ? mySel.value || '' : '';
+    let text = '';
+    try {
+      text = await clip.readText();
+    } catch (e) {
+      setErr('浏览器不让读剪贴板：长按上面的框，用系统的「粘贴」');
+      if (ta) ta.focus();
+      return;
+    }
+    if (!text || !text.trim()) { setErr('剪贴板里没有文字'); return; }
+    if (ta) ta.value = text;
+    applySource(sourceFromText(text));
+  }
+
+  function importTable(r) {
+    if (!r.items || !r.items.length) { setErr('这份内容里没有可导入的记录'); return; }
+    r.fromDate = fromEl ? fromEl.value || '' : '';
+    r.myAccountId = mySel ? mySel.value || '' : '';
     if (dlg) dlg.close();
-    if (typeof o.onImport === 'function') o.onImport(result);
+    if (typeof o.onImport === 'function') o.onImport(r);
   }
 
-  /** 「导入」按钮：备份 → 覆盖导入；否则 → 账单写流水 */
-  function runImport() {
-    if (backup) {
-      doBackupImport();
-      return;
-    }
-    doImport();
-  }
-
-  function doTextImport() {
-    const text = String((ta && ta.value) || '').trim();
-    if (!text) return;
-    if (isBackupText(text)) {
-      if (backupErr) backupErr.textContent = '这是加密备份，请用上面的「文件导入」。';
-      return;
-    }
-    if (typeof o.mergeText !== 'function') return;    let n = 0;
+  function importText(text) {
+    if (typeof o.mergeText !== 'function') { setErr('当前不能合并文本'); return; }
+    let n = 0;
     try { n = o.mergeText(text); } catch (e) {
-      if (typeof o.setFooter === 'function') o.setFooter('导入失败：' + ((e && e.message) || e));
+      setErr('导入失败：' + ((e && e.message) || e));
       return;
     }
     if (dlg) dlg.close();
@@ -320,20 +221,68 @@ export function openImportHub(opts) {
     }
   }
 
+  async function importBackup(b) {
+    if (b.kind === 'backup') {
+      const pw = (pwEl && pwEl.value || '').trim();
+      if (!pw) { setErr('需要账本密码'); if (pwEl) pwEl.focus(); return; }
+      if (typeof o.restoreBackup !== 'function') { setErr('当前不能恢复加密备份'); return; }
+      try {
+        const state = await o.restoreBackup(b.text, pw);
+        if (dlg) dlg.close();
+        if (typeof o.onRestore === 'function') o.onRestore(state);
+      } catch (e) {
+        setErr('解不开：密码不对，或文件已损坏');
+      }
+      return;
+    }
+    if (!coverEl || coverEl.value.trim() !== '覆盖') {
+      setErr('要替换当前账本，请先输入「覆盖」两个字');
+      if (coverEl) coverEl.focus();
+      return;
+    }
+    if (dlg) dlg.close();
+    if (typeof o.onImportTemplate === 'function') o.onImportTemplate(b.state, b.stats);
+  }
+
+  function doImport() {
+    const s = source;
+    if (!s) { setErr('先「打开」一个文件，或把内容粘贴到上面的框'); return; }
+    if (s.kind === 'text') return importText(s.text);
+    if (s.kind === 'backup') return importBackup(s.backup);
+    return importTable(s.result);
+  }
+
   dlg = NtModal.open({
     title: '导入',
     autoFocus: false,
     build: (body) => {
-      /* ① 文件导入：账单 / .lz 快照 / 加密备份 / 整本 Excel 备份共用一个入口 */
-      const fileOpen = button('打开', 'nt-btn nt-btn-sm nt-exp-main');
-      fileOpen.addEventListener('click', openFile);
-      const fileGo = button('导入', 'nt-btn nt-btn-sm');
-      fileGo.addEventListener('click', runImport);
+      const box = el('section', 'nt-imp-group');
 
-      const file = group('文件导入', '（Excel / CSV / 账单 / .lz 快照 / 加密备份，备份会替换当前账本）');
+      const bar = el('div', 'nt-imp-bar');
+      const openBtn = button('打开', 'nt-btn nt-btn-sm nt-exp-main');
+      openBtn.addEventListener('click', () => pickFile('.lz,.xlsx,.xls,.csv,.txt,.tsv,.json', loadFile));
+      const pasteBtn = button('粘贴', 'nt-btn nt-btn-sm');
+      pasteBtn.addEventListener('click', pasteText);
+      bar.appendChild(openBtn);
+      bar.appendChild(pasteBtn);
+      box.appendChild(bar);
+
+      ta = el('textarea', 'nt-imp-box');
+      ta.spellcheck = false;
+      ta.placeholder = PLACEHOLDER;
+      ta.addEventListener('input', () => applySource(sourceFromText(ta.value)));
+      box.appendChild(ta);
+
+      statusEl = el('div', 'nt-imp-status');
+      box.appendChild(statusEl);
+
+      need = el('div', 'nt-imp-need');
+      need.hidden = true;
+
       fromEl = el('input');
       fromEl.type = 'date';
-      file.box.appendChild(field('起始日期', fromEl, [fileOpen, fileGo]));
+      billRow = field('起始日期', fromEl);
+      need.appendChild(billRow);
 
       mySel = el('select');
       for (const acc of accounts.filter((a) => a && !a.isHidden && a.id !== '__OPENING__')) {
@@ -341,47 +290,38 @@ export function openImportHub(opts) {
         opt.value = acc.id;
         mySel.appendChild(opt);
       }
-
-      file.box.appendChild(hint('导入预览：', true));
-      previewEl = el('textarea', 'nt-imp-preview');
-      previewEl.readOnly = true;
-      previewEl.placeholder = '打开一个文件后，这里显示识别到多少笔';
-      previewEl.spellcheck = false;
-      file.box.appendChild(previewEl);
-
-      /* 预览下面这一行只有一个位置，两种用途二选一（默认整行不出现）：
-         识别成账单 → 我的账户；识别成加密备份 → 密码。 */
-      slot = el('div', 'nt-imp-slot');
-      slot.hidden = true;
       myRow = field('我的账户', mySel);
-      slot.appendChild(myRow);
+      need.appendChild(myRow);
 
       pwEl = el('input');
       pwEl.type = 'password';
       pwEl.placeholder = '账本密码';
       pwRow = field('密码', pwEl);
-      slot.appendChild(pwRow);
-      file.box.appendChild(slot);
+      need.appendChild(pwRow);
 
-      backupErr = el('p', 'nt-sync-hint nt-imp-sub nt-import-map-err');
-      file.box.appendChild(backupErr);
-      body.appendChild(file.box);
+      coverWrap = el('div', 'nt-imp-cover');
+      coverWrap.appendChild(hint('要覆盖当前账本，请在下面输入「覆盖」两个字：', false));
+      coverEl = el('input');
+      coverEl.placeholder = '覆盖';
+      coverWrap.appendChild(field('确认', coverEl));
+      need.appendChild(coverWrap);
 
-      /* ② 文本导入 */
-      const tOpen = button('打开', 'nt-btn nt-btn-sm');
-      tOpen.addEventListener('click', openTextFile);
-      const tGo = button('导入', 'nt-btn nt-btn-sm');
-      tGo.addEventListener('click', doTextImport);
-      const text = group('文本导入', '（粘贴流水记录文本，合并进当前账本）');
-      actsInto(text.head, [tOpen, tGo]);
-      ta = el('textarea', 'nt-exp-out');
-      ta.spellcheck = false;
-      ta.placeholder = PLACEHOLDER;
-      text.box.appendChild(ta);
-      body.appendChild(text.box);
+      box.appendChild(need);
 
-      fromEl.addEventListener('change', refresh);
-      mySel.addEventListener('change', refresh);    },
+      errEl = el('p', 'nt-sync-hint nt-imp-sub nt-import-map-err');
+      box.appendChild(errEl);
+
+      const foot = el('div', 'nt-imp-foot');
+      const go = button('导入', 'nt-btn nt-btn-primary');
+      go.addEventListener('click', doImport);
+      foot.appendChild(go);
+      box.appendChild(foot);
+
+      body.appendChild(box);
+
+      fromEl.addEventListener('change', refreshStatus);
+      mySel.addEventListener('change', refreshStatus);
+    },
   });
 
   return dlg;
