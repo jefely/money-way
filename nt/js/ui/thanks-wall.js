@@ -205,7 +205,7 @@ export function mountThanksWall(opts) {
 
   const lead = document.createElement('p');
   lead.className = 'nt-block-line';
-  lead.textContent = '感谢你使用 NT账本。把这条工具推荐给需要的人，就是最好的支持。';
+  lead.textContent = '感谢使用 NT账本。请推荐给需要的人，这是对我最好的支持。';
   section.appendChild(lead);
 
   const qrWrap = document.createElement('div');
@@ -214,9 +214,7 @@ export function mountThanksWall(opts) {
 
   const tip = document.createElement('div');
   tip.className = 'nt-thanks-tip';
-  tip.innerHTML = '<b>想出现在下面的感谢墙？</b><br>'
-    + '转账时把昵称填进<b>「转账备注」</b>里就行（也可以留空保持匿名）。<br>'
-    + '只显示昵称/图片，<b>不显示金额、不显示时间</b>。';
+  tip.innerHTML = '<b>想留下你的昵称？ 转账备注里告诉我，我会亲自添加到感谢墙里。</b><br>';
   section.appendChild(tip);
 
   const head = document.createElement('div');
