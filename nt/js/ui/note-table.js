@@ -14,8 +14,8 @@
 
 import { addNote, updateNote, removeNote, noteTypesOf, updateAccount } from '../core/state-store.js';
 import { mergeAccountInto } from '../core/account-merge.js';
-import { aliasPut, pendingKeywords } from '../core/alias-table.js';
-import { openBatch } from './alias-batch.js';
+import { aliasPut } from '../core/alias-table.js';
+import { noteTools } from './alias-batch.js';
 import { bindTypePicker } from './type-picker.js';
 import * as NtModal from './modal.js';
 import { normalizeCode, isValidCode } from '../core/schema.js';
@@ -78,15 +78,8 @@ function noteHead(ctx, rerender) {
   hint.textContent = '成员归属/项目说明';
   inner.appendChild(hint);
 
-  // 待归类关键字一次性处理（用户 2026-11-08：列表 + 打勾 + 一次完成）
-  const pending = pendingKeywords(ctx.getState()).length;
-  if (pending) {
-    const go = document.createElement('button');
-    go.type = 'button'; go.className = 'nt-btn nt-btn-sm nt-note-batch';
-    go.textContent = `批量归类 ${pending} 项`;
-    go.addEventListener('click', () => openBatch(ctx, rerender));
-    inner.appendChild(go);
-  }
+  // 待归类关键字 / 备注统计（用户 2026-11-08：列表 + 打勾 + 一次完成）
+  inner.appendChild(noteTools(ctx, rerender));
   td.appendChild(inner);
 
   head.appendChild(tag);

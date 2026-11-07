@@ -418,3 +418,50 @@
   margin-left: 8px;
   vertical-align: middle;
 }
+
+/* 备注区工具条 + 备注统计（只累加，不平账） */
+.nt-note-tools {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.nt-note-sum-line,
+.nt-note-sum-sub {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 96px;
+  gap: 8px;
+  align-items: center;
+  padding: 3px 0;
+}
+
+.nt-note-sum-line {
+  margin-top: 4px;
+  border-top: 1px solid var(--nt-bg-line);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.nt-note-sum-sub {
+  padding-left: 12px;
+  font-size: 11px;
+  color: var(--nt-text-muted);
+}
+
+.nt-note-sum-kw,
+.nt-note-sum-type {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nt-note-sum-n {
+  color: var(--nt-text-muted);
+  font-weight: 400;
+}
+
+.nt-note-sum-amt {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

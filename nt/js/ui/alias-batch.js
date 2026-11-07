@@ -13,6 +13,7 @@ import * as NtModal from './modal.js';
 import { mergeAccountInto } from '../core/account-merge.js';
 import { updateAccount, removeNote } from '../core/state-store.js';
 import { aliasPutMany, pendingKeywords } from '../core/alias-table.js';
+import { openNoteStats } from './note-stats.js';
 
 const norm = (v) => String(v == null ? '' : v).trim();
 
@@ -21,6 +22,28 @@ function el(tag, cls, text) {
   if (cls) node.className = cls;
   if (text != null) node.textContent = text;
   return node;
+}
+
+/**
+ * 备注区标题行右边的工具按钮（批量归类 / 备注统计）。
+ * 放在这里而不是 note-table 里，是因为 300 行上限：note-table 已经贴着上限。
+ */
+export function noteTools(ctx, rerender) {
+  const box = el('span', 'nt-note-tools');
+
+  const pending = pendingKeywords(ctx.getState()).length;
+  if (pending) {
+    const go = el('button', 'nt-btn nt-btn-sm nt-note-batch', `批量归类 ${pending} 项`);
+    go.type = 'button';
+    go.addEventListener('click', () => openBatch(ctx, rerender));
+    box.appendChild(go);
+  }
+
+  const stats = el('button', 'nt-btn nt-btn-sm nt-note-batch', '备注统计');
+  stats.type = 'button';
+  stats.addEventListener('click', () => openNoteStats(ctx));
+  box.appendChild(stats);
+  return box;
 }
 
 /**

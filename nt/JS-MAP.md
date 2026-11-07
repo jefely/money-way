@@ -52,6 +52,7 @@
 | `core/meta.js` | （未标注界面）项目地址（常量） |
 | `core/migrate.js` | （无界面）旧数据迁移 |
 | `core/mw-settings.js` | （无界面）环图参数 SCHEMA + 默认值 |
+| `core/note-stats.js` | 备注统计（关键字 → 金额，再按备注类型分组合计） |
 | `core/opening-migrator.js` | （无界面）期初迁移 |
 | `core/opening-tx.js` | 期初流水的方向 |
 | `core/phrase-entry.js` | （无界面）一句话入账 |
@@ -145,6 +146,7 @@
 | `ui/mw-params.js` | 全局：环图参数（CSS 变量 → 数字） |
 | `ui/mw-svg-renderer.js` | 路径 tab / path.html → SVG 渲染 |
 | `ui/note-popover.js` | 流水 / 查询 → 长备注 |
+| `ui/note-stats.js` | 备注统计（关键字 → 金额，再按备注类型分两级） |
 | `ui/note-table.js` | 设置页的备注区（独立于账户的 A/B 区） |
 | `ui/path-debug.js` | 路径 tab → 追踪链诊断（页脚序号串 + ?debug=1 时的控制台明细） |
 | `ui/path-filter.js` | 路径页左栏（流水表）的筛选 |
