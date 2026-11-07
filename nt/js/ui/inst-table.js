@@ -170,7 +170,10 @@ export function mountInstTable(ctx, tbody, opts) {
     const trP = document.createElement('tr');
     trP.className = 'nt-row nt-inst-main';
     trP.dataset.id = row.id;
-    trP.appendChild(inputCell(row.id, 'name', acc ? acc.name : '', 'nt-c-inst-name'));
+    // 第一格（银行账户）打主题色底：每条分期的「左上角」一眼可辨（用户 2026-11-07）
+    const tdAcc = inputCell(row.id, 'name', acc ? acc.name : '', 'nt-c-inst-name');
+    tdAcc.classList.add('nt-inst-acc');
+    trP.appendChild(tdAcc);
     trP.appendChild(textCell(acc && acc.billDay ? acc.billDay : '', 'nt-cell-day'));
     trP.appendChild(textCell(moneyAlways(sumP), 'nt-cell-num'));
 
