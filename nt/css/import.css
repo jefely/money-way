@@ -245,13 +245,26 @@
   border-color: var(--nt-primary);
 }
 
-/* 导入窗口：三段（账单 / 备份 / 文本），标题行右侧放按钮 */
+/* 导入窗口：两段（文件 / 文本），每段一个圆角框 —— 照「添加账本 · 流水记录」的分组框。
+   按钮位置照用户给的第三图：「打开」与起始日期行同高、「导入」与我的账户行同高，都靠右。 */
+.nt-imp-group {
+  margin-bottom: 10px;
+  padding: 8px 10px 10px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  background: var(--nt-bg-cell);
+}
+
+.nt-imp-group:last-child {
+  margin-bottom: 0;
+}
+
 .nt-imp-head {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 10px;
-  margin: 12px 0 8px;
+  margin: 0 0 8px;
 }
 
 .nt-imp-lead {
@@ -282,43 +295,62 @@
   color: var(--nt-text-muted);
 }
 
-.nt-imp-row {
-  display: flex;
+/* 字段行：[标签 + 控件] [按钮] —— 按钮固定在右列，两行才排成一条竖线 */
+.nt-imp-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
-.nt-imp-cell {
-  display: inline-flex;
+/* 标签自己再分两列：标签 / 控件。两个字段行的控件因此左对齐成一条竖线 */
+.nt-imp-field .nt-imp-cell {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  margin-top: 0;
+  font-size: 12px;
+  color: var(--nt-text-muted);
+}
+
+.nt-imp-label {
+  min-width: 4em;
   white-space: nowrap;
-  min-width: 0;
 }
 
-.nt-imp-cell .nt-input {
+.nt-imp-field .nt-imp-cell .nt-input {
+  width: 100%;
   min-width: 0;
+  margin-top: 0;
+  box-sizing: border-box;
 }
 
-.nt-imp-cell select {
+.nt-imp-field .nt-imp-cell select {
   max-width: 190px;
 }
 
 .nt-imp-head .nt-btn,
-.nt-imp-row .nt-btn {
+.nt-imp-field .nt-btn {
   flex: 0 0 auto;
   height: 28px;
   padding: 0 12px;
   font-size: 12px;
 }
 
+/* 错误提示空着的时候不要留一条 18px 的空白（框内会显得漏了东西） */
+.nt-imp-group .nt-import-map-err:empty {
+  min-height: 0;
+  margin: 0;
+}
+
 .nt-imp-preview {
   display: block;
   width: 100%;
   box-sizing: border-box;
-  min-height: 110px;
+  min-height: 122px;
   max-height: 34vh;
   padding: 8px 10px;
   border: 1px solid var(--nt-bg-line);
@@ -329,5 +361,6 @@
   font-size: 12px;
   line-height: 1.6;
   resize: vertical;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
+
