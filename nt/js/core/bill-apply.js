@@ -13,7 +13,7 @@
  */
 
 import { addAccount, addNote, addTransaction } from './state-store.js';
-import { specialOf, stamp } from './keyword-engine.js';
+import { keywordChain, shortKey, specialOf, stamp } from './keyword-engine.js';
 import { collectNewAccounts, planBillImport } from './bill-plan.js';
 
 const norm = (v) => String(v == null ? '' : v).trim();
@@ -172,25 +172,37 @@ export function applyBillPlan(state, res, opts) {
     else if (isSuspect({ ...row, fromId, toId }, existing)) mark = true;
     if (row.billId) seenBill.add(row.billId);
 
-    // 备注栏只放**列上没有的、能区分同组流水的那点信息**（用户 2026-11-08）：
-    // 转出 / 转入两列已经写着节点名了，备注再写一遍就是废话。
-    //   → `特殊字段，YYMMDDHHMM`；特殊字段与节点名重复/包含时整段省掉。
+    // 备注栏（用户 2026-11-08 定稿）：
+    //   转出/转入识别可靠 → **只放有辨识度的特殊标签**，没有就整个留空；
+    //   识别不可靠（对方是导入时临时建的节点、或根本缺一端）→ 才列出第二层
+    //   `关键字1：关键字2，YYMMDDHHMM` 当线索。日期不再无脑进备注。
     const otherId = row.dir === 'in' ? fromId : toId;
     const otherAcc = (st.accounts || []).find((a) => a && a.id === otherId) || null;
     const nodeName = norm(otherAcc && otherAcc.name);
+    const reliable = !!fromId && !!toId && !!otherAcc;
     const special = specialOf(row.itemText || '');
     const usable = special && special.length <= SPECIAL_MAX && !GENERIC_ITEM.test(special);
     const redundant = !usable || !nodeName
       || special === nodeName || nodeName.includes(special) || special.includes(nodeName);
-    const noteHead = redundant ? '' : special;
-    const noteText = [noteHead, stamp(row.date, row.time)].filter(Boolean).join('，');
+
+    let noteText = '';
+    if (!fromId || !toId) {
+      // 最不可靠（缺一端）：列出第二层，信息给到最多
+      const chain = keywordChain(st.accounts, otherAcc, o.aliases || (res && res.aliases));
+      noteText = [chain, stamp(row.date, row.time)].filter(Boolean).join('，');
+    } else {
+      // 两端都判断出来了：只留值得单独写的特殊字段，没有就空着
+      noteText = redundant ? '' : special;
+    }
 
     st = addTransaction(st, {
       date: row.date,
       from_id: fromId || null,
       to_id: toId || null,
       amount: row.amount,
-      note: noteText || row.note,
+      // 备注允许为空（用户 2026-11-08）：没有辨识度特别高的标签时宁可空着，
+      // 不要把原文倒回来 —— 那样两列节点名之外又多出一堆重复信息。
+      note: noteText,
       billId: row.billId || undefined,
       // 备注分类 / 备注关键字（六大核心元素的后两个）
       noteType: row.noteType || undefined,
