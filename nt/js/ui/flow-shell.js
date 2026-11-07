@@ -2,14 +2,18 @@
 /**
  * 流水页和账本设置在一条横向滑道里（2026-11 用户要求）：
  *   **设置页在左（第一页），流水页在右（第二页）** —— 默认停在流水页；
- *   手机：一页一屏，点 ⚙（流水页右端）/ ◀（设置页右端）或左右搓动切换；
- *   ≥1200px：两页并排各半，按钮隐藏（CSS 负责）。
+ *   窄：一页一屏，点 ⚙（流水页右端）/ ◀（设置页右端）或左右搓动切换；
+ *   宽：两页并排，按钮隐藏（CSS 负责）。
  *
- * 本文件只管三件事：两个图标的点击、初始停在流水页、以及滑到设置页时回调一次
- * （设置页的数据可能被流水页改过，切过去要重画）。
+ * 「宽」的判据不是屏幕宽度，而是**右栏还放不放得下流水表**：
+ *   7 个固定列 528 + 备注至少 50 = 578。
+ *   左栏被拖窄时（比如 420），1182 的窗口其实放得下（右栏 762），
+ *   所以不能再写死 1200px（2026-11-07 用户：调小窗口就只剩流水记录）。
+ *   结果写在 `.nt-flow-shell.nt-flow-wide` 上，由 css/flow.css 消费。
  */
 
-const DESKTOP_MIN = 1200;
+/** 右栏至少要放得下：流水表 7 个固定列 528 + 备注 50 */
+const MIN_FLOW_W = 578;
 
 /**
  * @param {HTMLElement} section data-view="flow" 的视图
@@ -20,21 +24,42 @@ export function mountFlowShell(section, hooks) {
   const shell = section.querySelector('#nt-flow-shell');
   if (!shell) return;
   const h = hooks || {};
-  const wide = () => window.innerWidth >= DESKTOP_MIN;
+
+  /** 左栏宽度：拖过就用存下来的，否则按 CSS 兜底的 50% */
+  const leftWidth = () => {
+    const saved = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nt-flow-left-w'));
+    if (Number.isFinite(saved) && saved > 0) return saved;
+    return Math.round(shell.clientWidth * 0.5);
+  };
+
+  /**
+   * 现在该不该并排：右栏宽度 ≥ 流水表的固定列 + 备注下限才算。
+   * 判据跟着**左栏实际宽度**走 —— 左栏拖窄了，更小的窗口也能并排。
+   */
+  const wide = () => shell.clientWidth - leftWidth() >= MIN_FLOW_W;
+
+  /** 把判据写到 shell 上（CSS 消费），返回是否并排 */
+  const applyWide = () => {
+    const w = wide();
+    shell.classList.toggle('nt-flow-wide', w);
+    return w;
+  };
 
   const go = (left) => {
     if (shell.scrollTo) shell.scrollTo({ left, behavior: 'smooth' });
     else shell.scrollLeft = left;
   };
 
-  // 手机默认停在**流水页**（右页）；桌面并排时从头开始即可。
+  // 手机默认停在**流水页**（右页）；并排时从头开始即可。
   // mount 时 shell 可能还没量出宽度（刚显示），所以 rAF + 一次兜底延时。
   const place = () => {
+    applyWide();
     shell.scrollLeft = wide() ? 0 : shell.clientWidth;
   };
   requestAnimationFrame(place);
   setTimeout(place, 60);
   window.addEventListener('resize', () => {
+    applyWide();
     if (wide()) shell.scrollLeft = 0;
   });
 
@@ -71,7 +96,7 @@ export function mountFlowShell(section, hooks) {
     }, 120);
   });
 
-  mountSplit(section, shell);
+  mountSplit(section, shell, () => { applyWide(); place(); });
 }
 
 /**
@@ -82,7 +107,7 @@ const SPLIT_KEY = 'nt_flow_left_w';
 const MIN_LEFT = 280;
 const MIN_RIGHT = 360;
 
-function mountSplit(section, shell) {
+function mountSplit(section, shell, onWidth) {
   if (shell.querySelector('.nt-flow-split')) return;
   const left = section.querySelector('[data-flow-page="settings"]');
   if (!left) return;
@@ -122,6 +147,8 @@ function mountSplit(section, shell) {
       const w = Math.max(MIN_LEFT, Math.min(maxW, startW + (e.clientX - startX)));
       applyWidth(w);
       place();
+      // 左栏变宽/变窄会改变「还能不能并排」→ 立刻重判一次
+      if (typeof onWidth === 'function') onWidth();
     };
     const finish = () => {
       bar.removeEventListener('pointermove', move);

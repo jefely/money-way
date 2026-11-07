@@ -1138,11 +1138,18 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   scroll-snap-align: start;
 }
 
-@media (min-width: 1200px) {
-  .nt-flow-shell { overflow-x: hidden; position: relative; }
-  /* 左栏（设置）宽度可拖（--nt-flow-left-w），右栏（流水）吃掉剩余 */
-  .nt-flow-page[data-flow-page="settings"] { flex: 0 0 var(--nt-flow-left-w, 50%); }
-  .nt-flow-page[data-flow-page="flow"] { flex: 1 1 0; }
+/* 什么时候并排，由 ui/flow-shell.js 算，结果写在 `.nt-flow-wide` 上。
+   判据是「右栏还放得下流水表」：7 个固定列 528 + 备注至少 50 = 578。
+   以前这里写死 `@media (min-width: 1200px)` —— 用户的左栏被拖到 420px 时，
+   1182 明明放得下（右栏 762），却被硬切成单页（2026-11-07 用户截图）。 */
+.nt-flow-shell.nt-flow-wide { overflow-x: hidden; position: relative; }
+
+.nt-flow-shell.nt-flow-wide .nt-flow-page[data-flow-page="settings"] {
+  flex: 0 0 var(--nt-flow-left-w, 50%);
+}
+
+.nt-flow-shell.nt-flow-wide .nt-flow-page[data-flow-page="flow"] {
+  flex: 1 1 0;
 }
 
 /* 流水 ⇄ 设置 的切换图标（⚙ / ◀）：
@@ -1184,14 +1191,12 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 }
 
 /* 桌面并排时图标再收一点：同样的尺寸在宽屏上看着偏大（用户 2026-11），手机保持 31×29 */
-@media (min-width: 1200px) {
-  .nt-flow-page .nt-vbar [data-nav="settings"],
-  .nt-flow-page .nt-vbar [data-nav="back"] {
-    width: 28px;
-    height: 26px;
-    font-size: 14px;
-    line-height: 24px;
-  }
+.nt-flow-shell.nt-flow-wide .nt-flow-page .nt-vbar [data-nav="settings"],
+.nt-flow-shell.nt-flow-wide .nt-flow-page .nt-vbar [data-nav="back"] {
+  width: 28px;
+  height: 26px;
+  font-size: 14px;
+  line-height: 24px;
 }
 
 /* 两页之间的分割线：桌面可拖动调整左栏宽度（2026-11） */
@@ -1216,9 +1221,7 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   outline: none;
 }
 
-@media (min-width: 1200px) {
-  .nt-flow-split { display: block; }
-}
+.nt-flow-shell.nt-flow-wide .nt-flow-split { display: block; }
 
 /* ============================================================
    流水表的列宽 —— 和节点设置表（css/settings.css）同一套模型
