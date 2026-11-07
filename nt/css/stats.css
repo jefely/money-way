@@ -424,10 +424,11 @@
 .nt-table-catq .nt-th:nth-child(4) { width: var(--nt-col-catq-to, 100px); }
 .nt-table-catq .nt-th:nth-child(5) { width: var(--nt-col-catq-amount, 100px); }
 
-/* 序 / 日期 / 转出 / 转入 / 金额 一律**居中**（用户 2026-11）。
-   备注不是 —— 它是一段说明文字，靠左读。 */
-.nt-table-catq .nt-th:nth-child(-n+5),
-.nt-table-catq .nt-cell:nth-child(-n+5) {
+/* 序 / 日期 / 转出 / 转入 **居中**（用户 2026-11）。
+   金额列**不在此列** —— 它靠右（用户 2026-11-07：金额统一靠右，位数才对得齐）。
+   以前写成 :nth-child(-n+5)，把上面那条「金额靠右」又盖回居中了。 */
+.nt-table-catq .nt-th:nth-child(-n+4),
+.nt-table-catq .nt-cell:nth-child(-n+4) {
   text-align: center;
 }
 
@@ -435,11 +436,18 @@
   text-align: left;
 }
 
+/* 序 / 金额 是**数字**：截断时直接切掉，不留省略号。
+   省略号本身要占一格，金额窄的时候有它就少看一位数（用户 2026-11-07）。
+   金额再补 tabular-nums —— 位数不抖，靠右才真的对得齐。 */
 .nt-table-catq .nt-cell:nth-child(1),
 .nt-table-catq .nt-cell:nth-child(5) {
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: clip;
+}
+
+.nt-table-catq .nt-cell:nth-child(5) {
+  font-variant-numeric: tabular-nums;
 }
 
 .nt-table-catq .nt-cell:nth-child(6) {
