@@ -43,12 +43,17 @@ async function deriveWrapKey(passphrase, salt) {
 }
 
 /**
- * 生成 Ed25519 密钥对，并用法口令把私钥包起来。
+ * 生成 ECDSA P-256 密钥对，并用法口令把私钥包起来。
+ *
+ * 为什么不是 Ed25519：它在 Chrome 113+ / Safari 17+ 才有，手机上的微信 X5、
+ * 老版 Safari/Android WebView 直接抛错 —— 表现就是「电脑上感谢墙正常、手机上没有」。
+ * P-256 从 iOS 11 / Android 5 起都支持，签名同样是 64 字节。
  * @param {string} passphrase
  * @returns {Promise<{pubJwk: object, encPriv: {v:number,salt:string,iv:string,ct:string}}>}
  */
 export async function generateKeyPair(passphrase) {
-  const kp = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
+  const kp = await crypto.subtle.generateKey(
+    { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
   const pubJwk = await crypto.subtle.exportKey('jwk', kp.publicKey);
   const privJwk = await crypto.subtle.exportKey('jwk', kp.privateKey);
 
@@ -78,7 +83,8 @@ export async function unlockPrivateKey(encPriv, passphrase) {
   const raw = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv }, wrapKey, unb64(encPriv.ct));
   const jwk = JSON.parse(new TextDecoder().decode(raw));
-  return crypto.subtle.importKey('jwk', jwk, { name: 'Ed25519' }, false, ['sign']);
+  return crypto.subtle.importKey(
+    'jwk', jwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
 }
 
 /**
@@ -104,7 +110,8 @@ export function canonical(payload) {
  */
 export async function signPayload(privateKey, payload) {
   const sig = await crypto.subtle.sign(
-    { name: 'Ed25519' }, privateKey, new TextEncoder().encode(canonical(payload)));
+    { name: 'ECDSA', hash: { name: 'SHA-256' } },
+    privateKey, new TextEncoder().encode(canonical(payload)));
   return b64(sig);
 }
 
@@ -118,9 +125,9 @@ export async function signPayload(privateKey, payload) {
 export async function verifyPayload(pubJwk, payload, sigB64) {
   try {
     const key = await crypto.subtle.importKey(
-      'jwk', pubJwk, { name: 'Ed25519' }, false, ['verify']);
+      'jwk', pubJwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
     return await crypto.subtle.verify(
-      { name: 'Ed25519' }, key, unb64(sigB64),
+      { name: 'ECDSA', hash: { name: 'SHA-256' } }, key, unb64(sigB64),
       new TextEncoder().encode(canonical(payload)));
   } catch (e) {
     return false;

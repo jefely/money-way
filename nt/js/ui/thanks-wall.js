@@ -109,14 +109,14 @@ function b64ToBytes(b64) {
  * 没有 sig 或 sig 不对就一律拒绝，避免「删掉 sig 降级即可绕过」。
  */
 const PUB_KEY = {
-  "alg": "Ed25519",
-  "crv": "Ed25519",
+  "crv": "P-256",
   "ext": true,
   "key_ops": [
     "verify"
   ],
-  "kty": "OKP",
-  "x": "dLwo8SjFlj4ZA-b4eutFi4BQtgoCIss-9bDOmU4aNYI"
+  "kty": "EC",
+  "x": "jHrY4NNVtle3AtEHq8oSRwimCMyuSyy-Z6Am1lUOooc",
+  "y": "spdyhSI7OtNB4ya6TCgR1Dh1sguIL8Kt7TR6EBjy-2w"
 };
 
 async function checkSignature(box) {
@@ -124,14 +124,16 @@ async function checkSignature(box) {
   if (!box || !box.sig) return false;
   try {
     const subtle = crypto.subtle;
+    // ECDSA P-256：iOS 11 / Android 5 起都支持（Ed25519 在手机 WebView 上常常没有，
+    // 那会让「电脑正常、手机空白」）
     const key = await subtle.importKey(
-      'jwk', PUB_KEY, { name: 'Ed25519' }, false, ['verify']);
+      'jwk', PUB_KEY, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
     // 只签这四个字段，且按字母序重建 —— 与 thanks-sign.js 的 canonical() 一致。
     // 不能把整个 box 传进去：它多一个 sig 字段，字段集一变签名就对不上。
     const signed = { ct: box.ct, iv: box.iv, salt: box.salt, v: box.v };
     const data = new TextEncoder().encode(JSON.stringify(signed));
     return await subtle.verify(
-      { name: 'Ed25519' }, key, b64ToBytes(box.sig), data);
+      { name: 'ECDSA', hash: { name: 'SHA-256' } }, key, b64ToBytes(box.sig), data);
   } catch (e) {
     return false;
   }
