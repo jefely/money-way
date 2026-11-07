@@ -23,8 +23,8 @@ export function readPwHint() {
   }
 }
 
-/** 写提示词；空串等于清掉 */
-function savePwHint(v) {
+/** 写提示词；空串等于清掉。设置页改密码时也调它（改密码必须能换提示词）。 */
+export function savePwHint(v) {
   try {
     const text = String(v == null ? '' : v).trim();
     if (text) localStorage.setItem(HINT_KEY, text);

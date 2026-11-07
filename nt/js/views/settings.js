@@ -19,6 +19,7 @@ import { loadMergedSettings } from '../ui/debug-themes.js';
 import { mountDebugPanel } from '../ui/debug-panel.js';
 import { openAccountConfig } from '../ui/account-config.js';
 import { checkNewPassword } from '../core/vault-rekey.js';
+import { readPwHint, savePwHint } from '../ui/gate.js';
 
 const ACT_LABEL = { password: '修改密码', config: '配置', layout: '布局' };
 
@@ -172,6 +173,10 @@ export function mountSettings(section, ctx) {
         inp.old = pwField(body, '当前密码');
         inp.next = pwField(body, '新密码');
         inp.again = pwField(body, '再输一次新密码');
+        // 提示词跟着密码一起改：忘了密码时它是唯一线索
+        inp.hint = pwField(body, '密码提示词（可选，解锁时显示）', 'text');
+        inp.hint.value = readPwHint();
+        inp.hint.maxLength = 60;
 
         errEl = document.createElement('p');
         errEl.className = 'nt-sync-hint nt-import-map-err';
@@ -205,6 +210,8 @@ export function mountSettings(section, ctx) {
       try {
         const r = await ctx.changePassword(inp.old.value, inp.next.value);
         if (r && r.ok) {
+          // 密码换成功再落提示词：免得改密码失败却把旧提示词冲掉了
+          savePwHint(inp.hint.value);
           close();
           ctx.setFooter('主密码已修改：旧密码立即失效');
           return;
@@ -231,8 +238,8 @@ function addKV(dl, k, v, cls) {
   dl.appendChild(dd);
 }
 
-/** 一个「标签 + 密码框」：不用表单，回车不会误提交（提交走弹窗底部的按钮） */
-function pwField(host, labelText) {
+/** 一个「标签 + 输入框」：不用表单，回车不会误提交（提交走弹窗底部的按钮） */
+function pwField(host, labelText, type = 'password') {
   const wrap = document.createElement('label');
   wrap.className = 'nt-field';
 
@@ -241,7 +248,7 @@ function pwField(host, labelText) {
   label.textContent = labelText;
 
   const el = document.createElement('input');
-  el.type = 'password';
+  el.type = type;
   el.className = 'nt-input';
   el.autocomplete = 'off';
   el.setAttribute('aria-label', labelText);
