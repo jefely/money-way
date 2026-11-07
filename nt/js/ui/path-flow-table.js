@@ -10,6 +10,33 @@
  * 点任意一行 = 聚焦这一笔，图上按当前方向点亮它的来路（逆流）/ 去路（顺流）。
  */
 
+import { compactMonth } from '../core/date-query.js';
+import { todayIso } from '../core/format.js';
+
+/**
+ * 左栏日期框的默认值：**本月**（用户 2026-11-07：填 `2611` 这种写法）。
+ *
+ * 单独放这里而不是 views/path.js：那个文件已经顶到 300 行公约上限了。
+ * 返回的对象由调用方在每次渲染前 `sync()` 一次：
+ *   · 用户没动过日期框 → 返回本月文本（跨月自动跟着换）；
+ *   · 动过（含点了清空）→ 返回 ''，表示别覆盖他。
+ */
+export function mountDatePreset() {
+  const el = document.getElementById('pw-qf-date');
+  let edited = false;
+  if (el) el.addEventListener('input', () => { edited = true; });
+  return {
+    sync() {
+      if (edited) return '';
+      const next = compactMonth(todayIso(new Date()));
+      if (!next) return '';
+      if (el && el.value !== next) el.value = next;
+      return next;
+    },
+    markEdited() { edited = true; },
+  };
+}
+
 /** 列宽（与 path.css 的 .pw-flow-grid 必须一致）：序 · 日期 · 转出 · 转入 · 金额 · 备注 */
 export const COLS = '28px 62px 1fr 1fr 68px 1fr';
 
