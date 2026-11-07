@@ -13,6 +13,8 @@ import { renderRows, renderEmpty } from '../ui/table.js';
 import { tpl } from '../ui/render-transactions.js';
 import { money, moneyAlways, shortDate, todayIso } from '../core/format.js';
 import { markerOf } from '../core/draft-book.js';
+import { mountResize } from '../ui/table-layout.js';
+import { fitShareTable } from '../ui/width-fit.js';
 
 const NAMES = ['A', 'B', 'C'];
 /**
@@ -99,6 +101,15 @@ export function mountQuery(section, ctx) {
 
 
     host.appendChild(node);
+
+    // 动态建的表格要自己补拖动绑定：`bindAllTables` 在 `mountViews` **之前**跑，
+    // 那时这三张表还不存在，手柄和指针事件都挂不上 —— 用户 2026-11-07 报的
+    // 「查询页调不了列宽」就是这个。走的是同一套 mountResize（拖动 → 存列宽参数），
+    // 和统计页小表的做法一致。
+    const table = node.querySelector('table');
+    if (table) mountResize(table);
+    p.table = table;
+
     return p;
   }
 
@@ -161,6 +172,9 @@ export function mountQuery(section, ctx) {
   function render() {
     // 每次显示（切回本页 / 任何一次重画）都先按「现在」校正默认日期
     refreshPresets();
+    // 这一页是**隐藏着建出来的**（.nt-view[hidden]，宽度 0），窄屏压缩只能等
+    // 真正显示时再算：前 5 列压进容器，备注列吃剩余（用户 2026-11-07）
+    for (const p of panels) if (p.table) fitShareTable(p.table, 'query');
     const parts = [];
     for (const p of panels) {
       const t = renderPanel(p);

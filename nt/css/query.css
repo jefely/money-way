@@ -118,12 +118,15 @@
   min-width: 0;
 }
 
-/* 列宽来自参数「流水查询/列宽」；备注列 0 = 自适应（窄屏才塞得下） */
-.nt-c-q-seq { width: var(--nt-col-query-seq, 26px); }
-.nt-c-q-date { width: var(--nt-col-query-date, 58px); }
-.nt-c-q-from { width: var(--nt-col-query-from, 62px); }
-.nt-c-q-to { width: var(--nt-col-query-to, 62px); }
-.nt-c-q-amount { width: var(--nt-col-query-amount, 56px); }
+/* 列宽来自参数「流水查询/列宽」（默认 44/85/100/100/100）；备注列 0 = 自适应。
+   2026-11-07 用户：**前 5 列各自可调，只有备注列容纳变化** ——
+   和分类/节点列表、节点设置同一个模型（见 ui/width-fit.js 的 fitShareTable）：
+   窄屏放不下时把前 5 列压进容器，保证备注还剩 ~90 可读。 */
+.nt-c-q-seq { width: var(--nt-col-query-seq, 44px); }
+.nt-c-q-date { width: var(--nt-col-query-date, 85px); }
+.nt-c-q-from { width: var(--nt-col-query-from, 100px); }
+.nt-c-q-to { width: var(--nt-col-query-to, 100px); }
+.nt-c-q-amount { width: var(--nt-col-query-amount, 100px); }
 .nt-c-q-note { width: var(--nt-col-query-note, auto); min-width: 0; }
 
 /* 数据列对齐：序 · 日期 · 转出 · 转入 居中，金额右、备注左 */
@@ -154,7 +157,11 @@
 }
 
 .nt-table-query thead .nt-th {
-  position: static;
+  /* relative 而不是 static：列宽手柄是 th 里的 absolute 子元素，
+     th 不定位时它会以整块 thead（sticky）为包含块 —— 手柄跑到表格最右边，
+     拖任何一列都像在拖最后一列（2026-11-07 实测）。relative 只做定位上下文，
+     不改变吸顶行为（纵向吸顶仍由上面那条 thead 负责）。 */
+  position: relative;
   top: auto;
   left: auto;
   z-index: auto;

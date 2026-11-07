@@ -163,7 +163,9 @@ function enterCustomMode(tableEl) {
   // 表格右边留一大截空白（用户 2026-11 反复报的就是这个）。
   const keepFull = tableEl.classList.contains('nt-table-catq')
     || tableEl.classList.contains('nt-table-flow')
-    || tableEl.classList.contains('nt-table-accounts');
+    || tableEl.classList.contains('nt-table-accounts')
+    // 流水查询：备注列同样靠「不写宽度」吃剩余，切成 max-content 就没有弹性了
+    || tableEl.classList.contains('nt-table-query');
 
   const cols = [...tableEl.querySelectorAll('colgroup col')];
   const headRows = [...tableEl.querySelectorAll('thead tr')];
@@ -204,7 +206,11 @@ function enterCustomMode(tableEl) {
 
     // **col 也要写**：table-layout: fixed 下 col 的宽度优先于 th，
     // 只改 th 的话拖动一点效果都没有（用户 2026-11-01「一二列调不窄」）。
-    if (col && !isUnifiedMonth(tableEl, base && base.children[i])) {
+    // 但「吃剩余宽度」的那一列**不能写**：一写成 px 它就不再有弹性，
+    // 拖宽别的列时表会整体变宽、出现横滑（流水查询那张表有 colgroup，
+    // 2026-11-07 实测就是这样：备注被钉在 90，表从 389 涨到 419）。
+    const headTh = base && base.children[i];
+    if (col && !isUnifiedMonth(tableEl, headTh) && !isAbsorbCol(tableEl, headTh)) {
       col.style.width = w + 'px';
     }
   }
@@ -408,6 +414,9 @@ function isAbsorbCol(tableEl, th) {
   if (tableEl.classList.contains('nt-table-flow')) return dc === 'note';
   // 分类列表（详情表）：**备注**列，理由同上
   if (tableEl.classList.contains('nt-table-catq')) return dc === 'note';
+  // 流水查询（三张同构表）：**备注**列。用户 2026-11-07：前 5 列各自可调，
+  // 只有备注列容纳变化 —— 和分类/节点列表同一套。
+  if (tableEl.classList.contains('nt-table-query')) return dc === 'note';
   return false;
 }
 
@@ -418,7 +427,17 @@ export function paintHandles(tableEl) {
   // 在改金额区的总宽（用户 2026-11）。
   const stat = tableEl.classList.contains('nt-table-stat');
   const flowTable = tableEl.classList.contains('nt-table-flow');
+  // 只给「一格对一列」的表头行放手柄。
+  // 查询页的表头是**三行**：标题行跨 6 列、筛选行第一格跨 2 列 ——
+  // 在那两行里按下时，列序号和真实列对不上（筛选行的第 1 格是日期区间，
+  // 它的「第 2 格」其实是转出列），拖出来的是别的列。用户看到的就是「一拖就乱」。
+  const rows = [...tableEl.querySelectorAll('thead tr')];
+  const total = rows.reduce((m, tr) => Math.max(m, [...tr.children].reduce((s, c) => s + c.colSpan, 0)), 0);
+  const aligned = new Set(rows.filter((tr) => (
+    tr.children.length === total && [...tr.children].every((c) => c.colSpan === 1)
+  )));
   for (const th of tableEl.querySelectorAll('thead .nt-th')) {
+    if (!aligned.has(th.parentNode)) continue;
     if (stat && th.dataset.col !== 'cat') continue;
     // 按钮 / 图标列（上移、删除、固定收支）**不可调宽**：够点就行（用户 2026-11）。
     if (th.dataset.col === 'up' || th.dataset.col === 'action') continue;
