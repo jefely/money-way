@@ -75,17 +75,18 @@ function actsInto(head, buttons) {
 }
 
 /**
- * 字段行：标签 + 控件，右边可跟一个按钮。
- * 按钮位置照用户给的第三图：「打开」对齐起始日期行、「导入」对齐我的账户行。
+ * 字段行：标签 + 控件，右边可跟一个或多个按钮。
+ * 用户 2026-11-08：「打开」和「导入」放同一行、在起始日期输入框后面。
  */
-function field(label, control, btn) {
+function field(label, control, buttons) {
   const row = el('div', 'nt-imp-field');
   const cell = el('label', 'nt-imp-cell');
   cell.appendChild(el('span', 'nt-imp-label', label));
   control.classList.add('nt-input', 'nt-input-sm');
   cell.appendChild(control);
   row.appendChild(cell);
-  if (btn) row.appendChild(btn);
+  const list = Array.isArray(buttons) ? buttons : (buttons ? [buttons] : []);
+  for (const b of list) row.appendChild(b);
   return row;
 }
 
@@ -109,17 +110,28 @@ export function openImportHub(opts) {
   let previewEl = null;
   let fromEl = null;
   let mySel = null;
+  let myRow = null;
+  let slot = null;
   let backupErr = null;
   let backup = null;
-  let pwWrap = null;
+  let pwRow = null;
   let pwEl = null;
+
+  /**
+   * 预览下面那一行只有一个位置，两种用途二选一：
+   *   'my' = 我的账户（识别成账单，要选计入哪个账户）
+   *   'pw' = 账本密码（识别成加密备份）
+   *   其它 = 整行不出现（默认就是这样，用户 2026-11-08 明确要求）
+   */
+  function setSlot(which) {
+    if (myRow) myRow.hidden = which !== 'my';
+    if (pwRow) pwRow.hidden = which !== 'pw';
+    if (slot) slot.hidden = !which;
+  }
 
   const refresh = () => {
     if (!previewEl || backup) return;
-    if (!result) {
-      previewEl.value = '';
-      return;
-    }
+    if (!result) { previewEl.value = ''; return; }
     const from = fromEl ? fromEl.value || '' : '';
     const myId = mySel ? mySel.value || '' : '';
 
@@ -165,10 +177,9 @@ export function openImportHub(opts) {
     r.fileName = file.name;
     r.sheetName = sheet.name;
     result = r;
-    if (mySel && r.kind === 'bill') {
-      const pick = myAccountPick(accounts, r.presetId, r.hints && r.hints.cardTail);
-      if (pick) mySel.value = pick.id;
-    }
+    const pick = r.kind === 'bill' ? myAccountPick(accounts, r.presetId, r.hints && r.hints.cardTail) : null;
+    if (pick) mySel.value = pick.id;
+    setSlot(r.kind === 'bill' ? 'my' : '');
     refresh();
   }
 
@@ -176,7 +187,7 @@ export function openImportHub(opts) {
   function showBackup(b) {
     backup = b;
     if (previewEl) previewEl.value = backupSummary(b);
-    if (pwWrap) pwWrap.hidden = b.kind !== 'backup';
+    setSlot(b.kind === 'backup' ? 'pw' : '');
   }
 
   /**
@@ -186,10 +197,9 @@ export function openImportHub(opts) {
   async function loadFile(file) {
     if (!file) return;
     const name = String(file.name || '');
-    result = null;
-    backup = null;
+    result = null; backup = null;
     if (backupErr) backupErr.textContent = '';
-    if (pwWrap) pwWrap.hidden = true;
+    setSlot('');
     if (pwEl) pwEl.value = '';
     if (previewEl) previewEl.value = `正在读取 ${name} …`;
 
@@ -234,10 +244,7 @@ export function openImportHub(opts) {
   const openFile = () => pickFile('.lz,.xlsx,.xls,.csv,.txt,.tsv,.json', loadFile);
 
   async function doBackupImport() {
-    if (!backup) {
-      if (backupErr) backupErr.textContent = '先「打开」一个备份文件';
-      return;
-    }
+    if (!backup) { if (backupErr) backupErr.textContent = '先「打开」一个备份文件'; return; }
     const b = backup;
     const pw = (pwEl && pwEl.value) || '';
     if (b.kind === 'backup') {
@@ -272,9 +279,7 @@ export function openImportHub(opts) {
       const picked = await pickTextFile('.txt,.csv,.md,.tsv,text/plain');
       ta.value = picked.text;
       ta.focus();
-    } catch (e) {
-      /* 用户取消 */
-    }
+    } catch (e) { /* 用户取消 */ }
   }
 
   function doImport() {
@@ -304,11 +309,8 @@ export function openImportHub(opts) {
       if (backupErr) backupErr.textContent = '这是加密备份，请用上面的「文件导入」。';
       return;
     }
-    if (typeof o.mergeText !== 'function') return;
-    let n = 0;
-    try {
-      n = o.mergeText(text);
-    } catch (e) {
+    if (typeof o.mergeText !== 'function') return;    let n = 0;
+    try { n = o.mergeText(text); } catch (e) {
       if (typeof o.setFooter === 'function') o.setFooter('导入失败：' + ((e && e.message) || e));
       return;
     }
@@ -331,7 +333,7 @@ export function openImportHub(opts) {
       const file = group('文件导入', '（Excel / CSV / 账单 / .lz 快照 / 加密备份，备份会替换当前账本）');
       fromEl = el('input');
       fromEl.type = 'date';
-      file.box.appendChild(field('起始日期', fromEl, fileOpen));
+      file.box.appendChild(field('起始日期', fromEl, [fileOpen, fileGo]));
 
       mySel = el('select');
       for (const acc of accounts.filter((a) => a && !a.isHidden && a.id !== '__OPENING__')) {
@@ -339,7 +341,6 @@ export function openImportHub(opts) {
         opt.value = acc.id;
         mySel.appendChild(opt);
       }
-      file.box.appendChild(field('我的账户', mySel, fileGo));
 
       file.box.appendChild(hint('导入预览：', true));
       previewEl = el('textarea', 'nt-imp-preview');
@@ -348,15 +349,22 @@ export function openImportHub(opts) {
       previewEl.spellcheck = false;
       file.box.appendChild(previewEl);
 
-      backupErr = el('p', 'nt-sync-hint nt-imp-sub nt-import-map-err');
-      file.box.appendChild(backupErr);
+      /* 预览下面这一行只有一个位置，两种用途二选一（默认整行不出现）：
+         识别成账单 → 我的账户；识别成加密备份 → 密码。 */
+      slot = el('div', 'nt-imp-slot');
+      slot.hidden = true;
+      myRow = field('我的账户', mySel);
+      slot.appendChild(myRow);
 
       pwEl = el('input');
       pwEl.type = 'password';
       pwEl.placeholder = '账本密码';
-      pwWrap = field('密码', pwEl);
-      pwWrap.hidden = true;
-      file.box.appendChild(pwWrap);
+      pwRow = field('密码', pwEl);
+      slot.appendChild(pwRow);
+      file.box.appendChild(slot);
+
+      backupErr = el('p', 'nt-sync-hint nt-imp-sub nt-import-map-err');
+      file.box.appendChild(backupErr);
       body.appendChild(file.box);
 
       /* ② 文本导入 */
@@ -373,8 +381,7 @@ export function openImportHub(opts) {
       body.appendChild(text.box);
 
       fromEl.addEventListener('change', refresh);
-      mySel.addEventListener('change', refresh);
-    },
+      mySel.addEventListener('change', refresh);    },
   });
 
   return dlg;

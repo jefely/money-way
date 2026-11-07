@@ -295,10 +295,9 @@
   color: var(--nt-text-muted);
 }
 
-/* 字段行：[标签 + 控件] [按钮] —— 按钮固定在右列，两行才排成一条竖线 */
+/* 字段行：[标签 + 控件][按钮…] —— 一行可以放两个按钮（打开 / 导入） */
 .nt-imp-field {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
@@ -306,6 +305,7 @@
 
 /* 标签自己再分两列：标签 / 控件。两个字段行的控件因此左对齐成一条竖线 */
 .nt-imp-field .nt-imp-cell {
+  flex: 1 1 auto;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
@@ -346,16 +346,18 @@
   margin: 0;
 }
 
-.nt-imp-preview {
+/* 选择器带上分组框：modal.css 的 `.nt-modal-body textarea { min-height:120px }`
+   特异性比单个类高，不加这一层 180px 会被压回 120px（用户 2026-11-08 要求加高）。 */
+.nt-imp-group .nt-imp-preview {
   display: block;
   width: 100%;
   box-sizing: border-box;
-  min-height: 122px;
+  min-height: 180px;
   max-height: 34vh;
   padding: 8px 10px;
   border: 1px solid var(--nt-bg-line);
   border-radius: 8px;
-  background: var(--nt-bg-soft);
+  background: var(--nt-bg-cell);
   color: var(--nt-text);
   font: inherit;
   font-size: 12px;
