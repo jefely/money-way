@@ -65,7 +65,8 @@ export function sortByDate(state) {
   const head = list.filter(isOpening);
   const rest = list.filter((t) => !isOpening(t));
   const key = (t) => {
-    const m = /^(\d{2}:\d{2})/.exec(String((t && t.note) || ''));
+    // 备注格式是「类型：关键字，日期 时间，内容」——时间不再固定在最前面
+  const m = /(\d{2}:\d{2})/.exec(String((t && t.note) || ''));
     return String((t && t.date) || '') + ' ' + (m ? m[1] : '');
   };
   rest.sort((x, y) => {

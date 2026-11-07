@@ -77,12 +77,17 @@ function planOne(item, ctx) {
   if (!my && myAccountId) my = accounts.find((a) => a && a.id === myAccountId) || null;
   const other = matchMerchantAccount(accounts, rules, item.party, item.item, item.category);
 
-  const bits = [item.party, item.item, item.method]
+  // 备注格式（用户 2026-11-08，沿用单文件版定过的）：**类型：关键字，日期，内容，内容**
+  // 只用中文冒号和中文逗号，不再用 ｜、（） 这类符号。
+  const noteType = norm(item.category);
+  const when = [norm(item.date), norm(item.time)].filter(Boolean).join(' ');
+  const body = [item.item, item.method]
     .map((x) => norm(x))
     .filter((x) => x && x !== '/');
-  let note = bits.join('｜');
-  if (item.note && item.note !== '/') note += (note ? '（' + item.note + '）' : item.note);
-  if (item.time) note = item.time + ' ' + note;
+  const head = [norm(item.party), when].filter(Boolean).join('，');
+  let note = (noteType ? noteType + '：' : '') + head;
+  if (body.length) note += '，' + body.join('，');
+  if (item.note && item.note !== '/') note += '，' + norm(item.note);
 
   const myName = my ? norm(my.name) : '';
   const otherName = other ? norm(other.name) : '';
