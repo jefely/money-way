@@ -124,6 +124,7 @@
 | `ui/fly-in.js` | 流水 tab → 入账飞入 |
 | `ui/gate.js` | 锁屏 / 首次设密码 |
 | `ui/global-undo.js` | 全局撤销 / 重做的动作与快捷键 |
+| `ui/import-backup.js` | 备份文件导入（.lz 快照 / 加密备份 / 整本 Excel 备份） |
 | `ui/import-bill.js` | 导入预览里的「账单」面板（起始日期 + 六元素统计） |
 | `ui/import-dialog.js` | 导入 Excel / CSV / 账单 |
 | `ui/import-hub.js` | 流水工具条「导入」→ 一个窗口里同时做文件导入和文本导入 |

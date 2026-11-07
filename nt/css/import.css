@@ -296,7 +296,7 @@
   display: block;
   width: 100%;
   box-sizing: border-box;
-  min-height: 140px;
+  min-height: 110px;
   max-height: 34vh;
   padding: 8px 10px;
   border: 1px solid var(--nt-bg-line);

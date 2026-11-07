@@ -17,9 +17,8 @@ import { analyzeTable } from '../core/import-table.js';
 import { planBillImport } from '../core/bill-plan.js';
 import { money } from '../core/format.js';
 import { pickTemplateSheets } from '../core/xlsx-template.js';
-import { readLzText } from '../core/lz-file.js';
 import { isBackupText } from '../core/backup-file.js';
-import { showTemplateImport, showLzImport } from './import-dialog.js';
+import { askPassword, loadBackupFile } from './import-backup.js';
 import { pickTextFile } from './file-io.js';
 
 const PLACEHOLDER = [
@@ -91,6 +90,7 @@ export function openImportHub(opts) {
   let fromEl = null;
   let mySel = null;
   let myWrap = null;
+  let backupErr = null;
 
   const refresh = () => {
     if (!previewEl) return;
@@ -135,18 +135,14 @@ export function openImportHub(opts) {
       + '可以换一个文件；如果是任意表格，也可以把内容粘到下面的「文本导入」。';
   };
 
-  /** 选完文件之后：识别 → 预览（整本备份 / .lz / 加密备份会另开确认框） */
-  async function loadFile(file) {
+  /** 账单段：只收账单/表格。备份类文件提示用户去下面的「备份文件导入」 */
+  async function loadBillFile(file) {
     if (!file) return;
     result = null;
     if (previewEl) previewEl.value = `正在读取 ${file.name} …`;
 
     if (/\.lz$/i.test(file.name)) {
-      try {
-        showLzImport(await readLzText(await file.text()), file.name, o);
-      } catch (e) {
-        if (previewEl) previewEl.value = '读取失败：' + ((e && e.message) || e);
-      }
+      if (previewEl) previewEl.value = '这是 .lz 快照，请用下面的「备份文件导入」。';
       return;
     }
 
@@ -154,8 +150,7 @@ export function openImportHub(opts) {
       let text = '';
       try { text = await file.text(); } catch (e) { text = ''; }
       if (isBackupText(text)) {
-        if (typeof o.onBackup === 'function') o.onBackup(text);
-        else if (previewEl) previewEl.value = '这是加密备份，当前不能恢复';
+        if (previewEl) previewEl.value = '这是加密备份，请用下面的「备份文件导入」。';
         return;
       }
     }
@@ -163,7 +158,10 @@ export function openImportHub(opts) {
     try {
       const book = await readAnyTable(file);
       const picked = pickTemplateSheets(book.sheets);
-      if (picked.isTemplate) { showTemplateImport(picked, file.name, o); return; }
+      if (picked.isTemplate) {
+        if (previewEl) previewEl.value = '这是整本 Excel 备份，请用下面的「备份文件导入」。';
+        return;
+      }
       const sheet = book.sheets[0];
       if (!sheet) throw new Error('这个文件里没有可读的表');
       const r = analyzeTable(sheet.rows);
@@ -180,18 +178,27 @@ export function openImportHub(opts) {
     }
   }
 
-  function openFile() {
+  function pickFile(accept, onPick) {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.xlsx,.csv,.txt,.tsv,.lz,.json';
+    input.accept = accept;
     input.style.display = 'none';
     document.body.appendChild(input);
     input.addEventListener('change', async () => {
       const file = input.files && input.files[0];
       input.remove();
-      await loadFile(file);
+      await onPick(file);
     });
     input.click();
+  }
+
+  const openBillFile = () => pickFile('.xlsx,.csv,.txt,.tsv,.json', loadBillFile);
+
+  function openBackupFile() {
+    pickFile('.lz,.txt,.json,.xlsx', async (file) => {
+      if (backupErr) backupErr.textContent = '';
+      await loadBackupFile(file, o, (msg) => { if (backupErr) backupErr.textContent = msg; });
+    });
   }
 
   async function openTextFile() {
@@ -219,7 +226,7 @@ export function openImportHub(opts) {
     const text = String((ta && ta.value) || '').trim();
     if (!text) return;
     if (isBackupText(text)) {
-      if (typeof o.onBackup === 'function') o.onBackup(text);
+      askPassword(text, o);
       return;
     }
     if (typeof o.mergeText !== 'function') return;
@@ -240,15 +247,15 @@ export function openImportHub(opts) {
     title: '导入',
     autoFocus: false,
     build: (body) => {
-      body.appendChild(hint('文件导入', true));
-      body.appendChild(hint('（Excel / CSV / 账单 / .lz 快照 / 加密备份）'));
+      body.appendChild(hint('账单导入', true));
+      body.appendChild(hint('（支付宝 / 微信 / 招商银行导出的 Excel、CSV）'));
 
       const row = el('div', 'nt-imp-row');
       fromEl = el('input');
       fromEl.type = 'date';
       row.appendChild(labelOf('起始日期', fromEl));
       const openBtn = button('打开', 'nt-btn nt-btn-sm nt-exp-main');
-      openBtn.addEventListener('click', openFile);
+      openBtn.addEventListener('click', openBillFile);
       row.appendChild(openBtn);
 
       mySel = el('select');
@@ -270,6 +277,16 @@ export function openImportHub(opts) {
       previewEl.placeholder = '导入预览：';
       previewEl.spellcheck = false;
       body.appendChild(previewEl);
+
+      body.appendChild(hint('备份文件导入', true));
+      body.appendChild(hint('（.lz 快照 / 加密备份 / 整本 Excel 备份，会替换当前账本）'));
+      const brow = el('div', 'nt-imp-row nt-imp-row-end');
+      const bOpen = button('打开', 'nt-btn nt-btn-sm');
+      bOpen.addEventListener('click', openBackupFile);
+      brow.appendChild(bOpen);
+      body.appendChild(brow);
+      backupErr = el('p', 'nt-sync-hint nt-imp-sub nt-import-map-err');
+      body.appendChild(backupErr);
 
       body.appendChild(hint('文本导入', true));
       body.appendChild(hint('（粘贴流水记录文本，合并进当前账本）'));
