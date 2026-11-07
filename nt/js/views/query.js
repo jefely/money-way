@@ -49,23 +49,19 @@ export function mountQuery(section, ctx) {
     const body = node.querySelector('[data-body]');
     const totalEl = node.querySelector('[data-total]');
     const inputs = node.querySelectorAll('[data-cond]');
-    const p = { name, cond, body, totalEl };
+    const dateInput = node.querySelector('[data-cond="dateRange"]');
+    // edited = 用户自己动过日期框（清空也算）。动过就不再拿默认值覆盖他。
+    const p = { name, dateKind, cond, body, totalEl, dateInput, preset: '', edited: false };
 
     // 预填默认日期（程序赋值不触发 input，所以 cond 要手动同步）
-    const preset = presetDateText(dateKind);
-    if (preset) {
-      const r = parseDateRange(preset);
-      cond.dateFrom = r ? r.from : '';
-      cond.dateTo = r ? r.to : '';
-      const dateInput = node.querySelector('[data-cond="dateRange"]');
-      if (dateInput) dateInput.value = preset;
-    }
+    applyPreset(p);
 
     for (const input of inputs) {
       input.addEventListener('input', () => {
         const key = input.getAttribute('data-cond');
         if (key === 'dateRange') {
           // 一个框填「起~止」或单日/整月/整年，拆成两个 ISO 边界（core/date-query）
+          p.edited = true;
           const r = parseDateRange(input.value);
           cond.dateFrom = r ? r.from : '';
           cond.dateTo = r ? r.to : '';
@@ -96,12 +92,38 @@ export function mountQuery(section, ctx) {
     node.querySelector('[data-act="clear"]').addEventListener('click', () => {
       for (const k of Object.keys(cond)) cond[k] = '';
       for (const input of inputs) input.value = '';
+      // 用户明确清空了：别再拿默认日期盖回来
+      p.edited = true;
       render();
     });
 
 
     host.appendChild(node);
     return p;
+  }
+
+  /**
+   * 把「默认日期」写进面板（用户 2026-11-07：A 今天 / B 本周 / C 本月）。
+   * 两个入口调它：新建面板时、以及**每次显示查询页时**（见 refreshPresets）——
+   * 应用开着过了零点，「今天」要跟着变，不能还停在昨天。
+   */
+  function applyPreset(p) {
+    const next = presetDateText(p.dateKind);
+    if (!next) return;
+    p.preset = next;
+    const r = parseDateRange(next);
+    p.cond.dateFrom = r ? r.from : '';
+    p.cond.dateTo = r ? r.to : '';
+    if (p.dateInput) p.dateInput.value = next;
+  }
+
+  /** 用户自己动过日期的面板不碰；其余的按「现在」重算一次 */
+  function refreshPresets() {
+    for (const p of panels) {
+      if (p.edited) continue;
+      if (presetDateText(p.dateKind) === p.preset) continue;
+      applyPreset(p);
+    }
   }
 
   function renderPanel(p) {
@@ -137,6 +159,8 @@ export function mountQuery(section, ctx) {
   }
 
   function render() {
+    // 每次显示（切回本页 / 任何一次重画）都先按「现在」校正默认日期
+    refreshPresets();
     const parts = [];
     for (const p of panels) {
       const t = renderPanel(p);
