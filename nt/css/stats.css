@@ -436,13 +436,12 @@
   text-align: left;
 }
 
-/* 序 / 金额 是**数字**：截断时直接切掉，不留省略号。
-   省略号本身要占一格，金额窄的时候有它就少看一位数（用户 2026-11-07）。
+/* 截断就截断，**不留省略号**（用户 2026-11-07）：
+   宽度有限时能显示多少显示多少 —— 省略号本身要占一格，白白少看一个字。
+   数值列（序 / 金额）尤其明显：少看一位数。
    金额再补 tabular-nums —— 位数不抖，靠右才真的对得齐。 */
-.nt-table-catq .nt-cell:nth-child(1),
-.nt-table-catq .nt-cell:nth-child(5) {
-  white-space: nowrap;
-  overflow: hidden;
+.nt-table-catq .nt-th,
+.nt-table-catq .nt-cell {
   text-overflow: clip;
 }
 
@@ -453,7 +452,6 @@
 .nt-table-catq .nt-cell:nth-child(6) {
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   color: var(--nt-text-muted);
   /* 备注可以点：窄屏放不下整段，点了在旁边弹气泡看全文（ui/note-popover.js） */
   cursor: pointer;
