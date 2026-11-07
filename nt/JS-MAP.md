@@ -37,6 +37,7 @@
 | `core/import-table.js` | 导入 Excel / CSV / 账单（纯逻辑，Node 可跑） |
 | `core/installment-cells.js` | 分期的「每期手填」矩阵（纯函数，Node 可跑） |
 | `core/installment-engine.js` | （无界面）分期引擎 |
+| `core/ledger-adapter.js` | （无界面）旧账本 → 事件模型的单向投影（只读） |
 | `core/ledger-file.js` | （未标注界面）账本文件（纯函数） |
 | `core/ledger-stats.js` | （无界面）账本统计 |
 | `core/ledgers.js` | （无界面）多账本 create/switch/rename/remove |

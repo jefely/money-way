@@ -172,6 +172,39 @@ function computeDivDepth(html) {
   return { max };
 }
 
+// ⑩ Service Worker 的 ASSETS 必须覆盖所有被 import 的模块。
+// 2026-11-07 实测漏了 11 个（phrase-slots / stat-resize / width-fit / stats-swipe …）：
+// 它们被页面静态 import、却不在预缓存清单里 —— 在线时靠运行时缓存侥幸能用，
+// 离线首次打开就是「转一圈然后白屏」。用户第一优先级就是离线能用，这条必须机械化。
+const swPath = join(ROOT, 'sw.js');
+if (existsSync(swPath)) {
+  const swText = readFileSync(swPath, 'utf8');
+  const listed = new Set();
+  for (const m of swText.matchAll(/['"]\.\/((?:js|css)\/[^'"]+)['"]/g)) listed.add(m[1]);
+
+  const imported = new Set();
+  for (const file of files) {
+    if (extname(file) !== '.js') continue;
+    const text = readFileSync(file, 'utf8');
+    for (const m of text.matchAll(/(?:from|import)\s+['"]([^'"]+)['"]/g)) {
+      if (!m[1].startsWith('.')) continue;
+      const target = rel(join(dirname(file), m[1]));
+      if (target.startsWith('js/')) imported.add(target);
+    }
+  }
+
+  for (const target of imported) {
+    if (!listed.has(target)) {
+      problems.push(`${target} 被 import 但不在 sw.js 的 ASSETS 里 —— 离线首次打开会加载失败（公约 4.4）`);
+    }
+  }
+  for (const item of listed) {
+    if (!existsSync(join(ROOT, item))) {
+      problems.push(`sw.js 的 ASSETS 列了不存在的文件：${item}`);
+    }
+  }
+}
+
 // ⑨ JS-MAP.md 必须与各文件头的界面注释一致。
 // 手写文档在 150+ 个文件时必然漂（上一版就漏了一半 ui/ 模块），
 // 所以文档改成生成物，门禁负责它别和代码分家。

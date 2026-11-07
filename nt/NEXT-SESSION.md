@@ -1,6 +1,6 @@
 # NT 账本 · 新窗口快速启动 / 交接
 
-> 最后更新：2026-11-05 · `nt-v1.308` · `9b9430e`
+> 最后更新：2026-11-07 · `nt-v1.457` · 最新提交见 `git log -1`
 > 用途：在新会话 / 新窗口里，让另一个 agent 或未来的你快速接手 `D:\myproject\money-way`。
 
 ---
@@ -79,17 +79,32 @@ NT 本地调试: http://127.0.0.1:8080/nt/index.html?debug=1
 
 | 项 | 值 |
 |---|---|
-| 版本 | `nt-v1.310` |
-| 最新提交 | 见文件头 |
-| 线上 | 已确认 `nt-v1.310` |
-| 测试 | 全部测试文件；**604 通过**（含 `mw-params.test.mjs`） |
-| 公约 | `check-rules` 通过，264 个文件，300 行/文件 |
+| 版本 | `nt-v1.457` |
+| 最新提交 | 见 `git log -1` |
+| 线上 | 已确认 `nt-v1.457` |
+| 测试 | 全部测试文件；**652 通过**（58 个文件，含 `mw-params.test.mjs`） |
+| 公约 | `check-rules` 通过，283 个文件，300 行/文件 |
 | 工作区 | 干净 |
 
-### `mw-settings.js` 的 25/200 已转正
+### 新内核的桥已经搭好（2026-11-07）
 
-环图锥形默认值 `25 / 200` 已在 v1.284 正式提交；`settings-schema.js` 的旧值迁移
-（46 → 25、115 → 200）和 `mw-params.test.mjs` 的断言同步更新，**该测试已重新纳入全量**。
+`core/ledger-adapter.js` 把旧账单向投影成事件模型，验收标准是**逐账户对账**：
+`balanceOf()` 与 `balanceOfNode()` 必须同一个数、`auditBook().doubleEntry.diff` 必须是 0。
+`tests/ledger-adapter.test.mjs` 10 条全过。
+
+想拿真实账本验一次：
+
+```powershell
+# 界面「导出文本」得到账本 txt，然后
+node nt/tools/audit-book.mjs 账本.txt
+```
+
+工具会打出每本账的 `ΣA / ΣB / 差` 和「对不上的账户」；有差异退出码 1。
+**它不改账本**，只读。
+
+> 已发现的口径分歧（未裁决）：空类型账户（U 区）在 `balanceOf` 里按 B 极、
+> 在 `polarityOfType` / `openingEnds` 里按 A 极。适配器选 B 极以对齐旧结果，
+> 详见 `EVENT-MODEL.md` §六 末尾。要不要统一需要一次裁决。
 
 ---
 
@@ -119,6 +134,8 @@ nt/
 - `nt/js/core/ledger-stats.js`：账户汇总、分类统计、期初日期。
 - `nt/js/core/opening-tx.js`：期初流水方向 + 旧数据修正。
 - `nt/js/core/category-query.js`：分类查询纯函数。
+- `nt/js/core/event-engine.js` / `calc-engine.js`：事件模型的事实层 / 解释层（**新内核，未接线**）。
+- `nt/js/core/ledger-adapter.js`：旧账 → 事件模型的单向投影（只读，对账用）。
 - `nt/js/ui/stats-category.js`：分类统计三块（存量 / 流量 / 分类查询）。
 - `nt/js/ui/fixed-table.js`：固定收支表。
 - `nt/js/ui/table-layout.js`：列宽、冻结、触摸拖拽。
@@ -133,11 +150,23 @@ nt/
 ```powershell
 cd D:\myproject\money-way
 node nt/tools/check-rules.mjs
-$files = Get-ChildItem nt\tests\*.mjs | Where-Object Name -ne 'mw-params.test.mjs' | ForEach-Object FullName
-node --test @files
+Get-ChildItem nt\tests\*.mjs | ForEach-Object { node $_.FullName }
 ```
 
-期望：公约通过；546 pass / 0 fail。
+期望：公约通过；**652 pass / 0 fail**（58 个文件）。
+
+> **必须逐个 `node <file>` 跑**。`node --test nt/tests/*.test.mjs` 在本机沙箱里会
+> `spawn EPERM`（子进程拿不到命名管道），曾把 144 个文件全报成语法错误 —— 那是假警报。
+> 跑测试同理。
+
+### 5.1b 新内核对账（可选，但接了事件模型就必须跑）
+
+```powershell
+node nt/tools/audit-book.mjs 账本.txt
+```
+
+账本在浏览器加密库里，agent 取不到；由用户在界面「导出文本」后交过来。
+`差 0.00` + `逐账户差异 0 处` 才算接得住。
 
 ### 5.2 版本号必须改两处
 
@@ -336,6 +365,10 @@ Emulation.setDeviceMetricsOverride({
 node nt/tools/js-map.mjs --write
 ```
 
+- **新增 JS 文件必须同时加进 `nt/sw.js` 的 `ASSETS`**（否则离线首次打开加载失败）。
+  2026-11-07 补门禁时发现历史漏了 11 个（`phrase-slots` / `stat-resize` / `width-fit` /
+  `stats-swipe` …），它们都被页面静态 import —— 已全部补上，`check-rules` 现在会拦第 12 个。
+
 - 提交前：
 
 ```powershell
@@ -376,9 +409,11 @@ node nt\tools\serve.mjs 8080
 # 公约
 node nt/tools/check-rules.mjs
 
-# 测试（排除本地 mw 冲突）
-$files = Get-ChildItem nt\tests\*.mjs | Where-Object Name -ne 'mw-params.test.mjs' | ForEach-Object FullName
-node --test @files
+# 测试（逐个跑，不能 node --test 通配 —— 沙箱里会 spawn EPERM）
+Get-ChildItem nt\tests\*.mjs | ForEach-Object { node $_.FullName }
+
+# 新内核对账（有导出文本时）
+node nt/tools/audit-book.mjs 账本.txt
 
 # 文件地图
 node nt/tools/js-map.mjs --write
