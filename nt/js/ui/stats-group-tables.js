@@ -119,6 +119,8 @@ function makeRow(label, cells, total, pick, move, moveColor) {
     nameCell.appendChild(btn);
   }
   nameCell.appendChild(document.createTextNode(label == null ? '' : String(label)));
+  // 名称列放不下会截断（CSS 里 ellipsis），把全文挂 title，长按/悬停能看到
+  if (label != null && String(label)) nameCell.title = String(label);
 
   if (pick) {
     nameCell.dataset.pick = pick;

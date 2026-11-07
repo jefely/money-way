@@ -211,6 +211,24 @@
   text-align: center;
 }
 
+/* 第 1 列（分类 / 节点名）：**不参与字号缩放**（用户 2026-11-08）。
+   「分类统计/数据字号」和 stat-fit 只管金额列；名称放不下就截断显示，
+   不能因为一个长节点名把整张表的金额一起缩小。
+   固定字号 13px，和合计行的类型名同号。 */
+.nt-table-stat tbody .nt-cell:nth-child(1) {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nt-table-stat .nt-th:nth-child(1) {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* 节点表第 1 列**靠左**（用户 2026-11）：节点名长短差太多
    （「招行信1007」和「花呗」并排），居中会让每一行的起点参差不齐。 */
 .nt-table-node tbody .nt-cell:nth-child(1) {

@@ -43,6 +43,9 @@ export function fitFontOf(tableEl) {
   let need = base;
   for (const tr of tableEl.querySelectorAll('tbody tr')) {
     [...tr.children].forEach((td, i) => {
+      // 第 1 列是分类 / 节点名：CSS 里写死字号并截断，**不参与**缩放计算
+      // （用户 2026-11-08：名称不缩放，只有金额区域跟着字号参数收放）。
+      if (i === 0) return;
       const em = textEm(td.textContent);
       const avail = (colW[i] || 0) - 10; // 左右各 5px padding
       if (em <= 0 || avail <= 0) return;
