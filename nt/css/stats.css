@@ -169,6 +169,16 @@
   height: 26px;
   font-size: var(--nt-stat-head-font, 12px);
   padding: 0 5px;
+  /* 表头要「压得住」下面的数据行（用户 2026-11-07）。
+     做法：把**正文色**混进表头底色 —— 深色主题下正文是浅的，混出来更浅；
+     浅色主题下正文是深的，混出来更深。一条规则两个方向都对，不用按主题写两遍。
+     再叠一层上下渐变，让表头有一点厚度，不是一块死色。 */
+  background-color: var(--nt-th-bg);
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--nt-text) 12%, var(--nt-th-bg)),
+    color-mix(in srgb, var(--nt-text) 4%, var(--nt-th-bg))
+  );
+  font-weight: 700;
 }
 
 .nt-table-stat .nt-cell {
