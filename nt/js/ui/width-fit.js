@@ -29,8 +29,16 @@ import { fitWidths, maxDragWidth } from '../core/table-fit.js';
 const ACC_MINS = { code: 42, seq: 20, type: 46, cat: 38, name: 72 };
 /** 节点设置：可压的列（期初吃剩余，移/删是正方形按钮） */
 const ACC_SOFT = ['code', 'seq', 'type', 'cat', 'name'];
-/** 节点设置：期初余额至少留多宽（"123,456.78" 约 66 + 内边距 6 + 余量） */
-const ACC_SHARE_MIN = 86;
+/**
+ * 节点设置：期初余额列的下限。
+ *
+ * **这就是「拖不动」的根因**：以前这里是 86（够放 "123,456.78"），
+ * 而 390 屏上五列参数已经占满 289，期初正好被压到 86 —— 余量 0，
+ * 于是任何一列都只会「拖不动」。
+ * 用户 2026-11-07 明确授权：**允许期初的数字因为列被拖窄而遮挡**，
+ * 所以下限收到一条缝（16px），余量让给拖动。
+ */
+const ACC_SHARE_MIN = 16;
 /** 按钮列读不到时的兜底（CSS 里是 var(--nt-row-h-accounts, 32px)） */
 const BTN_FALLBACK = 32;
 /**
