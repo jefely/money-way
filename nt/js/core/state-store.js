@@ -34,6 +34,9 @@ import { noteTarget } from './lexicon.js';
     mappings: {},
     // 作废的计划发生：sourceId|月份，不删模板
     voidedPlans: [],
+    // 用户主动从设置表删掉的账户 ID：断链补壳时要跳过它们，
+    // 否则删完下一帧又被 withUndefinedAccounts 补回来（2026-11 用户报「删除节点撤销不了」）
+    deletedAccounts: [],
     // 多账本：活动账本的数据在 accounts/transactions/scheduled；其余账本快照在 ledgers
     ledgers: {},
     ledgerNames: { main: '主账本' },
@@ -137,7 +140,9 @@ export function ensureAccountByText(state, text) {
 export function removeAccount(state, id) {
   if (id === OPENING_ACCOUNT_ID) return state;
   const next = { ...state, accounts: state.accounts.filter((a) => a.id !== id) };
-  return dropMappingsFor(next, id);
+  const deleted = Array.isArray(state.deletedAccounts) ? state.deletedAccounts : [];
+  const marked = deleted.includes(id) ? deleted : [...deleted, id];
+  return dropMappingsFor({ ...next, deletedAccounts: marked }, id);
 }
 
 /* ---------- 流水：增删改 ---------- */

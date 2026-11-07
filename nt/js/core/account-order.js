@@ -72,7 +72,12 @@ export function moveWithinType(accounts, id) {
  * 落在 U 区「未分类账户」（用户 2026-10-30）。只补壳、不动流水。
  */
 export function withUndefinedAccounts(state) {
-  const known = new Set((state.accounts || []).map((a) => a.id));
+  // 用户主动删掉的账户不再补壳：它们在 deletedAccounts 里，
+  // 断链由校验 V3 提示，设置表不该把删掉的行又变出来。
+  const known = new Set([
+    ...(state.accounts || []).map((a) => a.id),
+    ...(state.deletedAccounts || []),
+  ]);
   const missing = [];
   for (const t of state.transactions || []) {
     for (const id of [t.from_id, t.to_id]) {

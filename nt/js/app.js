@@ -15,7 +15,7 @@ import { showGate, hideGate } from './ui/gate.js';
 import { openAccountsWith } from './ui/account-actions.js';
 import { hasVault, createVault, unlockVault, saveState, destroyVault, changeVaultPassword, buildEncryptedBackup, restoreEncryptedBackup } from './browser/db.js';
 import { createUndo } from './core/undo-stack.js';
-import { resetAccountsKeepData } from './core/reset-book.js';
+import { makeResetAccounts, makeResetBook } from './ui/reset-actions.js';
 import { backupFileName } from './core/backup-file.js';
 import { createHistory, bindUndoUI } from './ui/global-undo.js';
 import { installBackupGuard, markBackupDone } from './ui/backup-guard.js';
@@ -27,7 +27,7 @@ import { migrate } from './core/migrate.js';
 import { syncOpeningDates } from './core/ledger-stats.js';
 import { createState, addAccount } from './core/state-store.js';
 import { buildAccountIndex } from './core/account-index.js';
-import { ACCOUNT_TYPE } from './core/schema.js';
+import { SEED_ACCOUNTS } from './core/reset-book.js';
 import { materializeDueFixed } from './core/plan-occurrence.js';
 import { todayIso } from './core/format.js';
 import { mountFlow } from './views/flow.js';
@@ -203,12 +203,12 @@ function mountViews() {
       NtModal.closeAll();
       location.reload();
     },
-    resetAccounts: async () => {
-      setState(resetAccountsKeepData(getState()));
-      await flushSave();
-      renderActive();
-      setFooter('已重置账户。流水还在；对不上名字的请到校验页查看。');
-    },
+    resetAccounts: makeResetAccounts({
+      setState, saveNow: flushSave, getState, render: renderActive, footer: setFooter,
+    }),
+    resetBook: makeResetBook({
+      setState, saveNow: flushSave, getState, render: renderActive, footer: setFooter,
+    }),
     shareBackup: async () => {
       const text = await buildEncryptedBackup(getState());
       return deliverTextFile(backupFileName(), text, 'text/plain');
@@ -254,9 +254,8 @@ function mountViews() {
 
 function seedState() {
   let s = createState();
-  s = addAccount(s, { id: 'acc_cash', code: 'XJ', name: '现金', type: ACCOUNT_TYPE.ASSET, category: '现金' });
-  s = addAccount(s, { id: 'acc_bank', code: 'ZHC', name: '招行储', type: ACCOUNT_TYPE.ASSET, category: '储蓄' });
-  s = addAccount(s, { id: 'acc_food', code: 'CY', name: '餐饮', type: ACCOUNT_TYPE.EXPENSE, category: '日常' });
+  // 默认节点模板：沿用单文件版的 ACC_RAW（reset-book.js 的 SEED_ACCOUNTS）
+  for (const acc of SEED_ACCOUNTS) s = addAccount(s, acc);
   return s;
 }
 

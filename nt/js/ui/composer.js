@@ -8,10 +8,11 @@
  */
 
 import {
-  applyPhrase, fillDraft, suggestPhraseAccounts, retainDrafts, ENTRY_PROMPT,
+  applyPhrase, fillDraft, suggestPhraseAccounts, retainDrafts, previewPhrase, ENTRY_PROMPT,
 } from '../core/phrase-entry.js';
 import { showSuggest, hideSuggest, isSuggestFor } from './suggest-popover.js';
 import { flyParts } from './fly-in.js';
+import { mountPhrasePreview } from './phrase-preview.js';
 
 export function mountComposer(section, ctx, rowHost, refresh) {
   const h = ctx || {};
@@ -44,12 +45,16 @@ export function mountComposer(section, ctx, rowHost, refresh) {
 
   bar.appendChild(input);
   bar.appendChild(btn);
+  const preview = mountPhrasePreview(bar);
 
   /** 展开 / 收起：只切一个 class，输入框靠 CSS 从 0 宽长出来 */
   function setOpen(open) {
     bar.classList.toggle('open', open);
     applyPos();
-    if (!open) return;
+    if (!open) {
+      if (preview) preview.update(null);
+      return;
+    }
     setTimeout(() => {
       try { input.focus(); } catch (e) { /* 忽略 */ }
     }, 30);
@@ -67,8 +72,17 @@ export function mountComposer(section, ctx, rowHost, refresh) {
   /** 当前**可视**视口尺寸：软键盘弹出时只有 visualViewport 是真值 */
   const viewH = () => (window.visualViewport && window.visualViewport.height) || window.innerHeight;
   const viewW = () => (window.visualViewport && window.visualViewport.width) || window.innerWidth;
-  /** 无键盘时的基准高度（键盘高度 = baseHeight - viewH()） */
-  const baseHeight = viewH();
+  /** 无键盘时的基准高度（键盘高度 = baseHeight() - viewH()）；旋转后要重新取 */
+  const baseHeight = () => Math.max(window.innerHeight || 0, viewH());
+
+  /**
+   * 泡泡只允许待在**下半屏**：底边距屏幕底不超过半屏减 40。
+   * 否则泡泡停在中线以上时，键盘一弹就把可视区压掉一半，它会被挤出屏幕。
+   * 泡泡高 54，减 40 后中心仍在半屏以下。
+   */
+  function maxBottom() {
+    return Math.max(EDGE, Math.floor(viewH() / 2) - 40);
+  }
 
   // 用户拖到的位置（距视口右/下）：气泡就钉在这里
   let posRight = 16;
@@ -78,6 +92,8 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     if (saved && Number.isFinite(saved.right)) posRight = saved.right;
     if (saved && Number.isFinite(saved.bottom)) posBottom = saved.bottom;
   } catch (e) { /* 无痕模式读不到就算了 */ }
+  // 旧位置可能存的是上半屏，进来先收回到下半屏
+  posBottom = Math.max(EDGE, Math.min(posBottom, maxBottom()));
 
   /** 展开宽度的上限（屏宽留 32px 边） */
   function panelWidth() {
@@ -89,24 +105,38 @@ export function mountComposer(section, ctx, rowHost, refresh) {
    * 键盘是系统窗口，网页盖不过它；与其跟着键盘上下跳，不如钉死在用户放的地方。
    *   · 收起 —— 就在拖到的地方；
    *   · 展开 —— 右边仍在原位，但左边界至少留 8px（太靠左就临时往右挪）。
+   *   · 键盘弹起 —— 底边跟着可视区上移，但**不许越过下半屏的上限**。
    */
   function applyPos() {
     const open = bar.classList.contains('open');
     const w = open ? panelWidth() : 54;
-    const right = open
-      ? Math.max(EDGE, Math.min(posRight, viewW() - w - EDGE))
-      : posRight;
-    // 软键盘弹出时 window.innerHeight 往往**不变**（尤其 iOS），
-    // 真正缩的是 visualViewport.height。这里按它算「离屏幕底还有多远」，
-    // 泡泡才会被推到键盘上方，而不是被键盘盖住或挤飞（用户 2026-11）。
+    const right = Math.max(EDGE, Math.min(posRight, viewW() - w - EDGE));
     const vh = viewH();
-    const kb = Math.max(0, baseHeight - vh);
-    bar.style.right = Math.round(right) + 'px';
-    bar.style.bottom = Math.round(Math.max(EDGE, posBottom - kb)) + 'px';
+    const kb = Math.max(0, baseHeight() - vh);
+    // **加** kb，不是减：iOS 的 fixed 相对布局视口，键盘占掉底部 kb 之后，
+    // 泡泡要跟着可视区一起上浮，否则会停在键盘下面（看起来就是「被挤出屏幕」）。
+    // 上限再夹一次「可视区下半屏」，避免上浮到中线以上。
+    const bottom = Math.max(EDGE, Math.min(posBottom + kb, kb + maxBottom()));
+    const r = Math.round(right);
+    const b = Math.round(bottom);
+    // 值没变就不写 style —— 重复写会重启 CSS transition，看起来就是「抖一下」
+    if (bar.style.right !== r + 'px') bar.style.right = r + 'px';
+    if (bar.style.bottom !== b + 'px') bar.style.bottom = b + 'px';
   }
+
+  /** 用 rAF 合并同一帧内的多次定位请求（visualViewport 的 resize/scroll 会连发） */
+  let posRaf = 0;
+  function schedulePos() {
+    if (posRaf) return;
+    posRaf = requestAnimationFrame(() => {
+      posRaf = 0;
+      applyPos();
+    });
+  }
+
   applyPos();
 
-  window.addEventListener('resize', applyPos);
+  window.addEventListener('resize', schedulePos);
 
   /* ---------- 软键盘：跟随可视视口 ----------
      iOS / Android 对「键盘是否改变 layout viewport」的处理完全不同，
@@ -114,10 +144,7 @@ export function mountComposer(section, ctx, rowHost, refresh) {
      没有这个 API 的老浏览器退回 window.resize（行为差一截，但不会更差）。 */
   const vv = window.visualViewport;
   if (vv) {
-    const onVV = () => {
-      // 键盘弹出有动画，立即读到的尺寸可能还是旧值 —— 让出一帧再定位
-      setTimeout(applyPos, 0);
-    };
+    const onVV = () => schedulePos();
     vv.addEventListener('resize', onVV);
     vv.addEventListener('scroll', onVV);
   }
@@ -131,10 +158,12 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     drag.sx = ev.clientX;
     drag.sy = ev.clientY;
     bar.classList.add('dragging');
-    // 以**圆钮**的位置为基准：这样展开时拖到哪，收起后气泡就停在同一个地方
-    const r = btn.getBoundingClientRect();
-    drag.sr = window.innerWidth - r.right;
-    drag.sb = window.innerHeight - r.bottom;
+    // 以**整个 bar** 的位置为基准：这样展开时拖到哪，收起后气泡就停在同一个地方。
+    // 键盘可能还开着：把「布局视口比可视区多出来的那截」减掉，存的是无键盘语义的位置。
+    const br = bar.getBoundingClientRect();
+    const layoutKb = Math.max(0, (window.innerHeight || 0) - viewH());
+    drag.sr = window.innerWidth - br.right;
+    drag.sb = window.innerHeight - br.bottom - layoutKb;
     try { btn.setPointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
   });
 
@@ -144,11 +173,11 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     const dy = ev.clientY - drag.sy;
     if (!drag.moved && Math.hypot(dx, dy) < 5) return;   // 手抖不算拖动
     drag.moved = true;
-    const maxR = window.innerWidth - 60;
-    const maxB = window.innerHeight - 60;
+    const maxR = Math.max(EDGE, window.innerWidth - 54 - EDGE);
+    const maxB = maxBottom();
     posRight = Math.max(EDGE, Math.min(maxR, drag.sr - dx));
     posBottom = Math.max(EDGE, Math.min(maxB, drag.sb - dy));
-    applyPos();
+    schedulePos();
   });
 
   btn.addEventListener('pointerup', (ev) => {
@@ -160,9 +189,11 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     suppressClick = true;                    // 拖完不要再当成点击
     // 回写成**实际落点**（拖动中可能被边缘 clamp 截住）：
     // 这样收起后气泡就停在展开时圆钮的地方，不会跳一下。
-    const r = btn.getBoundingClientRect();
-    posRight = Math.max(EDGE, Math.round(window.innerWidth - r.right));
-    posBottom = Math.max(EDGE, Math.round(window.innerHeight - r.bottom));
+    const br = bar.getBoundingClientRect();
+    const layoutKb = Math.max(0, (window.innerHeight || 0) - viewH());
+    posRight = Math.max(EDGE, Math.min(window.innerWidth - 54 - EDGE, Math.round(window.innerWidth - br.right)));
+    posBottom = Math.max(EDGE, Math.min(maxBottom(),
+      Math.round(window.innerHeight - br.bottom - layoutKb)));
     applyPos();
     try {
       localStorage.setItem(POS_KEY, JSON.stringify({ right: posRight, bottom: posBottom }));
@@ -231,7 +262,7 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     input.placeholder = done ? ENTRY_PROMPT.idle : (result.prompt || ENTRY_PROMPT.idle);
     if (done) openId = null;
     else if (result.tx && result.tx.status === 'draft') openId = result.tx.id;
-    if (result.outcome !== 'suggest') input.value = '';
+    if (result.outcome !== 'suggest') { input.value = ''; preview.update(null); }
     if (h.setFooter && result.prompt) h.setFooter(result.prompt);
     syncSendState();
   }
@@ -262,6 +293,7 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     armIdle();
     syncSendState();
     const text = String(input.value || '').trim();
+    preview.update(text ? previewPhrase(h.getState(), text) : null);
     if (!text || text.length > 8 || /\d/.test(text)) { hideSuggest(); return; }
     const items = suggestPhraseAccounts(h.getState(), text);
     if (items.length) showSuggest(input, items, (acc) => { input.value = acc.name || ''; submit(true); });

@@ -131,17 +131,44 @@ function finish(state, tx, fields) {
   };
 }
 
+function noteFields(parsed) {
+  const n = parsed && parsed.slots && parsed.slots.note;
+  if (!n) return {};
+  return {
+    ...(n.type ? { noteType: n.type } : {}),
+    ...(n.keyword ? { noteKeyword: n.keyword } : {}),
+  };
+}
+
+/**
+ * 只预览、不落盘：给输入框下方的六元素标签用。
+ * @param {object} state
+ * @param {string} text
+ */
+export function previewPhrase(state, text) {
+  const parsed = parsePhrase(
+    String(text == null ? '' : text),
+    (state && state.accounts) || [],
+    LEXICON,
+    undefined,
+    { notes: (state && state.notes) || [] },
+  );
+  return parsed.slots;
+}
+
 /**
  * @param {object} state
  * @param {string} text
  * @param {Date} [now]
  */
 export function applyPhrase(state, text, now) {
-  const parsed = parsePhrase(text, (state && state.accounts) || [], LEXICON, now);
+  const notes = (state && state.notes) || [];
+  const parsed = parsePhrase(text, (state && state.accounts) || [], LEXICON, now, { notes });
   const date = parsed.date;
   if (parsed.confidence === 'low') {
     const s = addTransaction(state, {
       date, amount: 0, note: String(text || '').trim(), status: 'draft',
+      ...noteFields(parsed), ...(parsed.refund ? { refund: true } : {}),
     });
     const tx = s.transactions[s.transactions.length - 1];
     return finish(s, tx, ['note']);
@@ -163,6 +190,8 @@ export function applyPhrase(state, text, now) {
     amount: parsed.amount == null ? 0 : parsed.amount,
     note: parsed.note || '',
     status: 'draft',
+    ...noteFields(parsed),
+    ...(parsed.refund ? { refund: true } : {}),
   });
   const tx = s.transactions[s.transactions.length - 1];
   return finish(s, tx, ['note', 'amount', 'from', 'to']);
@@ -271,7 +300,7 @@ export function fillDraft(state, txId, text, opts) {
   const tx = ((state && state.transactions) || []).find((t) => t && t.id === txId);
   if (!tx) return { state, tx: null, outcome: 'missing', prompt: '', fly: [], suggestions: [] };
   const raw = String(text || '').trim();
-  const parsed = parsePhrase(raw, state.accounts || [], LEXICON);
+  const parsed = parsePhrase(raw, state.accounts || [], LEXICON, undefined, { notes: state.notes || [] });
   if (parsed.amount != null && parsed.note) return applyPhrase(state, raw);
   const money = amountOnly(raw);
   if (money != null && !parsed.fromHint && !parsed.toHint) {

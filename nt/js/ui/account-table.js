@@ -222,14 +222,12 @@ export function mountAccountTable(ctx, tbody, opts) {
       del.addEventListener('click', () => {
         const acc = ctx.getIndex().byId.get(id);
         const nm = acc ? acc.name : '';
-        // 流水是主表：设置表删账户只影响「账户怎么归类」，不许动流水（用户 2026-10-30）
-        const ok = confirm('从设置表移除「' + nm + '」？\n\n'
-          + '流水不会被删除；引用它的流水会显示为空节点（校验里会提示断链）。');
-        if (!ok) return;
+        // 直接删，不再弹原生 confirm（用户 2026-11）：删除账户可全局撤销，
+        // 多一次确认只是多一次点击。流水仍然保留，断链由校验提示。
         ctx.setState(removeAccount(ctx.getState(), id));
         ctx.saveNow();
         render();
-        ctx.setFooter('已移除节点（流水保留）');
+        ctx.setFooter('已移除「' + nm + '」（流水保留，可撤销）');
       });
     }
 

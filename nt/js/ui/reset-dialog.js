@@ -35,7 +35,8 @@ export function resetSection(ctx, close) {
   hint.className = 'nt-sync-hint';
   hint.textContent = `当前 ${nAcc} 个节点、${nTx} 笔流水、${nPlan} 条计划。`
     + '「清空流水记录」只删流水，节点和计划都留着；'
-    + `「重置节点模板」把节点换回内置的 ${SEED_ACCOUNTS.length} 个，流水和计划留着。`;
+    + `「重置节点模板」把节点换回内置的 ${SEED_ACCOUNTS.length} 个（期初清零），流水和计划留着；`
+    + '「重置账本」删掉全部流水、节点、计划、备注，列宽也回到默认。';
   wrap.appendChild(hint);
 
   const word = document.createElement('input');
@@ -54,6 +55,7 @@ export function resetSection(ctx, close) {
   bar.className = 'nt-exp-bar';
   bar.appendChild(action('清空流水记录', 'wipeFlow'));
   bar.appendChild(action('重置节点模板', 'resetNodes'));
+  bar.appendChild(action('重置账本', 'resetBook'));
   wrap.appendChild(bar);
 
   function action(label, kind) {
@@ -69,12 +71,23 @@ export function resetSection(ctx, close) {
       err.textContent = '';
       if (close) close();
       if (kind === 'wipeFlow') {
-        // 只清流水：节点、计划、备注都保留
+        // 只清流水：节点、计划、备注都保留；固定收支只**断开关联**（srcTxId），
+        // 规则本身不删 —— 删了流水，规则还要继续产生未来流水（用户 2026-11）。
         const st = ctx.getState();
-        ctx.setState({ ...st, transactions: [] });
+        const scheduled = (st.scheduled || []).map((s) => {
+          if (!s || !s.srcTxId) return s;
+          const { srcTxId, ...rest } = s;
+          return rest;
+        });
+        ctx.setState({ ...st, transactions: [], scheduled });
         if (ctx.saveNow) ctx.saveNow();
         if (ctx.rerender) ctx.rerender();
-        if (ctx.setFooter) ctx.setFooter('已清空流水记录');
+        if (ctx.setFooter) ctx.setFooter('已清空流水记录（固定收支规则保留，只断开关联）');
+        return;
+      }
+      if (kind === 'resetBook') {
+        if (ctx.resetBook) await ctx.resetBook();
+        else if (ctx.resetAccounts) await ctx.resetAccounts();
         return;
       }
       if (ctx.resetAccounts) await ctx.resetAccounts();

@@ -73,9 +73,11 @@ test('只重置账户：同名流水改挂到内置 id，计划保留', () => {
   const next = resetAccountsKeepData(s);
   const names = next.accounts.filter((a) => !a.isHidden).map((a) => a.name);
   assert.deepEqual(names, SEED_ACCOUNTS.map((a) => a.name));
-  assert.equal(next.transactions[0].from_id, 'acc_cash');
+  const cash = next.accounts.find((a) => a.name === '现金');
+  assert.ok(cash, '默认模板里必须有现金');
+  assert.equal(next.transactions[0].from_id, cash.id);
   assert.equal(next.transactions[0].to_id, 'shop');
-  assert.equal(next.scheduled[0].from_id, 'acc_cash');
+  assert.equal(next.scheduled[0].from_id, cash.id);
   assert.equal(next.transactions[0].note, '菜');
 });
 

@@ -9,9 +9,10 @@
  */
 
 import { todayIso } from './format.js';
-import { accountLexicon, noteTarget } from './lexicon.js';
+import { accountLexicon } from './lexicon.js';
+import { extractSlots, roleOfType } from './phrase-slots.js';
 
-const STOP = ['一个', '一笔', '块钱', '用', '买', '花', '付', '了', '的', '在', '从', '到', '给', '把', '去', '来', '和', '又'];
+const STOP = ['->', '→', '—', '-', '一个', '一笔', '块钱', '用', '买', '花', '付', '了', '的', '在', '从', '到', '给', '把', '去', '来', '和', '又', '还', '转', '存', '充'];
 
 function empty(date) {
   return { date: date || '', amount: null, fromHint: null, toHint: null, note: '', confidence: 'low' };
@@ -33,15 +34,6 @@ function validYmd(y, m, d) {
   const dd = Number(d);
   if (!(yy >= 1900 && mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31)) return '';
   return `${yy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
-}
-
-function roleOfType(type) {
-  if (type === '收入类') return 'income';
-  if (type === '负债类') return 'liability';
-  if (type === '费用类') return 'expense';
-  if (type === '资产类') return 'asset';
-  if (type === '权益类') return 'equity';
-  return 'account';
 }
 
 /** 今天/昨天/前天、11月4日、ISO。整天词不从更长的账户名里抠。 */
@@ -88,9 +80,14 @@ function matchOnce(text, items) {
       if (idx < 0) break;
       const end = idx + needle.length;
       if (item.boundary) {
-        const before = idx === 0 || !/[A-Za-z0-9]/.test(text[idx - 1]);
-        // 简码后面可以**紧跟金额**：ZC50 = 简码 ZC + 50（用户 2026-11 指定）。
-        // 纯数字简码不享受这条 —— 否则「50」里的 5 会被当成简码。
+        const prevCh = idx === 0 ? '' : text[idx - 1];
+        // 边界放宽（2026-11 用户报「zhc2000jhc 第二个简码识别不了」）：
+        //   ① 简码后面可以紧跟金额：ZC50 = 简码 ZC + 50；
+        //   ② 金额后面可以紧跟简码：ZHC2000JHC = ZHC + 2000 + JHC；
+        //   ③ 纯数字简码不享受这两条 —— 否则「50」里的 5 会被当成简码。
+        const before = idx === 0
+          || !/[A-Za-z0-9]/.test(prevCh)
+          || (/\d/.test(prevCh) && /[^0-9]/.test(item.key));
         const afterCh = text[end];
         const after = end >= text.length
           || !/[A-Za-z0-9]/.test(afterCh)
@@ -113,7 +110,11 @@ function matchOnce(text, items) {
     cursor = r.end;
   }
   rest += text.slice(cursor);
-  return { hits: ranges.map((r) => r.item), rest };
+  return {
+    hits: ranges.map((r) => ({ ...r.item, start: r.start, end: r.end })),
+    ranges,
+    rest,
+  };
 }
 
 function takeAmount(text) {
@@ -153,32 +154,15 @@ function cleanNote(rest, protectedWords) {
   return out.replace(/\s+/g, ' ').trim();
 }
 
-function assignEnds(hits) {
-  const acc = hits.filter((h) => h.role !== 'note');
-  if (!acc.length) return { fromHint: null, toHint: null };
-  const income = acc.filter((h) => h.role === 'income' || h.type === '收入类');
-  const source = acc.filter((h) => h.role === 'payment' || h.role === 'asset' || h.role === 'liability'
-    || h.type === '资产类' || h.type === '负债类');
-  const expense = acc.filter((h) => h.role === 'expense' || h.type === '费用类');
-  if (income.length && source.length) return { fromHint: income[0], toHint: source[0] };
-  if (source.length && expense.length) return { fromHint: source[0], toHint: expense[0] };
-  if (acc.length === 1) {
-    const h = acc[0];
-    if (h.role === 'expense' || h.type === '费用类') return { fromHint: null, toHint: h };
-    return { fromHint: h, toHint: null };
-  }
-  return { fromHint: acc[0], toHint: acc[1] };
-}
-
-function hintOf(item) {
-  if (!item) return null;
+function hintOfNode(node) {
+  if (!node) return null;
   return {
-    keyword: item.keyword,
-    accountName: item.accountName || item.keyword,
-    type: item.type || '',
-    category: item.category || '',
-    role: item.role || '',
-    id: item.id || null,
+    keyword: node.keyword || node.name,
+    accountName: node.name,
+    type: node.type || '',
+    category: node.category || '',
+    role: node.role || '',
+    id: node.id || null,
   };
 }
 
@@ -187,8 +171,9 @@ function hintOf(item) {
  * @param {Array} accounts 用户账户（名字优先于词库）
  * @param {Array} lexicon
  * @param {Date} [now]
+ * @param {{notes?:Array}} [opts] 备注表（备注分类/关键字的来源）
  */
-export function parsePhrase(text, accounts, lexicon, now) {
+export function parsePhrase(text, accounts, lexicon, now, opts) {
   try {
     const clock = asDate(now);
     const raw = String(text == null ? '' : text).trim();
@@ -199,7 +184,17 @@ export function parsePhrase(text, accounts, lexicon, now) {
     }
     for (const row of words) if (row && row.keyword) keys.push(row.keyword);
 
-    const dated = takeDate(raw, clock, keys);
+    // 退款是**方向**，不是节点：`退款 yf-wx 200` = 衣服 → 微信 200。
+    // 只认「退款 / 退货 / 退回」三个整词；单字「退」会误伤「退休金」之类。
+    let work = raw;
+    let refund = false;
+    const rm = work.match(/^(退款|退货|退回)\s*/);
+    if (rm) {
+      refund = true;
+      work = work.slice(rm[0].length);
+    }
+
+    const dated = takeDate(work, clock, keys);
     const items = [];
     for (const a of accounts || []) {
       if (!a || a.isHidden) continue;
@@ -237,28 +232,23 @@ export function parsePhrase(text, accounts, lexicon, now) {
     const matched = matchOnce(dated.text, items);
     const amt = takeAmount(matched.rest);
     const note = cleanNote(amt.text, keys);
-    const ends = assignEnds(matched.hits);
-    const fromHint = hintOf(ends.fromHint);
-    let toHint = hintOf(ends.toHint);
-    if (!toHint && amt.amount != null) {
-      const link = noteTarget(dated.text, words);
-      if (link && link.nodeName) {
-        toHint = {
-          keyword: link.keyword,
-          accountName: link.nodeName,
-          type: link.type,
-          category: link.category,
-          role: 'expense',
-          id: null,
-        };
-      }
-    }
+    const slots = extractSlots({
+      text: dated.text,
+      hits: matched.hits,
+      note,
+      amount: amt.amount,
+      notes: (opts && opts.notes) || [],
+      lexicon: words,
+      reverse: refund,
+    });
+    const fromHint = hintOfNode(slots.from);
+    const toHint = hintOfNode(slots.to);
     const endN = (fromHint ? 1 : 0) + (toHint ? 1 : 0);
     let confidence = 'low';
     if (amt.amount != null && endN === 2) confidence = 'high';
     else if (amt.amount != null || endN > 0) confidence = 'partial';
-    return { date: dated.date, amount: amt.amount, fromHint, toHint, note, confidence };
+    return { date: dated.date, amount: amt.amount, fromHint, toHint, note, confidence, slots, refund };
   } catch (e) {
-    return empty(todayIso(new Date()));
+    return { ...empty(todayIso(new Date())), slots: null };
   }
 }

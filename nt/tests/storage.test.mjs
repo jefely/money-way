@@ -112,6 +112,12 @@ test('删账户只从设置表移除，流水是主表、必须保留（用户 2
     '引用被删账户的流水留着（显示为空账户 / 断链提示）');
 });
 
+test('删账户会记入 deletedAccounts（断链补壳据此跳过）', () => {
+  const s = seed();
+  const after = removeAccount(s, 'acc_food');
+  assert.ok(after.deletedAccounts.includes('acc_food'));
+});
+
 test('期初虚拟账户不许删', () => {
   const s = createState();
   const after = removeAccount(s, OPENING_ACCOUNT_ID);

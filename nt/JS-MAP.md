@@ -48,6 +48,7 @@
 | `core/opening-tx.js` | 期初流水的方向 |
 | `core/phrase-entry.js` | （无界面）一句话入账 |
 | `core/phrase-parser.js` | （无界面）一句话解析 |
+| `core/phrase-slots.js` | 一句话 → 六大元素（转出 / 转入 / 节点类型 / 节点分类 / 备注分类 / 备注关键字） |
 | `core/pinyin.js` | 汉字 → 拼音首字母（纯函数） |
 | `core/plan-occurrence.js` | （无界面）计划发生：确认到今天 / 作废一期 |
 | `core/qr-encode.js` | （未标注界面）QR 编码入口（纯函数） |
@@ -137,12 +138,14 @@
 | `ui/path-flow-table.js` | 路径页左栏的流水查询表 |
 | `ui/path-legend.js` | 路径 tab → 图例 |
 | `ui/path-view.js` | 路径 tab |
+| `ui/phrase-preview.js` | 流水 tab → 一句话输入的六元素预览 |
 | `ui/plan-links.js` | 流水与固定收支期次的联动 |
 | `ui/plan-rows.js` | 流水 tab → 未来行的确认 / 作废 |
 | `ui/pwa.js` | PWA 注册 |
 | `ui/qr-canvas.js` | （未标注界面）把 QR 矩阵画到 canvas（UI 层） |
 | `ui/range-bar.js` | 单元格框选的工具条 |
 | `ui/render-transactions.js` | 流水 tab → 表格 tbody（分批追加，照单文件版） |
+| `ui/reset-actions.js` | 重置整本账（节点模板弹窗里的危险动作） |
 | `ui/reset-dialog.js` | 节点模板弹窗里的「重置」区 |
 | `ui/review-tip.js` | 设置页 → 新增序号气泡 |
 | `ui/row-editor.js` | 流水 tab → 行内编辑 / 新增行 |

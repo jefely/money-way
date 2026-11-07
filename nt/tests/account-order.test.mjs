@@ -48,6 +48,15 @@ test('moveWithinType：与同类型的前一个交换', () => {
   assert.equal(moveWithinType(list, 'a').moved, false, '第一个没得换');
 });
 
+test('deletedAccounts 里的断链 ID 不补壳', () => {
+  const s = {
+    accounts: [{ id: 'a', name: '现金', type: '资产类' }],
+    transactions: [{ from_id: 'a', to_id: 'ghost', amount: 1, date: '2026-10-01' }],
+    deletedAccounts: ['ghost'],
+  };
+  assert.equal(withUndefinedAccounts(s), s, '主动删掉的账户不该被补回来');
+});
+
 test('withUndefinedAccounts：断链 ID 补空壳，落在 U 区，且幂等', () => {
   const s = {
     accounts: [{ id: 'a', name: '现金', type: '资产类' }],

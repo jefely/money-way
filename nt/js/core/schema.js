@@ -143,6 +143,9 @@ export function createTransaction(patch = {}) {
     note: String(patch.note || ''),
     seq: Number(patch.seq) || 0,
     ...(patch.billId ? { billId: String(patch.billId) } : {}),
+    ...(patch.noteType ? { noteType: String(patch.noteType) } : {}),
+    ...(patch.noteKeyword ? { noteKeyword: String(patch.noteKeyword) } : {}),
+    ...(patch.refund ? { refund: true } : {}),
     ...(patch.inst ? { inst: patch.inst } : {}),
     ...(patch.opening ? { opening: true } : {}),
   };
