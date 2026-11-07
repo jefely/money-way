@@ -22,6 +22,7 @@
  */
 
 import { saveFixedWidths } from './inst-layout.js';
+import { mountWidthFit, dragMaxWidth, fitFlow } from './width-fit.js';
 
 /** 每张表冻结几列（键 = 表类名）。必须和 CSS 里的 sticky 声明一致。 */
 const FROZEN_COUNT = {
@@ -313,6 +314,9 @@ function startDrag(tableEl, th, downEv, o) {
   let width = startW;
   let raf = 0;
   const unified = isUnifiedMonth(tableEl, th);
+  // 「压进一屏」的表（节点设置）：上限 = 吃剩余那列还能让出多少。
+  // 拖到头时表宽仍恰好等于容器宽 —— 拖不出横滑。
+  const limit = dragMaxWidth(tableEl, startW);
 
   const flush = () => {
     raf = 0;
@@ -336,10 +340,13 @@ function startDrag(tableEl, th, downEv, o) {
       if (cell) cell.style.width = px;
     }
     if (targetCol) targetCol.style.width = px;
+    // 流水表：最小宽度每帧跟着变 —— 备注列不会被拖窄，表整体变宽去横滑
+    if (tableEl.classList.contains('nt-table-flow')) fitFlow(tableEl);
   };
 
   const onMove = (e) => {
-    width = Math.max(MIN_W, Math.min(MAX_W, startW + (e.clientX - startX)));
+    const hi = limit > 0 ? Math.min(MAX_W, limit) : MAX_W;
+    width = Math.max(MIN_W, Math.min(hi, startW + (e.clientX - startX)));
     // ③ 每帧只写一次，别每个 move 都写
     if (!raf) raf = requestAnimationFrame(flush);
   };
@@ -434,6 +441,8 @@ export function bindAllTables(opts) {
     paintHandles(table);
     syncFrozen(table);
   }
+  // 节点设置压进一屏 / 流水记录保留横滑：宽度预算和「谁有手柄」是同一件事
+  mountWidthFit();
 }
 
 /* ============================================================

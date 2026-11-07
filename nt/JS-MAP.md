@@ -66,6 +66,7 @@
 | `core/sync-merge.js` | （未标注界面）合并远端记录（纯函数） |
 | `core/sync-window.js` | （无界面）同步窗口自适应：一张码能装多少天就装多少天 |
 | `core/table-cols.js` | （无界面）每张表各自的列与默认列宽 |
+| `core/table-fit.js` | （无界面）列宽压缩与拖动上限的纯计算 |
 | `core/undo-stack.js` | （无界面）有上限的撤销 / 重做栈 |
 | `core/validate.js` | （无界面）账本校验 V1–V7 |
 | `core/validator.js` | （无界面）校验工具 |
@@ -167,6 +168,7 @@
 | `ui/type-picker.js` | 轻量选择浮层（代替原生 select 的弹层） |
 | `ui/undo-bar.js` | 删除后的撤销条 |
 | `ui/update-check.js` | （未标注界面）版本更新（UI 层） |
+| `ui/width-fit.js` | 节点设置 / 流水记录 的宽度预算 |
 | `ui/xlsx-read.js` | xlsx 读取（ZIP 展开） |
 | `ui/xlsx-write.js` | xlsx 打包（ZIP 写入） |
 | `views/flow.js` | 流水 tab |

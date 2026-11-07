@@ -234,19 +234,20 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  /* 关键：完全落在列内，并且左移 2px —— 不压在列线上。
-     压在线上时，手指偏右就落到右边那一列，触摸很难稳定落在同一条边界；
-     单文件版实测用 2px 的左侧落点。 */
+  /* 命中区 = 这条线往左 --nt-handle-w（默认 14px）。
+     以前这里是 1px 宽 + pointer-events:none，命中区只在 JS 里按坐标算 ——
+     手指落点上**没有元素可以声明 touch-action**，于是横向一拖就被外层那条
+     「流水 ⇄ 节点设置」滑道当成滑屏手势，直接跳到另一页
+     （2026-11 用户实测：拖节点设置前 5 列会切屏）。
+     现在做成真实的透明块：手指落在它上面，手势归拖动，滑道不动。 */
   right: 2px;
-  /* 只留 1px 的可视线，不再用透明层盖住列标。
-     真正的命中区由 ui/table-layout.js 从这条线往左按 --nt-handle-w（默认 14px）
-     判定 —— 这样列宽再窄，文字也不用给透明块让位。 */
-  width: 1px;
-  pointer-events: none;
+  width: var(--nt-handle-w, 14px);
+  pointer-events: auto;
   cursor: col-resize;
   background: transparent;
   z-index: 5;
   touch-action: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .nt-col-handle::after {
@@ -254,9 +255,9 @@
   position: absolute;
   top: 15%;
   bottom: 15%;
-  left: 50%;
+  /* 可视线仍然落在「列右边缘左 2px」—— 手柄块往左长了 14px，线用 right 钉住 */
+  right: 0;
   width: 1px;
-  margin-left: -0.5px;
   border-radius: 1px;
   background: transparent;
   transition: background-color 0.12s ease;
@@ -1222,15 +1223,20 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 /* ============================================================
    流水表的列宽 —— 和节点设置表（css/settings.css）同一套模型
    ------------------------------------------------------------
-   表格铺满整栏；**备注列不写宽度**，由 auto 布局把剩余空间全给它；
+   表格铺满整栏；**备注列不写宽度**，剩余空间全给它；
    最后两个图标列（固定收支 / 删除）固定 40px，不给拖也不给撑。
 
-   为什么是 auto 而不是 fixed：fixed 下「没有宽度的列」只按内容算，
-   多余空间留在表格右边不分给任何列（节点设置那边实测过：885 的表格
-   只有 542 的列宽）。auto 正好相反，会把没有宽度的列撑满。
+   2026-11 改成 fixed：auto 布局只把 width 当"建议"，表格要挤进容器时
+   浏览器会重新分配 —— 参数写着 160 的备注实测被压到 41、转出 112 压到 73，
+   而且**拖动无效**（拖 +40 量出来还是原值）。用户报的「流水记录不可左右滑动」
+   就是这个：auto 把 8 列压进了一屏，根本没有可滚动的宽度。
+
+   fixed 之后宽度严格按参数来，容器窄就靠 `min-width`（ui/width-fit.js 按
+   「其余列之和 + 备注下限 120」写）把表撑开，多出来的部分由 .nt-tablewrap
+   横向滚动 —— 备注永远读得到，这正是用户要保留横滑的原因。
    ============================================================ */
 .nt-table.nt-table-flow {
-  table-layout: auto;
+  table-layout: fixed;
   width: 100%;
 }
 
