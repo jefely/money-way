@@ -21,7 +21,7 @@ const FIELDS = [
   ['principal', '分期金额', '分期金额'],
   ['interest', '总利息', '总利息'],
   ['periods', '期数', '期数'],
-  ['firstMonth', '首月', '首月'],
+  ['firstMonth', '日期', '首月'],
 ];
 
 /**
@@ -157,15 +157,12 @@ export function mountAddForm(ctx, onAdded) {
       inp.type = 'text';
       inp.setAttribute('data-add', key);
       inp.setAttribute('aria-label', label);
-      // 「首月」用系统日期选择器（用户 2026-11，和统计页「区间」的日期输入一个思路）：
-      // 优先 type=month（Chrome/安卓直接选年月）；Safari 不认 month，
-      // 会退化成 text —— 这时改回 date，仍然让用户点日历选。
-      if (key === 'firstMonth') {
-        inp.type = 'month';
-        if (inp.type !== 'month') inp.type = 'date';
-      } else {
-        inp.placeholder = ph;
-      }
+      // 首月以前是 type=month：Chrome 会把空格子画成「----年--月」，
+      // 那串字用的是**正文色**（深色主题下是白的），和旁边那些灰色提示词不是一个调子，
+      // 而且改不了文案（原生控件的掩码不吃 placeholder）。
+      // 用户 2026-11-07 要求提示词就写「日期」、颜色和其他框一致 → 改回 text，
+      // 解析照样吃 2026-11 / 2611 / 261103（见上面的 parseMonthParts）。
+      inp.placeholder = ph;
       // 节点名称这一格：**离开时把简码换成真实账户名**（2026-11 用户要的）。
       // 只换显示、不动解析逻辑 —— 提交时 parseAccountInput 两种写法都认。
       if (key === 'name') {
