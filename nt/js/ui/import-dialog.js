@@ -120,7 +120,7 @@ export function openImportDialog(opts) {
  * 这是**整本**不是追加：账户与计划都会换成备份里的，
  * 所以必须先说清楚「当前账本会被替换」，并给一次取消的机会。
  */
-function showTemplateImport(picked, fileName, o) {
+export function showTemplateImport(picked, fileName, o) {
   const accounts = parseSettingsRows(picked.settings);
   const flow = parseFlowRows(picked.flow);
   const fixed = parseFixedRows(picked.fixed);
@@ -183,7 +183,7 @@ function showTemplateImport(picked, fileName, o) {
  * 格式与单文件版一致（LZ1:base64(gzip(JSON))），语义是「快照覆盖」，
  * 所以这里跟「整本备份」一样先警告、再确认。
  */
-function showLzImport(payload, fileName, o) {
+export function showLzImport(payload, fileName, o) {
   const built = stateFromLzPayload(payload);
   const s = built.stats;
 

@@ -244,3 +244,68 @@
   outline: 0;
   border-color: var(--nt-primary);
 }
+
+/* 导入窗口：文件导入 / 文本导入两段（用户 2026-11 的布局） */
+.nt-imp-h {
+  font-weight: 700;
+  margin: 10px 0 2px;
+  color: var(--nt-text);
+}
+
+.nt-imp-sub {
+  margin: 0 0 8px;
+  color: var(--nt-text-muted);
+}
+
+.nt-imp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.nt-imp-row-end {
+  justify-content: flex-end;
+}
+
+.nt-imp-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.nt-imp-cell .nt-input {
+  min-width: 0;
+}
+
+.nt-imp-cell select {
+  max-width: 190px;
+}
+
+.nt-imp-row .nt-btn {
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.nt-imp-preview {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 140px;
+  max-height: 34vh;
+  padding: 8px 10px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 8px;
+  background: var(--nt-bg-soft);
+  color: var(--nt-text);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.6;
+  resize: vertical;
+  margin-bottom: 12px;
+}
