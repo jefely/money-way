@@ -13,10 +13,19 @@
  */
 
 import { addAccount, addNote, addTransaction } from './state-store.js';
-import { displayNote } from './keyword-engine.js';
+import { specialOf, stamp } from './keyword-engine.js';
 import { collectNewAccounts, planBillImport } from './bill-plan.js';
 
 const norm = (v) => String(v == null ? '' : v).trim();
+
+/**
+ * 商品说明里**不算特殊**的词：支付方式、收款场景。它们每笔都长一样，
+ * 放进备注只会让每一行看起来都一样（用户 2026-11-08：备注要放最具辨识度的字段）。
+ */
+const GENERIC_ITEM = /收钱码|二维码|经营码|扫码|快捷支付|消费|付款|转账|收款/;
+
+/** 太长的商品名不适合当备注：截一半会变成看不懂的碎片，索性只留时间 */
+const SPECIAL_MAX = 10;
 
 /** 时间 → 顺序键「HHMM」。兼容两种备注：旧格式 `19:08 …` 和新压缩串 `…2608081317…` */
 function timeKeyOf(note) {
@@ -163,19 +172,18 @@ export function applyBillPlan(state, res, opts) {
     else if (isSuspect({ ...row, fromId, toId }, existing)) mark = true;
     if (row.billId) seenBill.add(row.billId);
 
-    // 备注栏**只存压缩串**（用户 2026-11-08）：第 ② 层或第 ③ 层，不存账单原文。
-    // 对方节点在这条流水里的位置：支出看 to，收入看 from，资金流转看 to。
+    // 备注栏只放**列上没有的、能区分同组流水的那点信息**（用户 2026-11-08）：
+    // 转出 / 转入两列已经写着节点名了，备注再写一遍就是废话。
+    //   → `特殊字段，YYMMDDHHMM`；特殊字段与节点名重复/包含时整段省掉。
     const otherId = row.dir === 'in' ? fromId : toId;
-    const noteText = displayNote(st, {
-      date: row.date,
-      noteKeyword: row.noteKeyword,
-      from_id: fromId,
-      to_id: toId,
-    }, {
-      otherId,
-      time: row.time,
-      aliases: o.aliases || (res && res.aliases),
-    });
+    const otherAcc = (st.accounts || []).find((a) => a && a.id === otherId) || null;
+    const nodeName = norm(otherAcc && otherAcc.name);
+    const special = specialOf(row.itemText || '');
+    const usable = special && special.length <= SPECIAL_MAX && !GENERIC_ITEM.test(special);
+    const redundant = !usable || !nodeName
+      || special === nodeName || nodeName.includes(special) || special.includes(nodeName);
+    const noteHead = redundant ? '' : special;
+    const noteText = [noteHead, stamp(row.date, row.time)].filter(Boolean).join('，');
 
     st = addTransaction(st, {
       date: row.date,

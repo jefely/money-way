@@ -132,6 +132,8 @@ function planOne(item, ctx) {
     /** 备注分类 / 备注关键字 */
     noteType: norm(item.category),
     noteKeyword: norm(item.party),
+    /** 商品说明原文：生成备注时要从这里挑「最特殊」的字段（不能重复节点名） */
+    itemText: norm(item.item),
     /** 高频商户且还没有同名节点 → 要在备注区登记成「待归类关键字」 */
     hotKeyword: hot && !other && !aliasTarget ? p : '',
     note: note.slice(0, 160),
