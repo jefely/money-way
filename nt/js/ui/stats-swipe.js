@@ -25,6 +25,15 @@ export function mountStatsSwipe(section, go) {
 
   section.addEventListener('touchstart', (ev) => {
     if (ev.touches.length !== 1) { active = false; return; }
+    // 拖列宽不是翻页手势：起点落在列宽手柄上就整段忽略。
+    // 注意 touch-action:none 只挡得住**原生滚动**，挡不住本文件这套
+    // touchstart/touchend 判定 —— 拖 70px 以上松手照样会切页（用户 2026-11 实测：
+    // 统计页四张表一拖列宽就跳屏）。所以这里必须显式认一下手柄。
+    if (ev.target && ev.target.closest && ev.target.closest('.nt-col-handle')) {
+      active = false;
+      return;
+    }
+    if (document.body.classList.contains('nt-col-resizing')) { active = false; return; }
     const t = ev.touches[0];
     sx = t.clientX;
     sy = t.clientY;
@@ -34,6 +43,8 @@ export function mountStatsSwipe(section, go) {
   section.addEventListener('touchend', (ev) => {
     if (!active) return;
     active = false;
+    // 拖动过程中被丢下的手势：不翻页
+    if (document.body.classList.contains('nt-col-resizing')) return;
 
     const t = ev.changedTouches && ev.changedTouches[0];
     if (!t) return;

@@ -244,6 +244,38 @@ export function mountStats(section, ctx) {
   /** 窄屏的「现在显示表还是详情」写到 grid 上，由 CSS 的 data-pane 规则消费 */
   function applyPane() {
     for (const g of section.querySelectorAll('.nt-stats-grid')) g.dataset.pane = sel.pane;
+    slidePane();
+  }
+
+  /**
+   * 换页时的滑动效果（用户 2026-11：「增加切换屏幕的滑动效果」）。
+   *
+   * 窄屏是**一次只显示一栏**（stats.css 的 data-pane 规则），换页就是 display 切换 ——
+   * 以前是硬切，看起来像闪一下。这里给新出现的那一栏一个 200ms 的横向滑入：
+   * 从行进方向的一侧进来，方向由「四页的固定顺序」决定，不看是点按钮还是搓的。
+   */
+  const PANE_ORDER = ['category:list', 'category:detail', 'summary:list', 'summary:detail'];
+  let lastPaneKey = sel.cap + ':' + sel.pane;
+
+  function slidePane() {
+    const key = sel.cap + ':' + sel.pane;
+    if (key === lastPaneKey) return;
+    const from = PANE_ORDER.indexOf(key) > PANE_ORDER.indexOf(lastPaneKey) ? 1 : -1;
+    lastPaneKey = key;
+
+    const host = sel.cap === 'summary' ? summaryWrap : grid;
+    if (!host) return;
+    const pane = sel.pane === 'detail'
+      ? host.querySelector('.nt-stats-panel:not([data-kind="groups"])')
+      : host.querySelector('.nt-stats-panel[data-kind="groups"]');
+    if (!pane || typeof pane.animate !== 'function') return;
+    pane.animate(
+      [
+        { transform: 'translateX(' + (from > 0 ? 16 : -16) + '%)', opacity: 0.2 },
+        { transform: 'translateX(0)', opacity: 1 },
+      ],
+      { duration: 200, easing: 'cubic-bezier(.2,.7,.3,1)' },
+    );
   }
 
   function bindScope() {
