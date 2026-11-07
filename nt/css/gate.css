@@ -79,11 +79,7 @@
   word-break: break-word;
 }
 
-.nt-gate-pw-hint-label {
-  display: inline-block;
-  margin-right: 6px;
-  color: var(--nt-text-light);
-}
+/* 提示词只显示内容，不再有「提示词」标签，故 .nt-gate-pw-hint-label 已移除 */
 
 .nt-gate-pw-hint[hidden] {
   display: none;

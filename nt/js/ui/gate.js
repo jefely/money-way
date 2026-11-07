@@ -72,18 +72,12 @@ function mountLock(host, handlers) {
   const msg = box.querySelector('#nt-lock-msg');
   const hintEl = box.querySelector('#nt-lock-hint');
 
-  // 提示词：紧贴密码框下面一行。有内容才显示，没填就整行不出现
-  // （不写「提示词：」前缀 —— 用户 2026-10-29 指定）。
+  // 提示词：紧贴密码框下面一行。有内容才显示，没填就整行不出现。
+  // 只显示提示词本身，不加「提示词」三字 —— 它是暗语，知道的就知道
+  // （用户 2026-11-07：这三个字不需要）。
   if (hintEl) {
     const hint = readPwHint().trim();
-    hintEl.textContent = '';
-    if (hint) {
-      const label = document.createElement('span');
-      label.className = 'nt-gate-pw-hint-label';
-      label.textContent = '提示词';
-      hintEl.appendChild(label);
-      hintEl.appendChild(document.createTextNode(hint));
-    }
+    hintEl.textContent = hint;
     hintEl.hidden = !hint;
   }
 
