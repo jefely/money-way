@@ -45,7 +45,9 @@ export function mountBillPreview(body, result, opts) {
   none.value = '';
   none.textContent = '（不指定）';
   mySel.appendChild(none);
-  for (const acc of accounts) {
+  // 只列真实账户：期初余额（isHidden）不是「我的账户」，列进来会被误选
+  const picks = accounts.filter((a) => a && !a.isHidden && a.id !== '__OPENING__');
+  for (const acc of picks) {
     const opt = document.createElement('option');
     opt.value = acc.id;
     opt.textContent = (acc.code ? acc.code + ' · ' : '') + (acc.name || '');
@@ -57,16 +59,16 @@ export function mountBillPreview(body, result, opts) {
     const pid = result.presetId;
     const re = pid === 'wechat' ? /微信|零钱/ : pid === 'alipay' ? /支付宝|余额/ : null;
     if (re) {
-      const hit = accounts.find((a) => re.test(String(a.name || '')));
+      const hit = picks.find((a) => re.test(String(a.name || '')));
       if (hit) return hit;
     }
-    return accounts.find((a) => a && a.type === '资产类') || null;
+    return picks.find((a) => a.type === '资产类') || null;
   };
   const def = guessDefault();
   if (def) mySel.value = def.id;
   const tail = result.hints && result.hints.cardTail;
   if (tail) {
-    const hit = accounts.find((a) => String(a.name || '').includes(tail));
+    const hit = picks.find((a) => String(a.name || '').includes(tail));
     if (hit) mySel.value = hit.id;
   }
   myWrap.appendChild(mySel);
@@ -99,6 +101,8 @@ export function mountBillPreview(body, result, opts) {
 
   fromEl.addEventListener('change', refresh);
   mySel.addEventListener('change', refresh);
+  // 入口弹窗里已经填过起始日期就带过来；没填就留空 = 全导
+  if (o.defaultFrom) fromEl.value = o.defaultFrom;
   refresh();
 
   return () => fromEl.value || '';

@@ -46,6 +46,24 @@ export function openImportHub(opts) {
         + '或者把账本文本直接粘到下面，按「导入文本内容」合并进当前账本。';
       body.appendChild(tip);
 
+      // 起始日期：账单导入只导这一天之后的记录。
+      // 放在入口这一层，是为了**选文件之前**就能定；预览里还能再改。
+      const range = document.createElement('div');
+      range.className = 'nt-exp-bar';
+      const rangeLabel = document.createElement('label');
+      rangeLabel.className = 'nt-sync-hint';
+      rangeLabel.textContent = '起始日期 ';
+      const fromEl = document.createElement('input');
+      fromEl.type = 'date';
+      fromEl.className = 'nt-input nt-input-sm';
+      rangeLabel.appendChild(fromEl);
+      range.appendChild(rangeLabel);
+      const rangeTip = document.createElement('span');
+      rangeTip.className = 'nt-sync-hint';
+      rangeTip.textContent = '（账单导入用：这之前的记录不再核对）';
+      range.appendChild(rangeTip);
+      body.appendChild(range);
+
       const bar = document.createElement('div');
       bar.className = 'nt-exp-bar';
       const pick = document.createElement('button');
@@ -61,6 +79,8 @@ export function openImportHub(opts) {
           onBackup: (text) => askPassword(text, o),
           // 账单自动建节点时要用账户表（判断「零钱」「招行储」是否已存在）
           accounts: typeof o.getAccounts === 'function' ? o.getAccounts() : o.accounts,
+          // 这里填的起始日期会带进后面的账单预览（之前只能等选完文件才填）
+          fromDate: fromEl ? fromEl.value : '',
         });
       });
       bar.appendChild(pick);

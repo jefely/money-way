@@ -261,7 +261,9 @@ function showPreview(result, o, rows) {
       }
 
       // 账单：起始日期 + 六元素统计（日期之前的不再核对）
-      if (result.kind === 'bill') mountBillPreview(body, result, { accounts: o.accounts });
+      if (result.kind === 'bill') {
+        mountBillPreview(body, result, { accounts: o.accounts, defaultFrom: o.fromDate });
+      }
 
       // 预览前 5 行
       const ul = document.createElement('ul');
@@ -281,7 +283,7 @@ function showPreview(result, o, rows) {
         body.appendChild(more);
       }
 
-      if (result.needAccount) {
+      if (result.needAccount && result.kind !== 'bill') {
         const tip = document.createElement('p');
         tip.className = 'nt-sync-hint';
         tip.textContent = '导入后需要给这些记录指定「我的账户」。'
