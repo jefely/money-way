@@ -108,7 +108,16 @@ function b64ToBytes(b64) {
  * PUB_KEY 为空 = 还没启用签名（旧文件照常解密）。一旦填入公钥，
  * 没有 sig 或 sig 不对就一律拒绝，避免「删掉 sig 降级即可绕过」。
  */
-const PUB_KEY = null;
+const PUB_KEY = {
+  "alg": "Ed25519",
+  "crv": "Ed25519",
+  "ext": true,
+  "key_ops": [
+    "verify"
+  ],
+  "kty": "OKP",
+  "x": "dLwo8SjFlj4ZA-b4eutFi4BQtgoCIss-9bDOmU4aNYI"
+};
 
 async function checkSignature(box) {
   if (!PUB_KEY) return true;
