@@ -267,20 +267,16 @@
         <div class="pw-tip" id="pw-tip" hidden></div>
       </section>
 
-      <!-- ============ 脉络（LifeVein）：上下滑动的统计展示页 ============ -->
-      <!-- 只画中域（资产 / 负债）的气泡：一条流水一个泡，泡外是余额。
-           数据全在 core/lifevein-model.js（纯函数），这里只画。 -->
+      <!-- ============ 脉络（LifeVein）：时间流里的泡 ============ -->
+      <!-- 停域（屏幕偏上）=「现在」；存量泡驻留在那里，半径取这一刻的余额；
+           流水泡钉在时间里从下往上走；线连着两者，越接近停域光晕越亮。
+           数据与余额全在 core/lifevein-model.js，这里只画。 -->
       <section class="nt-view nt-view-lv" data-view="lifevein" hidden>
-        <div class="nt-lv-head">
-          <div>
-            <span class="nt-lv-title">LIFEVEIN</span>
-            <span class="nt-lv-sub">上下滑动 · 中域（资产 / 负债）</span>
-          </div>
-          <div class="nt-lv-totals" data-lv-totals>—</div>
-        </div>
-        <button class="nt-lv-more" type="button" data-lv-more hidden>更早的 0 条</button>
-        <div class="nt-lv-scroll" data-lv-scroll>
-          <ol class="nt-lv-list" data-lv-list></ol>
+        <canvas class="nt-lv-canvas" data-lv-canvas aria-label="LifeVein 时间流"></canvas>
+        <div class="nt-lv-zoom">
+          <button class="nt-lv-zbtn" type="button" data-lv-zoom="0.6">缩</button>
+          <button class="nt-lv-zbtn" type="button" data-lv-zoom="1">1×</button>
+          <button class="nt-lv-zbtn" type="button" data-lv-zoom="1.8">放</button>
         </div>
       </section>
 
