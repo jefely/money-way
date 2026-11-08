@@ -45,9 +45,10 @@ const STATE = {
   ],
 };
 
-test('laneOfType：六类各归各的泳道，空类型不画', () => {
-  assert.equal(laneOfType('权益类'), 0);
-  assert.equal(laneOfType('收入类'), 1);
+test('laneOfType：3 轴 × 2 侧 = 6 个半列，空类型不画', () => {
+  // lane = 轴 × 2 + (右侧 ? 1 : 0)：左轴 收入 0 / 权益 1，中轴 负债 2 / 资产 3，右轴 费用 4 / 成本 5
+  assert.equal(laneOfType('收入类'), 0);
+  assert.equal(laneOfType('权益类'), 1);
   assert.equal(laneOfType('负债类'), 2);
   assert.equal(laneOfType('资产类'), 3);
   assert.equal(laneOfType('费用类'), 4);

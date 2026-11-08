@@ -16,17 +16,26 @@
 
 import { ACCOUNT_TYPE, isDebitType, isPosted } from './schema.js';
 
-/** 六条泳道，从左到右 = 钱的动线：来源 → 中转 → 终点。w = 相对宽度（%） */
-export const LANES = [
-  { key: 'equity', name: '权益', type: ACCOUNT_TYPE.EQUITY, w: 10 },
-  { key: 'income', name: '收入', type: ACCOUNT_TYPE.INCOME, w: 18 },
-  { key: 'liability', name: '负债', type: ACCOUNT_TYPE.LIABILITY, w: 16 },
-  { key: 'asset', name: '资产', type: ACCOUNT_TYPE.ASSET, w: 26 },
-  { key: 'expense', name: '费用', type: ACCOUNT_TYPE.EXPENSE, w: 20 },
-  { key: 'cost', name: '成本', type: ACCOUNT_TYPE.COST, w: 10 },
+/** 三根轴线：每根一个固定基准位置，左右两侧各吸附一种类型（3 轴 × 2 侧 = 6 类） */
+export const AXES = [
+  { key: 'left', name: '收入 / 权益', x: 0.22 },
+  { key: 'mid', name: '负债 / 资产', x: 0.50 },
+  { key: 'right', name: '费用 / 成本', x: 0.78 },
 ];
 
-const LANE_INDEX = new Map(LANES.map((l, i) => [l.type, i]));
+/** 类型 → [轴下标, 哪一侧（-1 左 / +1 右）] */
+export const TYPE_PLACE = {
+  [ACCOUNT_TYPE.INCOME]: [0, -1],
+  [ACCOUNT_TYPE.EQUITY]: [0, 1],
+  [ACCOUNT_TYPE.LIABILITY]: [1, -1],
+  [ACCOUNT_TYPE.ASSET]: [1, 1],
+  [ACCOUNT_TYPE.EXPENSE]: [2, -1],
+  [ACCOUNT_TYPE.COST]: [2, 1],
+};
+
+const LANE_INDEX = new Map(
+  Object.entries(TYPE_PLACE).map(([type, [axis, side]]) => [type, axis * 2 + (side > 0 ? 1 : 0)]),
+);
 
 /** 账户类型 → 泳道下标；空类型（U 区）/未知 → -1（不画） */
 export function laneOfType(type) {
@@ -95,7 +104,7 @@ export function buildLifeVein(state, todayIso) {
   }
 
   /* 账户：带泳道与颜色槽位（同一泳道内按出现顺序错开） */
-  const laneCount = new Array(LANES.length).fill(0);
+  const laneCount = new Array(AXES.length * 2).fill(0);
   const accs = [];
   for (const a of accounts) {
     const lane = laneOfType(a.type);
@@ -104,6 +113,8 @@ export function buildLifeVein(state, todayIso) {
     laneCount[lane] += 1;
     accs.push({
       id: a.id, name: String(a.name || ''), lane, slot,
+      axis: Math.floor(lane / 2),
+      side: lane % 2 === 0 ? -1 : 1,
       stock: isStockType(a.type),
     });
   }
