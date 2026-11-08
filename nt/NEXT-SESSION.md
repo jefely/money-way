@@ -1,6 +1,6 @@
 # NT 账本 · 新窗口快速启动 / 交接
 
-> 最后更新：2026-11-08 · `nt-v1.487` · 最新提交见 `git log -1`
+> 最后更新：2026-11-08 · `nt-v1.488` · 最新提交见 `git log -1`
 > 用途：在新会话 / 新窗口里，让另一个 agent 或未来的你快速接手 `D:\myproject\money-way`。
 
 ---
@@ -79,11 +79,11 @@ NT 本地调试: http://127.0.0.1:8080/nt/index.html?debug=1
 
 | 项 | 值 |
 |---|---|
-| 版本 | `nt-v1.487` |
+| 版本 | `nt-v1.488` |
 | 最新提交 | 见 `git log -1` |
-| 线上 | 已确认 `nt-v1.487` |
-| 测试 | 全部测试文件；**713 通过**（65 个文件，含 `mw-params.test.mjs`） |
-| 公约 | `check-rules` 通过，308 个文件，300 行/文件 |
+| 线上 | 已确认 `nt-v1.488` |
+| 测试 | 全部测试文件；**723 通过**（66 个文件，含 `lifevein-model.test.mjs`） |
+| 公约 | `check-rules` 通过，313 个文件，300 行/文件 |
 | 工作区 | 干净 |
 
 ### 新内核的桥已经搭好（2026-11-07）
@@ -119,7 +119,7 @@ nt/
   js/
     core/                纯数据层（不碰 DOM、不碰浏览器 API）
     ui/                  渲染、表格、拖拽、弹窗
-    views/               每个 tab 的组装（flow / stats / plan / settings / query ...）
+    views/               每个 tab 的组装（flow / stats / plan / settings / query / lifevein ...）
     browser/             IndexedDB / 加密 / 备份 / 存储
     app.js               启动、路由、全局 ctx
   tools/                 本地服务、公约检查、JS-MAP 生成
@@ -474,6 +474,7 @@ $t = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
 ## 11. 相关文档
 
 - `nt/UI-SPEC.md`：界面与口径
+- `nt/LIFEVEIN-PAGE.md`：脉络（LifeVein）页的口径与第一版实测
 - `nt/TABLE-INTERACTION.md`：表格、冻结、列宽、触摸
 - `nt/JS-MAP.md`：文件职责
 - `INTERACTION.md`：交互硬度（A/B/C）与“多问用户”的约定

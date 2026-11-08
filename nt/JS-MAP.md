@@ -50,6 +50,7 @@
 | `core/ledger-stats.js` | （无界面）账本统计 |
 | `core/ledgers.js` | （无界面）多账本 create/switch/rename/remove |
 | `core/lexicon.js` | （无界面）渐进式记账词库 |
+| `core/lifevein-model.js` | LifeVein 页（上下滑动的统计展示页） |
 | `core/lz-file.js` | .lz 快照文件（跨设备同步码）的解析与还原（纯函数，Node 可跑） |
 | `core/meta.js` | （未标注界面）项目地址（常量） |
 | `core/migrate.js` | （无界面）旧数据迁移 |
@@ -194,6 +195,7 @@
 | `ui/xlsx-read.js` | xlsx 读取（ZIP 展开） |
 | `ui/xlsx-write.js` | xlsx 打包（ZIP 写入） |
 | `views/flow.js` | 流水 tab |
+| `views/lifevein.js` | LifeVein tab（上下滑动的统计展示页） |
 | `views/path.js` | 路径 tab |
 | `views/plan.js` | 固定 tab |
 | `views/query.js` | 查询 tab |

@@ -1,0 +1,202 @@
+/* ============================================================
+   NT账本 · LifeVein 页（上下滑动的统计展示页）
+   公约 3.4：类名统一 nt- 前缀；不用 DOM 层级选择器。
+   口径：泡的大小 = 这一笔金额；余额在泡外；中域 = 资产 / 负债。
+   ============================================================ */
+
+.nt-view-lv {
+  background: var(--nt-bg);
+}
+
+/* ---------- 头部：名字 + 合计 ---------- */
+
+.nt-lv-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--nt-bg-line);
+}
+
+.nt-lv-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--nt-text-muted);
+}
+
+.nt-lv-sub {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--nt-text-light);
+}
+
+.nt-lv-totals {
+  font-size: 12px;
+  color: var(--nt-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 更早一批 ---------- */
+
+.nt-lv-more {
+  align-self: center;
+  margin: 8px 0;
+  padding: 4px 14px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--nt-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.nt-lv-more:hover {
+  color: var(--nt-text);
+  border-color: var(--nt-line-strong);
+}
+
+/* ---------- 滚动区与时间轴 ---------- */
+
+.nt-lv-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px 14px 28px;
+}
+
+.nt-lv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.nt-lv-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px 12px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+}
+
+/* 时间轴：压在中轴线上，从第一行连到最后一行 */
+.nt-lv-row::before {
+  content: '';
+  position: absolute;
+  left: 58px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--nt-bg-line);
+}
+
+.nt-lv-date {
+  font-size: 11px;
+  color: var(--nt-text-light);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.nt-lv-dot {
+  position: relative;
+  z-index: 1;
+  justify-self: center;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--nt-primary);
+  box-shadow: 0 0 0 3px var(--nt-bg);
+}
+
+/* ---------- 气泡 ---------- */
+
+.nt-lv-bubble {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  justify-self: start;
+  max-width: 100%;
+  padding: 4px 10px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 999px;
+  background: var(--nt-cell-bg);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.nt-lv-row[data-size="s"] .nt-lv-bubble {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.nt-lv-row[data-size="l"] .nt-lv-bubble {
+  padding: 6px 12px;
+  font-size: 14px;
+  border-color: var(--nt-line-strong);
+}
+
+.nt-lv-name {
+  font-weight: 600;
+  color: var(--nt-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nt-lv-amt {
+  font-variant-numeric: tabular-nums;
+  color: var(--nt-text);
+  white-space: nowrap;
+}
+
+.nt-lv-row[data-dir="in"] .nt-lv-amt {
+  color: var(--nt-ok);
+}
+
+.nt-lv-row[data-dir="out"] .nt-lv-amt {
+  color: var(--nt-bad);
+}
+
+.nt-lv-row[data-dir="transfer"] .nt-lv-amt {
+  color: var(--nt-primary);
+}
+
+.nt-lv-other {
+  font-size: 11px;
+  color: var(--nt-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+.nt-lv-tag {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--nt-row-hover);
+  color: var(--nt-text-muted);
+  font-size: 10px;
+}
+
+/* ---------- 泡外：余额 ---------- */
+
+.nt-lv-bal {
+  font-size: 12px;
+  color: var(--nt-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---------- 空状态 ---------- */
+
+.nt-lv-empty {
+  padding: 48px 0;
+  text-align: center;
+  color: var(--nt-text-light);
+  font-size: 13px;
+}

@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.487';
+const CACHE_NAME = 'nt-v1.488';
 
 const ASSETS = [
   './css/base.css',
@@ -32,6 +32,7 @@ const ASSETS = [
   './css/gate.css',
   './css/import.css',
   './css/layout.css',
+  './css/lifevein.css',
   './css/modal.css',
   './css/path.css',
   './css/plan.css',
@@ -90,6 +91,7 @@ const ASSETS = [
   './js/core/ledger-stats.js',
   './js/core/ledgers.js',
   './js/core/lexicon.js',
+  './js/core/lifevein-model.js',
   './js/core/lz-file.js',
   './js/core/meta.js',
   './js/core/migrate.js',
@@ -234,6 +236,7 @@ const ASSETS = [
   './js/ui/xlsx-read.js',
   './js/ui/xlsx-write.js',
   './js/views/flow.js',
+  './js/views/lifevein.js',
   './js/views/path.js',
   './js/views/plan.js',
   './js/views/query.js',

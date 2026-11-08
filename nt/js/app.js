@@ -38,6 +38,7 @@ import { mountPlan } from './views/plan.js';
 import { mountSettings } from './views/settings.js';
 import { mountValidate } from './views/validate.js';
 import { mountPath } from './views/path.js';
+import { mountLifeVein } from './views/lifevein.js';
 import { mountDebugPanel } from './ui/debug-panel.js';
 import { applySettings } from './ui/apply-settings.js';
 import { bindAllTables, syncAllFrozen } from './ui/table-layout.js';
@@ -55,8 +56,7 @@ let state = createState();
 /** 扫二维码带进来的待合并数据（解锁或新建后消费掉） */
 let pendingPayload = null;
 let index = buildAccountIndex(state.accounts);
-let views = {};
-let active = 'flow';
+let views = {}; let active = 'flow';
 let saveTimer = 0;
 const undo = createUndo(20);
 /**
@@ -90,8 +90,6 @@ function autoPostFixed() {
   scheduleSave();
   return true;
 }
-
-function getVersion() { return dataVersion; }
 
 /** 窗口/标签标题显示当前账本：NT 账本 - 主账本 */
 function updateDocTitle() {
@@ -190,7 +188,7 @@ function mountViews() {
   const ctx = {
     getState,
     getIndex,
-    getVersion,
+    getVersion: () => dataVersion,
     setState,
     save: scheduleSave,
     saveNow: flushSave,
@@ -234,6 +232,7 @@ function mountViews() {
     settings: mountSettings(document.querySelector('[data-flow-page="settings"]'), ctx),
     validate: mountValidate(pick('validate'), ctx),
     path: mountPath(pick('path'), ctx),
+    lifevein: mountLifeVein(pick('lifevein'), ctx),
   };
 
   // 流水 ⇄ 设置 的图标按钮 + 搓动切换；滑到设置页时重画一次（数据可能被流水改过）
