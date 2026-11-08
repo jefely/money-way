@@ -26,13 +26,14 @@ function rgba(hex, a) {
   return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
 }
 
-function radiusOf(v, cap, maxV) {
+/**
+ * 定值统一：**1 元 = 1 平方像素**（面积映射，乘 zoom²）。
+ * r = √(金额 / π) × zoom —— 眼睛读的是面积，不是直径。
+ */
+function radiusOf(v, zoom) {
   const n = Math.abs(Number(v) || 0);
-  if (n < 0.005) return 2;                       // 归零 = 质点，不是删除
-  const lo = 5;                                  // 下限抬到 5：小钱也看得出在变大变小
-  const hi = Math.max(lo + 2, cap);
-  const k = Math.sqrt(Math.min(1, n / Math.max(1, maxV || MAXV)));
-  return lo + (hi - lo) * k;
+  if (n < 0.005) return 1.5;               // 归零 = 质点
+  return Math.max(1, Math.sqrt(n / Math.PI) * zoom);
 }
 
 /** 金额简写：¥1.2k / ¥12k / ¥1.2M */
@@ -50,14 +51,15 @@ export function mountLifeVein(section, ctx) {
   if (!canvas) return { render() {} };
   const g = canvas.getContext('2d');
 
-  const view = { scrollDay: 0, ppd: BASE_PPD, ready: false };
+  const view = { scrollDay: 0, zoom: 0.04, ready: false };
   let model = null;
   let drag = null;
 
   const W = () => canvas.clientWidth;
   const H = () => canvas.clientHeight;
   const stopY = () => H() * STOP;
-  const yOf = (day) => stopY() + (day - view.scrollDay) * view.ppd;
+  const ppd = () => BASE_PPD * view.zoom;         // 一天多少像素（和泡的缩放同源）
+  const yOf = (day) => stopY() + (day - view.scrollDay) * ppd();
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -116,7 +118,7 @@ export function mountLifeVein(section, ctx) {
         out.set(s.a.id, {
           x: box.x - laneW / 2 + cell * (col + 0.5) + shift - cell * 0.25,
           y: y0 + row * rowH,
-          r: radiusOf(s.v, cap, model.maxStock),
+          r: radiusOf(s.v, view.zoom),
           v: s.v,
           cap,
         });
@@ -148,8 +150,8 @@ export function mountLifeVein(section, ctx) {
     /* 日期刻度 */
     g.textAlign = 'left';
     g.font = '9px monospace';
-    const top = view.scrollDay - stopY() / view.ppd;
-    const bottom = view.scrollDay + (h - stopY()) / view.ppd;
+    const top = view.scrollDay - stopY() / ppd();
+    const bottom = view.scrollDay + (h - stopY()) / ppd();
     for (let d = Math.max(0, Math.floor(top)); d <= Math.min(model.days - 1, Math.ceil(bottom)); d += 1) {
       const y = yOf(d);
       if (y < 22 || y > h - 22) continue;
@@ -182,7 +184,7 @@ export function mountLifeVein(section, ctx) {
       const tx2 = fb ? fb.x : laneBox(b.lane).x;
       const fy = fa ? fa.y : yOf(e.day);
       const ty = fb ? fb.y : yOf(e.day);
-      const fr = fa ? fa.r : radiusOf(e.amount, 12, model.maxStock);
+      const fr = fa ? fa.r : radiusOf(e.amount, view.zoom);
       const tr = fb ? fb.r : radiusOf(e.amount, 12, model.maxStock);
       if (Math.max(fy, ty) < -60 || Math.min(fy, ty) > h + 60) continue;
 
@@ -221,7 +223,7 @@ export function mountLifeVein(section, ctx) {
         const laneW = Math.max(28, box.w * 0.92);
         const cell = laneW / 3;
         const x = box.x - laneW / 2 + cell * ((k % 3) + 0.5) - cell * 0.25;
-        const r = radiusOf(e.amount, Math.max(4, Math.min(13, cell * 0.46)), model.maxStock);
+        const r = radiusOf(e.amount, view.zoom);
         const near = Math.max(0, 1 - Math.abs(y - stopY()) / 160);
         const fut = e.day > now ? 0.42 : 1;
         const color = LANE_COLORS[acc.lane];
@@ -290,19 +292,19 @@ export function mountLifeVein(section, ctx) {
   });
   canvas.addEventListener('pointermove', (e) => {
     if (!drag) return;
-    setScroll(drag.day - (e.clientY - drag.y) / view.ppd);
+    setScroll(drag.day - (e.clientY - drag.y) / ppd());
   });
   const end = () => { drag = null; };
   canvas.addEventListener('pointerup', end);
   canvas.addEventListener('pointercancel', end);
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
-    setScroll(view.scrollDay - e.deltaY / view.ppd);
+    setScroll(view.scrollDay - e.deltaY / ppd());
   }, { passive: false });
 
   for (const btn of section.querySelectorAll('[data-lv-zoom]')) {
     btn.addEventListener('click', () => {
-      view.ppd = BASE_PPD * Number(btn.getAttribute('data-lv-zoom') || 1);
+      view.zoom = Math.max(0.002, Math.min(4, view.zoom * Number(btn.getAttribute('data-lv-zoom') || 1)));
       draw();
     });
   }
@@ -315,6 +317,9 @@ export function mountLifeVein(section, ctx) {
       // 一进来停在「最近一次活动」，而不是今天：多数账本今天并没有流水
       const last = model.events.length ? Math.max(...model.events.map((e) => e.day)) : model.todayDay;
       view.scrollDay = Math.min(model.todayDay, last + 1);
+      // 基准 1 元 = 1 平方像素；默认镜头拉到 0.5，让 ¥6 万的泡半径约 70px，
+      // 不至于把整个停域带糊成一片红。比例关系不变，只是看远一点。
+      view.zoom = 0.35;
       view.ready = true;
     }
     draw();
