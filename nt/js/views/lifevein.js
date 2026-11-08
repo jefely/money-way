@@ -26,11 +26,13 @@ function rgba(hex, a) {
   return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
 }
 
-function radiusOf(v, cap) {
+function radiusOf(v, cap, maxV) {
   const n = Math.abs(Number(v) || 0);
   if (n < 0.005) return 2;                       // 归零 = 质点，不是删除
-  const k = Math.log10(1 + n) / Math.log10(1 + MAXV);
-  return Math.max(2.5, Math.min(cap, 2.5 + (cap - 2.5) * k));
+  const lo = 5;                                  // 下限抬到 5：小钱也看得出在变大变小
+  const hi = Math.max(lo + 2, cap);
+  const k = Math.sqrt(Math.min(1, n / Math.max(1, maxV || MAXV)));
+  return lo + (hi - lo) * k;
 }
 
 /** 金额简写：¥1.2k / ¥12k / ¥1.2M */
@@ -81,11 +83,11 @@ export function mountLifeVein(section, ctx) {
   }
 
   /**
-   * 存量泡的布局：按泳道分组，**同一根轴上从上往下排**（3 张信用卡就排 3 行），
-   * 围绕停域线上下铺开。返回 id → {x,y,r}。
+   * 存量泡的布局：按泳道分组，**每类给 3 个横向轨道**，超过 3 个换行，
+   * 奇数行错开半格 —— 泡泡像蜂巢一样互相咬合，不重叠也不排成死板一列。
+   * 顺序按账户的固定 slot（不按余额排序）：滚动时位置不跳，只有半径在变。
    */
   function layoutStocks(now) {
-    const zoneH = Math.min(H() * ZONE_H, 210);
     const list = model.accounts
       .filter((a) => a.stock)
       .map((a) => ({ a, v: balanceAt(model, a.id, now) }))
@@ -99,16 +101,22 @@ export function mountLifeVein(section, ctx) {
 
     const out = new Map();
     for (const [lane, group] of byLane) {
-      group.sort((p, q) => Math.abs(q.v) - Math.abs(p.v));
+      group.sort((p, q) => p.a.slot - q.a.slot);
       const box = laneBox(lane);
-      const n = group.length;
-      const step = n <= 1 ? 0 : Math.min(34, Math.max(11, zoneH / (n - 1)));
-      const cap = Math.max(4.5, Math.min(19, step ? step * 0.44 : 19));
+      const laneW = Math.max(28, box.w * 0.92);
+      const cell = laneW / 3;                            // 3 个轨道
+      const cap = Math.max(4, Math.min(15, cell * 0.46));
+      const rowH = cap * 1.72;                           // 蜂巢行距（略小于 2r）
+      const rows = Math.ceil(group.length / 3);
+      const y0 = stopY() - ((rows - 1) * rowH) / 2;
       group.forEach((s, i) => {
+        const col = i % 3;
+        const row = Math.floor(i / 3);
+        const shift = row % 2 ? cell * 0.5 : 0;          // 奇数行错开半格
         out.set(s.a.id, {
-          x: box.x,
-          y: stopY() + (i - (n - 1) / 2) * step,
-          r: radiusOf(s.v, cap),
+          x: box.x - laneW / 2 + cell * (col + 0.5) + shift - cell * 0.25,
+          y: y0 + row * rowH,
+          r: radiusOf(s.v, cap, model.maxStock),
           v: s.v,
           cap,
         });
@@ -154,9 +162,13 @@ export function mountLifeVein(section, ctx) {
 
     const stocks = layoutStocks(now);
 
-    /* 线：只画已经发生的；越接近停域越亮 */
+    /* 线：只在发生日前后出现 —— 钱在流的那一下才连线，流完就散开 */
+    const WIN = 1.4;
     for (const e of model.events) {
       if (e.day > now + 0.02) continue;
+      const age = now - e.day;
+      if (age > WIN) continue;                    // 滚过发生日就消失
+      const fade = 1 - age / WIN;                 // 越接近发生日越实
       const a = model.accounts.find((x) => x.id === e.fromId);
       const b = model.accounts.find((x) => x.id === e.toId);
       if (!a || !b || a.lane < 0 || b.lane < 0) continue;
@@ -170,8 +182,8 @@ export function mountLifeVein(section, ctx) {
       const tx2 = fb ? fb.x : laneBox(b.lane).x;
       const fy = fa ? fa.y : yOf(e.day);
       const ty = fb ? fb.y : yOf(e.day);
-      const fr = fa ? fa.r : radiusOf(e.amount, 12);
-      const tr = fb ? fb.r : radiusOf(e.amount, 12);
+      const fr = fa ? fa.r : radiusOf(e.amount, 12, model.maxStock);
+      const tr = fb ? fb.r : radiusOf(e.amount, 12, model.maxStock);
       if (Math.max(fy, ty) < -60 || Math.min(fy, ty) > h + 60) continue;
 
       const dist = Math.abs(fy - ty);
@@ -184,9 +196,9 @@ export function mountLifeVein(section, ctx) {
 
       g.save();
       g.shadowColor = rgba(color, 0.85);
-      g.shadowBlur = 12 * glow;
-      g.strokeStyle = rgba(color, 0.14 + 0.58 * glow);
-      g.lineWidth = 1 + 1.6 * glow;
+      g.shadowBlur = 12 * glow * fade;
+      g.strokeStyle = rgba(color, (0.14 + 0.58 * glow) * fade);
+      g.lineWidth = (1 + 1.6 * glow) * (0.45 + 0.55 * fade);
       g.beginPath();
       g.moveTo(x1, fy);
       g.bezierCurveTo(x1 + dir * bend, fy, x2 - dir * bend, ty, x2, ty);
@@ -194,15 +206,22 @@ export function mountLifeVein(section, ctx) {
       g.restore();
     }
 
-    /* 流水泡：收入 / 费用 / 成本，钉在时间上 */
+    /* 流水泡：收入 / 费用 / 成本，钉在时间上；同一天同一泳道按 3 轨道错开 */
+    const seq = new Map();
     for (const e of model.events) {
       for (const side of ['fromId', 'toId']) {
         const acc = model.accounts.find((x) => x.id === e[side]);
         if (!acc || acc.stock) continue;
         const y = yOf(e.day);
         if (y < -50 || y > h + 50) continue;
-        const x = laneBox(acc.lane).x;
-        const r = radiusOf(e.amount, 13);
+        const key = acc.lane + '|' + e.day;
+        const k = seq.get(key) || 0;
+        seq.set(key, k + 1);
+        const box = laneBox(acc.lane);
+        const laneW = Math.max(28, box.w * 0.92);
+        const cell = laneW / 3;
+        const x = box.x - laneW / 2 + cell * ((k % 3) + 0.5) - cell * 0.25;
+        const r = radiusOf(e.amount, Math.max(4, Math.min(13, cell * 0.46)), model.maxStock);
         const near = Math.max(0, 1 - Math.abs(y - stopY()) / 160);
         const fut = e.day > now ? 0.42 : 1;
         const color = LANE_COLORS[acc.lane];
@@ -238,11 +257,11 @@ export function mountLifeVein(section, ctx) {
       g.lineWidth = 1.2;
       g.stroke();
 
-      if (pos.r >= 7.5) {
-        g.fillStyle = 'rgba(255,255,255,0.8)';
-        g.font = '9px sans-serif';
+      if (pos.r >= 7) {
+        g.fillStyle = 'rgba(255,255,255,0.78)';
+        g.font = Math.max(6, Math.min(8.5, pos.r * 0.85)) + 'px sans-serif';
         g.textAlign = 'center';
-        g.fillText(acc.name.slice(0, 5), pos.x, pos.y + 3);
+        g.fillText(acc.name.slice(0, 2), pos.x, pos.y + 2.5);
       }
       if (pos.r >= 12) {
         g.fillStyle = rgba(color, 0.85);

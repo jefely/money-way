@@ -128,8 +128,17 @@ export function buildLifeVein(state, todayIso) {
     stock.set(a.id, arr);
   }
 
+  let maxStock = 0;
+  for (const arr of stock.values()) {
+    for (let i = 0; i < arr.length; i += 1) {
+      const v = Math.abs(arr[i]);
+      if (v > maxStock) maxStock = v;
+    }
+  }
+
   return {
     days,
+    maxStock,
     startIso,
     endIso,
     todayDay: Math.max(0, Math.min(days - 1, dayOf(today))),
