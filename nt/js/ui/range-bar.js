@@ -1,24 +1,22 @@
-// 界面：单元格菜单（长按弹出 · 剪切/复制/粘贴/清除/编辑）
+// 界面：单元格框选的工具条
 /**
- * 单元格菜单
+ * 框选工具条
  * 层：第五层 · UI
  *
- * 用户 2026-11-09：长按单元格，在**该格上方**弹出五个按钮。
- * 只负责把按钮画出来、按能力裁剪、定位到选区的上边；
- * 剪切/复制/粘贴/清除/编辑的实际动作由 cell-range.js 传进来。
+ * 只负责「把四个按钮画出来、显示/隐藏」。
+ * 复制 / 粘贴 / 删除行的实际动作由调用方通过 handlers 传入 ——
+ * 那些动作要读选区和表格数据，属于 cell-range.js 的职责。
  */
 
 const ACTS = [
-  ['cut', '剪切'],
   ['copy', '复制'],
   ['paste', '粘贴'],
-  ['clear', '清除'],
-  ['edit', '编辑'],
+  ['del', '删除行'],
+  ['cancel', '取消'],
 ];
 
 /**
- * @param {{onCut:Function, onCopy:Function, onPaste:Function,
- *          onClear:Function, onEdit:Function, onCancel:Function}} handlers
+ * @param {{onCopy:Function, onPaste:Function, onDelete:Function, onCancel:Function}} handlers
  */
 export function bindBar(handlers) {
   let el = document.getElementById('nt-range-bar');
@@ -42,44 +40,42 @@ export function bindBar(handlers) {
 
   el.addEventListener('click', (ev) => {
     const b = ev.target.closest('.nt-range-btn');
-    if (!b || b.disabled) return;
-    const fn = handlers['on' + b.dataset.act.charAt(0).toUpperCase() + b.dataset.act.slice(1)];
-    if (typeof fn === 'function') fn();
+    if (!b) return;
+    const act = b.dataset.act;
+    if (act === 'copy') handlers.onCopy();
+    else if (act === 'paste') handlers.onPaste();
+    else if (act === 'del') handlers.onDelete();
+    else handlers.onCancel();
   });
 
   return el;
 }
 
 /**
- * 显示并定位到选区**上方**；上方放不下就翻到下方。
- * @param {{top:number,left:number,right:number,bottom:number}} anchor
- * @param {{hasClip?:boolean, canPaste?:boolean, canEdit?:boolean, canDelete?:boolean}} [opts]
+ * 显示并定位（定位走 CSS 变量，不使用内联 style）
+ *
+ * 按钮按这张表的能力裁剪：只读表（统计）没有「粘贴 / 删除行」，
+ * 留着禁用按钮等于让用户反复点一个永远不会响的东西。
  */
-export function showBar(anchor, opts) {
+export function showBar(tableEl, opts) {
   const el = document.getElementById('nt-range-bar');
-  if (!el || !anchor) return;
-  const o = opts || {};
+  if (!el) return;
 
-  for (const b of el.querySelectorAll('.nt-range-btn')) {
-    const act = b.dataset.act;
-    // 只读表（统计）没有输入框：粘贴/清除/编辑对它没意义
-    if (act === 'paste') { b.hidden = o.canPaste === false; b.disabled = !o.hasClip; }
-    else if (act === 'clear' || act === 'edit') b.hidden = o.canEdit === false;
-    else if (act === 'cut') b.hidden = o.canEdit === false;
-  }
-
+  const rect = tableEl.getBoundingClientRect();
+  el.style.setProperty('--nt-range-top', Math.max(6, Math.round(rect.top + 4)) + 'px');
+  el.style.setProperty('--nt-range-left', Math.round(rect.left + 8) + 'px');
   el.hidden = false;
 
-  const bw = el.offsetWidth || 240;
-  const bh = el.offsetHeight || 40;
-  const mid = (anchor.left + anchor.right) / 2;
-  let left = Math.round(mid - bw / 2);
-  left = Math.max(6, Math.min(window.innerWidth - bw - 6, left));
-  let top = Math.round(anchor.top - bh - 8);
-  if (top < 6) top = Math.round(anchor.bottom + 8);   // 上方放不下 → 放下面
-
-  el.style.setProperty('--nt-range-top', top + 'px');
-  el.style.setProperty('--nt-range-left', left + 'px');
+  const o = opts || {};
+  for (const b of el.querySelectorAll('.nt-range-btn')) {
+    const act = b.dataset.act;
+    if (act === 'paste') {
+      b.hidden = o.canPaste === false;
+      b.disabled = !o.hasClip;
+    } else if (act === 'del') {
+      b.hidden = o.canDelete === false;
+    }
+  }
 }
 
 export function hideBar() {

@@ -112,7 +112,6 @@
 | `ui/apply-settings.js` | 全局：把界面参数写成 CSS 变量（主题/列宽） |
 | `ui/backup-guard.js` | 主屏幕备份提醒 |
 | `ui/cat-suggest.js` | 统计 → 分类查询的候选气泡（输入首字母弹出分类） |
-| `ui/cell-edit.js` | 流水表的单元格编辑（Excel 式 · 一套状态机） |
 | `ui/cell-range.js` | 单元格区域框选（长按起手 → 拖动框选 → 复制 / 粘贴 / 删除行） |
 | `ui/chart-gestures.js` | 环网图的手势（拖动 / 缩放 / 平移 / 旋转） |
 | `ui/chart-tip.js` | 路径 tab → 悬停提示 |
@@ -164,7 +163,7 @@
 | `ui/plan-rows.js` | 流水 tab → 未来行的确认 / 作废 |
 | `ui/pwa.js` | PWA 注册 |
 | `ui/qr-canvas.js` | （未标注界面）把 QR 矩阵画到 canvas（UI 层） |
-| `ui/range-bar.js` | 单元格菜单（长按弹出 · 剪切/复制/粘贴/清除/编辑） |
+| `ui/range-bar.js` | 单元格框选的工具条 |
 | `ui/render-transactions.js` | 流水 tab → 表格 tbody（分批追加，照单文件版） |
 | `ui/reset-actions.js` | 重置整本账（节点模板弹窗里的危险动作） |
 | `ui/reset-dialog.js` | 节点模板弹窗里的「重置」区 |

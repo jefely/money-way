@@ -217,7 +217,7 @@ export function mountFlow(section, ctx) {
 
   // 单元格区域框选：长按起手，可复制 / 粘贴 / 批量删除行
   const flowTable = section.querySelector('.nt-table-flow');
-  mountCellRange(flowTable, { cursor: true,   // Excel 式单元格光标（单击选中 / 双击编辑）
+  mountCellRange(flowTable, {
     onNotice: (t) => ctx.setFooter(t),
     onDeleteRows: (ids) => {
       const r = removeFlowBatch(ctx.getState(), ids);

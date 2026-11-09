@@ -17,9 +17,8 @@
  */
 
 import { bindBar, showBar, hideBar, setPasteEnabled } from './range-bar.js';
-import { bindCellEdit } from './cell-edit.js';
 
-const LONG_PRESS_MS = 320;
+const LONG_PRESS_MS = 480;
 const MOVE_TOLERANCE = 8;      // 长按期间移动超过这个距离就算滚动，放弃长按
 
 /** 内部剪贴板：二维字符串数组（跨表共享：流水表复制 → 别的表也能粘） */
@@ -35,9 +34,6 @@ let sel = null;
  *   onNotice:      (text:string) => void    —— 粘贴结果如实回报（写到页脚）
  */
 const tableMap = new WeakMap();
-
-/** 每张表自己的单元格编辑器（只有可编辑的表才有） */
-const editorMap = new WeakMap();
 
 /* ============================================================
    一、挂载
@@ -59,20 +55,11 @@ export function mountCellRange(tableEl, opts) {
   });
 
   bindBar({
-    onCut: doCut,
     onCopy: doCopy,
     onPaste: doPaste,
-    onClear: doClear,
-    onEdit: doEdit,
+    onDelete: doDelete,
     onCancel: clearSelection,
   });
-
-  // Excel 式单元格编辑：只给需要编辑的表（流水表）挂，只读表（统计）不挂
-  if (o.cursor && !tableEl.dataset.cursorBound) {
-    tableEl.dataset.cursorBound = '1';
-    const tbody = tableEl.querySelector('tbody');
-    if (tbody) editorMap.set(tableEl, bindCellEdit(tbody));
-  }
 
   if (tableEl.dataset.rangeBound === '1') return;
   tableEl.dataset.rangeBound = '1';
@@ -167,10 +154,6 @@ function onDown(tableEl, ev) {
 function startSelection(tableEl, hit, ev) {
   // 在别的表上起新选区时，先把上一张表的高亮清掉 —— 否则会同时亮着两处
   clearSelection();
-
-  // 单元格编辑与框选互斥：框选期间不需要键盘，也避免两个高亮叠着
-  const ed = editorMap.get(tableEl);
-  if (ed) ed.release();
   sel = { anchorR: hit.r, anchorC: hit.c, focusR: hit.r, focusC: hit.c, tableEl };
 
   document.body.classList.add('nt-range-mode');
@@ -193,43 +176,23 @@ function startSelection(tableEl, hit, ev) {
     try { tableEl.releasePointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
 
     document.body.classList.remove('nt-range-mode');
-    showBar(selRect(), barState(tableEl));
+    showBar(tableEl, barState(tableEl));
   };
 
   tableEl.addEventListener('pointermove', onMove);
   tableEl.addEventListener('pointerup', finish);
   tableEl.addEventListener('pointercancel', finish);
 
-  showBar(selRect(), barState(tableEl));
+  showBar(tableEl, barState(tableEl));
 }
 
 /** 工具条的状态：能力来自这张表自己，不是全局 */
 function barState(tableEl) {
   const caps = capsOf(tableEl);
-  const hasInput = !!tableEl.querySelector('tbody input, tbody textarea');
   return {
     hasClip: !!clip,
-    canPaste: caps.paste !== 'off' && hasInput,
-    canEdit: hasInput,
+    canPaste: caps.paste !== 'off',
     canDelete: !!caps.onDeleteRows,
-  };
-}
-
-/** 选区的屏幕矩形：菜单就贴在它上方 */
-function selRect() {
-  if (!sel) return null;
-  const { r1, r2, c1, c2 } = bounds();
-  const rows = bodyRows(sel.tableEl);
-  const first = rows[r1] && rows[r1].children[c1];
-  const last = rows[r2] && rows[r2].children[c2];
-  if (!first || !last) return null;
-  const a = first.getBoundingClientRect();
-  const b = last.getBoundingClientRect();
-  return {
-    top: Math.min(a.top, b.top),
-    bottom: Math.max(a.bottom, b.bottom),
-    left: Math.min(a.left, b.left),
-    right: Math.max(a.right, b.right),
   };
 }
 
@@ -351,64 +314,16 @@ function doPaste() {
 
   // 值先全部落地，再统一派发 —— 否则第一格的 change 触发重渲染，后面的格子就写在旧节点上了
   for (const input of inputs) {
-    try { input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) { /* 已脱离 */ }
+    try {
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    } catch (e) { /* 重渲染后旧节点可能已脱离 */ }
   }
 
   clearSelection();
   caps.notice(blocked
     ? `粘贴 ${inputs.length} 格，另有 ${blocked} 格是只读列没写`
     : `粘贴 ${inputs.length} 格`);
-}
-
-/** 剪切 = 复制 + 清空 */
-function doCut() {
-  if (!sel) return;
-  const tableEl = sel.tableEl;
-  doCopy(); const k = clearCells();
-  clearSelection();
-  capsOf(tableEl).notice(`已剪切 ${k} 格`);
-}
-
-/** 清空选区里的输入框，返回格数 */
-function clearCells() {
-  if (!sel) return 0;
-  const { r1, r2, c1, c2 } = bounds();
-  const inputs = [];
-  for (const tr of bodyRows(sel.tableEl).slice(r1, r2 + 1)) {
-    const tds = rowCells(tr);
-    if (!tds) continue;
-    for (let c = c1; c <= c2; c += 1) {
-      const input = tds[c] && writeCell(tds[c], '');
-      if (input) inputs.push(input);
-    }
-  }
-  for (const input of inputs) {
-    try {
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    } catch (e) { /* 重渲染后旧节点可能已脱离 */ }
-  }
-  return inputs.length;
-}
-
-function doClear() {
-  if (!sel) return;
-  const tableEl = sel.tableEl;
-  const k = clearCells();
-  clearSelection();
-  capsOf(tableEl).notice(k ? `已清除 ${k} 格` : '这一片没有可清空的格');
-}
-
-/** 编辑：等同双击 —— 选中这一格、进去、光标放末尾 */
-function doEdit() {
-  if (!sel) return;
-  const { r1, c1 } = bounds();
-  const tableEl = sel.tableEl;
-  const tr = bodyRows(tableEl)[r1];
-  const td = tr && tr.children[c1];
-  clearSelection();
-  const ed = editorMap.get(tableEl);
-  if (ed && td) ed.editAt(td);
 }
 
 function doDelete() {
