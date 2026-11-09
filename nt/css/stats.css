@@ -557,3 +557,7 @@
 .nt-note-detail-table td { text-align: center; }
 .nt-note-detail-table td.nt-cell-num { text-align: right; }
 .nt-note-detail-table td:last-child { text-align: left; }
+
+/* 左侧两表不再被 flex 压缩：各自按内容高度排，超出时整个左栏滚动 */
+#nt-stats-notes .nt-stats-panel:first-child { display: block; overflow: auto; }
+#nt-stats-notes .nt-note-stat { flex-shrink: 0; }
