@@ -581,6 +581,15 @@ body.nt-col-resizing {
 .nt-table-flow .nt-cell-input {
   caret-color: transparent;
   cursor: cell;
+  /* 选中态把输入框从命中测试里摘掉：
+     手机上长按输入框会弹系统的「粘贴 / 全选 / 翻译」选字菜单，
+     只能靠「手指根本不落在 input 上」来根治。键盘仍由 cell-edit 手动 focus 打开。
+     进入编辑（双击）后 pointer-events 恢复，光标/拖选字都正常。 */
+  pointer-events: none;
+}
+
+.nt-table-flow .nt-cell {
+  cursor: cell;
 }
 
 /* 选中但不是编辑：长按交给框选，不要弹系统的选字放大镜。
@@ -594,6 +603,7 @@ body.nt-col-resizing {
 .nt-table-flow .nt-cell-editing .nt-cell-input {
   caret-color: auto;
   cursor: text;
+  pointer-events: auto;
 }
 
 /* 选中的是「整格」，不是格子里的字：不画文字选中色（Excel 也不画） */

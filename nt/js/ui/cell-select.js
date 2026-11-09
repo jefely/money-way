@@ -233,6 +233,8 @@ export function mountCellSelect(tableEl, tbody, opts) {
   tableEl.addEventListener('pointerdown', (ev) => {
     if (ev.pointerType === 'mouse' && ev.button !== 0) return;
     if (ev.target.closest && ev.target.closest('button, .nt-fixed-box, .nt-col-handle, .nt-cell-grip')) return;
+    // 编辑态下的长按留给系统选字（用户正在改文字），不弹我们的菜单
+    if (editor && editor.isEditing && editor.isEditing()) return;
     const td = ev.target.closest && ev.target.closest('td.nt-cell');
     const p = td ? coords(td) : null;
     if (!p) return;

@@ -87,15 +87,8 @@ export function bindRowEditing(tbody, h) {
     }
   });
 
-  // 聚焦即全选（金额/日期）；账户格给出当前候选
-  tbody.addEventListener('focusin', (ev) => {
-    const input = ev.target;
-    if (!input || input.tagName !== 'INPUT') return;
-    const f = input.dataset.field;
-    if (f === 'amount' || f === 'date') {
-      try { input.select(); } catch (e) {}
-    }
-  });
+  // 聚焦不再全选：选中态由 cell-edit.js 负责（它不画文字选中框，打字走整格替换）
+  // 这里原来给 amount/date 做 input.select()，会画出系统选中手柄，看起来像进了编辑。
 
   // 失焦：账户格先解析；新增行有内容就建单
   tbody.addEventListener('focusout', (ev) => {

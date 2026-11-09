@@ -112,6 +112,7 @@
 | `ui/apply-settings.js` | 全局：把界面参数写成 CSS 变量（主题/列宽） |
 | `ui/backup-guard.js` | 主屏幕备份提醒 |
 | `ui/cat-suggest.js` | 统计 → 分类查询的候选气泡（输入首字母弹出分类） |
+| `ui/cell-caret.js` | 点击坐标 → 输入框里的字符下标（双击定位光标） |
 | `ui/cell-clip.js` | 单元格剪贴板（复制 / 剪切 / 清除 / 粘贴） |
 | `ui/cell-edit.js` | 流水表的单元格选中 / 编辑（Excel 式） |
 | `ui/cell-menu.js` | 单元格长按菜单（剪切 / 复制 / 粘贴 / 清除 / 编辑） |

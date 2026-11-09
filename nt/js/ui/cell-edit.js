@@ -1,4 +1,6 @@
 // 界面：流水表的单元格选中 / 编辑（Excel 式）
+
+import { placeCaret } from './cell-caret.js';
 /**
  * 单元格编辑
  * 层：第五层 · UI
@@ -38,8 +40,6 @@ const ARROWS = {
 /** 每个 tbody 一个编辑器（mountFlow 可能被重复调用） */
 const editors = new WeakMap();
 
-const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
-
 export function bindCellEdit(tbody, opts) {
   if (!tbody) return null;
   if (editors.has(tbody)) return editors.get(tbody);
@@ -74,9 +74,11 @@ export function bindCellEdit(tbody, opts) {
   function selectCell(td, input) {
     if (!td || !input) return;
     clearTimeout(timer);
-    active = { td, input, mode: 'selected', original: input.value };
+    // 不调 input.select()：那会画出文字选中框 / 系统选中手柄，看起来像进了编辑。
+    // 「打字即替换」交给 beforeinput 处理（见下面的监听）。
+    active = { td, input, mode: 'selected', original: input.value, replaced: false };
     paint();
-    try { input.select(); } catch (e) { /* 只读格也能选 */ }
+    try { input.setSelectionRange(0, 0); } catch (e) { /* 只读格也能放光标 */ }
     if (o.onSelect) o.onSelect(td);
     ensureVisible(td);
   }
@@ -85,15 +87,32 @@ export function bindCellEdit(tbody, opts) {
     const input = inputOf(td);
     if (!usable(input)) return;
     clearTimeout(timer);
-    if (!active || active.td !== td) {
-      active = { td, input, mode: 'selected', original: input.value };
-    }
-    active.mode = 'editing';
-    paint();
+    // 先拿焦点：输入框 pointer-events:none 之后，点 td 会把焦点从 input 上带走，
+    // 这里的 focus 会触发 focusin → selectCell 把 active 重置成 selected。
+    // 所以 focus 必须在「设 editing」之前，否则双击刚进的编辑态立刻被覆盖。
     if (document.activeElement !== input) {
       try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
     }
+    if (!active || active.td !== td) selectCell(td, input);
+    active.original = input.value;
+    active.mode = 'editing';
+    paint();
     placeCaret(input, x, y);
+  }
+
+  /** 点中一格：选中它并把键盘拱起来（输入框 pointer-events:none，得手动 focus） */
+  function focusCell(td) {
+    const input = inputOf(td);
+    if (!input) return;
+    if (usable(input)) {
+      if (document.activeElement !== input) {
+        try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
+      }
+    } else if (active && document.activeElement === active.input) {
+      // 只读格（未来分期 / 期初日期）不聚焦，但键盘要收掉
+      try { active.input.blur(); } catch (e) { /* 忽略 */ }
+    }
+    if (!active || active.td !== td) selectCell(td, input);
   }
 
   /* ---------- 焦点：选中态的唯一真相 ---------- */
@@ -143,22 +162,43 @@ export function bindCellEdit(tbody, opts) {
       return;
     }
 
+    // 点已经选中的格子（再点取消 / 双击的第一下）：mousedown 已经把输入框 blur 了，
+    // 不要再把它 focus 回来，否则键盘会闪一下再收起。
+    const sameSelected = !!(down && down.td === td && down.wasSelected);
+    if (!sameSelected) focusCell(td);
+
     // 再点一次 = 取消选中。推迟一下，双击的第二下会把它取消。
-    if (down && down.td === td && down.wasSelected
-      && active && active.td === td && active.mode === 'selected') {
+    if (sameSelected && active && active.td === td && active.mode === 'selected') {
       timer = setTimeout(() => {
         if (active && active.td === td && active.mode === 'selected') release();
       }, DESELECT_MS);
     }
   });
 
-  /* ---------- 打字即进编辑（键盘输入后回车填入） ---------- */
+  /* ---------- 选中态打字 = 整格替换（不进编辑、不显示光标） ---------- */
 
-  tbody.addEventListener('input', (ev) => {
-    if (!active || ev.target !== active.input) return;
-    if (active.mode !== 'selected') return;
-    active.mode = 'editing';
-    paint();
+  // 不在选中态做 input.select()（会有文字选中框 / 系统手柄）。第一次输入前
+  // 先把旧值清掉，浏览器插进来的字就是新内容；之后正常追加。
+  tbody.addEventListener('beforeinput', (ev) => {
+    if (!active || ev.target !== active.input || active.mode !== 'selected') return;
+    const type = String(ev.inputType || '');
+    if (!active.replaced && type.startsWith('insert')) {
+      active.replaced = true;
+      active.input.value = '';
+    } else if (!active.replaced && type.startsWith('delete')) {
+      ev.preventDefault();
+      active.replaced = true;
+      active.input.value = '';
+      active.input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+
+  // 中文输入法：compositionstart 时清旧值，composition 的字就是替换后的内容
+  tbody.addEventListener('compositionstart', (ev) => {
+    if (!active || ev.target !== active.input || active.mode !== 'selected') return;
+    if (active.replaced) return;
+    active.replaced = true;
+    active.input.value = '';
   });
 
   /* ---------- 键盘：Esc / Tab / F2 / 方向键 ---------- */
@@ -208,8 +248,9 @@ export function bindCellEdit(tbody, opts) {
         const account = field === 'from' || field === 'to';
         if (!account || blank) input.dispatchEvent(new Event('input', { bubbles: true }));
       }
-      try { input.select(); } catch (e) { /* 忽略 */ }
+      try { input.setSelectionRange(0, 0); } catch (e) { /* 忽略 */ }
       active.mode = 'selected';
+      active.replaced = false;
       paint();
       return;
     }
@@ -241,8 +282,9 @@ export function bindCellEdit(tbody, opts) {
     const input = inputOf(td);
     if (!usable(input)) return false;
     if (!active || active.td !== td) {
-      active = { td, input, mode: 'selected', original: input.value };
+      active = { td, input, mode: 'selected', original: input.value, replaced: false };
     }
+    active.original = input.value;
     try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
     active.mode = 'editing';
     paint();
@@ -295,54 +337,6 @@ export function bindCellEdit(tbody, opts) {
     const i = list.indexOf(from);
     if (i < 0) return null;
     return list[i + dir] || null;
-  }
-
-  /* ---------- 光标定位 ---------- */
-
-  function placeCaret(input, x, y) {
-    const len = String(input.value || '').length;
-    const idx = (Number.isFinite(x) && Number.isFinite(y)) ? caretIndexAt(input, x, y) : len;
-    try { input.setSelectionRange(idx, idx); } catch (e) { /* 忽略 */ }
-  }
-
-  function caretIndexAt(input, x, y) {
-    const text = String(input.value || '');
-    const len = text.length;
-    if (!len) return 0;
-
-    // Chrome / Edge：坐标直接给出 input 里的字符下标（探针实测）
-    const cp = document.caretPositionFromPoint
-      ? document.caretPositionFromPoint(x, y) : null;
-    if (cp && (cp.offsetNode === input
-      || (cp.offsetNode && cp.offsetNode.parentNode === input))) {
-      return clamp(cp.offset, 0, len);
-    }
-
-    // 其它浏览器：按字体逐字量宽度（中文全角也准）
-    const rect = input.getBoundingClientRect();
-    const cs = window.getComputedStyle(input);
-    const padL = parseFloat(cs.paddingLeft) || 0;
-    const target = x - rect.left - padL + (input.scrollLeft || 0);
-    const ctx = measureCtx();
-    if (!ctx) return len;
-    ctx.font = cs.font || (cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily);
-    const ls = parseFloat(cs.letterSpacing) || 0;
-    let acc = 0;
-    for (let i = 0; i < len; i += 1) {
-      const w = ctx.measureText(text[i]).width + ls;
-      if (target < acc + w / 2) return i;
-      acc += w;
-    }
-    return len;
-  }
-
-  let ctxCache = null;
-  function measureCtx() {
-    if (ctxCache === null) {
-      const cv = document.createElement('canvas');
-      ctxCache = cv.getContext ? cv.getContext('2d') : null;
-    }
-    return ctxCache;
   }
 
   /* ---------- 键盘弹出后把这一格留在可视区 ---------- */
