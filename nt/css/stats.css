@@ -527,7 +527,7 @@
 }
 
 /* 备注统计的两个小表（统计页第三块 / 设置页弹窗共用） */
-.nt-note-stat { margin: 10px 12px; padding: 8px 10px 10px; border: 1px solid var(--nt-bg-line); border-radius: 12px; overflow: hidden; background: var(--nt-bg); }
+.nt-note-stat { margin: 10px 12px; padding: 8px 0 0; border: 1px solid var(--nt-bg-line); border-radius: 12px; overflow: hidden; background: var(--nt-bg); }
 .nt-note-stat-title { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
 .nt-note-stat-table { width: 100%; }
 
@@ -545,3 +545,9 @@
 .nt-note-stat-table th.nt-th, .nt-note-stat-table td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #nt-stats-notes .nt-stats-grid { position: relative; }
 #nt-stats-notes .nt-stats-panel:first-child { overflow: auto; }
+
+/* 表格贴住圆角框左右边：第一列左边框/最后一列右边框与框边重叠（同节点统计表） */
+.nt-note-stat-title { margin: 0 0 6px; padding: 0 10px; }
+.nt-note-stat-table { width: 100%; }
+.nt-note-stat-table th.nt-th:first-child, .nt-note-stat-table td:first-child { border-left: 0; }
+.nt-note-stat-table th.nt-th:last-child, .nt-note-stat-table td:last-child { border-right: 0; }

@@ -76,7 +76,7 @@ export function mountStatsNotes(ctx, pane, getRange) {
     const tableEl = el('table', 'nt-table nt-note-stat-table');
     const cg = el('colgroup');
     const c0 = el('col'); c0.style.width = firstW + 'px'; cg.appendChild(c0);
-    for (let i = 0; i < 4; i += 1) cg.appendChild(el('col'));
+    for (let i = 0; i < 3; i += 1) cg.appendChild(el('col'));
     tableEl.appendChild(cg);
     const thead = el('thead');
     const hr = el('tr');
