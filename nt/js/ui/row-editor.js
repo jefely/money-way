@@ -48,7 +48,11 @@ export function bindRowEditing(tbody, h) {
 
     if (field === 'date') applyTodayShortcut(input);
 
-    if (tr.dataset.new === '1') return;   // 新增行：等失焦（点其它格 / 点序号列）再建单
+    if (tr.dataset.new === '1') {
+      // 金额一有值就补日期 + 序号（不等失焦），用户 2026-11-09
+      if (field === 'amount' && h.onOpenAmount) h.onOpenAmount(tr);
+      return;
+    }
 
     const id = tr.dataset.id;
     if (!id) return;
