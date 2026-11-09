@@ -22,7 +22,7 @@ body.nt-range-mode .nt-tablewrap {
   --nt-edge-b: transparent;
   --nt-edge-l: transparent;
   --nt-edge-r: transparent;
-  background: rgba(139, 108, 255, 0.22) !important;
+  background: var(--nt-cell-active, rgba(139, 108, 255, 0.18)) !important;
   box-shadow:
     inset 0 1px 0 0 var(--nt-edge-t),
     inset 0 -1px 0 0 var(--nt-edge-b),

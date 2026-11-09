@@ -23,7 +23,7 @@
  * 鏂板鏂囦欢璁板緱鍔犺繘鏉ワ紙tools 閲屾湁鐢熸垚鑴氭湰锛夈€?
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.511';
+const CACHE_NAME = 'nt-v1.512';
 
 const ASSETS = [
   './css/base.css',
@@ -193,7 +193,7 @@ const ASSETS = [
   './js/ui/inst-layout.js',
   './js/ui/inst-range.js',
   './js/ui/inst-table.js',
-  './js/ui/layout-text.js',
+  './js/ui/layout-text.js', './js/ui/leave-hooks.js',
   './js/ui/locate-tx.js',
   './js/ui/modal.js',
   './js/ui/mw-params.js',

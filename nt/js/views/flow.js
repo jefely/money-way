@@ -301,20 +301,22 @@ export function mountFlow(section, ctx) {
   }
 
   /**
-   * 切回流水记录表：把开放录入区里**带金额**的行结算成正式流水（编号、落尾行）；
-   * 没金额的行留在原位、不编号。用户 2026-11-09。
+   * 离开流水页（切 tab / 滑到设置页）：在后台把带金额的开放行结算到尾行。
+   * 用户 2026-11-09：不要切回来才算（那一下会卡切换），切出去时先让目标页画出来，
+   * 下一帧在隐藏的流水表上结算 + 重建一次；切回来只做 version 检查 + 滚动。
    */
-  function activate() {
+  function beforeLeave() {
+    openDrafts.flush(true);
     const has = (ctx.getState().openRows || []).some((d) => d && Number(String(d.amount || '').replace(/[¥,\s]/g, '')) > 0);
     if (!has) return;
-    // 先让切页画出来，再在下一帧结算 + 重建：避免点 tab 后整页同步卡住
     setTimeout(() => {
       const r = settleOpenRows(ctx.getState());
       if (!r) return;
       ctx.setState(r.state);
       ctx.save();
       openDrafts.reseed(r.keep);
-      render();
+      renderedVer = -1;
+      render(true);
       scrollLast(body);
     }, 0);
   }
@@ -341,7 +343,7 @@ export function mountFlow(section, ctx) {
     render();
   }
 
-  return { render, focusEnd, activate, flushDrafts: () => openDrafts.flush(true) };
+  return { render, focusEnd, beforeLeave, flushDrafts: () => openDrafts.flush(true) };
 }
 
 /* ---------- 工具条 ---------- */

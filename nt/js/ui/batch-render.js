@@ -16,6 +16,10 @@ export function beginBatch() {
   depth += 1;
 }
 
+export function isBatching() {
+  return depth > 0;
+}
+
 export function endBatch() {
   depth = Math.max(0, depth - 1);
   if (depth) return;

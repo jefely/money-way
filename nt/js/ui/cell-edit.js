@@ -156,7 +156,9 @@ export function bindCellEdit(tbody, opts) {
     let td = cellOf(ev.target);
     // 点行号（序）：整行选中并直接弹菜单；新行的序是输入框，保持原生
     if (td && td.classList.contains('nt-cell-seq')) {
-      if (td.querySelector('input')) return;
+      const si = td.querySelector('input');
+      if (si && !o.seqMenu) return;
+      if (si) { try { si.blur(); } catch (e) { /* 忽略 */ } }
       clearTimeout(timer);
       const id = td.parentElement.dataset.id;
       release();

@@ -22,6 +22,7 @@ export function mountExcelGrid(tableEl, tbody, opts) {
     nativeCommit: o.nativeCommit,
     enterTab: o.enterTab,
     onLeaveRow: o.onLeaveRow,
+    seqMenu: o.seqMenu,
     onSelect: (td) => select.single(td),
     onRelease: () => select.clear(),
     onRowSelect: (tr) => select.row(tr),

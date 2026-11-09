@@ -36,8 +36,19 @@ export function mountSettings(section, ctx) {
 
   bindActions();
 
-  function render() {
+  let renderedVer = -1;
+
+  function render(force) {
+    if (!body) return;
+    const ver = typeof ctx.getVersion === 'function' ? ctx.getVersion() : -1;
+    if (!force && ver >= 0 && ver === renderedVer) return;
+    renderedVer = ver;
     table.render();
+  }
+
+  /** 切出去时在后台排一次：类型/简码/粘贴改过但还没重排 */
+  function sortLater() {
+    setTimeout(() => render(false), 0);
   }
 
   // 初始渲染一次：设置页已经搬进流水页的滑道，不再是独立 tab，
@@ -225,7 +236,7 @@ export function mountSettings(section, ctx) {
     }
   }
 
-  return { render };
+  return { render, sortLater };
 }
 
 function addKV(dl, k, v, cls) {

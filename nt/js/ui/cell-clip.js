@@ -76,7 +76,8 @@ export function copyCells(tableEl, r1, c1, r2, c2) {
     const tds = rows[r] ? rowCells(rows[r]) : null;
     if (!tds) continue;
     const line = [];
-    for (let c = c1; c <= c2; c += 1) line.push(tds[c] ? cellValue(tds[c]) : '');
+    // 序号列不复制：留一个洞，粘的时候跳过（序号是自动归类生成的）
+    for (let c = c1; c <= c2; c += 1) line.push(tds[c] && !tds[c].classList.contains('nt-cell-seq') ? cellValue(tds[c]) : undefined);
     out.push(line);
   }
   clip = out;
@@ -118,6 +119,7 @@ export function pasteCells(tableEl, r1, c1, matrix, opts) {
   m.forEach((line, dr) => {
     const tds = rows[r1 + dr] ? rowCells(rows[r1 + dr]) : null;
     (line || []).forEach((v, dc) => {
+      if (v === undefined) return;
       const td = tds ? tds[c1 + dc] : null;
       const input = td ? writeCell(td, v == null ? '' : String(v)) : null;
       if (input) inputs.push(input);

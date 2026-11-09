@@ -46,6 +46,7 @@ import { clearSelection } from './ui/cell-range.js';
 import { loadMergedSettings } from './ui/debug-themes.js';
 import { onColResize } from './ui/col-widths.js';
 import { mountFlowShell } from './ui/flow-shell.js';
+import { flowLeft, settingsLeft, leaveFlow } from './ui/leave-hooks.js';
 import { APP_VER } from './core/version.js';
 import { initVersion } from './ui/update-check.js';
 import { registerServiceWorker } from './ui/pwa.js';
@@ -238,10 +239,7 @@ function mountViews() {
   };
 
   // 流水 ⇄ 设置 的图标按钮 + 搓动切换；滑到设置页时重画一次（数据可能被流水改过）
-  mountFlowShell(pick('flow'), {
-    onSettings: () => { if (views.settings && views.settings.render) views.settings.render(); },
-    onFlow: () => { if (views.flow && views.flow.render) views.flow.render(); },
-  });
+  mountFlowShell(pick('flow'), { onSettings: () => flowLeft(views), onFlow: () => settingsLeft(views) });
 
   // 节点设置页的「校验」按钮：弹窗显示校验内容（2026-11）。
   // 校验不再占一个 tab —— tab 那个位置给了「设置」（密码 / 主题 / 布局）。
@@ -308,24 +306,25 @@ function enterApp() {
       // 切页时把框选状态收掉：body 上的 nt-range-mode 会让整页 touch-action:none，
       // 留在别的页就会出现「上下滑不动」而且没有任何报错。
       // 开放录入区的草稿先立即落库，再切页。
-      if (views.flow && views.flow.flushDrafts) views.flow.flushDrafts(); clearSelection();
       // 拖列宽被打断时同理（这个类会禁掉表格容器的横滑）
-      document.body.classList.remove('nt-col-resizing');
-      active = name;
-      renderActive();
-      // 切回流水页：带金额的开放行结算到尾行，再把最后一条有内容的行落在视口第 6 行
-      if (name === 'flow' && views.flow) { views.flow.activate?.(); if (views.flow.focusEnd) views.flow.focusEnd(); }
+      if (views.flow && views.flow.flushDrafts) views.flow.flushDrafts(); clearSelection(); document.body.classList.remove('nt-col-resizing');
+      leaveFlow(views, active);
+      active = name; renderActive();
+      if (name === 'flow' && views.flow && views.flow.focusEnd) views.flow.focusEnd();
     },
   });
 
   // 从别的窗口 / 标签页切回来时，流水页也重新定位到最后 6 行（用户 2026-10-30）：
   // 移动端后台恢复会把页面重置，光靠 tab 切换的 onShow 不够。
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'visible') { if (views.flow && views.flow.flushDrafts) views.flow.flushDrafts(); return; }
+    if (document.visibilityState !== 'visible') {
+      leaveFlow(views, active);
+      return;
+    }
     // 手机后台很常见：放着过夜/过了一个月，回来先补到期固定收支
     if (autoPostFixed()) renderActive();
     if (active !== 'flow') return;
-    if (views.flow) { views.flow.activate?.(); if (views.flow.focusEnd) views.flow.focusEnd(); }
+    if (views.flow && views.flow.focusEnd) views.flow.focusEnd();
   });
 
   // 页面一直开着跨过零点/跨月：日期一变就补账并重画（后台标签会节流，

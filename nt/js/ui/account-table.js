@@ -13,7 +13,7 @@
 import { tpl, renameBlankDraft } from './render-transactions.js';
 import { setCell, moneyOrBlank } from './table.js';
 import { mountExcelGrid } from './excel-grid.js';
-import { deferRender } from './batch-render.js';
+import { isBatching } from './batch-render.js';
 import { openingOf } from '../core/ledger-stats.js';
 import { ZONES } from '../core/settings.js';
 import { money } from '../core/format.js';
@@ -88,10 +88,11 @@ export function mountAccountTable(ctx, tbody, opts) {
     onNotice: (t) => ctx.setFooter(t),
     nativeCommit: true,
     enterTab: true,
+    seqMenu: true,
   });
 
   function render() {
-    grid.select.reset(); if (deferRender(render)) return;
+    grid.select.reset(); if (isBatching()) return;
     let state = ctx.getState();
     // 自动扫描：流水里引用了、设置表里没有的账户 → 补一个「未分类账户」行
     // （类型/分类留空，归到 U 区；流水是主表，这里只是给它一个可编辑的壳）
@@ -300,7 +301,6 @@ export function mountAccountTable(ctx, tbody, opts) {
     if (field === 'opening') {
       setOpening(ctx, id, toAmount(v));
       ctx.saveNow();
-      render();
       return;
     }
 
@@ -309,11 +309,11 @@ export function mountAccountTable(ctx, tbody, opts) {
     if (field === 'type') {
       // 类型可以手填，也可以点格子弹候选（见 bindTypePicker）
       const t = String(v || '').trim();
-      if (!t) { render(); return; }
+      if (!t) return;
       patch.type = t;
     } else if (field === 'seq') {
       const n = parseInt(v, 10);
-      if (!Number.isFinite(n) || n <= 0) { render(); return; }
+      if (!Number.isFinite(n) || n <= 0) return;
       patch.seq = n;
     } else if (field === 'category') {
       patch.category = v;
@@ -346,8 +346,7 @@ export function mountAccountTable(ctx, tbody, opts) {
 
     ctx.setState(updateAccount(st, id, patch));
     ctx.saveNow();
-    // 类型/序/期初会换分区、换排序或改期初流水 → 仍重绘；其余就地改，不打断 Tab / 粘贴
-    if (field === 'type' || field === 'seq' || field === 'opening') render();
+    // 就地改：类型/序/期初也不立刻重排 —— 序号自动归类生成，切出去时在后台统一排
     if (field === 'code') {
       const inp = tbody.querySelector('tr[data-id="' + id + '"] input[data-field="code"]');
       if (inp) {

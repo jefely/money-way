@@ -782,3 +782,18 @@ Tab / Enter 换格和批量粘贴不被重绘打断；流水页行为不回退�
 - 设置/固定/分期页的粘贴现在是**整片**粘贴；结构性字段（类型/期初/频率/月份矩阵）仍会在粘完后重绘一次。
 - 分期表没有「行号」列（一条分期两行），没有行号选行；需要的话得单独加一列。
 - 账户页的原生类型格、固定页的频率下拉仍是原生控件，不参与格子层。
+
+
+## 15. 2026-11-09 行选底色 / 粘贴 / 重排时序（`nt-v1.512`）
+
+- 行/选区底色改为主题变量 `--nt-cell-active`（浅色 #f3f1fb、深色 #262626、备选 1/2 各自）。
+- `cell-clip.copyCells` 对 `td.nt-cell-seq` 留 `undefined` 洞，`pasteCells` 跳过洞 —— 整行复制不带序号。
+- `cell-edit` 新增 `seqMenu`：账户页的序号格（数据行和 U 区新行）单击 → 整行选中 + 五按钮菜单。
+- 账户页类型/序/期初不再立即 `render`；`views/settings.js` 的 `render(force)` 做 version 检查，
+  `sortLater()` 在切出设置页（`onFlow` / tab 切换 / visibility hidden）后台重排。
+- `views/flow.js` 的 `activate` 改成 `beforeLeave`：切出流水页时 flush 草稿 + 后台 `settleOpenRows` +
+  `render(true)`；切回只 `focusEnd`（version 检查命中就不重建）。
+- 新增 `js/ui/leave-hooks.js`（flowLeft / settingsLeft / leaveFlow），app.js 的 onShow / visibility /
+  flow-shell 的 onSettings / onFlow 都走它。
+- 实测：设置页复制费用行简码..分类粘到资产行（序号不变、类型+分类都生效、行不立刻动，切出后重排，
+  切回行元素保持）；流水开放行切到统计时后台结算出 1 笔，切回不重建。
