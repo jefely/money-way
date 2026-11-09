@@ -19,6 +19,7 @@
  */
 
 import { copyCells, clearCells, pasteCells, getClip } from './cell-clip.js';
+import { beginBatch, endBatch } from './batch-render.js';
 import { showCellMenu, hideCellMenu, isCellMenuTarget, isCellMenuOpen } from './cell-menu.js';
 import { rowsOf, coordsOf, cellAtIn, boundsOf, editableCountIn } from './cell-geom.js';
 
@@ -328,7 +329,9 @@ export function mountCellSelect(tableEl, tbody, opts) {
   const handlers = {
     cut() {
       if (!sel) return;
-      copyNow(); const n = clearNow();
+      let n = 0;
+      beginBatch();
+      try { copyNow(); n = clearNow(); } finally { endBatch(); }
       paint(); placeGrip();
       notice(n ? `已剪切 ${n} 格` : '这一片没有可清空的格');
     },
@@ -342,10 +345,11 @@ export function mountCellSelect(tableEl, tbody, opts) {
       const m = getClip();
       if (!m) return;
       // 粘到锚点（当前活动格），与 Excel 一致；不是选区的左上角。
-      // 空行里的内容只进开放录入区草稿，不在这里建单。
-      // 设置页 / 固定页的提交会重绘，只粘一格，避免批量粘到一半被重绘打断。
+      // 批量期间各页 render 被挂起，粘完统一重绘一次。
       const mm = o.pasteSingle && m.length && m[0] ? [[m[0][0]]] : m;
-      const r = pasteCells(tableEl, sel.ar, sel.ac, mm, { resolveAccounts: true });
+      let r = { written: 0, blocked: 0 };
+      beginBatch();
+      try { r = pasteCells(tableEl, sel.ar, sel.ac, mm, { resolveAccounts: true }); } finally { endBatch(); }
       paint(); placeGrip();
       notice(r.blocked
         ? `粘贴 ${r.written} 格，${r.blocked} 格只读没写`
@@ -353,7 +357,9 @@ export function mountCellSelect(tableEl, tbody, opts) {
     },
     clear() {
       if (!sel) return;
-      const n = clearNow();
+      let n = 0;
+      beginBatch();
+      try { n = clearNow(); } finally { endBatch(); }
       paint(); placeGrip();
       notice(n ? `已清除 ${n} 格` : '这一片没有可清空的格');
     },

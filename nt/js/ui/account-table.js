@@ -13,6 +13,7 @@
 import { tpl, renameBlankDraft } from './render-transactions.js';
 import { setCell, moneyOrBlank } from './table.js';
 import { mountExcelGrid } from './excel-grid.js';
+import { deferRender } from './batch-render.js';
 import { openingOf } from '../core/ledger-stats.js';
 import { ZONES } from '../core/settings.js';
 import { money } from '../core/format.js';
@@ -85,13 +86,12 @@ export function mountAccountTable(ctx, tbody, opts) {
   // 和流水页同一套格子层：单击选中、双击编辑、行号选行、五按钮菜单
   const grid = mountExcelGrid(tbody.closest('table'), tbody, {
     onNotice: (t) => ctx.setFooter(t),
-    pasteSingle: true,
     nativeCommit: true,
     enterTab: true,
   });
 
   function render() {
-    grid.select.reset();
+    grid.select.reset(); if (deferRender(render)) return;
     let state = ctx.getState();
     // 自动扫描：流水里引用了、设置表里没有的账户 → 补一个「未分类账户」行
     // （类型/分类留空，归到 U 区；流水是主表，这里只是给它一个可编辑的壳）
@@ -352,9 +352,7 @@ export function mountAccountTable(ctx, tbody, opts) {
       const inp = tbody.querySelector('tr[data-id="' + id + '"] input[data-field="code"]');
       if (inp) {
         inp.classList.toggle('nt-code-dup', dupNames.length > 0);
-        inp.title = dupNames.length
-          ? '简码「' + (normalizeCode(v) || '') + '」已被「' + dupNames.join(' / ') + '」使用（允许重复）'
-          : '';
+        inp.title = dupNames.length ? '简码「' + (normalizeCode(v) || '') + '」已被「' + dupNames.join(' / ') + '」使用（允许重复）' : '';
       }
       const shown = normalizeCode(v) || '空';
       ctx.setFooter(dupNames.length

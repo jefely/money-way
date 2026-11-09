@@ -164,7 +164,9 @@ export function bindCellEdit(tbody, opts) {
       if (live && o.onRowSelect) o.onRowSelect(live);
       return;
     }
-    if (!td || !inputOf(td) || inputOf(td).dataset.grid === 'off') return;
+    if (!td) return;
+    const inp = inputOf(td);
+    if (!inp || inp.dataset.grid === 'off') { release(); return; }
 
     const now = Date.now();
     const isDouble = ev.detail >= 2 || (lastClick.td === td && now - lastClick.at <= DBL_MS);
@@ -338,9 +340,6 @@ export function bindCellEdit(tbody, opts) {
     // 取消选中前也要收尾：简码 → 节点名、金额格式化、空行建单
     leaveCell();
     proxy.blur();
-    if (active && document.activeElement === active.input) {
-      try { active.input.blur(); } catch (e) { /* 忽略 */ }
-    }
     clear();
     if (o.onRelease) o.onRelease();
   }
@@ -364,7 +363,6 @@ export function bindCellEdit(tbody, opts) {
     active.mode = 'editing';
     paint();
     try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) { /* 忽略 */ }
-    if (o.onSelect) o.onSelect(td);
     ensureVisible(tbody, td);
     return true;
   }

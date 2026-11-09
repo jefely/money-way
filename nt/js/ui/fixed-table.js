@@ -12,6 +12,7 @@
 import { tpl } from './render-transactions.js';
 import { setCell, moneyOrBlank } from './table.js';
 import { mountExcelGrid } from './excel-grid.js';
+import { deferRender } from './batch-render.js';
 import { showUndo } from './undo-bar.js';
 import { moneyAlways } from '../core/format.js';
 import { createScheduled, clampDay } from '../core/schema.js';
@@ -35,7 +36,6 @@ export function mountFixedTable(ctx, tbody, opts) {
     onNotice: (t) => ctx.setFooter(t),
     nativeCommit: true,
     enterTab: true,
-    pasteSingle: true,
     onLeaveRow: (tr) => { if (tr.__tryCreate) tr.__tryCreate(); },
   });
 
@@ -64,7 +64,7 @@ export function mountFixedTable(ctx, tbody, opts) {
   }
 
   function render() {
-    grid.select.reset();
+    grid.select.reset(); if (deferRender(render)) return;
     const state = ctx.getState();
     const list = (state.scheduled || []).filter((s) => s && s.isScheduled);
 
