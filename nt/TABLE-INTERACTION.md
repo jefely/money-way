@@ -1187,7 +1187,8 @@ const aligned = thBox.length === tdBox.length
 | 点另一格 / 取消选中 | 先收尾上一格：简码解析成节点名、金额格式化、空行建单 |
 | 方向键 | 选中态移动格子；编辑态交给浏览器 |
 | Esc | 编辑态 → 还原并退回选中态；再 Esc → 取消选中 |
-| **拖右下角手柄** | 把选区扩成矩形（手机 / 鼠标都行）；手柄跟着新右下角走，横滚纵滚不离格；**松手若已是多格，自动弹菜单** |
+| **拖右下角手柄** | 把选区扩成矩形（手机 / 鼠标都行）；手柄跟着新右下角走，横滚纵滚不离格；**松手若已是多格，自动弹菜单**（命中区 56×56，向格外多伸 10px，可见 10px） |
+| **点行号（序）** | 选中该行「日期..备注」并直接弹菜单；点其它格子取消行选、变成单格 |
 | **长按 480ms** | 单个格子：在该格上方弹唯一一条菜单：`剪切 / 复制 / 粘贴 / 清除 / 编辑`（多格已自动弹，不用再长按） |
 | 菜单外任意处 | 收起菜单；点在表格外同时取消选区 |
 
@@ -1225,9 +1226,15 @@ const aligned = thBox.length === tdBox.length
 `nt-row-promoting`（`detail.newTr`），`cell-edit` 把选区接到新行的同一个字段上。
 
 **③补三 粘贴进空行会建单，才进撤销栈。**
-`cell-clip` 把值全部写完后，对空行里有 from/to/amount 的行补一次合成 `focusout`
+`cell-clip` 把值全部写完后，对空行里有 from/to/amount/note 的行补一次合成 `focusout`
 （同样打 `__ntSynthetic`），让 row-editor 的 120ms 建单跑起来；否则只写了 DOM 草稿，
-state 没变，点撤销自然没有任何反应。只有备注的格子不构成流水，仍留作草稿。
+state 没变，点撤销自然没有任何反应。
+
+**③补四 半截行也落成 `draft`，不再只留在 DOM 草稿里（v1.505）。**
+用户 2026-11-09：空行是计划性编排区，只填了转出/转入（没金额）也必须保存，
+重新进入不能消失。`flow.js` 的 `onCreate` 现在只要 from/to/amount/note 有内容就
+`addTransaction(..., {status:'draft'})`，并就地 `promoteRow`；补齐后
+`afterTxEdit → syncPostStatus` 自动转正。序号按缺端标红、账户没类型标黄。
 
 **④ 编辑态下的长按不弹我们的菜单。**
 用户正在改文字，长按要留给系统选字；`cell-select` 的 pointerdown 里
@@ -1262,9 +1269,10 @@ Safari / 老浏览器降级为 canvas 逐字量宽。
 ### 11.3 涉及文件
 
 ```
-js/ui/cell-edit.js     选中 / 编辑 / 键盘（Enter/Tab/方向键/Esc）/ 隐藏格镜像
+js/ui/cell-edit.js     选中 / 编辑 / 键盘（Enter/Tab/方向键/Esc）/ 隐藏格镜像 / 行号选行
 js/ui/cell-proxy.js    1px 隐藏键盘输入框（选中态持焦点）
 js/ui/cell-nav.js      方向导航 / 下一行同列 / Tab 相邻格 / ensureVisible
+js/ui/cell-geom.js     选区坐标 / 边界 / 可编辑格计数（cell-select 的纯几何）
 js/ui/cell-caret.js    点击坐标 → input 字符下标（caretPositionFromPoint + 降级）
 js/ui/cell-select.js   选区矩形 / 右下角手柄 / 长按菜单 / 剪切复制粘贴清除
 js/ui/cell-menu.js     五按钮菜单的摆放与点外面收起
@@ -1279,8 +1287,12 @@ css/range.css          手柄、五按钮菜单、框选高亮
 
 ### 11.4 已知边界
 
-- 粘贴进**空行**：有 from/to/amount 的行会建单（进撤销栈）；只有备注的格子仍是草稿，
-  不建单、也不在撤销栈里（账本没有「只有备注的流水」）。
+- 空行里写了一半就离开（点另一格 / 回车 / Tab / 粘贴）：只要有 转出/转入/金额/备注
+  之一，就落成一笔 `status:'draft'` 的流水（序号缺端标红 / 未分类标黄），随账本保存，
+  重新进入仍在；补齐两端 + 金额 + 账户类型后由 `syncPostStatus` 自动转正。
+  只有日期、没有其它内容的不建。粘贴进空行同理：一行一笔草稿，各占一条撤销记录。
+- 草稿的金额为 0（没填金额时），不计入合计，只计入「草稿 N 笔未入账」；
+  它照样能复制 / 粘贴 / 被行号整行选中。
 - 剪切 / 清除已有行的 from/to 时，靠合成一次 `focusout` 让 row-editor
   解析空账户、把 `from_id/to_id` 清掉；空行不发（会触发建单）。
 - 流水表不再有「框选批量删除行」：五按钮里没有删除行（用户只要这五个），

@@ -138,9 +138,10 @@ export function pasteCells(tableEl, r1, c1, matrix, opts) {
       const from = tr.querySelector('input[data-field="from"]');
       const to = tr.querySelector('input[data-field="to"]');
       const amount = tr.querySelector('input[data-field="amount"]');
+      const note = tr.querySelector('input[data-field="note"]');
       const has = (el) => !!(el && String(el.value || '').trim());
-      if (!has(from) && !has(to) && !has(amount)) continue;
-      const target = amount || from || to;
+      if (!has(from) && !has(to) && !has(amount) && !has(note)) continue;
+      const target = amount || from || to || note;
       const ev = new FocusEvent('focusout', { bubbles: true });
       ev.__ntSynthetic = true;
       try { target.dispatchEvent(ev); } catch (e) { /* 忽略 */ }

@@ -156,6 +156,13 @@ export function bindCellEdit(tbody, opts) {
   tbody.addEventListener('click', (ev) => {
     if (ev.target.closest && ev.target.closest('button, .nt-fixed-box, .nt-col-handle')) return;
     const td = cellOf(ev.target);
+    // 点行号（序）：整行选中「日期..备注」并直接弹菜单，效果同选一个区域
+    if (td && td.classList.contains('nt-cell-seq')) {
+      clearTimeout(timer);
+      release();
+      if (o.onRowSelect) o.onRowSelect(td.parentElement);
+      return;
+    }
     if (!td || !inputOf(td)) return;
 
     const now = Date.now();

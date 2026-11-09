@@ -123,9 +123,8 @@ export function bindRowEditing(tbody, h) {
   /**
    * 新增行 → 交给调用方。
    *
-   * 有金额 = 建一笔流水；只有账户名 = 只把那个名字登记成账户（不建金额为空的流水）。
-   * 用户 2026-10-30：留那么多空行就是让人自由布局录入面板，想录哪里录哪里 ——
-   * 所以「先写账户、金额后补」也必须是有效动作，不能因为没金额就整行丢掉。
+   * 有内容（账户 / 金额 / 备注）就交出去；不完整的由调用方存成草稿
+   *（用户 2026-11-09：空行是计划编排区，只写一半也要落库，重新进入不能丢）。
    */
   function createFromRow(tr) {
     if (!tr.isConnected) return false;
@@ -134,7 +133,7 @@ export function bindRowEditing(tbody, h) {
       const v = String(el.value || '').trim();
       if (v) fields[el.dataset.field] = v;
     });
-    if (!fields.amount && !fields.from && !fields.to) return false;
+    if (!fields.amount && !fields.from && !fields.to && !fields.note) return false;
     h.onCreate(fields, tr);
     return true;
   }

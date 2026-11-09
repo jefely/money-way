@@ -20,13 +20,16 @@
 
 import { copyCells, clearCells, pasteCells, getClip } from './cell-clip.js';
 import { showCellMenu, hideCellMenu, isCellMenuTarget, isCellMenuOpen } from './cell-menu.js';
+import { rowsOf, coordsOf, cellAtIn, boundsOf, editableCountIn } from './cell-geom.js';
 
 const ANCHOR = 'nt-cell-anchor';
 const RANGE = 'nt-range-sel';
 const EDGES = ['nt-range-edge-top', 'nt-range-edge-bottom', 'nt-range-edge-left', 'nt-range-edge-right'];
 const PRESS_MS = 480;
 const MOVE_TOL = 8;
-const GRIP = 40;
+const GRIP = 56;
+/** 命中区向格子外多伸出的像素：手指常常落在格子角的外侧 */
+const GRIP_OUT = 10;
 
 export function mountCellSelect(tableEl, tbody, opts) {
   const o = opts || {};
@@ -37,7 +40,6 @@ export function mountCellSelect(tableEl, tbody, opts) {
   let sel = null;
   let press = null;
   let pressInside = false;   // 按在已有多格选区里：松手前先别塌成一格
-  let swallowClick = false;
   let suppressClick = false;
   let blockEnd = false;
   let grip = null;
@@ -50,22 +52,12 @@ export function mountCellSelect(tableEl, tbody, opts) {
 
   /* ---------- 坐标 ---------- */
 
-  const rows = () => [...tbody.children];
-
-  function coords(td) {
-    const tr = td && td.parentElement;
-    if (!tr || tr.parentElement !== tbody || [...tr.children].some((c) => c.colSpan > 1)) return null;
-    const r = rows().indexOf(tr);
-    const c = [...tr.children].indexOf(td);
-    return r >= 0 && c >= 0 ? { r, c } : null;
-  }
-
-  const cellAt = (r, c) => (tbody.children[r] ? tbody.children[r].children[c] || null : null);
-  const bounds = () => ({
-    r1: Math.min(sel.ar, sel.fr), r2: Math.max(sel.ar, sel.fr),
-    c1: Math.min(sel.ac, sel.fc), c2: Math.max(sel.ac, sel.fc),
-  });
+  const rows = () => rowsOf(tbody);
+  const coords = (td) => coordsOf(tbody, td);
+  const cellAt = (r, c) => cellAtIn(tbody, r, c);
+  const bounds = () => boundsOf(sel);
   const isMulti = () => { const b = bounds(); return b.r1 !== b.r2 || b.c1 !== b.c2; };
+  const editableCount = () => editableCountIn(tbody, sel);
 
   /** 指针下的格子：跳过手柄 / 菜单等浮层（用 elementsFromPoint 逐层找 td） */
   function cellAtPoint(x, y) {
@@ -125,8 +117,8 @@ export function mountCellSelect(tableEl, tbody, opts) {
     const wr = wrap.getBoundingClientRect();
     const x = cr.right - (wr.left + wrap.clientLeft) + wrap.scrollLeft;
     const y = cr.bottom - (wr.top + wrap.clientTop) + wrap.scrollTop;
-    grip.style.left = Math.round(x - GRIP) + 'px';
-    grip.style.top = Math.round(y - GRIP) + 'px';
+    grip.style.left = Math.round(x - GRIP + GRIP_OUT) + 'px';
+    grip.style.top = Math.round(y - GRIP + GRIP_OUT) + 'px';
     grip.hidden = false;
   }
 
@@ -191,6 +183,20 @@ export function mountCellSelect(tableEl, tbody, opts) {
     paint(); placeGrip();
   }
 
+  /** 点行号（序）：选中这一行的日期..备注，并直接弹菜单 */
+  function row(tr) {
+    if (!tr) return;
+    const r = rows().indexOf(tr);
+    const cols = [...tr.children]
+      .map((td, c) => (td.querySelector('input.nt-cell-input') ? c : -1))
+      .filter((c) => c >= 0);
+    if (r < 0 || !cols.length) return;
+    sel = { ar: r, ac: cols[0], fr: r, fc: cols[cols.length - 1] };
+    if (editor && editor.blurInput) editor.blurInput();
+    paint(); placeGrip();
+    openMenuAt(cellAt(r, cols[0]));   // 弹在日期上方，别弹到屏外的备注那边
+  }
+
   function clear() {
     sel = null; paint();
     if (grip) grip.hidden = true;
@@ -200,7 +206,6 @@ export function mountCellSelect(tableEl, tbody, opts) {
   function reset() {
     cancelPress();
     pressInside = false;
-    swallowClick = false;
     clear();
   }
 
@@ -228,7 +233,7 @@ export function mountCellSelect(tableEl, tbody, opts) {
     cancelPress();
     if (!hadInside || menu) return;      // 长按弹了菜单：保留整片
     if (td) singleNow(td);               // 短按：塌到按下的那一格
-    swallowClick = true;                 // 吞掉这次 click，别让 cell-edit 再排「取消选中」
+    // 不再吞 click：要让 cell-edit 把键盘焦点/描边落到这一格上
   }
 
   tableEl.addEventListener('pointerdown', (ev) => {
@@ -240,7 +245,6 @@ export function mountCellSelect(tableEl, tbody, opts) {
     const p = td ? coords(td) : null;
     if (!p) return;
     cancelPress();
-    swallowClick = false;
     // 按在已有多格选区里：先别让 focusin 把选区收成一格
     pressInside = !!(sel && isMulti() && inside(p));
     press = { hit: p, td, x: ev.clientX, y: ev.clientY, timer: 0 };
@@ -287,22 +291,9 @@ export function mountCellSelect(tableEl, tbody, opts) {
     return hit.r >= b.r1 && hit.r <= b.r2 && hit.c >= b.c1 && hit.c <= b.c2;
   };
 
-  function editableCount() {
-    if (!sel) return 0;
-    const b = bounds();
-    let n = 0;
-    for (let r = b.r1; r <= b.r2; r += 1) for (let c = b.c1; c <= b.c2; c += 1) {
-      const td = cellAt(r, c);
-      const inp = td ? td.querySelector('input.nt-cell-input') : null;
-      if (inp && !inp.readOnly && !inp.disabled) n += 1;
-    }
-    return n;
-  }
-
   tableEl.addEventListener('click', (ev) => {
-    if (!suppressClick && !swallowClick) return;
+    if (!suppressClick) return;
     suppressClick = false;
-    swallowClick = false;
     ev.preventDefault();
     ev.stopPropagation();
   }, true);
@@ -383,7 +374,7 @@ export function mountCellSelect(tableEl, tbody, opts) {
   tableEl.addEventListener('nt-layout-refresh', placeGrip);
 
   return {
-    single, clear, reset,
+    single, row, clear, reset,
     setEditor(e) { editor = e; },
     selection: () => (sel ? { ...sel, ...bounds() } : null),
   };

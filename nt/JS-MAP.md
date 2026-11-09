@@ -115,6 +115,7 @@
 | `ui/cell-caret.js` | 点击坐标 → 输入框里的字符下标（双击定位光标） |
 | `ui/cell-clip.js` | 单元格剪贴板（复制 / 剪切 / 清除 / 粘贴） |
 | `ui/cell-edit.js` | 流水表的单元格选中 / 编辑（Excel 式） |
+| `ui/cell-geom.js` | 流水表的格子几何（给 cell-select 用） |
 | `ui/cell-menu.js` | 单元格长按菜单（剪切 / 复制 / 粘贴 / 清除 / 编辑） |
 | `ui/cell-nav.js` | 流水表格子的方向导航 / 留出可视区 |
 | `ui/cell-proxy.js` | 选中态的隐藏键盘输入框 |

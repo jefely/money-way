@@ -223,6 +223,7 @@ export function mountFlow(section, ctx) {
   const cellEditor = bindCellEdit(body, {
     onSelect: (td) => cellSelect.single(td),
     onRelease: () => cellSelect.clear(),
+    onRowSelect: (tr) => cellSelect.row(tr),
   });
   cellSelect.setEditor(cellEditor);
 
@@ -298,21 +299,23 @@ export function mountFlow(section, ctx) {
     // 认不出的文本自动建一个未分类账户，不拦录入。
     const ends = endsFromFields(ctx.getState(), ctx.getIndex(), fields);
     const s = ends.state;
-    if (!ends.fromId && !ends.toId) return;
+    const amount = normalizeAmountInput(fields.amount || '');
+    const note = joinHeld(fields.note, ends.held);
+    // 用户 2026-11-09：表格下方的空行是计划性编排区，只填了转出/转入、
+    // 甚至只有备注/金额，也要落库 —— 否则重新进入就消失了。
+    if (!ends.fromId && !ends.toId && !amount && !String(fields.note || '').trim()) return;
 
-    // 还没填金额 = 用户只是先把账户名写上了（自由录入：想在哪个空行写就在哪行写）。
-    // 这时只把账户登记进设置表，不建一笔金额为空的流水。
-    // 这里**绝不能 render()** —— 一重建整表，用户刚打进去的名字就被清空，
-    // 看起来就是「输入的未建档账户自动消失」（用户 2026-10-30 报的正是这个）。
-    if (!normalizeAmountInput(fields.amount || '')) { ctx.setState(s); ctx.save(); return; }
-
+    // 不够入账条件的一律存成草稿（红序号）：补上金额 / 另一端后，
+    // row-editor 的 afterTxEdit 会把它自动转正。
+    const draft = !amount || !ends.fromId || !ends.toId;
     ctx.setState(addTransaction(s, {
       date: normalizeTypedDate(fields.date || todayIso()),
       from_id: ends.fromId,
       to_id: ends.toId,
-      amount: normalizeAmountInput(fields.amount || ''),
-      note: joinHeld(fields.note, ends.held),
+      amount: amount || 0,
+      note,
       seq: nextSeq(s),
+      ...(draft ? { status: 'draft' } : {}),
     }));
 
     // 建单不再重建整表（用户 2026-11-01：取消虚拟滚动，照单文件版的模式）：

@@ -600,8 +600,9 @@ body.nt-col-resizing {
   -webkit-touch-callout: none;
 }
 
-/* 选中态的隐藏键盘格：1px、近乎透明，用户永远碰不到。
+/* 选中态的隐藏键盘格：1px、完全透明，用户永远碰不到、也看不到。
    焦点放在它上面，可见 input 从不 focus → 没有光标、没有系统选字菜单。
+   opacity 必须 0：0.01 时安卓会把输入框的焦点框/全选高亮画在屏幕左上角。
    font-size 16 是为了 iOS 聚焦时不要自动放大。 */
 .nt-cell-proxy {
   position: fixed;
@@ -612,9 +613,11 @@ body.nt-col-resizing {
   height: 1px;
   padding: 0;
   border: 0;
-  opacity: 0.01;
+  outline: 0;
+  opacity: 0;
   background: transparent;
   color: transparent;
+  caret-color: transparent;
   font-size: 16px;
   pointer-events: none;
 }

@@ -141,8 +141,8 @@ body.nt-range-mode .nt-tablewrap {
 .nt-cell-grip {
   position: absolute;
   z-index: 7;
-  width: 40px;               /* 40 的命中区；可见的还是右下角 8px，方便手指抓 */
-  height: 40px;
+  width: 56px;               /* 56 的命中区，还向格子外多伸 10px；可见 10px */
+  height: 56px;
   touch-action: none;
   cursor: nwse-resize;
   -webkit-tap-highlight-color: transparent;
@@ -155,10 +155,10 @@ body.nt-range-mode .nt-tablewrap {
 .nt-cell-grip::after {
   content: '';
   position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 8px;
-  height: 8px;
+  right: 10px;                /* 视觉小块仍在格子的右下角，命中区多伸 10px 到格外 */
+  bottom: 10px;
+  width: 10px;
+  height: 10px;
   border: 1px solid var(--nt-bg, #000);   /* 和格子底色隔开，不然和边框糊在一起 */
   border-radius: 1px;
   background: var(--nt-primary);

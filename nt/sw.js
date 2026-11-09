@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.504';
+const CACHE_NAME = 'nt-v1.505';
 
 const ASSETS = [
   './css/base.css',
@@ -156,6 +156,7 @@ const ASSETS = [
   './js/ui/cell-caret.js',
   './js/ui/cell-clip.js',
   './js/ui/cell-edit.js',
+  './js/ui/cell-geom.js',
   './js/ui/cell-menu.js',
   './js/ui/cell-nav.js',
   './js/ui/cell-proxy.js',
