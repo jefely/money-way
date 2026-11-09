@@ -117,7 +117,7 @@ export function mountStatsNotes(ctx, pane, getRange) {
     const tb = el('tbody');
     for (const r of rows) {
       const tr = el('tr', 'nt-row' + (picked && picked.kind === kind && picked.value === nameOf(r) ? ' nt-note-picked' : ''));
-      const name = el('td', 'nt-cell nt-cell-pick', nameOf(r));
+      const name = el('td', 'nt-cell nt-cell-pick' + (kind === 'type' ? ' nt-note-cat' : ''), nameOf(r));
       tr.appendChild(name);
       for (const v of [r.opening, r.decrease, r.end]) {
         tr.appendChild(el('td', 'nt-cell nt-cell-num' + (Math.abs(Number(v) || 0) < 0.05 ? ' nt-cell-zero' : ''), statAmount(Number(v) || 0)));

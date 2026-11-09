@@ -596,3 +596,6 @@
 
 /* 所有小表第一列：文字放不下直接截断，不用省略号（能多显示一个字） */
 .nt-stats-panel .nt-cell:first-child { text-overflow: clip !important; }
+
+/* 备注分类小表的「分类」列文字居中 */
+.nt-note-cat { text-align: center !important; }
