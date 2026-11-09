@@ -599,3 +599,6 @@
 
 /* 备注分类小表的「分类」列文字居中 */
 .nt-note-cat { text-align: center !important; }
+
+/* 备注查询表：内容放不下直接截断，不显示省略号（列宽可拖动加宽） */
+#nt-stats-notes .nt-note-detail-table td { text-overflow: clip !important; }
