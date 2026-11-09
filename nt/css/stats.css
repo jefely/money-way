@@ -570,3 +570,7 @@
 /* 备注查询：行高与列宽默认值（节点统计表分类列表同款观感） */
 .nt-note-detail-table { table-layout: fixed; }
 .nt-note-detail-table td { height: 32px; }
+
+/* 备注查询：用 id 级规则压过通用表样式，固定列宽才生效（拖动备注列才有用），行高 32 */
+#nt-stats-notes .nt-note-detail-table { table-layout: fixed !important; width: max-content; min-width: 0; }
+#nt-stats-notes .nt-note-detail-table th, #nt-stats-notes .nt-note-detail-table td { height: 32px !important; }
