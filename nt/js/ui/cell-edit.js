@@ -1,29 +1,31 @@
 // 界面：流水表的单元格选中 / 编辑（Excel 式）
 
 import { placeCaret } from './cell-caret.js';
+import { createCellProxy } from './cell-proxy.js';
+import { adjacentEditable, ensureVisible, moveBy, nextRowSameField } from './cell-nav.js';
 /**
  * 单元格编辑
  * 层：第五层 · UI
  *
  * 用户 2026-11-09 定的交互（照 Excel）：
- *   单击   → 选中这一格：整格描边、内容全选、**不显示光标**，但键盘照常弹出；
- *            直接打字就是替换，回车填入（回车下移由 row-editor 负责）。
+ *   单击   → 选中这一格：整格描边、右下角手柄；**不显示光标**，键盘照常弹出；
+ *            直接打字就是整格替换，回车填入。
  *   再单击 → 取消选中，键盘收起。
- *   双击   → 进入编辑：光标落在点下去的位置，可以精确增删。
+ *   双击   → 才进编辑：光标落在点下去的位置，可以精确增删。
  *   方向键 → 选中态下移动格子；编辑态下交给浏览器移光标。
  *   Tab    → 下一格（跳过只读行）；Shift+Tab 上一格。
  *   Esc    → 编辑态：还原本次改动、退回选中态；选中态：取消选中。
  *
- * 为什么不 preventDefault pointerdown（v1.493–v1.497 的教训）：
- * 上一版在 pointerdown 里 preventDefault 抢焦点，再在 click 里手动 focus。
- * 手机上 click 一旦被滚动 / 长按吃掉，格子就点不动；而 :hover 又把整行染色，
- * 看起来像「选中了一整行」。现在焦点全部交给浏览器原生行为，本文件只加类名、
- * 处理「再点一次 / 双击 / 键盘」，不跟原生抢任何一步。
+ * 焦点模型（v1.502）：
+ *   · 选中态：可见 input **从不 focus**，键盘由隐藏的 cell-proxy 持有。
+ *     这样浏览器没有机会画光标，也不会弹系统「粘贴 / 全选 / 翻译」菜单；
+ *     隐藏格的 input 事件镜像回可见格。
+ *   · 编辑态（双击）：焦点交回可见 input，光标/系统选字都恢复正常。
  *
  * 职责边界：
- *   · 本文件：选中、光标、类名、方向键 / Tab / Esc。
- *   · row-editor.js：输入解析（简码 / 日期 / 金额）、提交、建单、回车下移。
- *   · cell-range.js：长按框选；起手时调本模块的 release()。
+ *   · 本文件：选中、光标、类名、方向键 / Tab / Enter / Esc、隐藏格镜像。
+ *   · row-editor.js：输入解析（简码 / 日期 / 金额）、提交、建单。
+ *   · cell-select.js：选区矩形 / 手柄 / 长按菜单。
  */
 
 const SEL = 'nt-cell-sel';
@@ -56,6 +58,9 @@ export function bindCellEdit(tbody, opts) {
   const inputOf = (td) => (td ? td.querySelector('input.nt-cell-input') : null);
   const usable = (input) => !!input && !input.disabled && !input.readOnly;
 
+  // 选中态由隐藏格持焦点：可见 input 从不 focus → 没有光标、没有系统选字菜单
+  const proxy = createCellProxy(onProxyInput, onProxyKey);
+
   /* ---------- 选中 / 编辑的落点 ---------- */
 
   function paint() {
@@ -74,48 +79,43 @@ export function bindCellEdit(tbody, opts) {
   function selectCell(td, input) {
     if (!td || !input) return;
     clearTimeout(timer);
-    // 不调 input.select()：那会画出文字选中框 / 系统选中手柄，看起来像进了编辑。
-    // 「打字即替换」交给 beforeinput 处理（见下面的监听）。
-    active = { td, input, mode: 'selected', original: input.value, replaced: false };
+    active = { td, input, mode: 'selected', original: input.value };
     paint();
-    try { input.setSelectionRange(0, 0); } catch (e) { /* 只读格也能放光标 */ }
     if (o.onSelect) o.onSelect(td);
-    ensureVisible(td);
+    ensureVisible(tbody, td);
+  }
+
+  function focusProxy() {
+    if (!active) return;
+    if (usable(active.input)) proxy.focus(active.input);
+    else proxy.blur();
+  }
+
+  /** 点中一格：选中它并把键盘拱起来（焦点在隐藏格上） */
+  function focusCell(td) {
+    const input = inputOf(td);
+    if (!input) return;
+    if (!active || active.td !== td) selectCell(td, input);
+    focusProxy();
   }
 
   function enterEditing(td, x, y) {
     const input = inputOf(td);
     if (!usable(input)) return;
     clearTimeout(timer);
-    // 先拿焦点：输入框 pointer-events:none 之后，点 td 会把焦点从 input 上带走，
-    // 这里的 focus 会触发 focusin → selectCell 把 active 重置成 selected。
-    // 所以 focus 必须在「设 editing」之前，否则双击刚进的编辑态立刻被覆盖。
+    proxy.blur();
     if (document.activeElement !== input) {
       try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
     }
+    // focusin 会把 active 重置成 selected，所以设 editing 要放在 focus 之后
     if (!active || active.td !== td) selectCell(td, input);
-    active.original = input.value;
+    active.original = active.mode === 'editing' ? active.original : input.value;
     active.mode = 'editing';
     paint();
     placeCaret(input, x, y);
   }
 
-  /** 点中一格：选中它并把键盘拱起来（输入框 pointer-events:none，得手动 focus） */
-  function focusCell(td) {
-    const input = inputOf(td);
-    if (!input) return;
-    if (usable(input)) {
-      if (document.activeElement !== input) {
-        try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
-      }
-    } else if (active && document.activeElement === active.input) {
-      // 只读格（未来分期 / 期初日期）不聚焦，但键盘要收掉
-      try { active.input.blur(); } catch (e) { /* 忽略 */ }
-    }
-    if (!active || active.td !== td) selectCell(td, input);
-  }
-
-  /* ---------- 焦点：选中态的唯一真相 ---------- */
+  /* ---------- 焦点：编辑态是可见 input，选中态是隐藏格 ---------- */
 
   tbody.addEventListener('focusin', (ev) => {
     const input = ev.target;
@@ -124,9 +124,11 @@ export function bindCellEdit(tbody, opts) {
   });
 
   tbody.addEventListener('focusout', (ev) => {
+    if (ev.__ntSynthetic) return;
     if (!active || !active.td.contains(ev.target)) return;
-    // 等这一轮焦点落定：点另一格时 activeElement 已经换了，不该清掉新选中
+    // 等这一轮焦点落定：选中态的键盘焦点在 proxy 上，不该把选区清掉
     setTimeout(() => {
+      if (proxy.isFocused()) return;
       const el = document.activeElement;
       if (el && tbody.contains(el) && el.matches && el.matches('input.nt-cell-input')) return;
       clear();
@@ -142,7 +144,12 @@ export function bindCellEdit(tbody, opts) {
       return;
     }
     const td = cellOf(ev.target);
-    down = td ? { td, wasSelected: !!(active && active.td === td) } : null;
+    down = td ? {
+      td,
+      wasSelected: !!(active && active.td === td),
+      wasFocused: !!(active && active.td === td
+        && (document.activeElement === proxy.el || document.activeElement === active.input)),
+    } : null;
     clearTimeout(timer);
   });
 
@@ -162,9 +169,9 @@ export function bindCellEdit(tbody, opts) {
       return;
     }
 
-    // 点已经选中的格子（再点取消 / 双击的第一下）：mousedown 已经把输入框 blur 了，
-    // 不要再把它 focus 回来，否则键盘会闪一下再收起。
-    const sameSelected = !!(down && down.td === td && down.wasSelected);
+    // 只有「这一格已选中、而且键盘焦点就在它上面」时，再点一次才是取消选中。
+    // 菜单 / 拖手柄之后选区还在但键盘已收起，这时点它是「继续输入」，不能取消。
+    const sameSelected = !!(down && down.td === td && down.wasSelected && down.wasFocused);
     if (!sameSelected) focusCell(td);
 
     // 再点一次 = 取消选中。推迟一下，双击的第二下会把它取消。
@@ -175,50 +182,77 @@ export function bindCellEdit(tbody, opts) {
     }
   });
 
-  /* ---------- 选中态打字 = 整格替换（不进编辑、不显示光标） ---------- */
+  /* ---------- 隐藏格 → 可见格（打字 / 点候选账户） ---------- */
 
-  // 不在选中态做 input.select()（会有文字选中框 / 系统手柄）。第一次输入前
-  // 先把旧值清掉，浏览器插进来的字就是新内容；之后正常追加。
-  tbody.addEventListener('beforeinput', (ev) => {
-    if (!active || ev.target !== active.input || active.mode !== 'selected') return;
-    const type = String(ev.inputType || '');
-    if (!active.replaced && type.startsWith('insert')) {
-      active.replaced = true;
-      active.input.value = '';
-    } else if (!active.replaced && type.startsWith('delete')) {
-      ev.preventDefault();
-      active.replaced = true;
-      active.input.value = '';
-      active.input.dispatchEvent(new Event('input', { bubbles: true }));
+  function onProxyInput(value) {
+    if (!active || active.mode !== 'selected') return;
+    const input = active.input;
+    if (input.value === value) return;
+    input.value = value;
+    // 走一遍 input：row-editor 提交 / 草稿捕获 / 候选气泡
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    // row-editor 可能把值改掉（日期里单独一个「:」→ 今天），同步回隐藏格
+    if (input.value !== value) proxy.setValue(input.value);
+  }
+
+  tbody.addEventListener('nt-cell-value', (ev) => {
+    if (!active || active.mode !== 'selected' || ev.target !== active.input) return;
+    proxy.setValue(active.input.value);
+  });
+
+  /* ---------- 键盘：Enter / Tab / Esc / 方向键 ---------- */
+
+  function leaveCell() {
+    const a = active;
+    if (!a) return;
+    if (a.mode === 'editing') {
+      // 真失焦：row-editor 会解析账户 / 格式化金额 / 空行建单
+      try { a.input.blur(); } catch (e) { /* 忽略 */ }
+      return;
     }
-  });
+    // 选中态 input 本来就没焦点，补一个合成 focusout 走同一套收尾
+    const ev = new FocusEvent('focusout', { bubbles: true });
+    ev.__ntSynthetic = true;
+    try { a.input.dispatchEvent(ev); } catch (e) { /* 忽略 */ }
+  }
 
-  // 中文输入法：compositionstart 时清旧值，composition 的字就是替换后的内容
-  tbody.addEventListener('compositionstart', (ev) => {
-    if (!active || ev.target !== active.input || active.mode !== 'selected') return;
-    if (active.replaced) return;
-    active.replaced = true;
-    active.input.value = '';
-  });
+  function moveEnter() {
+    if (!active) return;
+    const td = nextRowSameField(tbody, active.td);
+    leaveCell();
+    if (td) focusCell(td); else proxy.blur();
+  }
 
-  /* ---------- 键盘：Esc / Tab / F2 / 方向键 ---------- */
+  function moveTab(dir) {
+    if (!active) return;
+    const next = adjacentEditable(tbody, active.input, dir);
+    leaveCell();
+    if (next) focusCell(next.closest('td')); else proxy.blur();
+  }
+
+  function moveArrow(dx, dy) {
+    if (!active) return;
+    const td = moveBy(tbody, active.td, dx, dy);
+    leaveCell();
+    if (td) focusCell(td);
+  }
+
+  function onProxyKey(ev) {
+    if (!active || active.mode !== 'selected') return;
+    if (ev.isComposing || ev.keyCode === 229) return;
+    if (ev.key === 'Enter') { ev.preventDefault(); moveEnter(); return; }
+    if (ev.key === 'Tab') { ev.preventDefault(); moveTab(ev.shiftKey ? -1 : 1); return; }
+    if (ev.key === 'Escape') { ev.preventDefault(); release(); return; }
+    const dir = ARROWS[ev.key];
+    if (dir) { ev.preventDefault(); moveArrow(dir[0], dir[1]); }
+  }
 
   tbody.addEventListener('keydown', (ev) => {
     if (!active || ev.target !== active.input) return;
     if (ev.isComposing || ev.keyCode === 229) return;
-
-    if (ev.key === 'Escape') {
-      ev.preventDefault();
-      escape();
-      return;
-    }
-    if (ev.key === 'Tab') {
-      const next = adjacentInput(active.input, ev.shiftKey ? -1 : 1);
-      // 走到头也不许 Tab 跳到「固定 / 删除」按钮上：停在最后一格
-      ev.preventDefault();
-      if (next) next.focus();
-      return;
-    }
+    if (ev.key === 'Escape') { ev.preventDefault(); escapeEditing(); return; }
+    if (ev.key === 'Enter') { ev.preventDefault(); moveEnter(); return; }
+    if (ev.key === 'Tab') { ev.preventDefault(); moveTab(ev.shiftKey ? -1 : 1); return; }
     if (ev.key === 'F2') {
       ev.preventDefault();
       const rect = active.input.getBoundingClientRect();
@@ -226,44 +260,37 @@ export function bindCellEdit(tbody, opts) {
       const input = active.input;
       const len = String(input.value || '').length;
       try { input.setSelectionRange(len, len); } catch (e) { /* 忽略 */ }
-      return;
-    }
-    if (active.mode === 'selected' && ARROWS[ev.key]) {
-      ev.preventDefault();
-      moveCell(ARROWS[ev.key][0], ARROWS[ev.key][1]);
     }
   });
 
-  function escape() {
-    if (active.mode === 'editing') {
-      const input = active.input;
-      if (input.value !== active.original) {
-        input.value = active.original;
-        // 走一遍 input 事件：row-editor 会把还原值写回 state / 草稿。
-        // 已有行的 from/to 是失焦才提交的（输入过程中 state 没被改过），
-        // 不必派发 —— 派发只会把候选气泡弹出来。
-        const field = input.dataset.field;
-        const tr = input.closest('tr');
-        const blank = tr && tr.dataset.new === '1';
-        const account = field === 'from' || field === 'to';
-        if (!account || blank) input.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-      try { input.setSelectionRange(0, 0); } catch (e) { /* 忽略 */ }
-      active.mode = 'selected';
-      active.replaced = false;
-      paint();
-      return;
-    }
-    release();
-  }
+  /* ---------- Esc / 取消选中 ---------- */
 
-  /* ---------- 取消选中（对外也用） ---------- */
+  function escapeEditing() {
+    if (!active) return;
+    if (active.mode !== 'editing') { release(); return; }
+    const input = active.input;
+    if (input.value !== active.original) {
+      input.value = active.original;
+      // 走一遍 input 事件：row-editor 会把还原值写回 state / 草稿。
+      // 已有行的 from/to 是失焦才提交的（输入过程中 state 没被改过），
+      // 不必派发 —— 派发只会把候选气泡弹出来。
+      const field = input.dataset.field;
+      const tr = input.closest('tr');
+      const blank = tr && tr.dataset.new === '1';
+      const account = field === 'from' || field === 'to';
+      if (!account || blank) input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    const td = active.td;
+    try { input.blur(); } catch (e) { /* 忽略 */ }
+    selectCell(td, input);
+    focusProxy();
+  }
 
   function release() {
     clearTimeout(timer);
-    const input = active && active.input;
-    if (input && document.activeElement === input) {
-      try { input.blur(); } catch (e) { /* 忽略 */ }
+    proxy.blur();
+    if (active && document.activeElement === active.input) {
+      try { active.input.blur(); } catch (e) { /* 忽略 */ }
     }
     clear();
     if (o.onRelease) o.onRelease();
@@ -271,8 +298,8 @@ export function bindCellEdit(tbody, opts) {
 
   /** 只收键盘，不收选区：长按菜单 / 拖手柄时用 */
   function blurInput() {
-    if (!active) return;
-    if (document.activeElement === active.input) {
+    proxy.blur();
+    if (active && document.activeElement === active.input) {
       try { active.input.blur(); } catch (e) { /* 忽略 */ }
     }
   }
@@ -281,9 +308,8 @@ export function bindCellEdit(tbody, opts) {
   function editAt(td) {
     const input = inputOf(td);
     if (!usable(input)) return false;
-    if (!active || active.td !== td) {
-      active = { td, input, mode: 'selected', original: input.value, replaced: false };
-    }
+    proxy.blur();
+    if (!active || active.td !== td) selectCell(td, input);
     active.original = input.value;
     try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
     active.mode = 'editing';
@@ -291,78 +317,23 @@ export function bindCellEdit(tbody, opts) {
     const len = String(input.value || '').length;
     try { input.setSelectionRange(len, len); } catch (e) { /* 忽略 */ }
     if (o.onSelect) o.onSelect(td);
-    ensureVisible(td);
+    ensureVisible(tbody, td);
     return true;
   }
 
   /** 表格重画前清掉状态：旧 DOM 已经不在，类名和引用都不能留 */
   function reset() {
     clearTimeout(timer);
+    proxy.blur();
     active = null;
     down = null;
     lastClick = { td: null, at: 0 };
     paint();
   }
 
-  /* ---------- 键盘移动 ---------- */
-
-  function moveCell(dx, dy) {
-    if (!active) return;
-    const td = active.td;
-    const tr = td.parentElement;
-    if (!tr) return;
-
-    if (dx) {
-      const cells = [...tr.children].filter((c) => inputOf(c));
-      const i = cells.indexOf(td);
-      const next = cells[i + dx];
-      if (next) { const inp = inputOf(next); if (inp) inp.focus(); }
-      return;
-    }
-
-    const col = [...tr.children].indexOf(td);
-    let row = dy < 0 ? tr.previousElementSibling : tr.nextElementSibling;
-    while (row) {
-      const cell = row.children[col];
-      const inp = cell ? inputOf(cell) : null;
-      if (inp) { inp.focus(); return; }
-      row = dy < 0 ? row.previousElementSibling : row.nextElementSibling;
-    }
-  }
-
-  /** Tab 顺序里跳过只读行（未来分期、期初的日期格） */
-  function adjacentInput(from, dir) {
-    const list = [...tbody.querySelectorAll('input.nt-cell-input')]
-      .filter((el) => !el.disabled && !el.readOnly);
-    const i = list.indexOf(from);
-    if (i < 0) return null;
-    return list[i + dir] || null;
-  }
-
-  /* ---------- 键盘弹出后把这一格留在可视区 ---------- */
-
-  function ensureVisible(td) {
-    const wrap = tbody.closest('.nt-tablewrap');
-    if (!wrap) return;
-    requestAnimationFrame(() => {
-      if (!td.isConnected) return;
-      const r = td.getBoundingClientRect();
-      const wr = wrap.getBoundingClientRect();
-      const table = tbody.closest('table');
-      const head = table ? table.querySelector('thead') : null;
-      const headH = head ? head.getBoundingClientRect().height : 0;
-      const vv = window.visualViewport;
-      const viewBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
-      const bottom = Math.min(wr.bottom, viewBottom) - 4;
-      const top = wr.top + headH;
-      if (r.bottom > bottom) wrap.scrollTop += r.bottom - bottom;
-      else if (r.top < top) wrap.scrollTop -= top - r.top;
-    });
-  }
-
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', () => {
-      if (active) ensureVisible(active.td);
+      if (active) ensureVisible(tbody, active.td);
     });
   }
 

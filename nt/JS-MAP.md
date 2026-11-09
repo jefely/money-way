@@ -116,6 +116,8 @@
 | `ui/cell-clip.js` | 单元格剪贴板（复制 / 剪切 / 清除 / 粘贴） |
 | `ui/cell-edit.js` | 流水表的单元格选中 / 编辑（Excel 式） |
 | `ui/cell-menu.js` | 单元格长按菜单（剪切 / 复制 / 粘贴 / 清除 / 编辑） |
+| `ui/cell-nav.js` | 流水表格子的方向导航 / 留出可视区 |
+| `ui/cell-proxy.js` | 选中态的隐藏键盘输入框 |
 | `ui/cell-range.js` | 单元格区域框选（长按起手 → 拖动框选 → 复制 / 粘贴 / 删除行） |
 | `ui/cell-select.js` | 流水表的选区（Excel 式：锚点 + 右下角手柄 + 长按菜单） |
 | `ui/chart-gestures.js` | 环网图的手势（拖动 / 缩放 / 平移 / 旋转） |

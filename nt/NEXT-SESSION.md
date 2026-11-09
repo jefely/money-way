@@ -79,11 +79,11 @@ NT 本地调试: http://127.0.0.1:8080/nt/index.html?debug=1
 
 | 项 | 值 |
 |---|---|
-| 版本 | `nt-v1.501` |
+| 版本 | `nt-v1.502` |
 | 最新提交 | 见 `git log -1` |
-| 线上 | 已确认 `nt-v1.501` |
+| 线上 | 已确认 `nt-v1.502` |
 | 测试 | 全部测试文件；**723 通过**（66 个文件，含 `lifevein-model.test.mjs`） |
-| 公约 | `check-rules` 通过，318 个文件，300 行/文件 |
+| 公约 | `check-rules` 通过，320 个文件，300 行/文件 |
 | 工作区 | 干净 |
 
 ### 新内核的桥已经搭好（2026-11-07）
@@ -697,28 +697,28 @@ tests/account-merge.test.mjs 3 条
 
 ---
 
-## 13. 2026-11-09 流水表改 Excel 式单元格（`nt-v1.501`）
+## 13. 2026-11-09 流水表改 Excel 式单元格（`nt-v1.502`）
 
 > 上一轮 v1.493–v1.497 的「Excel 单元格光标」在 v1.498 整体回退，原因是
 > 「把流水表搞乱」。v1.499 重写选中/双击，v1.500 补上右下角调整大小手柄与
-> 长按五按钮菜单并撤掉旧四按钮条；v1.501 把「选中态 / 编辑态」彻底分开：
-> 选中态输入框 `pointer-events:none`（根治手机长按弹系统「粘贴/全选/翻译」），
-> 打字整格替换但不进编辑，双击才进编辑。
-> 交互口径与九条实现约束见 [`TABLE-INTERACTION.md`](TABLE-INTERACTION.md) §十一。
+> 长按五按钮菜单并撤掉旧四按钮条；v1.501 把选中态输入框 `pointer-events:none`；
+> **v1.502 把选中态的键盘焦点交给 1px 隐藏 input** —— 可见输入框从不 focus，
+> 所以浏览器不会画光标、也不会弹系统「粘贴/全选/翻译」；只有双击才进编辑。
+> 交互口径与实现约束见 [`TABLE-INTERACTION.md`](TABLE-INTERACTION.md) §十一。
 
 **已实现**（headless Chrome 实测，鼠标 + 触屏两套）：
 
-- 单击选中（2px 描边、全选、光标隐藏、键盘弹出）→ 打字整格替换 → 回车填入并下移
-- 再单击取消选中（340ms 延迟，避开双击窗口）
-- 双击进编辑，`caretPositionFromPoint`（`cell-caret.js`）把光标放到点下去的位置；
-  选中态不做 `input.select()`，所以没有文字选中框/系统手柄
+- 单击选中（2px 描边、手柄、键盘由隐藏格持有、可见格无光标）→ 打字整格替换 → 回车填入并下移
+- 再单击取消选中（340ms 延迟，避开双击窗口）；菜单/手柄后点回同一格是「继续输入」而不是取消
+- 双击进编辑（焦点交回可见 input），`caretPositionFromPoint`（`cell-caret.js`）定位光标
 - 选中格右下角有**调整大小手柄**：鼠标 / 触屏拖它扩成矩形，横滚纵滚不离格
 - 长按 480ms → 该格**上方**弹唯一一条菜单：`剪切 / 复制 / 粘贴 / 清除 / 编辑`
-  （选中态长按命中 td，不落在 input 上 → 系统选字菜单不会弹）
+  （选中态手指永远落在 td 上，系统选字菜单不会弹）
 - 行 hover 只在 `hover:hover and pointer:fine` 生效 —— 手机上不再整行染色
-- 新增 `js/ui/cell-select.js` / `cell-menu.js` / `cell-clip.js` / `cell-caret.js`
-  （都已进 `sw.js` ASSETS）
-- `cell-range.js` 的复制 / 粘贴抽到 `cell-clip.js`，固定 / 分期 / 统计页继续用旧四按钮条
+- 新增 `cell-select.js` / `cell-menu.js` / `cell-clip.js` / `cell-caret.js` /
+  `cell-proxy.js` / `cell-nav.js`（都已进 `sw.js` ASSETS）
+- `row-editor.js` 不再管 Enter/Tab 导航（交回 `cell-edit`）；`cell-range.js` 继续给
+  固定 / 分期 / 统计页用旧四按钮条
 
 **没做 / 下次别踩**：
 
@@ -726,7 +726,9 @@ tests/account-merge.test.mjs 3 条
 - 框选粘贴进空行仍只填草稿、不建单（老行为）
 - 双击间隔由系统决定；极慢的双击会退化成「选中 → 取消」
 - 编辑态下长按仍会出现系统选字菜单（用户正在改文字，属正常）；选中态不会
-- 选中态的键盘靠点击 td 后 `input.focus()` 打开；真机浏览器若不给 focus，需要改到 pointerup/touchend 里 focus
+- **隐藏格键盘焦点是唯一没在真机验过的点**：1px / 透明 input 在部分 iOS 上可能
+  不弹键盘；若用户报「点了没键盘」，把 `cell-proxy.js` 的 `focus` 改到
+  `pointerup`/`touchend` 里调用（或把隐藏格放大到 10×10 仍保持透明）
 - 手机真机（不是模拟器）的键盘弹起高度还没在用户的机器上验过；
   `ensureVisible` 已按 `visualViewport` 把选中格留在可视区
 - 长按菜单贴着首行时会盖住工具条（用户要求「在单元格上方」）；要避开就再调 `showCellMenu` 的定位

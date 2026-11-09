@@ -1169,19 +1169,20 @@ const aligned = thBox.length === tdBox.length
 > （提交原话：「Excel 单元格模式把流水表搞乱」）。v1.499 重写了选中/双击，
 > v1.500 按用户要求补上**右下角调整大小手柄**和**长按五按钮菜单**，
 > 并撤掉旧的四按钮框选条 —— 之前长按会同时弹两条。
-> v1.501 再把「选中态」和「编辑态」彻底分开：选中态输入框 `pointer-events:none`
-> （手机上长按会弹系统「粘贴/全选/翻译」，只能让手指不落在 input 上），
-> 打字走 `beforeinput` 整格替换，只有双击才进编辑。
+> v1.501 把选中态输入框 `pointer-events:none`，长按不再弹系统菜单；
+> v1.502 再进一步：**选中态由隐藏的 1px input 持焦点**，可见 input 从不 focus，
+> 所以连「caret-color 不生效的浏览器会画光标」也一并解决；
+> 只有双击进编辑才把焦点交给可见 input。
 
 ### 11.1 交互口径
 
 | 动作 | 结果 |
 |---|---|
-| 单击格 | 选中：2px 主色内描边；**不显示光标、不画文字选中框**；键盘由点击后手动 focus 打开；右下角出现**调整大小手柄** |
-| 直接打字 | **整格替换**（选中态第一次输入先清旧值），回车填入；**不进入编辑态** |
+| 单击格 | 选中：2px 主色内描边；**可见 input 不持焦点 → 不显示光标、不画文字选中框**；键盘由隐藏的 1px input 持有；右下角出现**调整大小手柄** |
+| 直接打字 | **整格替换**（隐藏格 focus 时全选），回车填入；**不进入编辑态** |
 | 再单击同一格 | 取消选中（340ms 后；双击窗口内算双击） |
-| 双击 | 才进**编辑**：光标落在点下去的位置、光标显形，可精确增删 |
-| Enter | 填入 + 下移同列一行（`row-editor.js` 负责） |
+| 双击 | 才进**编辑**：焦点交回可见 input，光标落在点下去的位置，可精确增删 |
+| Enter | 填入 + 下移同列一行（`cell-edit.js` + `cell-nav.js`） |
 | Tab / Shift+Tab | 右 / 左一格，跳过只读行 |
 | 方向键 | 选中态移动格子；编辑态交给浏览器 |
 | Esc | 编辑态 → 还原并退回选中态；再 Esc → 取消选中 |
@@ -1189,25 +1190,26 @@ const aligned = thBox.length === tdBox.length
 | **长按 480ms** | 在**该单元格上方**弹唯一一条菜单：`剪切 / 复制 / 粘贴 / 清除 / 编辑` |
 | 菜单外任意处 | 收起菜单；点在表格外同时取消选区 |
 
-### 11.2 九条实现约束（每条都对应一次实测故障）
+### 11.2 实现约束（每条都对应一次实测故障）
 
-**① 焦点就是唯一真相，不要 preventDefault pointerdown。**
-上一版在 pointerdown 里 preventDefault 再手动 focus：手机上 click 被滚动 /
-长按吃掉时格子点不动，且 `:hover` 整行染色会让人以为「选中了一整行」。
-现在点击 td 后在 click 里 `input.focus()`（输入框 pointer-events 让给 td），
-`cell-edit.js` 在 focusin/focusout 上挂类名。
+**① 选中态必须由一个隐藏 input 持焦点（v1.502 的核心）。**
+只要可见 input 持焦点，浏览器就一定会画光标；`caret-color: transparent`
+在部分安卓 WebView 里不生效，用户看到的就是「单击进了编辑、光标在字前面闪」。
+现在选中态焦点放在 `cell-proxy.js` 创建的 1px 隐藏 input 上：
+可见 input 从不 focus → 光标、系统「粘贴/全选/翻译」菜单都无从出现；
+键盘输入通过隐藏格的 `input` 事件镜像回可见格。双击才把焦点交回可见 input。
 
-**② 选中态输入框必须 `pointer-events: none`。**
-手机上长按任何可编辑 input 都会弹系统的「粘贴 / 全选 / 翻译」菜单
-（`contextmenu` / `user-select` 都拦不住）。唯一根治办法是让手指根本不落在
-input 上：选中态 input 不接指针，命中落到 td；双击进编辑（`.nt-cell-editing`）
-再恢复 `pointer-events: auto`。键盘由点击 td 后手动 focus 打开。
+**② 选中态的可见 input 仍然 `pointer-events: none`。**
+双保险：手指长按命中 td 而不是 input，系统选字菜单不会弹；
+双击进编辑（`.nt-cell-editing`）再恢复 `pointer-events: auto`。
 
-**③ 选中态不做 `input.select()`，整格替换靠 `beforeinput`。**
-`select()` 会画出系统选中手柄 / 文字选中框，看起来就像进了编辑。现在：
-选中态第一次 `insert*` 前把 `input.value = ''`，浏览器插进来的字就是新内容；
-中文输入法在 `compositionstart` 时清旧值；Backspace/Delete 在还没输入过时
-清空整格。Esc 退出编辑也只 `setSelectionRange(0,0)`，不重新选中文字。
+**③ 键盘导航全部在 cell-edit，row-editor 不再管 Enter。**
+隐藏格的 Enter / Tab / 方向键由 `cell-edit` 的 keydown 处理；
+编辑态的 Enter / Tab / Esc 也在 `cell-edit`。移动前调 `leaveCell()`：
+- 编辑态：真 `blur()`，row-editor 的 focusout 做账户解析 / 金额格式化 / 空行建单；
+- 选中态：派发**合成 focusout**（打 `__ntSynthetic` 标记）走同一套收尾。
+`cell-edit` 自己的 focusout 看到 `__ntSynthetic` 或焦点在隐藏格上就直接忽略，
+否则合成事件会把刚选中的下一格清掉。
 
 **④ 编辑态下的长按不弹我们的菜单。**
 用户正在改文字，长按要留给系统选字；`cell-select` 的 pointerdown 里
@@ -1218,12 +1220,9 @@ input 上：选中态 input 不接指针，命中落到 td；双击进编辑（`
 click 还会把菜单/选区收掉。touchend 的 `{ passive: false }` + `preventDefault()`
 实测能同时挡掉 focus 和 click；再在表格上用捕获阶段吞一次 click 兜底。
 
-**⑥ 长按后浏览器重新 focus 输入框时，不许把多格选区收成 1×1。**
-鼠标长按松手不会走 touchend，浏览器会在 mouseup 时把输入框重新聚焦，
-focusin → `cellSelect.single()` → 选区塌成一格、菜单被「点外面」逻辑收掉。
-现在 `single()` 看到菜单开着就直接 return；菜单自己只在动作 / 点外面时关。
-另外 `cell-edit.js` 的「点外面失焦」必须排除 `.nt-cell-menu`，
-否则按菜单按钮的 pointerdown 会先把输入框 blur 掉、连带 `release()` 清选区。
+**⑥ 菜单 / 手柄之后选区还在、但键盘已收起：再点它应当是「继续输入」。**
+`down.wasFocused` 快照决定「再点一次」是取消选中还是恢复输入；
+只看 `wasSelected` 会把「菜单→点回同一格」误判成取消选中。
 
 **⑦ 手柄要算内容坐标，不能算视口坐标。**
 `.nt-tablewrap` 加 `position: relative`，手柄 `position: absolute`；
@@ -1234,28 +1233,29 @@ focusin → `cellSelect.single()` → 选区塌成一格、菜单被「点外面
 
 **⑧ 禁用的菜单按钮必须 `pointer-events: none`。**
 实测：点在置灰的「粘贴」上，事件穿透到菜单外 → 菜单的「点外面收起」和
-cell-select 的「点外面清选区」一起触发，菜单和选区一起消失。按钮禁用后
-让 pointerdown 落在菜单容器上。
+cell-select 的「点外面清选区」一起触发，菜单和选区一起消失。
 
 **⑨ 双击光标用 `document.caretPositionFromPoint`。**
-Chrome / Edge 对 `<input>` 直接返回字符下标（实测 `offsetNode === input`），
-比按字宽测量准。Safari / 老浏览器降级为 canvas 逐字量宽。
-浏览器原生的双击会选词（`selectionStart` = 词首），所以不能拿它当光标位置。
+Chrome / Edge 对 `<input>` 直接返回字符下标（实测 `offsetNode === input`）。
+Safari / 老浏览器降级为 canvas 逐字量宽。
+浏览器原生的双击会选词（`selectionStart` = 词首），不能拿它当光标位置。
 行 hover 只给真鼠标：`@media (hover: hover) and (pointer: fine)`。
 
 ### 11.3 涉及文件
 
 ```
-js/ui/cell-edit.js     选中 / 光标 / 双击编辑 / 方向键 / Tab / Esc / 整格替换
+js/ui/cell-edit.js     选中 / 编辑 / 键盘（Enter/Tab/方向键/Esc）/ 隐藏格镜像
+js/ui/cell-proxy.js    1px 隐藏键盘输入框（选中态持焦点）
+js/ui/cell-nav.js      方向导航 / 下一行同列 / Tab 相邻格 / ensureVisible
 js/ui/cell-caret.js    点击坐标 → input 字符下标（caretPositionFromPoint + 降级）
 js/ui/cell-select.js   选区矩形 / 右下角手柄 / 长按菜单 / 剪切复制粘贴清除
 js/ui/cell-menu.js     五按钮菜单的摆放与点外面收起
 js/ui/cell-clip.js     格子 ↔ 矩阵（复制 / 清除 / 粘贴），流水/固定/分期共用
 js/ui/cell-range.js    其它表（固定 / 分期 / 统计）的长按框选与四按钮条
 js/ui/range-bar.js     四按钮条（只给非流水表）
-js/ui/row-editor.js    输入解析、回车下移（isComposing 守卫，中文选字不误提交）
+js/ui/row-editor.js    输入解析 / 提交 / 建单（Enter 导航已交回 cell-edit）
 js/ui/suggest-popover.js  候选气泡按 visualViewport 避键盘
-css/flow.css           行 hover 只给真鼠标；选中/锚点/光标/pointer-events
+css/flow.css           行 hover 只给真鼠标；选中/锚点/pointer-events/隐藏格
 css/range.css          手柄、五按钮菜单、框选高亮
 ```
 
@@ -1269,3 +1269,5 @@ css/range.css          手柄、五按钮菜单、框选高亮
 - 双击进编辑依赖系统双击间隔（`click.detail`）；极慢的双击会退化成「选中 → 取消选中」。
 - **编辑态**下长按仍会出现系统选字菜单（用户正在改文字，这是正常的）；
   选中态不会出现。
+- 选中态的键盘靠隐藏格 `focus()` 打开；若有手机浏览器拒绝给 1px/透明 input
+  键盘焦点，需要改成在 `pointerup`/`touchend` 里 focus（已实测 headless 焦点正确）。

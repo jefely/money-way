@@ -73,18 +73,8 @@ export function bindRowEditing(tbody, h) {
       return;
     }
 
-    if (ev.key === 'Enter') {
-      ev.preventDefault();
-      if (ACCOUNT_FIELDS.includes(field)) resolveField(tr, input);
-      if (field === 'date') applyTodayShortcut(input);
-      const next = nextSameField(tr, field);
-      input.blur();
-      h.onCommit();
-      if (next) {
-        next.focus();
-        try { next.select(); } catch (e) {}
-      }
-    }
+    // Enter / Tab 的移动交给 cell-edit（它还要把焦点从隐藏键盘格挪过去）；
+    // 这里只管字段本身的解析。
   });
 
   // 聚焦不再全选：选中态由 cell-edit.js 负责（它不画文字选中框，打字走整格替换）
@@ -188,6 +178,8 @@ export function bindRowEditing(tbody, h) {
   /** 点了候选：填名字，并把 id 交出去 */
   function commitAccount(tr, input, acc) {
     input.value = acc.name;
+    // 通知 cell-edit：选中态的可视格值被程序改了，隐藏键盘格要跟着同步
+    try { input.dispatchEvent(new Event('nt-cell-value', { bubbles: true })); } catch (e) { /* 忽略 */ }
     if (tr.dataset.new !== '1' && tr.dataset.id) {
       h.onEdit(tr.dataset.id, input.dataset.field, acc.name, acc.id);
     }
@@ -206,19 +198,4 @@ function todayIso() {
 function applyTodayShortcut(input) {
   const v = String(input.value || '').trim();
   if (v === ':' || v === '：') input.value = todayIso();
-}
-
-/** 同一列的下一行输入框（跳过只读的虚拟行） */
-function nextSameField(tr, field) {
-  let n = tr.nextElementSibling;
-  while (n) {
-    if (n.dataset && n.dataset.virtual === '1') {
-      n = n.nextElementSibling;
-      continue;
-    }
-    const el = n.querySelector('[data-field="' + field + '"]');
-    if (el && !el.readOnly && !el.disabled) return el;
-    n = n.nextElementSibling;
-  }
-  return null;
 }
