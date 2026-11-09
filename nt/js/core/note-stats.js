@@ -113,7 +113,6 @@ export function rowsOfKeyword(state, keyword) {
 export function noteBalances(state, range) {
   const start = String((range && range.start) || '');
   const end = String((range && range.end) || '9999-12-31');
-  const accById = new Map(((state && state.accounts) || []).map((a) => [a.id, a]));
   const typeOf = typeOfKeyword((state && state.notes) || []);
   const map = new Map();
   for (const t of (state && state.transactions) || []) {
@@ -124,19 +123,16 @@ export function noteBalances(state, range) {
     if (!kw) continue;
     const d = String(t.date || '');
     if (d > end) continue;
-    const from = accById.get(t.from_id);
-    const inFlow = from ? !isDebit(from) : false;
-    const cur = map.get(kw) || { keyword: kw, type: typeOf.get(kw) || '', opening: 0, increase: 0, decrease: 0 };
-    if (d < start) cur.opening += inFlow ? amt : -amt;
-    else {
-      if (inFlow) cur.increase += amt; else cur.decrease += amt;
-    }
+    // 备注只统计备注过的流水的发生额：范围内全部计入本期流出，范围之前累计成期初
+    const cur = map.get(kw) || { keyword: kw, type: typeOf.get(kw) || '', opening: 0, decrease: 0 };
+    if (d < start) cur.opening += amt;
+    else cur.decrease += amt;
     map.set(kw, cur);
   }
   const r2 = (n) => Math.round(n * 100) / 100;
   return [...map.values()]
-    .filter((r) => r.increase > 0 || r.decrease > 0)
-    .map((r) => ({ ...r, opening: r2(r.opening), increase: r2(r.increase), decrease: r2(r.decrease), end: r2(r.opening + r.increase - r.decrease) }))
+    .filter((r) => r.decrease > 0)
+    .map((r) => ({ ...r, opening: r2(r.opening), decrease: r2(r.decrease), end: r2(r.opening + r.decrease) }))
     .sort((a, b) => b.end - a.end);
 }
 
@@ -145,9 +141,8 @@ export function rollupBalancesByType(rows) {
   const map = new Map();
   for (const r of rows || []) {
     const label = r.type || '（未设分类）';
-    const cur = map.get(label) || { label, opening: 0, increase: 0, decrease: 0, end: 0 };
+    const cur = map.get(label) || { label, opening: 0, decrease: 0, end: 0 };
     cur.opening += r.opening;
-    cur.increase += r.increase;
     cur.decrease += r.decrease;
     cur.end += r.end;
     map.set(label, cur);

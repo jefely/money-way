@@ -15,8 +15,7 @@
 import { addNote, updateNote, removeNote, noteTypesOf, updateAccount } from '../core/state-store.js';
 import { mergeAccountInto } from '../core/account-merge.js';
 import { aliasPut } from '../core/alias-table.js';
-import { noteTools } from './alias-batch.js';
-import { bindTypePicker } from './type-picker.js';
+ import { bindTypePicker } from './type-picker.js';
 import * as NtModal from './modal.js';
 import { normalizeCode, isValidCode } from '../core/schema.js';
 
@@ -79,8 +78,7 @@ function noteHead(ctx, rerender) {
   inner.appendChild(hint);
 
   // 待归类关键字 / 备注统计（用户 2026-11-08：列表 + 打勾 + 一次完成）
-  inner.appendChild(noteTools(ctx, rerender));
-  td.appendChild(inner);
+    td.appendChild(inner);
 
   head.appendChild(tag);
   head.appendChild(td);

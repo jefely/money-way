@@ -80,8 +80,9 @@ export function mountStatsNotes(ctx, pane, getRange) {
     tableEl.appendChild(cg);
     const thead = el('thead');
     const hr = el('tr');
-    ['分类', '期初余额', '本期流入', '本期流出', '期末余额'].forEach((h, i) => {
-      const th = el('th', 'nt-th', i === 0 && kind === 'keyword' ? '关键字' : h);
+    const heads = [kind === 'keyword' ? '关键字' : '分类', '期初余额', '本期流出', '期末余额'];
+    heads.forEach((h, i) => {
+      const th = el('th', 'nt-th', h);
       if (i === 0) th.dataset.col = 'cat';
       hr.appendChild(th);
     });
@@ -98,7 +99,7 @@ export function mountStatsNotes(ctx, pane, getRange) {
       const tr = el('tr', 'nt-row' + (picked && picked.kind === kind && picked.value === nameOf(r) ? ' nt-note-picked' : ''));
       const name = el('td', 'nt-cell nt-cell-pick', nameOf(r));
       tr.appendChild(name);
-      for (const v of [r.opening, r.increase, r.decrease, r.end]) {
+      for (const v of [r.opening, r.decrease, r.end]) {
         tr.appendChild(el('td', 'nt-cell nt-cell-num' + (Math.abs(Number(v) || 0) < 0.05 ? ' nt-cell-zero' : ''), statAmount(Number(v) || 0)));
       }
       tr.addEventListener('click', () => pick(kind, nameOf(r)));
