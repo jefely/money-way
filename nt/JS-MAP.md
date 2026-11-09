@@ -164,7 +164,7 @@
 | `ui/plan-rows.js` | 流水 tab → 未来行的确认 / 作废 |
 | `ui/pwa.js` | PWA 注册 |
 | `ui/qr-canvas.js` | （未标注界面）把 QR 矩阵画到 canvas（UI 层） |
-| `ui/range-bar.js` | 单元格框选的工具条 |
+| `ui/range-bar.js` | 单元格菜单（长按弹出 · 剪切/复制/粘贴/清除/编辑） |
 | `ui/render-transactions.js` | 流水 tab → 表格 tbody（分批追加，照单文件版） |
 | `ui/reset-actions.js` | 重置整本账（节点模板弹窗里的危险动作） |
 | `ui/reset-dialog.js` | 节点模板弹窗里的「重置」区 |

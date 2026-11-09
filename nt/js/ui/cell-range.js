@@ -56,9 +56,11 @@ export function mountCellRange(tableEl, opts) {
   });
 
   bindBar({
+    onCut: doCut,
     onCopy: doCopy,
     onPaste: doPaste,
-    onDelete: doDelete,
+    onClear: doClear,
+    onEdit: doEdit,
     onCancel: clearSelection,
   });
 
@@ -188,23 +190,43 @@ function startSelection(tableEl, hit, ev) {
     try { tableEl.releasePointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
 
     document.body.classList.remove('nt-range-mode');
-    showBar(tableEl, barState(tableEl));
+    showBar(selRect(), barState(tableEl));
   };
 
   tableEl.addEventListener('pointermove', onMove);
   tableEl.addEventListener('pointerup', finish);
   tableEl.addEventListener('pointercancel', finish);
 
-  showBar(tableEl, barState(tableEl));
+  showBar(selRect(), barState(tableEl));
 }
 
 /** 工具条的状态：能力来自这张表自己，不是全局 */
 function barState(tableEl) {
   const caps = capsOf(tableEl);
+  const hasInput = !!tableEl.querySelector('tbody input, tbody textarea');
   return {
     hasClip: !!clip,
-    canPaste: caps.paste !== 'off',
+    canPaste: caps.paste !== 'off' && hasInput,
+    canEdit: hasInput,
     canDelete: !!caps.onDeleteRows,
+  };
+}
+
+/** 选区的屏幕矩形：菜单就贴在它上方 */
+function selRect() {
+  if (!sel) return null;
+  const { r1, r2, c1, c2 } = bounds();
+  const rows = bodyRows(sel.tableEl);
+  const first = rows[r1] && rows[r1].children[c1];
+  const last = rows[r2] && rows[r2].children[c2];
+  if (!first || !last) return null;
+  const a = first.getBoundingClientRect();
+  const b = last.getBoundingClientRect();
+  return {
+    top: Math.min(a.top, b.top),
+    bottom: Math.max(a.bottom, b.bottom),
+    left: Math.min(a.left, b.left),
+    right: Math.max(a.right, b.right),
   };
 }
 
@@ -326,16 +348,69 @@ function doPaste() {
 
   // 值先全部落地，再统一派发 —— 否则第一格的 change 触发重渲染，后面的格子就写在旧节点上了
   for (const input of inputs) {
-    try {
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    } catch (e) { /* 重渲染后旧节点可能已脱离 */ }
+    try { input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) { /* 已脱离 */ }
   }
 
   clearSelection();
   caps.notice(blocked
     ? `粘贴 ${inputs.length} 格，另有 ${blocked} 格是只读列没写`
     : `粘贴 ${inputs.length} 格`);
+}
+
+/** 剪切 = 复制 + 清空 */
+function doCut() {
+  if (!sel) return;
+  const tableEl = sel.tableEl;
+  doCopy(); const k = clearCells();
+  clearSelection();
+  capsOf(tableEl).notice(`已剪切 ${k} 格`);
+}
+
+/** 清空选区里的输入框，返回格数 */
+function clearCells() {
+  if (!sel) return 0;
+  const { r1, r2, c1, c2 } = bounds();
+  const inputs = [];
+  for (const tr of bodyRows(sel.tableEl).slice(r1, r2 + 1)) {
+    const tds = rowCells(tr);
+    if (!tds) continue;
+    for (let c = c1; c <= c2; c += 1) {
+      const input = tds[c] && writeCell(tds[c], '');
+      if (input) inputs.push(input);
+    }
+  }
+  for (const input of inputs) {
+    try {
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    } catch (e) { /* 重渲染后旧节点可能已脱离 */ }
+  }
+  return inputs.length;
+}
+
+function doClear() {
+  if (!sel) return;
+  const tableEl = sel.tableEl;
+  const k = clearCells();
+  clearSelection();
+  capsOf(tableEl).notice(k ? `已清除 ${k} 格` : '这一片没有可清空的格');
+}
+
+/** 编辑：等同双击 —— 选中这一格、进去、光标放末尾 */
+function doEdit() {
+  if (!sel) return;
+  const { r1, c1 } = bounds();
+  const tableEl = sel.tableEl;
+  const tr = bodyRows(tableEl)[r1];
+  const td = tr && tr.children[c1];
+  const input = td && td.querySelector('input, textarea');
+  clearSelection();
+  if (!input) return;
+  td.classList.add('nt-cell-sel', 'nt-cell-editing');
+  try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
+  const len = String(input.value || '').length;
+  try { input.setSelectionRange(len, len); } catch (e) { /* 忽略 */ }
+  tableEl.dispatchEvent(new CustomEvent('nt:edit-cell', { bubbles: true, detail: { td, input } }));
 }
 
 function doDelete() {
