@@ -81,7 +81,7 @@ export function mountStatsNotes(ctx, pane, getRange) {
     const thead = el('thead');
     const hr = el('tr');
     ['分类', '期初余额', '本期流入', '本期流出', '期末余额'].forEach((h, i) => {
-      const th = el('th', 'nt-th', h);
+      const th = el('th', 'nt-th', i === 0 && kind === 'keyword' ? '关键字' : h);
       if (i === 0) th.dataset.col = 'cat';
       hr.appendChild(th);
     });
