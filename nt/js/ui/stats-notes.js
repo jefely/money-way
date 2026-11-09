@@ -87,7 +87,7 @@ export function mountStatsNotes(ctx, pane, getRange) {
     tableEl.appendChild(cg);
     const thead = el('thead');
     const hr = el('tr');
-    const heads = [kind === 'keyword' ? '关键字' : '分类', '期初余额', '本期流出', '期末余额'];
+    const heads = [kind === 'keyword' ? '关键字' : '分类', '期初累计', '本期发生', '期末累计'];
     heads.forEach((h, i) => {
       const th = el('th', 'nt-th', h);
       if (i === 0) th.dataset.col = 'cat';
