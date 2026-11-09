@@ -530,3 +530,18 @@
 .nt-note-stat { margin-bottom: 14px; }
 .nt-note-stat-title { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
 .nt-note-stat-table { width: 100%; }
+
+/* 备注统计页：左边两表 + 右边备注查询（布局沿用节点统计页的两栏） */
+#nt-stats-notes { padding: 0; overflow: hidden; }
+#nt-stats-notes .nt-stats-grid { height: 100%; }
+#nt-stats-notes .nt-stats-panel { min-height: 0; }
+.nt-note-detail-wrap { height: 100%; overflow: auto; }
+.nt-note-detail { padding: 0 0 12px; }
+.nt-note-detail-table { width: 100%; }
+.nt-note-picked { background: var(--nt-cell-active) !important; }
+
+/* 备注统计左表：第一列列宽可拖（与节点统计表同一套手柄），其余四列均分 */
+.nt-note-stat-table { table-layout: fixed; }
+.nt-note-stat-table th.nt-th, .nt-note-stat-table td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#nt-stats-notes .nt-stats-grid { position: relative; }
+#nt-stats-notes .nt-stats-panel:first-child { overflow: auto; }
