@@ -369,12 +369,20 @@ function normalizeDate(v) {
 function dateInput(value, onChange) {
   const input = document.createElement('input');
   input.className = 'nt-input nt-input-sm';
-  input.type = 'text';
-  input.inputMode = 'numeric';
-  input.placeholder = 'YYYY-MM-DD';
+  input.type = 'date';
   input.value = value || '';
-  const commit = () => onChange(normalizeDate(input.value));
-  input.addEventListener('change', commit);
+  let last = input.value;
+  let pending = last;
+  // 原生日期框在分段编辑时就会触发 change；这里只记下值，
+  // 等失焦或回车才重画，避免输年份时被重画打断。日历选日期也走这条路。
+  const commit = () => {
+    pending = input.value;
+    if (pending === last) return;
+    last = pending;
+    onChange(pending);
+  };
+  input.addEventListener('change', () => { pending = input.value; });
+  input.addEventListener('blur', commit);
   input.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
   });
