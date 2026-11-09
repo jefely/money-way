@@ -24,28 +24,28 @@ body.nt-range-mode .nt-tablewrap {
 
 /* 矩形四条边加重，一眼看出范围 */
 .nt-range-sel.nt-range-edge-top {
-  box-shadow: inset 0 2px 0 0 var(--nt-primary), inset 0 0 0 1px rgba(139, 108, 255, 0.45);
+  box-shadow: inset 0 1px 0 0 var(--nt-primary), inset 0 0 0 1px rgba(139, 108, 255, 0.45);
 }
 
 .nt-range-sel.nt-range-edge-bottom {
-  box-shadow: inset 0 -2px 0 0 var(--nt-primary), inset 0 0 0 1px rgba(139, 108, 255, 0.45);
+  box-shadow: inset 0 -1px 0 0 var(--nt-primary), inset 0 0 0 1px rgba(139, 108, 255, 0.45);
 }
 
 .nt-range-sel.nt-range-edge-left {
-  box-shadow: inset 2px 0 0 0 var(--nt-primary), inset 0 0 0 1px rgba(139, 108, 255, 0.45);
+  box-shadow: inset 1px 0 0 0 var(--nt-primary), inset 0 0 0 1px rgba(139, 108, 255, 0.45);
 }
 
 .nt-range-sel.nt-range-edge-right {
-  box-shadow: inset -2px 0 0 0 var(--nt-primary), inset 0 0 0 1px rgba(139, 108, 255, 0.45);
+  box-shadow: inset -1px 0 0 0 var(--nt-primary), inset 0 0 0 1px rgba(139, 108, 255, 0.45);
 }
 
 /* 四角同时命中时，四条边都要画 */
 .nt-range-sel.nt-range-edge-top.nt-range-edge-bottom {
-  box-shadow: inset 0 2px 0 0 var(--nt-primary), inset 0 -2px 0 0 var(--nt-primary);
+  box-shadow: inset 0 1px 0 0 var(--nt-primary), inset 0 -1px 0 0 var(--nt-primary);
 }
 
 .nt-range-sel.nt-range-edge-left.nt-range-edge-right {
-  box-shadow: inset 2px 0 0 0 var(--nt-primary), inset -2px 0 0 0 var(--nt-primary);
+  box-shadow: inset 1px 0 0 0 var(--nt-primary), inset -1px 0 0 0 var(--nt-primary);
 }
 
 /* ---------- 工具条 ---------- */
@@ -141,8 +141,8 @@ body.nt-range-mode .nt-tablewrap {
 .nt-cell-grip {
   position: absolute;
   z-index: 7;
-  width: 26px;               /* 26 的命中区，里面只有右下角 8px 是可见的 */
-  height: 26px;
+  width: 40px;               /* 40 的命中区；可见的还是右下角 8px，方便手指抓 */
+  height: 40px;
   touch-action: none;
   cursor: nwse-resize;
   -webkit-tap-highlight-color: transparent;

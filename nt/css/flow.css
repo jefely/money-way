@@ -570,12 +570,12 @@ body.nt-col-resizing {
    双击进入编辑 = 同样的框，光标显形。 */
 .nt-table-flow tbody tr .nt-cell.nt-cell-sel {
   background: var(--nt-cell-active) !important;
-  box-shadow: inset 0 0 0 2px var(--nt-primary);
+  box-shadow: inset 0 0 0 1px var(--nt-primary);
 }
 
 /* 选区锚点：长按选格 / 拖手柄之后输入框已经失焦，描边仍留在这一格 */
 .nt-table-flow tbody tr .nt-cell.nt-cell-anchor {
-  box-shadow: inset 0 0 0 2px var(--nt-primary);
+  box-shadow: inset 0 0 0 1px var(--nt-primary);
 }
 
 .nt-table-flow .nt-cell-input {

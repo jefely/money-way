@@ -26,7 +26,7 @@ const RANGE = 'nt-range-sel';
 const EDGES = ['nt-range-edge-top', 'nt-range-edge-bottom', 'nt-range-edge-left', 'nt-range-edge-right'];
 const PRESS_MS = 480;
 const MOVE_TOL = 8;
-const GRIP = 26;
+const GRIP = 40;
 
 export function mountCellSelect(tableEl, tbody, opts) {
   const o = opts || {};
@@ -107,8 +107,7 @@ export function mountCellSelect(tableEl, tbody, opts) {
 
   function makeGrip() {
     const g = document.createElement('div');
-    g.className = 'nt-cell-grip';
-    g.hidden = true;
+    g.className = 'nt-cell-grip'; g.hidden = true;
     g.setAttribute('aria-label', '拖动调整选区范围');
     g.addEventListener('pointerdown', onGripDown);
     wrap.appendChild(g);
@@ -165,6 +164,11 @@ export function mountCellSelect(tableEl, tbody, opts) {
       try { grip.releasePointerCapture(pid); } catch (e) { /* 忽略 */ }
       paint();
       placeGrip();
+      // 拖出一个区域就直接弹菜单；单个格子不弹，仍靠长按
+      if (isMulti()) {
+        const b = bounds();
+        openMenuAt(cellAt(b.r2, b.c2) || cellAt(b.r1, b.c1));
+      }
     };
 
     grip.addEventListener('pointermove', onMove);
@@ -175,11 +179,8 @@ export function mountCellSelect(tableEl, tbody, opts) {
   /* ---------- 选中 / 清除 ---------- */
 
   function single(td) {
-    // 长按松手时浏览器会把输入框重新聚焦一次 → focusin 又走到这里。
-    // 菜单还开着，说明这次 focus 是长按的余波，不能把多格选区收成 1×1。
-    if (isCellMenuOpen()) return;
-    // 鼠标按在多格选区里：先别塌；短按松手再塌，长按弹菜单则保留整片
-    if (pressInside) return;
+    // 菜单开着 / 按在多格选区里：先别塌（长按余波与拖手柄的过渡）
+    if (isCellMenuOpen() || pressInside) return;
     singleNow(td);
   }
 
@@ -265,8 +266,10 @@ export function mountCellSelect(tableEl, tbody, opts) {
     if (editor && editor.blurInput) editor.blurInput();
     paint();
     placeGrip();
+    openMenuAt(cellAt(hit.r, hit.c));
+  }
 
-    const td = cellAt(hit.r, hit.c);
+  function openMenuAt(td) {
     if (!td) return;
     const input = td.querySelector('input.nt-cell-input');
     const ro = !input || input.readOnly || input.disabled;
@@ -278,22 +281,20 @@ export function mountCellSelect(tableEl, tbody, opts) {
     }, handlers);
   }
 
-  function inside(hit) {
+  const inside = (hit) => {
     if (!sel) return false;
     const b = bounds();
     return hit.r >= b.r1 && hit.r <= b.r2 && hit.c >= b.c1 && hit.c <= b.c2;
-  }
+  };
 
   function editableCount() {
     if (!sel) return 0;
     const b = bounds();
     let n = 0;
-    for (let r = b.r1; r <= b.r2; r += 1) {
-      for (let c = b.c1; c <= b.c2; c += 1) {
-        const td = cellAt(r, c);
-        const inp = td ? td.querySelector('input.nt-cell-input') : null;
-        if (inp && !inp.readOnly && !inp.disabled) n += 1;
-      }
+    for (let r = b.r1; r <= b.r2; r += 1) for (let c = b.c1; c <= b.c2; c += 1) {
+      const td = cellAt(r, c);
+      const inp = td ? td.querySelector('input.nt-cell-input') : null;
+      if (inp && !inp.readOnly && !inp.disabled) n += 1;
     }
     return n;
   }
@@ -347,7 +348,7 @@ export function mountCellSelect(tableEl, tbody, opts) {
       const m = getClip();
       if (!m) return;
       // 粘到锚点（当前活动格），与 Excel 一致；不是选区的左上角
-      const r = pasteCells(tableEl, sel.ar, sel.ac, m, { resolveAccounts: true });
+      const r = pasteCells(tableEl, sel.ar, sel.ac, m, { resolveAccounts: true, createRows: true });
       paint(); placeGrip();
       notice(r.blocked
         ? `粘贴 ${r.written} 格，${r.blocked} 格只读没写`
@@ -382,9 +383,7 @@ export function mountCellSelect(tableEl, tbody, opts) {
   tableEl.addEventListener('nt-layout-refresh', placeGrip);
 
   return {
-    single,
-    clear,
-    reset,
+    single, clear, reset,
     setEditor(e) { editor = e; },
     selection: () => (sel ? { ...sel, ...bounds() } : null),
   };
