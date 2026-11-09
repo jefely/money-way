@@ -22,6 +22,37 @@ body.nt-range-mode .nt-tablewrap {
   box-shadow: inset 0 0 0 1px rgba(139, 108, 255, 0.45);
 }
 
+/* 固定 / 分期 / 统计的框选仍逐格拼边（流水表改用最上层整体描边） */
+.nt-range-sel.nt-range-edge-top {
+  box-shadow: inset 0 1px 0 0 var(--nt-primary), inset 0 0 0 1px rgba(139, 108, 255, 0.45);
+}
+
+.nt-range-sel.nt-range-edge-bottom {
+  box-shadow: inset 0 -1px 0 0 var(--nt-primary), inset 0 0 0 1px rgba(139, 108, 255, 0.45);
+}
+
+.nt-range-sel.nt-range-edge-left {
+  box-shadow: inset 1px 0 0 0 var(--nt-primary), inset 0 0 0 1px rgba(139, 108, 255, 0.45);
+}
+
+.nt-range-sel.nt-range-edge-right {
+  box-shadow: inset -1px 0 0 0 var(--nt-primary), inset 0 0 0 1px rgba(139, 108, 255, 0.45);
+}
+
+.nt-range-sel.nt-range-edge-top.nt-range-edge-bottom {
+  box-shadow: inset 0 1px 0 0 var(--nt-primary), inset 0 -1px 0 0 var(--nt-primary);
+}
+
+.nt-range-sel.nt-range-edge-left.nt-range-edge-right {
+  box-shadow: inset 1px 0 0 0 var(--nt-primary), inset -1px 0 0 0 var(--nt-primary);
+}
+
+/* 流水表的多格 / 整行：连续底色，内部不画格线，外框由 .nt-range-outline 一个整体画 */
+.nt-table-flow .nt-range-sel {
+  box-shadow: none;
+  border-color: transparent !important;
+}
+
 /* ---------- 工具条 ---------- */
 
 .nt-range-bar {
@@ -148,8 +179,8 @@ body.nt-cell-gripping {
    选区比屏幕宽时，右边缘落在可视右缘，不会被 overflow 裁掉。 */
 .nt-range-outline {
   position: fixed;
-  z-index: 8;
-  border: 1px solid var(--nt-primary);
+  z-index: 55;
+  border: 2px solid var(--nt-primary);
   border-radius: 2px;
   box-sizing: border-box;
   pointer-events: none;

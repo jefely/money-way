@@ -25,19 +25,23 @@ export function settleOpenRows(state) {
 
   let s = state;
   const keep = new Array(open.length).fill(null);
+  let maxSeq = (s.transactions || []).reduce((m, t) => Math.max(m, Number(t && t.seq) || 0), 0);
   open.forEach((d, i) => {
     if (!d || !(amountOf(d.amount) > 0)) { keep[i] = d || null; return; }
 
     const ends = endsFromFields(s, buildAccountIndex(s.accounts), d);
     s = ends.state;
     const draft = !ends.fromId || !ends.toId;
+    const want = Number(d.seq) || 0;
+    const seq = want > maxSeq ? want : nextSeq(s);
+    maxSeq = Math.max(maxSeq, seq);
     s = addTransaction(s, {
       date: normalizeTypedDate(d.date || todayIso()),
       from_id: ends.fromId,
       to_id: ends.toId,
       amount: amountOf(d.amount),
       note: joinHeld(d.note, ends.held),
-      seq: nextSeq(s),
+      seq,
       ...(draft ? { status: 'draft' } : {}),
     });
   });

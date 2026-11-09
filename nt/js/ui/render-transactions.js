@@ -113,7 +113,10 @@ function readDraft(tr) {
     o[f] = v;
     if (v) any = true;
   }
-  return any ? o : null;
+  // 序号不是输入框：金额识别后写在序号格里，这里把它带上
+  const seq = Number(String((tr.querySelector('.nt-cell-seq') || {}).textContent || '').trim()) || 0;
+  if (seq > 0) o.seq = seq;
+  return any || seq ? o : null;
 }
 
 function applyDraft(tr, draft) {
@@ -122,6 +125,13 @@ function applyDraft(tr, draft) {
     const el = tr.querySelector('[data-field="' + f + '"]');
     if (el && draft[f]) el.value = draft[f];
   }
+  const seqCell = tr.querySelector('.nt-cell-seq'); if (seqCell) seqCell.textContent = draft.seq ? String(draft.seq) : '';
+}
+
+/** 给某个空行草稿打补丁（日期 / 序号，由 open-drafts 在金额识别后分配） */
+export function patchBlankDraft(k, patch) {
+  const i = Number(k);
+  if (!Number.isFinite(i) || i < 0 || i >= draftRows.length) return; draftRows[i] = { ...(draftRows[i] || {}), ...patch };
 }
 
 /** 这一行空行已经转成正式记录：丢掉它的草稿，后面的序号前移 */

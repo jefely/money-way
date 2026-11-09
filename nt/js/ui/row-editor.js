@@ -31,6 +31,9 @@ export function bindRowEditing(tbody, h) {
   tbody.addEventListener('input', (ev) => {
     const input = ev.target;
     if (!input || input.tagName !== 'INPUT' || !input.dataset.field) return;
+    // 草稿同步事件：只让 render-transactions / open-drafts 的捕获监听收下，
+    // 不要再触发候选气泡 / 日期快捷 / onEdit（用户 2026-11-09 报的「点下一格弹上一格的候选」）
+    if (ev.__ntDraftSync) return;
 
     const field = input.dataset.field;
     const tr = input.closest('tr');
@@ -100,21 +103,22 @@ export function bindRowEditing(tbody, h) {
       }
     }
 
-    if (tr.dataset.new !== '1') {
-      // 金额：失焦时统一成「¥1,234.56」的财务格式（用户 2026-10-30）
-      if (input.dataset.field === 'amount' && h.formatAmount) {
-        const text = h.formatAmount(input.value);
-        if (text && text !== input.value) {
-          input.value = text;
-          if (tr.dataset.id) h.onEdit(tr.dataset.id, 'amount', text);
-        }
+    // 金额：失焦统一成财务格式（已有行写回 state；空行只刷新草稿）
+    if (input.dataset.field === 'amount' && h.formatAmount) {
+      const text = h.formatAmount(input.value);
+      if (text && text !== input.value) {
+        input.value = text;
+        if (tr.dataset.id) h.onEdit(tr.dataset.id, 'amount', text);
       }
-      return;   // 已有行走的是即时提交，这里不再补
     }
 
-    // 空行不再建单：内容留在「开放录入区」（草稿），换页时由 flow 结算。
-    // 合成一次 input，让草稿捕获把解析后的账户名/日期/备注一起记下来。
-    input.dispatchEvent(new Event('input', { bubbles: true }));
+    if (tr.dataset.new !== '1') return;   // 已有行走的是即时提交，这里不再补
+
+    // 空行录入了金额：让 flow 补日期 / 序号（不建单、不移动），再同步草稿
+    if (input.dataset.field === 'amount' && h.onOpenAmount) h.onOpenAmount(tr);
+    const sync = new Event('input', { bubbles: true });
+    sync.__ntDraftSync = true;
+    input.dispatchEvent(sync);
   });
 
   /* ---------- 删除 ---------- */

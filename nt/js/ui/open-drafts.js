@@ -8,7 +8,41 @@
  * 带金额的行由 flow 在「切回流水表」时结算（见 open-rows.js）。
  */
 
-import { blankDrafts } from './render-transactions.js';
+import { blankDrafts, patchBlankDraft } from './render-transactions.js';
+import { nextSeq } from '../core/state-store.js';
+import { shortDate, todayIso } from '../core/format.js';
+
+const amountOf = (v) => Number(String(v || '').replace(/[¥,\s]/g, ''));
+
+/**
+ * 空行录入了金额：补今天日期 + 预分配序号（用户 2026-11-09）。
+ * 不建单、不移动；序号先显示在开放区，切回流水表时才结算到尾行。
+ */
+export function assignOpenAmount(tr, ctx) {
+  const k = Number(tr.dataset.blank);
+  if (!Number.isFinite(k) || k < 0) return;
+  const amountEl = tr.querySelector('[data-field="amount"]');
+  const has = !!(amountEl && amountOf(amountEl.value) > 0);
+  const cell = tr.querySelector('.nt-cell-seq');
+  const draft = blankDrafts()[k] || {};
+  if (!has) {
+    if (!draft.seq) return;
+    patchBlankDraft(k, { seq: 0 });
+    if (cell) cell.textContent = '';
+    return;
+  }
+  if (draft.seq) return;
+  const dateEl = tr.querySelector('[data-field="date"]');
+  const date = (dateEl && dateEl.value) || shortDate(todayIso());
+  if (dateEl) dateEl.value = date;
+  const st = ctx.getState();
+  const used = Math.max(0,
+    ...(st.openRows || []).map((d) => Number(d && d.seq) || 0),
+    ...blankDrafts().map((d) => Number(d && d.seq) || 0));
+  const seq = Math.max(nextSeq(st), used + 1);
+  patchBlankDraft(k, { date, seq });
+  if (cell) cell.textContent = String(seq);
+}
 
 export function bindOpenDrafts(tbody, ctx, seed, onSaved) {
   let timer = 0;
@@ -37,15 +71,21 @@ export function bindOpenDrafts(tbody, ctx, seed, onSaved) {
 
   tbody.addEventListener('input', (ev) => {
     if (!ev.target.closest || !ev.target.closest('tr[data-blank]')) return;
+    touch();
+  }, true);
+
+  /** 外部改了草稿（金额识别后补日期/序号）：标脏并安排落盘 */
+  function touch() {
     dirty = true;
     clearTimeout(timer);
     timer = setTimeout(() => flush(false), 350);
-  }, true);
+  }
 
   return {
     seedInitial() { seed(ctx.getState().openRows || []); },
     sync,
     flush,
+    touch,
     /** 结算后：内存草稿换成剩下的位置 */
     reseed(rows) { seed(rows); dirty = false; },
   };

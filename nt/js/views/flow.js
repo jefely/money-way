@@ -21,7 +21,7 @@ import { endFromText } from '../ui/flow-ends.js';
 import { bindRowEditing } from '../ui/row-editor.js';
 import { bindCellEdit } from '../ui/cell-edit.js';
 import { mountCellSelect } from '../ui/cell-select.js';
-import { bindOpenDrafts } from '../ui/open-drafts.js';
+import { bindOpenDrafts, assignOpenAmount } from '../ui/open-drafts.js';
 import { settleOpenRows } from '../ui/open-rows.js';
 import { openAddDialog } from '../ui/add-dialog.js';
 import { openSyncDialog } from '../ui/sync-dialog.js';
@@ -45,6 +45,7 @@ export function mountFlow(section, ctx) {
   bindRowEditing(body, {
     onEdit,
     onDelete,
+    onOpenAmount,
     onCommit: () => { ctx.saveNow(); },
     parseAccount: (v) => parseAccountInput(ctx.getIndex(), v),
     suggestAccounts: (v) => suggestByIndex(ctx.getIndex(), v),
@@ -310,6 +311,12 @@ export function mountFlow(section, ctx) {
     ctx.setState(r.state);
     ctx.save();
     openDrafts.reseed(r.keep);
+  }
+
+  /** 空行录入了金额：补日期/序号（不建单、不移动），并安排草稿落盘 */
+  function onOpenAmount(tr) {
+    assignOpenAmount(tr, ctx);
+    openDrafts.touch();
   }
 
   function onDelete(id) {
