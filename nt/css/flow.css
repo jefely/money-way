@@ -924,20 +924,118 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 }
 
 .nt-composer {
+  position: fixed;
+  right: 12px;
+  bottom: 16px;
+  z-index: 35;
+  width: min(320px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--nt-bg-line);
+  border-top: 3px solid var(--nt-primary);
+  border-radius: 18px;
+  background: var(--nt-bg);
+  color: var(--nt-text);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+
+.nt-composer[hidden] {
+  display: none;
+}
+
+.nt-composer-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  height: 36px;
+  padding: 0 6px 0 12px;
+  background: var(--nt-bg-soft);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.nt-composer-mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--nt-primary);
+  flex: none;
+}
+
+.nt-composer-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.nt-composer-fold {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--nt-text-muted);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.nt-composer-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+}
+
+.nt-composer-input,
+.nt-composer-send {
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 .nt-composer-input {
   flex: 1;
   min-width: 0;
-  height: 36px;
 }
 
 .nt-composer-send {
   flex: none;
+  padding: 0 14px;
+  line-height: 1;
+}
+
+.nt-composer.is-collapsed {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border-top-width: 1px;
+}
+
+.nt-composer.is-collapsed .nt-composer-body,
+.nt-composer.is-collapsed .nt-composer-fold,
+.nt-composer.is-collapsed .nt-composer-mark {
+  display: none;
+}
+
+.nt-composer.is-collapsed .nt-composer-head {
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  justify-content: center;
+  background: var(--nt-primary);
+}
+
+.nt-composer.is-collapsed .nt-composer-title {
+  flex: none;
+  color: #fff;
+  font-size: 16px;
 }
 
 .nt-seq-missing { color: #c62828; }

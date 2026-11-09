@@ -270,6 +270,8 @@ export const THEME_DEFAULTS = THEME_IDS.reduce((acc, id) => {
 const LEGACY_DEFAULT = {
   环厚: { 80: 60 },        // v1.210：80 → 60
   追踪字号: { 52: 46 },    // v1.210：52 → 46
+  外圈线厚比例: { 0.06: 0.1 },   // v1.227：0.06 → 0.1
+  外圈线间距比例: { 0.03: 0.05 }, // v1.227：0.03 → 0.05
 };
 
 export function normalize(raw, theme) {

@@ -45,6 +45,12 @@ test('★ 旧默认值跟着新默认走（老存档不会卡在旧值上）', (
   const r = normalize({ 环厚: 80, 追踪字号: 52 }, 'dark');
   assert.equal(r['环厚'], 60, '旧默认 80 应该跟到 60');
   assert.equal(r['追踪字号'], 46, '旧默认 52 应该跟到 46');
+  const ring = normalize({ 外圈线厚比例: 0.06, 外圈线间距比例: 0.03 }, 'dark');
+  assert.equal(ring['外圈线厚比例'], 0.1);
+  assert.equal(ring['外圈线间距比例'], 0.05);
+  const kept = normalize({ 外圈线厚比例: 0.2, 外圈线间距比例: 0.08 }, 'dark');
+  assert.equal(kept['外圈线厚比例'], 0.2);
+  assert.equal(kept['外圈线间距比例'], 0.08);
   // 用户自己调过的、不等于旧默认的值必须原样保留
   const r2 = normalize({ 环厚: 90, 追踪字号: 70 }, 'dark');
   assert.equal(r2['环厚'], 90);
@@ -170,6 +176,7 @@ function chart(params) {
 }
 
 test('★ 弧块描边宽 = 基准值 × RATIO', () => {
+  assert.ok(chart(MW_DEFAULTS).includes('stroke="var(--nt-bg)"'));
   assert.ok(chart(MW_DEFAULTS).includes('stroke-width="8.0"'));   // 2.4 × 3.33
   assert.ok(chart({ ...MW_DEFAULTS, ringW: 10 }).includes('stroke-width="33.3"'));
 });

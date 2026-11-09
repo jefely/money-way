@@ -31,13 +31,6 @@ import { ringRadii, typeColor } from '../graph/mw-layers.js';
 export const BASE_SIZE = 1800;
 export const RATIO = MW_SIZE / BASE_SIZE;
 
-/** 当前是否浅色主题（决定弧块边框的颜色） */
-function isLightTheme() {
-  if (typeof document === 'undefined') return true;
-  const t = document.documentElement.dataset.theme;
-  return !t || t === 'light';
-}
-
 /**
  * 参数 → 画布尺寸。
  * @param {object} [params] ui/mw-params 的读数（基准单位）
@@ -183,7 +176,7 @@ export function renderChart(data) {
   const ringPath = (ro, ri, a1, a2, fill, cls, attr) => `<path class="mw-ring ${cls}"`
     + ` d="${arcPath(ro, ri, a1, a2, pointAt, cx, cy)}"`
     + ` fill="${fill}" fill-opacity="1"`
-    + ` stroke="${isLightTheme() ? '#ffffff' : '#000000'}"`
+    + ` stroke="var(--nt-bg)"`
     + ` stroke-width="${f(p.ringW * U)}" stroke-opacity="${p.ringOp}"${attr}/>`;
 
   // 外圈：类型固定色系，很薄（环厚的 10%），看上去就是贴着环的一条线
