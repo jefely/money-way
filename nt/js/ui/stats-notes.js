@@ -178,7 +178,11 @@ export function mountStatsNotes(ctx, pane, getRange) {
     tableEl.appendChild(dcg);
     const thead = el('thead');
     const hr = el('tr');
-    for (const h of ['序', '日期', '转出', '转入', '金额', '备注']) hr.appendChild(el('th', 'nt-th', h));
+    for (const h of ['序', '日期', '转出', '转入', '金额', '备注']) {
+      const th = el('th', 'nt-th', h);
+      th.style.cssText = 'height:26px;font-size:12px;line-height:20px;padding:0 8px;';
+      hr.appendChild(th);
+    }
     thead.appendChild(hr);
     tableEl.appendChild(thead);
     // 每列都能拖宽（照搬节点分类列表）：标题右缘拖动，宽度存本地
@@ -209,7 +213,7 @@ export function mountStatsNotes(ctx, pane, getRange) {
     const acc = new Map((ctx.getState().accounts || []).map((a) => [a.id, a.name || '']));
     list.forEach((t, i) => {
       const tr = el('tr', 'nt-row');
-      tr.appendChild(el('td', 'nt-cell', String(t.seq || i + 1)));
+      tr.appendChild(el('td', 'nt-cell', String(t.seq || i + 1)));      for (const td of tr.children) td.style.cssText = 'height:32px;font-size:14px;line-height:20px;padding:6px 8px;';
       tr.appendChild(el('td', 'nt-cell', d6(t.date)));
       tr.appendChild(el('td', 'nt-cell', acc.get(t.from_id) || ''));
       tr.appendChild(el('td', 'nt-cell', acc.get(t.to_id) || ''));
