@@ -48,6 +48,7 @@ export function mountStats(section, ctx) {
 
   const caps = section.querySelector('#nt-stats-caps');
   const scopeCaps = section.querySelector('#nt-stats-scope');
+  const yearInp = section.querySelector('#nt-stats-year');
   const pills = section.querySelector('#nt-stats-pills');
   const grid = section.querySelector('#nt-stats-grid');
   const summaryWrap = section.querySelector('#nt-stats-summary-wrap');
@@ -202,6 +203,10 @@ export function mountStats(section, ctx) {
 
   function renderPills() {
     pills.hidden = sel.scope === 'all';
+    if (yearInp) {
+      yearInp.hidden = sel.scope !== 'month';
+      if (sel.scope === 'month') yearInp.value = String(sel.year);
+    }
     // 三种 scope 共用这个容器，但排法不同：
     //   month → 12 个数字必须一行（CSS 按 [data-scope="month"] 排 12 列）
     //   year  → 年份个数不定，保持默认的 6 列栅格
@@ -224,7 +229,21 @@ export function mountStats(section, ctx) {
       sep.textContent = '至';
       pills.appendChild(sep);
       pills.appendChild(dateInput(sel.end, (v) => { sel.end = v; render(); }));
+      const clear = document.createElement('button');
+      clear.type = 'button';
+      clear.className = 'nt-btn nt-btn-sm nt-pills-clear';
+      clear.textContent = '清空';
+      clear.addEventListener('click', () => { sel.scope = 'all'; render(); });
+      pills.appendChild(clear);
     }
+  }
+
+  if (yearInp) {
+    yearInp.addEventListener('change', () => {
+      const n = parseInt(yearInp.value, 10);
+      if (Number.isFinite(n) && n > 1900 && n < 2200) { sel.year = n; render(); }
+      else yearInp.value = String(sel.year);
+    });
   }
 
   /* ---------- 事件 ---------- */

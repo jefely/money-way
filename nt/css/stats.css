@@ -583,3 +583,7 @@
 #nt-stats-notes .nt-note-detail-table { border-collapse: collapse; }
 #nt-stats-notes .nt-note-detail-table thead th { border-left: 0; border-right: 1px solid var(--nt-bg-line); }
 #nt-stats-notes .nt-note-detail-table thead th:first-child { border-left: 1px solid var(--nt-bg-line); }
+
+/* 统计页：月份模式的小年份输入框 + 区间行最右的清空按钮 */
+.nt-stats-year { width: 64px; height: 26px; padding: 0 6px; border: 1px solid var(--nt-bg-line); border-radius: 6px; background: var(--nt-bg); color: var(--nt-text); font-size: 13px; }
+.nt-pills-clear { margin-left: auto; }
