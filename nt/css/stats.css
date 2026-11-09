@@ -537,7 +537,7 @@
 #nt-stats-notes .nt-stats-panel { min-height: 0; }
 .nt-note-detail-wrap { height: 100%; overflow: auto; }
 .nt-note-detail { padding: 0 0 12px; }
-.nt-note-detail-table { width: max-content; min-width: 100%; }
+.nt-note-detail-table { width: 100%; }
 .nt-note-picked { background: var(--nt-cell-active) !important; }
 
 /* 备注统计左表：第一列列宽可拖（与节点统计表同一套手柄），其余四列均分 */
@@ -572,5 +572,5 @@
 .nt-note-detail-table td { height: 32px; }
 
 /* 备注查询：用 id 级规则压过通用表样式，固定列宽才生效（拖动备注列才有用），行高 32 */
-#nt-stats-notes .nt-note-detail-table { table-layout: fixed !important; width: max-content; min-width: 0; }
+#nt-stats-notes .nt-note-detail-table { table-layout: fixed !important; width: 100%; }
 #nt-stats-notes .nt-note-detail-table th, #nt-stats-notes .nt-note-detail-table td { height: 32px !important; }

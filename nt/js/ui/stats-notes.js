@@ -34,21 +34,20 @@ function savedColW() {
   }
 }
 
-/** 备注查询表最后一列（备注）的宽度：只有这一列能拖 */
-function savedNoteW() {
+/** 备注查询各列宽度（照搬节点分类列表：每列都能拖，存本地） */
+function savedDetailCols() {
   try {
-    const n = Number(localStorage.getItem('nt_note_detail_note_w'));
-    return Number.isFinite(n) && n >= 60 ? Math.round(n) : 160;
-  } catch (e) {
-    return 160;
-  }
+    const a = JSON.parse(localStorage.getItem('nt_note_detail_cols') || 'null');
+    if (Array.isArray(a) && a.length === 6 && a.every((n) => Number.isFinite(Number(n)) && Number(n) >= 40)) return a.map(Number);
+  } catch (e) { /* 忽略 */ }
+  return [44, 84, 108, 118, 96, 180];
 }
 
 /** 备注统计页挂载；返回统计页每次重画时调用的 render */
 export function mountStatsNotes(ctx, pane, getRange) {
   let picked = null; // {kind:'type'|'keyword', value}
   let firstW = savedColW();
-  let noteW = savedNoteW();
+  let detailCols = savedDetailCols();
 
   pane.textContent = '';
   const grid = el('div', 'nt-stats-grid');
@@ -170,39 +169,41 @@ export function mountStatsNotes(ctx, pane, getRange) {
     }
     const tableEl = el('table', 'nt-table nt-table-stats nt-note-detail-table');
     const dcg = el('colgroup');
-    for (const w of [44, 84, 108, 118, 96]) {
-      const c = el('col'); c.style.width = w + 'px'; dcg.appendChild(c);
+    const widths = detailCols.slice();
+    for (let i = 0; i < 6; i += 1) {
+      const c = el('col');
+      if (i < 5) c.style.width = widths[i] + 'px';
+      dcg.appendChild(c);
     }
-    const lastCol = el('col');
-    lastCol.style.width = noteW + 'px';
-    dcg.appendChild(lastCol);
     tableEl.appendChild(dcg);
     const thead = el('thead');
     const hr = el('tr');
     for (const h of ['序', '日期', '转出', '转入', '金额', '备注']) hr.appendChild(el('th', 'nt-th', h));
     thead.appendChild(hr);
     tableEl.appendChild(thead);
-    // 只有「备注」列能拖宽：和节点分类列表同一套手柄样式
-    const lastTh = hr.lastElementChild;
-    lastTh.appendChild(el('span', 'nt-col-handle'));
-    lastTh.addEventListener('pointerdown', (ev) => {
-      if (ev.button !== 0 && ev.pointerType === 'mouse') return;
-      const r = lastTh.getBoundingClientRect();
-      if (ev.clientX < r.right - 14 || ev.clientX > r.right + 2) return;
-      ev.preventDefault(); ev.stopPropagation();
-      const startX = ev.clientX;
-      const startW = Math.round(r.width);
-      const move = (e2) => {
-        noteW = Math.max(60, Math.round(startW + e2.clientX - startX));
-        lastCol.style.width = noteW + 'px';
-      };
-      const up = () => {
-        document.removeEventListener('pointermove', move);
-        document.removeEventListener('pointerup', up);
-        try { localStorage.setItem('nt_note_detail_note_w', String(noteW)); } catch (e) { /* 忽略 */ }
-      };
-      document.addEventListener('pointermove', move);
-      document.addEventListener('pointerup', up);
+    // 每列都能拖宽（照搬节点分类列表）：标题右缘拖动，宽度存本地
+    [...hr.children].forEach((th, i) => {
+      th.appendChild(el('span', 'nt-col-handle'));
+      th.addEventListener('pointerdown', (ev) => {
+        if (ev.button !== 0 && ev.pointerType === 'mouse') return;
+        const r = th.getBoundingClientRect();
+        if (ev.clientX < r.right - 14 || ev.clientX > r.right + 2) return;
+        ev.preventDefault(); ev.stopPropagation();
+        const startX = ev.clientX;
+        const startW = Math.round(r.width);
+        const col = dcg.children[i];
+        const move = (e2) => {
+          widths[i] = Math.max(40, Math.round(startW + e2.clientX - startX));
+          col.style.width = widths[i] + 'px';
+        };
+        const up = () => {
+          document.removeEventListener('pointermove', move);
+          document.removeEventListener('pointerup', up);
+          try { localStorage.setItem('nt_note_detail_cols', JSON.stringify(widths)); } catch (e) { /* 忽略 */ }
+        };
+        document.addEventListener('pointermove', move);
+        document.addEventListener('pointerup', up);
+      });
     });
     const tb = el('tbody');
     const acc = new Map((ctx.getState().accounts || []).map((a) => [a.id, a.name || '']));
