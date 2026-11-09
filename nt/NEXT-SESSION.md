@@ -815,3 +815,13 @@ Tab / Enter 换格和批量粘贴不被重绘打断；流水页行为不回退�
   （`ui/stats-notes.js` 的 `mountStatsNotes`）共用；`#nt-stats-notes` 显隐由 cap 控制。
 - 设置页备注工具条里的「节点关系」按钮移除（`alias-batch.js` 不再创建/绑定，
   `node-relations.js` 文件保留但无入口）。
+
+
+## 18. 2026-11-09 修复「更新后解锁又被弹回锁屏」（`nt-v1.514`）
+
+- **原因**：`ui/pwa.js` 在 `controllerchange`（新 Service Worker 接管）时，如果解锁页可见就
+  `location.reload()`。`sw.js` 用 `skipWaiting` + `clients.claim`，发过新版后新 SW 接管往往
+  正好落在「用户刚输完密码、`enterApp()` 还没藏起解锁页」的那一小段里 —— 一刷新，密钥只在内存，
+  立刻回锁屏。所以表现是「更新后重新输密码进入，过一会儿又自动弹出去一次」。
+- **修复**：删掉 `controllerchange` 的自动刷新。新 SW 接管后本页继续跑旧代码（没有损失），
+  下次自然打开就是新文件；要立刻更新走校验页「更新」（`hardReload`，本来就是显式刷新）。

@@ -46,33 +46,14 @@ export function registerServiceWorker() {
     return;
   }
 
-  // 新 SW 接管的那一刻自动刷新一次。
+  // 不在 controllerchange 上自动刷新。
   //
-  // 为什么需要：sw.js 用的是 stale-while-revalidate（离线优先），命中缓存就
-  // 立刻返回旧文件、后台再更新。所以**当前这一页**一定是用旧 CSS/JS 渲染的，
-  // 新版本要等下次打开才生效 —— 用户看到的就是「明明更新了，样式还是老的」，
-  // 得手动开两次。这里在换班瞬间重载，一次到位。
-  //
-  // 只在「原本就有控制器」时重载：首次安装也会触发 controllerchange，
-  // 那一次页面本来就是最新的，重载只会白闪一下。
-  //
-  // **账本已解锁时绝不刷新**（2026-11-07 用户实测的「用一会儿自己退回解锁页」）：
-  //   · sw.js 的 install 里 skipWaiting、activate 里 clients.claim，所以只要
-  //     发过新版，正在用的这一页会被新 SW 接管、controllerchange 立刻触发；
-  //   · 而密钥只活在内存里（core/auth-manager），刷新 = 密钥没了 = 直接回解锁页，
-  //     正在填的那一行也跟着没了；
-  //   · 新 SW 已经接管，**下次打开自然就是新文件**，这一页继续跑旧代码没有任何损失。
-  const hadController = !!navigator.serviceWorker.controller;
-  let swapped = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (swapped || !hadController) return;
-    swapped = true;
-    const gate = document.getElementById('nt-gate');
-    const onGate = !!gate && !gate.hidden;
-    // 只在「还停在解锁/建库页」时才重载
-    if (!onGate) return;
-    location.reload();
-  });
+  // 用户 2026-11-09：更新后重新输密码进入，过一会儿又弹回解锁页。
+  // 原因：sw.js 用 skipWaiting + clients.claim，新 SW 接管时会触发 controllerchange；
+  // 之前这里在「解锁页可见」时 reload —— 用户刚输完密码、enterApp 还没藏起解锁页的
+  // 那一小段里，controllerchange 一到就刷新；密钥只在内存，刷新即回锁屏。
+  // 现在一律不自动刷新：新 SW 接管后本页继续跑旧代码（没有损失），
+  // 下次自然打开就是新文件；要立刻更新走校验页的「更新」（hardReload）。
 
   navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
     // 注册完主动问一次有没有新版：浏览器默认只在导航时检查 sw.js，
