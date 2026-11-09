@@ -15,7 +15,7 @@
 
 import { tpl } from './render-transactions.js';
 import { setCell as putCell, cellsOf, sumOf, spanOf } from '../core/installment-cells.js';
-import { mountCellRange } from './cell-range.js';
+import { mountExcelGrid } from './excel-grid.js';
 import { mountAddForm } from './inst-add.js';
 import { paintHandles, syncFrozen } from './table-layout.js';
 import { FIXED_COLS, applyFixedWidths, revealRow } from './inst-layout.js';
@@ -38,10 +38,12 @@ const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 export function mountInstTable(ctx, tbody, opts) {
   const o = opts || {};
 
-  mountCellRange(tbody.closest('table'), {
-    paste: 'single',
-    onDeleteRows: (ids) => deleteRows(ids),
+  // 和流水页同一套格子层：单击选中、双击编辑、行号选行、五按钮菜单
+  const grid = mountExcelGrid(tbody.closest('table'), tbody, {
     onNotice: (t) => ctx.setFooter(t),
+    nativeCommit: true,
+    enterTab: true,
+    pasteSingle: true,
   });
 
   // 月份列宽由 table-layout 统一管（拖任一个月份列 → 所有月份列一起变），
@@ -73,6 +75,7 @@ export function mountInstTable(ctx, tbody, opts) {
   /* ---------- 渲染 ---------- */
 
   function render() {
+    grid.select.reset();
     const state = ctx.getState();
     const list = (state.scheduled || []).filter((s) => s && s.isScheduled && s.inst);
     const span = spanOf(list, null, todayMonth(), state.hiddenMonths);

@@ -17,7 +17,7 @@ export function cellAt(tbody, r, c) {
   return tr ? tr.children[c] || null : null;
 }
 
-const inputIn = (td) => (td ? td.querySelector('input.nt-cell-input') : null);
+const inputIn = (td) => (td ? td.querySelector('input.nt-cell-input:not([data-grid="off"])') : null);
 
 /** 方向键：返回目标 td（没有就 null） */
 export function moveBy(tbody, td, dx, dy) {
@@ -60,10 +60,34 @@ export function nextField(tbody, td) {
 /** Tab：DOM 顺序里的下一 / 上一可编辑格（跳过只读、禁用） */
 export function adjacentEditable(tbody, input, dir) {
   const list = [...tbody.querySelectorAll('input.nt-cell-input')]
-    .filter((el) => !el.disabled && !el.readOnly);
+    .filter((el) => !el.disabled && !el.readOnly && el.dataset.grid !== 'off' && !el.closest('td.nt-cell-seq'));
   const i = list.indexOf(input);
   if (i < 0) return null;
   return list[i + dir] || null;
+}
+
+/** 提交/重绘前记下目标格的行 id / 字段 / 月份 / 行号，重绘后据此找回 */
+export function cellInfo(tbody, td) {
+  const tr = td && td.parentElement;
+  const inp = td && td.querySelector('input[data-field], input[data-month]');
+  return {
+    id: tr ? tr.dataset.id : '',
+    field: inp ? inp.dataset.field || '' : '',
+    month: inp ? inp.dataset.month || '' : '',
+    part: inp ? inp.dataset.part || '' : '',
+    index: tr ? [...tbody.children].indexOf(tr) : -1,
+  };
+}
+
+export function cellInfoResolve(tbody, info) {
+  if (!info || (!info.field && !info.month)) return null;
+  const all = [...tbody.children];
+  const row = info.id ? all.find((r) => r.dataset.id === info.id) : all[info.index];
+  const sel = info.month
+    ? 'input[data-month="' + info.month + '"][data-part="' + info.part + '"]'
+    : 'input[data-field="' + info.field + '"]';
+  const inp = row ? row.querySelector(sel) : null;
+  return inp ? inp.closest('td') : null;
 }
 
 /** 键盘弹出后把这一格留在可视区（表头以下、可视底边以上） */

@@ -88,7 +88,7 @@ export function mountCellSelect(tableEl, tbody, opts) {
     for (let r = r1; r <= r2; r += 1) {
       for (let c = c1; c <= c2; c += 1) {
         const td = cellAt(r, c);
-        if (!td || td.colSpan > 1) continue;
+        if (!td || td.colSpan > 1 || td.classList.contains('nt-cell-seq')) continue;
         td.classList.add(RANGE);
         if (r === r1) td.classList.add(EDGES[0]);
         if (r === r2) td.classList.add(EDGES[1]);
@@ -343,7 +343,9 @@ export function mountCellSelect(tableEl, tbody, opts) {
       if (!m) return;
       // 粘到锚点（当前活动格），与 Excel 一致；不是选区的左上角。
       // 空行里的内容只进开放录入区草稿，不在这里建单。
-      const r = pasteCells(tableEl, sel.ar, sel.ac, m, { resolveAccounts: true });
+      // 设置页 / 固定页的提交会重绘，只粘一格，避免批量粘到一半被重绘打断。
+      const mm = o.pasteSingle && m.length && m[0] ? [[m[0][0]]] : m;
+      const r = pasteCells(tableEl, sel.ar, sel.ac, mm, { resolveAccounts: true });
       paint(); placeGrip();
       notice(r.blocked
         ? `粘贴 ${r.written} 格，${r.blocked} 格只读没写`

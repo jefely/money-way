@@ -19,8 +19,7 @@ import { renderRows, patchRow, seedDrafts } from '../ui/render-transactions.js';
 import { parseAccountInput, suggestAccounts as suggestByIndex, ensurePendingAccount } from '../core/account-resolver.js';
 import { endFromText } from '../ui/flow-ends.js';
 import { bindRowEditing } from '../ui/row-editor.js';
-import { bindCellEdit } from '../ui/cell-edit.js';
-import { mountCellSelect } from '../ui/cell-select.js';
+import { mountExcelGrid } from '../ui/excel-grid.js';
 import { bindOpenDrafts, assignOpenAmount } from '../ui/open-drafts.js';
 import { settleOpenRows } from '../ui/open-rows.js';
 import { openAddDialog } from '../ui/add-dialog.js';
@@ -223,15 +222,9 @@ export function mountFlow(section, ctx) {
   // 选中的格子右下角有调整大小手柄，长按弹「剪切/复制/粘贴/清除/编辑」。
   // 旧的「长按拖框选 + 四按钮条」在流水表上已撤掉 —— 否则长按会同时出两条。
   const flowTable = section.querySelector('.nt-table-flow');
-  const cellSelect = mountCellSelect(flowTable, body, {
+  const { select: cellSelect, edit: cellEditor } = mountExcelGrid(flowTable, body, {
     onNotice: (t) => ctx.setFooter(t),
   });
-  const cellEditor = bindCellEdit(body, {
-    onSelect: (td) => cellSelect.single(td),
-    onRelease: () => cellSelect.clear(),
-    onRowSelect: (tr) => cellSelect.row(tr),
-  });
-  cellSelect.setEditor(cellEditor);
 
   function render(force) {
     openDrafts.sync();

@@ -169,6 +169,43 @@ body.nt-cell-gripping {
   cursor: nwse-resize;
 }
 
+/* 共享 Excel 格子层：设置页 / 固定页 / 流水页同一套单击选中、双击编辑 */
+.nt-excel-grid .nt-cell-input {
+  caret-color: transparent;
+  pointer-events: none;
+}
+
+.nt-excel-grid .nt-cell.nt-cell-editing .nt-cell-input {
+  caret-color: auto;
+  pointer-events: auto;
+}
+
+/* 原生控件不参与格子层：类型选择器、频率下拉、新行的序 */
+.nt-excel-grid select.nt-cell-input,
+.nt-excel-grid .nt-cell-input[data-grid="off"],
+.nt-excel-grid .nt-cell-seq .nt-cell-input {
+  pointer-events: auto;
+}
+
+.nt-excel-grid .nt-cell.nt-cell-sel {
+  background: var(--nt-cell-active, rgba(139, 108, 255, 0.18)) !important;
+  box-shadow: inset 0 0 0 1px var(--nt-primary);
+}
+
+.nt-excel-grid .nt-cell.nt-cell-anchor {
+  box-shadow: inset 0 0 0 1px var(--nt-primary);
+}
+
+/* 多格选区也按流水页的规则：连续底色、只画四边 1px */
+.nt-excel-grid .nt-range-sel {
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 1px 0 0 var(--nt-edge-t),
+    inset 0 -1px 0 0 var(--nt-edge-b),
+    inset 1px 0 0 0 var(--nt-edge-l),
+    inset -1px 0 0 0 var(--nt-edge-r);
+}
+
 /* ---------- 长按菜单：剪切 / 复制 / 粘贴 / 清除 / 编辑 ---------- */
 
 .nt-cell-menu {

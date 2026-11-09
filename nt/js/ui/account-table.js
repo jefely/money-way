@@ -12,6 +12,7 @@
 
 import { tpl, renameBlankDraft } from './render-transactions.js';
 import { setCell, moneyOrBlank } from './table.js';
+import { mountExcelGrid } from './excel-grid.js';
 import { openingOf } from '../core/ledger-stats.js';
 import { ZONES } from '../core/settings.js';
 import { money } from '../core/format.js';
@@ -81,7 +82,16 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 export function mountAccountTable(ctx, tbody, opts) {
   const o = opts || {};
 
+  // 和流水页同一套格子层：单击选中、双击编辑、行号选行、五按钮菜单
+  const grid = mountExcelGrid(tbody.closest('table'), tbody, {
+    onNotice: (t) => ctx.setFooter(t),
+    pasteSingle: true,
+    nativeCommit: true,
+    enterTab: true,
+  });
+
   function render() {
+    grid.select.reset();
     let state = ctx.getState();
     // 自动扫描：流水里引用了、设置表里没有的账户 → 补一个「未分类账户」行
     // （类型/分类留空，归到 U 区；流水是主表，这里只是给它一个可编辑的壳）
@@ -312,7 +322,8 @@ export function mountAccountTable(ctx, tbody, opts) {
       // 长度/字符不合法仍然拒绝（会破坏输入解析）；**重复允许**（2026-11 用户决定）。
       // 重复时照样保存，只把「被谁占用」写在页脚，并在格子上标暗红。
       if (code && !isValidCode(code)) {
-        render();
+        const bad = tbody.querySelector('tr[data-id="' + id + '"] input[data-field="code"]');
+        if (bad) bad.value = acc.code || '';
         ctx.setFooter('简码没改：要 1–5 位，空格不算');
         return;
       }
@@ -321,7 +332,11 @@ export function mountAccountTable(ctx, tbody, opts) {
         .filter((a) => a.id !== id && normalizeCode(a.code) === code)
         .map((a) => a.name || '未命名');
     } else if (field === 'name') {
-      if (!v) { render(); return; }
+      if (!v) {
+        const nm = tbody.querySelector('tr[data-id="' + id + '"] input[data-field="name"]');
+        if (nm) nm.value = acc.name || '';
+        return;
+      }
       // 空行草稿里写着旧名字的话跟着改 —— 否则那行一切回流水就会按旧名
       // 重新建一个账户，看起来就是「改名没生效、旧名字又回来了」（用户 2026-10-30）
       patch.name = v; renameBlankDraft(acc.name, v);
@@ -331,14 +346,20 @@ export function mountAccountTable(ctx, tbody, opts) {
 
     ctx.setState(updateAccount(st, id, patch));
     ctx.saveNow();
-    render();
+    // 类型/序/期初会换分区、换排序或改期初流水 → 仍重绘；其余就地改，不打断 Tab / 粘贴
+    if (field === 'type' || field === 'seq' || field === 'opening') render();
     if (field === 'code') {
-      const shown = normalizeCode(v) || '空';
-      if (dupNames.length) {
-        ctx.setFooter('简码已改为「' + shown + '」· 已被「' + dupNames.join(' / ') + '」使用（允许重复，已标暗红）');
-      } else {
-        ctx.setFooter('简码已改为「' + shown + '」');
+      const inp = tbody.querySelector('tr[data-id="' + id + '"] input[data-field="code"]');
+      if (inp) {
+        inp.classList.toggle('nt-code-dup', dupNames.length > 0);
+        inp.title = dupNames.length
+          ? '简码「' + (normalizeCode(v) || '') + '」已被「' + dupNames.join(' / ') + '」使用（允许重复）'
+          : '';
       }
+      const shown = normalizeCode(v) || '空';
+      ctx.setFooter(dupNames.length
+        ? '简码已改为「' + shown + '」· 已被「' + dupNames.join(' / ') + '」使用（允许重复，已标暗红）'
+        : '简码已改为「' + shown + '」');
     }
   }
 

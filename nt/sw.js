@@ -1,29 +1,29 @@
-/* NT账本 · 多文件版 Service Worker
- * 公约 4.4：CACHE_NAME 必须随静态资源更新自动变
+/* NT璐︽湰 路 澶氭枃浠剁増 Service Worker
+ * 鍏害 4.4锛欳ACHE_NAME 蹇呴』闅忛潤鎬佽祫婧愭洿鏂拌嚜鍔ㄥ彉
  *
  * ============================================================
- * 策略：stale-while-revalidate（离线优先）
+ * 绛栫暐锛歴tale-while-revalidate锛堢绾夸紭鍏堬級
  * ============================================================
- *   · 命中缓存   �?立刻返回（断网也秒开），同时后台拿新的写回缓存�?
- *   · 没命中缓�?�?走网络，成功后写入缓存�?
- *   · 离线且没缓存 �?报错
+ *   路 鍛戒腑缂撳瓨   鈫?绔嬪埢杩斿洖锛堟柇缃戜篃绉掑紑锛夛紝鍚屾椂鍚庡彴鎷挎柊鐨勫啓鍥炵紦瀛樸€?
+ *   路 娌″懡涓紦瀛?鈫?璧扮綉缁滐紝鎴愬姛鍚庡啓鍏ョ紦瀛樸€?
+ *   路 绂荤嚎涓旀病缂撳瓨 鈫?鎶ラ敊
  *
- * 之前�?network-first，问题在离线场景：每个请求都要等网络超时才回落缓存，
- * 130 多个模块叠起来就是一片白屏。而且 ASSETS 只预缓存�?7 个文件，
- * 其余模块断网时压根没有缓存可用�?
+ * 涔嬪墠鏄?network-first锛岄棶棰樺湪绂荤嚎鍦烘櫙锛氭瘡涓姹傞兘瑕佺瓑缃戠粶瓒呮椂鎵嶅洖钀界紦瀛橈紝
+ * 130 澶氫釜妯″潡鍙犺捣鏉ュ氨鏄竴鐗囩櫧灞忋€傝€屼笖 ASSETS 鍙缂撳瓨浜?7 涓枃浠讹紝
+ * 鍏朵綑妯″潡鏂綉鏃跺帇鏍规病鏈夌紦瀛樺彲鐢ㄣ€?
  *
- * 更新路径（两条，都不依赖自动检测）�?
- *   �?CACHE_NAME 变化 �?�?SW �?install 阶段重新预缓存全部资�?
- *   �?页面「重载」按�?�?等新 SW 装完 + SKIP_WAITING + 刷新（SW 换班，不注销�?
+ * 鏇存柊璺緞锛堜袱鏉★紝閮戒笉渚濊禆鑷姩妫€娴嬶級锛?
+ *   鈶?CACHE_NAME 鍙樺寲 鈫?鏂?SW 鐨?install 闃舵閲嶆柊棰勭紦瀛樺叏閮ㄨ祫婧?
+ *   鈶?椤甸潰銆岄噸杞姐€嶆寜閽?鈫?绛夋柊 SW 瑁呭畬 + SKIP_WAITING + 鍒锋柊锛圫W 鎹㈢彮锛屼笉娉ㄩ攢锛?
  *
- * 注意：「清所有缓�?+ 注销 SW」只在「已经打不开、必须重来」时用（连点 5 次版本号），
- * 它不是常规更新路�?—�?注销之后断网就是浏览器原生「打不开网页」�?
+ * 娉ㄦ剰锛氥€屾竻鎵€鏈夌紦瀛?+ 娉ㄩ攢 SW銆嶅彧鍦ㄣ€屽凡缁忔墦涓嶅紑銆佸繀椤婚噸鏉ャ€嶆椂鐢紙杩炵偣 5 娆＄増鏈彿锛夛紝
+ * 瀹冧笉鏄父瑙勬洿鏂拌矾寰?鈥斺€?娉ㄩ攢涔嬪悗鏂綉灏辨槸娴忚鍣ㄥ師鐢熴€屾墦涓嶅紑缃戦〉銆嶃€?
  *
- * ASSETS 必须**完整**：漏掉的文件在离线时会直接加载失败�?
- * 新增文件记得加进来（tools 里有生成脚本）�?
+ * ASSETS 蹇呴』**瀹屾暣**锛氭紡鎺夌殑鏂囦欢鍦ㄧ绾挎椂浼氱洿鎺ュ姞杞藉け璐ャ€?
+ * 鏂板鏂囦欢璁板緱鍔犺繘鏉ワ紙tools 閲屾湁鐢熸垚鑴氭湰锛夈€?
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.509';
+const CACHE_NAME = 'nt-v1.510';
 
 const ASSETS = [
   './css/base.css',
@@ -173,6 +173,7 @@ const ASSETS = [
   './js/ui/debug-pip.js',
   './js/ui/debug-themes.js',
   './js/ui/export-dialog.js',
+  './js/ui/excel-grid.js',
   './js/ui/file-io.js',
   './js/ui/fixed-table.js',
   './js/ui/flow-ends.js',
@@ -260,10 +261,10 @@ const ASSETS = [
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME)
-      // 单个文件失败不该让整个安装失败（否则永远装不上）
-      // ⚠️ 必须�?cache:'reload' —�?c.add(url) 默认会走浏览器的 HTTP 缓存�?
-      // GitHub Pages 的静态资源是 max-age=600，于是新 SW 预缓存时
-      // 装进去的其实�?*旧文�?*，看起来就是「点了更新、版本号永远不动」�?
+      // 鍗曚釜鏂囦欢澶辫触涓嶈璁╂暣涓畨瑁呭け璐ワ紙鍚﹀垯姘歌繙瑁呬笉涓婏級
+      // 鈿狅笍 蹇呴』甯?cache:'reload' 鈥斺€?c.add(url) 榛樿浼氳蛋娴忚鍣ㄧ殑 HTTP 缂撳瓨锛?
+      // GitHub Pages 鐨勯潤鎬佽祫婧愭槸 max-age=600锛屼簬鏄柊 SW 棰勭紦瀛樻椂
+      // 瑁呰繘鍘荤殑鍏跺疄鏄?*鏃ф枃浠?*锛岀湅璧锋潵灏辨槸銆岀偣浜嗘洿鏂般€佺増鏈彿姘歌繙涓嶅姩銆嶃€?
       .then((c) => Promise.all(
         ASSETS.map((u) => c.add(new Request(u, { cache: 'reload' })).catch(() => null)),
       ))
@@ -279,25 +280,25 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-/* 页面可以主动要求换班：postMessage({type:'SKIP_WAITING'}) */
+/* 椤甸潰鍙互涓诲姩瑕佹眰鎹㈢彮锛歱ostMessage({type:'SKIP_WAITING'}) */
 self.addEventListener('message', (e) => {
   if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-/* 代码和样式走 **network-first**，其余走 stale-while-revalidate�?
+/* 浠ｇ爜鍜屾牱寮忚蛋 **network-first**锛屽叾浣欒蛋 stale-while-revalidate銆?
  *
- * 为什么必须分开�?026-11 用户反复踩）�?
- *   stale-while-revalidate 命中缓存�?*立刻返回旧文�?*，后台再去更新�?
- *   对图片这类「慢一点无所谓」的资源很好，但�?css/js 是灾�?—�?
- *   改完样式后用户打开看到的永远是上一版，得手动开两次、或者点「更新」�?
- *   用户报的「备注列怎么都不拉伸」就是这么来的：服务端已经是�?CSS�?
- *   浏览器一直在跑旧的那份�?
+ * 涓轰粈涔堝繀椤诲垎寮€锛?026-11 鐢ㄦ埛鍙嶅韪╋級锛?
+ *   stale-while-revalidate 鍛戒腑缂撳瓨灏?*绔嬪埢杩斿洖鏃ф枃浠?*锛屽悗鍙板啀鍘绘洿鏂般€?
+ *   瀵瑰浘鐗囪繖绫汇€屾參涓€鐐规棤鎵€璋撱€嶇殑璧勬簮寰堝ソ锛屼絾瀵?css/js 鏄伨闅?鈥斺€?
+ *   鏀瑰畬鏍峰紡鍚庣敤鎴锋墦寮€鐪嬪埌鐨勬案杩滄槸涓婁竴鐗堬紝寰楁墜鍔ㄥ紑涓ゆ銆佹垨鑰呯偣銆屾洿鏂般€嶃€?
+ *   鐢ㄦ埛鎶ョ殑銆屽娉ㄥ垪鎬庝箞閮戒笉鎷変几銆嶅氨鏄繖涔堟潵鐨勶細鏈嶅姟绔凡缁忔槸鏂?CSS锛?
+ *   娴忚鍣ㄤ竴鐩村湪璺戞棫鐨勯偅浠姐€?
  *
- * network-first 的代价只有一次网络往返：`fetch` 默认�?HTTP 缓存
- * （GitHub Pages �?max-age=600），命中时几乎零成本；断网时 fetch 会快速失败，
- * 落到下面�?cache 分支，离线能力照样在�?
- * 注意这里**不能**�?`cache: 'reload'` —�?那会绕过 HTTP 缓存�?
- * 130 多个模块每个都重新下载，首屏会明显变慢�?
+ * network-first 鐨勪唬浠峰彧鏈変竴娆＄綉缁滃線杩旓細`fetch` 榛樿璧?HTTP 缂撳瓨
+ * 锛圙itHub Pages 鏄?max-age=600锛夛紝鍛戒腑鏃跺嚑涔庨浂鎴愭湰锛涙柇缃戞椂 fetch 浼氬揩閫熷け璐ワ紝
+ * 钀藉埌涓嬮潰鐨?cache 鍒嗘敮锛岀绾胯兘鍔涚収鏍峰湪銆?
+ * 娉ㄦ剰杩欓噷**涓嶈兘**鐢?`cache: 'reload'` 鈥斺€?閭ｄ細缁曡繃 HTTP 缂撳瓨锛?
+ * 130 澶氫釜妯″潡姣忎釜閮介噸鏂颁笅杞斤紝棣栧睆浼氭槑鏄惧彉鎱€?
  */
 const NETWORK_FIRST = /\.(?:js|css)(?:\?|$)/;
 
@@ -318,7 +319,7 @@ self.addEventListener('fetch', (e) => {
 
     if (NETWORK_FIRST.test(path) || path.endsWith('/') || path.endsWith('.html')) {
       try {
-        // 默认 cache 模式：走 HTTP 缓存，不额外压网�?
+        // 榛樿 cache 妯″紡锛氳蛋 HTTP 缂撳瓨锛屼笉棰濆鍘嬬綉缁?
         const res = await fetch(e.request);
         if (res && res.ok && res.type === 'basic') {
           const copy = res.clone();
@@ -331,8 +332,8 @@ self.addEventListener('fetch', (e) => {
     }
 
     if (cached) {
-      // 后台更新缓存，不阻塞返回 —�?下一次打开就是新版
-      // 同样�?cache:'reload'，否则后台拿回来的还�?HTTP 缓存里的旧文�?
+      // 鍚庡彴鏇存柊缂撳瓨锛屼笉闃诲杩斿洖 鈥斺€?涓嬩竴娆℃墦寮€灏辨槸鏂扮増
+      // 鍚屾牱甯?cache:'reload'锛屽惁鍒欏悗鍙版嬁鍥炴潵鐨勮繕鏄?HTTP 缂撳瓨閲岀殑鏃ф枃浠?
       fetch(e.request, { cache: 'reload' })
         .then((res) => {
           if (res && res.ok && res.type === 'basic') {

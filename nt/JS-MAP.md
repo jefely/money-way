@@ -132,6 +132,7 @@
 | `ui/debug-panel.js` | ?debug=1 → 界面参数浮层 |
 | `ui/debug-pip.js` | ?debug=1 → 界面参数独立窗口（画中画） |
 | `ui/debug-themes.js` | ?debug=1 → 界面参数 1/2/3/4 主题按钮 |
+| `ui/excel-grid.js` | 流水 / 简码设置 / 固定收支共用的 Excel 格子层 |
 | `ui/export-dialog.js` | 导出对话框（.lz / .xlsx / .txt / .csv） |
 | `ui/file-io.js` | （未标注界面）本地文件读写（UI 层） |
 | `ui/fixed-table.js` | 固定收支表（表格内直接交互） |

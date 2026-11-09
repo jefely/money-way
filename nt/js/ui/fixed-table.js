@@ -11,7 +11,7 @@
 
 import { tpl } from './render-transactions.js';
 import { setCell, moneyOrBlank } from './table.js';
-import { mountCellRange } from './cell-range.js';
+import { mountExcelGrid } from './excel-grid.js';
 import { showUndo } from './undo-bar.js';
 import { moneyAlways } from '../core/format.js';
 import { createScheduled, clampDay } from '../core/schema.js';
@@ -30,11 +30,13 @@ const BLANK_ROWS = 10;
 export function mountFixedTable(ctx, tbody, opts) {
   const o = opts || {};
 
-  // 框选：整片可复制；粘贴只允许一格（改一格就落库并重渲染，整片粘会只生效第一格）
-  mountCellRange(tbody.closest('table'), {
-    paste: 'single',
-    onDeleteRows: (ids) => deleteRows(ids),
+  // 和流水页同一套格子层：单击选中、双击编辑、行号选行、五按钮菜单
+  const grid = mountExcelGrid(tbody.closest('table'), tbody, {
     onNotice: (t) => ctx.setFooter(t),
+    nativeCommit: true,
+    enterTab: true,
+    pasteSingle: true,
+    onLeaveRow: (tr) => { if (tr.__tryCreate) tr.__tryCreate(); },
   });
 
   /**
@@ -62,6 +64,7 @@ export function mountFixedTable(ctx, tbody, opts) {
   }
 
   function render() {
+    grid.select.reset();
     const state = ctx.getState();
     const list = (state.scheduled || []).filter((s) => s && s.isScheduled);
 
@@ -200,7 +203,9 @@ export function mountFixedTable(ctx, tbody, opts) {
     list[i] = row;
     ctx.setState({ ...st, scheduled: list });
     ctx.saveNow();
-    render();
+    // 频率会切换「日期」可编辑状态，仍重绘；其余就地改，只更新合计，别打断 Tab / 粘贴
+    if (field === 'freq') render();
+    else summarize(list);
   }
 
   function bindNewRow(tr) {
@@ -260,6 +265,8 @@ export function mountFixedTable(ctx, tbody, opts) {
       render();
       ctx.setFooter('已新增 1 条固定收支');
     };
+    // 格子层离开整行时调用（Excel 模式下输入框不再真实失焦）
+    tr.__tryCreate = tryCreate;
 
     for (const f of FIELDS) {
       const inp = tr.querySelector('[data-field="' + f + '"]');
