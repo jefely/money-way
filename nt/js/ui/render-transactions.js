@@ -137,6 +137,12 @@ export function blankDrafts() {
   return draftRows.map((d) => (d ? { ...d } : null));
 }
 
+/** 把落库的开放区草稿灌回内存（启动 / 结算 / 撤销后） */
+export function seedDrafts(list) {
+  const src = Array.isArray(list) ? list : [];
+  draftRows = Array.from({ length: BLANK_ROWS }, (_, i) => (src[i] ? { ...src[i] } : null));
+}
+
 /**
  * 账户改名 → 空行草稿里的旧名字一起改。
  * 不改的话：那行切回流水会按旧名重新建一个账户，看起来就是「改名没生效、旧名字又回来了」。

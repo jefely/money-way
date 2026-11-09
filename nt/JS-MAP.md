@@ -118,6 +118,7 @@
 | `ui/cell-geom.js` | 流水表的格子几何（给 cell-select 用） |
 | `ui/cell-menu.js` | 单元格长按菜单（剪切 / 复制 / 粘贴 / 清除 / 编辑） |
 | `ui/cell-nav.js` | 流水表格子的方向导航 / 留出可视区 |
+| `ui/cell-outline.js` | 多格选区的整体描边 |
 | `ui/cell-proxy.js` | 选中态的隐藏键盘输入框 |
 | `ui/cell-range.js` | 单元格区域框选（长按起手 → 拖动框选 → 复制 / 粘贴 / 删除行） |
 | `ui/cell-select.js` | 流水表的选区（Excel 式：锚点 + 右下角手柄 + 长按菜单） |
@@ -161,6 +162,8 @@
 | `ui/note-popover.js` | 流水 / 查询 → 长备注 |
 | `ui/note-stats.js` | 备注统计（关键字 → 金额，再按备注类型分两级） |
 | `ui/note-table.js` | 设置页的备注区（独立于账户的 A/B 区） |
+| `ui/open-drafts.js` | 开放录入区草稿的持久化 |
+| `ui/open-rows.js` | 开放录入区的结算 |
 | `ui/path-debug.js` | 路径 tab → 追踪链诊断（页脚序号串 + ?debug=1 时的控制台明细） |
 | `ui/path-filter.js` | 路径页左栏（流水表）的筛选 |
 | `ui/path-flow-table.js` | 路径页左栏的流水查询表 |

@@ -128,25 +128,5 @@ export function pasteCells(tableEl, r1, c1, matrix, opts) {
   // 值先全部落地，再统一派发 —— 否则第一格的 input 触发重画，后面的格就写在旧节点上了
   for (const input of inputs) commit(input, opts);
 
-  // 粘进空行：值已经写好了，但空行不会自己变成流水（建单要等 focusout）。
-  // 给有账户/金额的空行补一次合成 focusout，让 row-editor 的 120ms 建单跑起来，
-  // 这样粘贴才进 state / 撤销栈。
-  if (opts && opts.createRows) {
-    for (let r = r1; r < r1 + m.length; r += 1) {
-      const tr = rows[r];
-      if (!tr || tr.dataset.new !== '1') continue;
-      const from = tr.querySelector('input[data-field="from"]');
-      const to = tr.querySelector('input[data-field="to"]');
-      const amount = tr.querySelector('input[data-field="amount"]');
-      const note = tr.querySelector('input[data-field="note"]');
-      const has = (el) => !!(el && String(el.value || '').trim());
-      if (!has(from) && !has(to) && !has(amount) && !has(note)) continue;
-      const target = amount || from || to || note;
-      const ev = new FocusEvent('focusout', { bubbles: true });
-      ev.__ntSynthetic = true;
-      try { target.dispatchEvent(ev); } catch (e) { /* 忽略 */ }
-    }
-  }
-
   return { written: inputs.length, blocked };
 }

@@ -118,7 +118,7 @@ export function flowRowNumbers(state) {
   return map;
 }
 
-/** 页脚信息：条数 + 合计 */
+/** 页脚信息：条数 + 合计（开放录入区里有内容的行算草稿） */
 export function buildFooterInfo(state) {
   const list = state.transactions || [];
   let total = 0;
@@ -126,6 +126,9 @@ export function buildFooterInfo(state) {
   for (const t of list) {
     if (!isPosted(t)) { drafts += 1; continue; }
     total += toAmount(t.amount);
+  }
+  for (const d of (state.openRows || [])) {
+    if (d && (d.date || d.from || d.to || d.amount || d.note)) drafts += 1;
   }
   return { count: list.length, totalText: moneyAlways(total), drafts };
 }

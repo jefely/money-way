@@ -21,10 +21,10 @@
 import { copyCells, clearCells, pasteCells, getClip } from './cell-clip.js';
 import { showCellMenu, hideCellMenu, isCellMenuTarget, isCellMenuOpen } from './cell-menu.js';
 import { rowsOf, coordsOf, cellAtIn, boundsOf, editableCountIn } from './cell-geom.js';
+import { showOutline, hideOutline } from './cell-outline.js';
 
 const ANCHOR = 'nt-cell-anchor';
 const RANGE = 'nt-range-sel';
-const EDGES = ['nt-range-edge-top', 'nt-range-edge-bottom', 'nt-range-edge-left', 'nt-range-edge-right'];
 const PRESS_MS = 480;
 const MOVE_TOL = 8;
 const GRIP = 56;
@@ -73,26 +73,35 @@ export function mountCellSelect(tableEl, tbody, opts) {
 
   function paint() {
     for (const td of tbody.querySelectorAll('.' + ANCHOR)) td.classList.remove(ANCHOR);
-    for (const td of tbody.querySelectorAll('.' + RANGE)) td.classList.remove(RANGE, ...EDGES);
-    if (!sel) return;
+    for (const td of tbody.querySelectorAll('.' + RANGE)) td.classList.remove(RANGE);
+    if (!sel) { hideOutline(); return; }
 
+    const multi = isMulti();
     const anchor = cellAt(sel.ar, sel.ac);
-    if (anchor) anchor.classList.add(ANCHOR);
+    // 多格选区不再给锚点（日期）单独描边：整行/整片一个样
+    if (anchor && !multi) anchor.classList.add(ANCHOR);
+    if (!multi) { hideOutline(); return; }
 
     const { r1, r2, c1, c2 } = bounds();
-    if (r1 === r2 && c1 === c2) return;      // 单格：只靠描边，不铺紫底
-
     for (let r = r1; r <= r2; r += 1) {
       for (let c = c1; c <= c2; c += 1) {
         const td = cellAt(r, c);
-        if (!td || td === anchor || td.colSpan > 1) continue;
+        if (!td || td.colSpan > 1) continue;
         td.classList.add(RANGE);
-        if (r === r1) td.classList.add('nt-range-edge-top');
-        if (r === r2) td.classList.add('nt-range-edge-bottom');
-        if (c === c1) td.classList.add('nt-range-edge-left');
-        if (c === c2) td.classList.add('nt-range-edge-right');
       }
     }
+    placeOutline();
+  }
+
+  /** 整体描边：按表格可视区裁剪，右边缘不会被 overflow 吃掉 */
+  function placeOutline() {
+    if (!wrap || !sel || !isMulti()) return hideOutline();
+    const b = bounds(); const a = cellAt(b.r1, b.c1); const z = cellAt(b.r2, b.c2);
+    if (!a || !z) return hideOutline();
+    const wr = wrap.getBoundingClientRect(); const ar = a.getBoundingClientRect(); const zr = z.getBoundingClientRect();
+    const l = Math.max(ar.left, wr.left + wrap.clientLeft); const t = Math.max(ar.top, wr.top + wrap.clientTop);
+    const r = Math.min(zr.right, wr.left + wrap.clientLeft + wrap.clientWidth); const bo = Math.min(zr.bottom, wr.top + wrap.clientTop + wrap.clientHeight);
+    showOutline(l, t, r, bo);
   }
 
   /* ---------- 右下角手柄 ---------- */
@@ -107,6 +116,7 @@ export function mountCellSelect(tableEl, tbody, opts) {
   }
 
   function placeGrip() {
+    placeOutline();
     if (!grip || !wrap) return;
     if (!sel) { grip.hidden = true; return; }
     const { r2, c2 } = bounds();
@@ -338,8 +348,9 @@ export function mountCellSelect(tableEl, tbody, opts) {
       if (!sel) return;
       const m = getClip();
       if (!m) return;
-      // 粘到锚点（当前活动格），与 Excel 一致；不是选区的左上角
-      const r = pasteCells(tableEl, sel.ar, sel.ac, m, { resolveAccounts: true, createRows: true });
+      // 粘到锚点（当前活动格），与 Excel 一致；不是选区的左上角。
+      // 空行里的内容只进开放录入区草稿，不在这里建单。
+      const r = pasteCells(tableEl, sel.ar, sel.ac, m, { resolveAccounts: true });
       paint(); placeGrip();
       notice(r.blocked
         ? `粘贴 ${r.written} 格，${r.blocked} 格只读没写`
@@ -369,7 +380,7 @@ export function mountCellSelect(tableEl, tbody, opts) {
     clear();
   });
 
-  if (wrap) wrap.addEventListener('scroll', hideCellMenu, { passive: true });
+  if (wrap) wrap.addEventListener('scroll', () => { hideCellMenu(); placeGrip(); }, { passive: true });
   window.addEventListener('resize', placeGrip);
   tableEl.addEventListener('nt-layout-refresh', placeGrip);
 

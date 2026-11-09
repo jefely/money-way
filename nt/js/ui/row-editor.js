@@ -112,31 +112,10 @@ export function bindRowEditing(tbody, h) {
       return;   // 已有行走的是即时提交，这里不再补
     }
 
-    // 延迟一点，让"点候选"的 click 先发生
-    setTimeout(() => {
-      if (!document.body.contains(tr)) return;
-      if (isSuggestFor(input)) return;
-      createFromRow(tr);
-    }, 120);
+    // 空行不再建单：内容留在「开放录入区」（草稿），换页时由 flow 结算。
+    // 合成一次 input，让草稿捕获把解析后的账户名/日期/备注一起记下来。
+    input.dispatchEvent(new Event('input', { bubbles: true }));
   });
-
-  /**
-   * 新增行 → 交给调用方。
-   *
-   * 有内容（账户 / 金额 / 备注）就交出去；不完整的由调用方存成草稿
-   *（用户 2026-11-09：空行是计划编排区，只写一半也要落库，重新进入不能丢）。
-   */
-  function createFromRow(tr) {
-    if (!tr.isConnected) return false;
-    const fields = {};
-    tr.querySelectorAll('input[data-field]').forEach((el) => {
-      const v = String(el.value || '').trim();
-      if (v) fields[el.dataset.field] = v;
-    });
-    if (!fields.amount && !fields.from && !fields.to && !fields.note) return false;
-    h.onCreate(fields, tr);
-    return true;
-  }
 
   /* ---------- 删除 ---------- */
   tbody.addEventListener('click', (ev) => {

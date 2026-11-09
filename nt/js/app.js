@@ -305,24 +305,25 @@ function enterApp() {
     onShow: (name) => {
       // 切页时把框选状态收掉：body 上的 nt-range-mode 会让整页 touch-action:none，
       // 留在别的页就会出现「上下滑不动」而且没有任何报错。
-      clearSelection();
+      // 开放录入区的草稿先立即落库，再切页。
+      if (views.flow && views.flow.flushDrafts) views.flow.flushDrafts(); clearSelection();
       // 拖列宽被打断时同理（这个类会禁掉表格容器的横滑）
       document.body.classList.remove('nt-col-resizing');
       active = name;
       renderActive();
-      // 切回流水页：最后一条有内容的行落在视口第 6 行（用户 2026-10-30）
-      if (name === 'flow' && views.flow && views.flow.focusEnd) views.flow.focusEnd();
+      // 切回流水页：带金额的开放行结算到尾行，再把最后一条有内容的行落在视口第 6 行
+      if (name === 'flow' && views.flow) { views.flow.activate?.(); if (views.flow.focusEnd) views.flow.focusEnd(); }
     },
   });
 
   // 从别的窗口 / 标签页切回来时，流水页也重新定位到最后 6 行（用户 2026-10-30）：
   // 移动端后台恢复会把页面重置，光靠 tab 切换的 onShow 不够。
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'visible') return;
+    if (document.visibilityState !== 'visible') { if (views.flow && views.flow.flushDrafts) views.flow.flushDrafts(); return; }
     // 手机后台很常见：放着过夜/过了一个月，回来先补到期固定收支
     if (autoPostFixed()) renderActive();
     if (active !== 'flow') return;
-    if (views.flow && views.flow.focusEnd) views.flow.focusEnd();
+    if (views.flow) { views.flow.activate?.(); if (views.flow.focusEnd) views.flow.focusEnd(); }
   });
 
   // 页面一直开着跨过零点/跨月：日期一变就补账并重画（后台标签会节流，

@@ -23,7 +23,7 @@
  * 新增文件记得加进来（tools 里有生成脚本）。
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.505';
+const CACHE_NAME = 'nt-v1.506';
 
 const ASSETS = [
   './css/base.css',
@@ -157,9 +157,8 @@ const ASSETS = [
   './js/ui/cell-clip.js',
   './js/ui/cell-edit.js',
   './js/ui/cell-geom.js',
-  './js/ui/cell-menu.js',
-  './js/ui/cell-nav.js',
-  './js/ui/cell-proxy.js',
+  './js/ui/cell-menu.js', './js/ui/cell-nav.js',
+  './js/ui/cell-outline.js', './js/ui/cell-proxy.js',
   './js/ui/cell-range.js',
   './js/ui/cell-select.js',
   './js/ui/chart-gestures.js',
@@ -200,7 +199,7 @@ const ASSETS = [
   './js/ui/mw-svg-renderer.js',
   './js/ui/note-popover.js',
   './js/ui/note-stats.js',
-  './js/ui/note-table.js',
+  './js/ui/note-table.js', './js/ui/open-drafts.js', './js/ui/open-rows.js',
   './js/ui/node-relations.js',
   './js/ui/path-debug.js',
   './js/ui/path-filter.js',

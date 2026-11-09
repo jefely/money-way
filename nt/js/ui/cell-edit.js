@@ -262,6 +262,16 @@ export function bindCellEdit(tbody, opts) {
   function onProxyKey(ev) {
     if (!active || active.mode !== 'selected') return;
     if (ev.isComposing || ev.keyCode === 229) return;
+    // 隐藏格不复制旧值：空白隐藏格里的退格/删除 = 清掉整格（整格替换语义）
+    if ((ev.key === 'Backspace' || ev.key === 'Delete') && !proxy.el.value) {
+      const input = active.input;
+      if (input.value) {
+        ev.preventDefault();
+        input.value = '';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      return;
+    }
     if (ev.key === 'Enter') { ev.preventDefault(); moveEnter(); return; }
     if (ev.key === 'Tab') { ev.preventDefault(); moveTab(ev.shiftKey ? -1 : 1); return; }
     if (ev.key === 'Escape') { ev.preventDefault(); release(); return; }

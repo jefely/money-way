@@ -606,8 +606,8 @@ body.nt-col-resizing {
    font-size 16 是为了 iOS 聚焦时不要自动放大。 */
 .nt-cell-proxy {
   position: fixed;
-  top: 0;
-  left: 0;
+  top: -200px;
+  left: -200px;
   z-index: 1;
   width: 1px;
   height: 1px;

@@ -7,7 +7,7 @@
  * 合计与余额全部来自 core 的纯函数，本文件不算钱。
  */
 
-import { addTransaction, updateTransaction, nextSeq, noteTextByCode } from '../core/state-store.js';
+import { addTransaction, updateTransaction, noteTextByCode } from '../core/state-store.js';
 import { afterTxEdit } from '../core/draft-book.js';
 import { removeFlowTx, markPlanHandled } from '../ui/plan-links.js';
 import { mountComposer } from '../ui/composer.js';
@@ -15,12 +15,14 @@ import { createScheduled } from '../core/schema.js';
 import { buildFlowRows, buildFooterInfo } from '../ui/flow-model.js';
 import { moneyOrBlank, normalizeTypedDate, todayIso } from '../core/format.js';
 import { fingerprintBag, takeIfNew, keysForIncoming } from '../core/import-dedupe.js';
-import { renderRows, patchRow, promoteRow } from '../ui/render-transactions.js';
+import { renderRows, patchRow, seedDrafts } from '../ui/render-transactions.js';
 import { parseAccountInput, suggestAccounts as suggestByIndex, ensurePendingAccount } from '../core/account-resolver.js';
-import { endFromText, endsFromFields, joinHeld } from '../ui/flow-ends.js';
+import { endFromText } from '../ui/flow-ends.js';
 import { bindRowEditing } from '../ui/row-editor.js';
 import { bindCellEdit } from '../ui/cell-edit.js';
 import { mountCellSelect } from '../ui/cell-select.js';
+import { bindOpenDrafts } from '../ui/open-drafts.js';
+import { settleOpenRows } from '../ui/open-rows.js';
 import { openAddDialog } from '../ui/add-dialog.js';
 import { openSyncDialog } from '../ui/sync-dialog.js';
 import { splitByTime } from '../timeline/time-state.js';
@@ -42,7 +44,6 @@ export function mountFlow(section, ctx) {
 
   bindRowEditing(body, {
     onEdit,
-    onCreate,
     onDelete,
     onCommit: () => { ctx.saveNow(); },
     parseAccount: (v) => parseAccountInput(ctx.getIndex(), v),
@@ -52,6 +53,10 @@ export function mountFlow(section, ctx) {
     // 金额失焦后统一成「¥1,234.56」的财务格式（用户 2026-10-30）
     formatAmount: (v) => moneyOrBlank(normalizeAmountInput(v)),
   });
+
+  // 开放录入区：空行草稿安静落库（state.openRows，不进撤销栈），切页时 flush
+  const openDrafts = bindOpenDrafts(body, ctx, seedDrafts, () => ctx.setFooter(footerText()));
+  openDrafts.seedInitial();
 
   /* ---------- 「固定」列复选框 ----------
      勾上 = 按这笔流水生成一条固定收支规则（频率默认每月、日期取流水的日）；
@@ -228,6 +233,7 @@ export function mountFlow(section, ctx) {
   cellSelect.setEditor(cellEditor);
 
   function render(force) {
+    openDrafts.sync();
     const ver = typeof ctx.getVersion === 'function' ? ctx.getVersion() : -1;
 
     // 数据没变、表格还在 → 不重建。
@@ -294,39 +300,16 @@ export function mountFlow(section, ctx) {
     if (composer && typeof composer.syncDraft === 'function') composer.syncDraft();
   }
 
-  function onCreate(fields, tr) {
-    // 流水只负责记录（用户 2026-10-30）：转出/转入可以随便写，
-    // 认不出的文本自动建一个未分类账户，不拦录入。
-    const ends = endsFromFields(ctx.getState(), ctx.getIndex(), fields);
-    const s = ends.state;
-    const amount = normalizeAmountInput(fields.amount || '');
-    const note = joinHeld(fields.note, ends.held);
-    // 用户 2026-11-09：表格下方的空行是计划性编排区，只填了转出/转入、
-    // 甚至只有备注/金额，也要落库 —— 否则重新进入就消失了。
-    if (!ends.fromId && !ends.toId && !amount && !String(fields.note || '').trim()) return;
-
-    // 不够入账条件的一律存成草稿（红序号）：补上金额 / 另一端后，
-    // row-editor 的 afterTxEdit 会把它自动转正。
-    const draft = !amount || !ends.fromId || !ends.toId;
-    ctx.setState(addTransaction(s, {
-      date: normalizeTypedDate(fields.date || todayIso()),
-      from_id: ends.fromId,
-      to_id: ends.toId,
-      amount: amount || 0,
-      note,
-      seq: nextSeq(s),
-      ...(draft ? { status: 'draft' } : {}),
-    }));
-
-    // 建单不再重建整表（用户 2026-11-01：取消虚拟滚动，照单文件版的模式）：
-    // 把这一行**就地转正** + 末尾补一个空行，别的行一行都不动 ——
-    // 这样其它空行里写了一半的内容、光标、草稿全都原封不动。
-    const all = buildFlowRows(ctx.getState());
-    promoteRow(body, tr, all[all.length - 1]);
-    // DOM 已经和数据对上了：把版本记下来，下次切 tab 回来不必再重建
-    renderedVer = typeof ctx.getVersion === 'function' ? ctx.getVersion() : -1;
-    ctx.setFooter(footerText());
-    return ctx.save();
+  /**
+   * 切回流水记录表：把开放录入区里**带金额**的行结算成正式流水（编号、落尾行）；
+   * 没金额的行留在原位、不编号。用户 2026-11-09。
+   */
+  function activate() {
+    const r = settleOpenRows(ctx.getState());
+    if (!r) return;
+    ctx.setState(r.state);
+    ctx.save();
+    openDrafts.reseed(r.keep);
   }
 
   function onDelete(id) {
@@ -345,7 +328,7 @@ export function mountFlow(section, ctx) {
     render();
   }
 
-  return { render, focusEnd };
+  return { render, focusEnd, activate, flushDrafts: () => openDrafts.flush(true) };
 }
 
 /* ---------- 工具条 ---------- */

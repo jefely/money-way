@@ -26,14 +26,12 @@ export function createCellProxy(onInput, onKey) {
 
   return {
     el,
-    /** 把焦点和键盘交给隐藏格；value 取当前可见格 */
+    /** 把焦点和键盘交给隐藏格；不复制值、不 select() —— 避免安卓画出全选框 */
     focus(input) {
-      el.value = input.value;
+      el.value = '';
       el.setAttribute('inputmode', input.getAttribute('inputmode') || 'text');
       el.setAttribute('enterkeyhint', 'next');
       try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
-      // 全选：第一次输入/退格就是整格替换（光标在隐藏格里，用户看不到）
-      try { el.select(); } catch (e) { /* 忽略 */ }
     },
     blur() {
       if (document.activeElement === el) el.blur();
