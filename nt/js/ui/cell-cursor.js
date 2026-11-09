@@ -46,8 +46,14 @@ export function bindCellCursor(tbody, h) {
   let cur = null;                     // { td, input }
 
   function clear() {
-    for (const td of tbody.querySelectorAll('.nt-cell-sel')) td.classList.remove('nt-cell-sel');
+    for (const td of tbody.querySelectorAll('.nt-cell-sel')) {
+      td.classList.remove('nt-cell-sel', 'nt-cell-editing');
+    }
     cur = null;
+  }
+
+  function clearRowSel() {
+    for (const tr of tbody.querySelectorAll('.nt-row-sel')) tr.classList.remove('nt-row-sel');
   }
 
   function select(td, input) {
@@ -79,8 +85,20 @@ export function bindCellCursor(tbody, h) {
     if (ev.target.closest('button, .nt-fixed-box, .nt-col-handle')) return;
     const td = ev.target.closest('td.nt-cell');
     if (!td) return;
+
+    // 「序」列是行选择器：点它选中整行，不弹键盘
+    if (td.classList.contains('nt-cell-seq')) {
+      const tr = td.closest('tr');
+      const was = !!(tr && tr.classList.contains('nt-row-sel'));
+      clearRowSel();
+      clear();
+      if (tr && !was) tr.classList.add('nt-row-sel');
+      return;
+    }
+
     const input = td.querySelector('input.nt-cell-input');
     if (!input || input.readOnly || input.disabled) return;
+    clearRowSel();                                  // 选单元格 = 取消整行选中
 
     // 「再点一次取消」看的是**按下那一刻**这格是不是已经选中：
     // 不能用 cur，因为焦点可能已经被回车搬到别的格了。
@@ -94,17 +112,16 @@ export function bindCellCursor(tbody, h) {
 
   /** 双击：进入编辑，光标按点下去的位置 */
   tbody.addEventListener('dblclick', (ev) => {
+    lastClickAt = 0;              // 双击之后的第一下单击不该被当成「第二下」吞掉
     if (ev.target.closest('button, .nt-fixed-box')) return;
     const td = ev.target.closest('td.nt-cell');
     if (!td) return;
     const input = td.querySelector('input.nt-cell-input');
     if (!input || input.readOnly || input.disabled) return;
     ev.preventDefault();
-    if (!cur || cur.td !== td) {
-      clear();
-      cur = { td, input };
-      td.classList.add('nt-cell-sel');
-    }
+    clear();                                       // 双击永远是「这一格被选中 + 进编辑」
+    cur = { td, input };
+    td.classList.add('nt-cell-sel', 'nt-cell-editing');
     try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
     const i = caretIndex(input, ev.clientX);
     try { input.setSelectionRange(i, i); } catch (e) { /* 忽略 */ }

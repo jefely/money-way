@@ -1478,3 +1478,23 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   background: var(--nt-primary);
   color: var(--nt-text-on-primary);
 }
+
+
+/* ---------- 选中态（2026-11-09） ----------
+   单击单元格：只是选中，**不让光标闪**（caret 透明），但输入法照常工作；
+   双击才进编辑，光标才显形。点「序」列则整行选中。 */
+.nt-cell-sel .nt-cell-input {
+  caret-color: transparent;
+}
+
+.nt-cell-editing .nt-cell-input {
+  caret-color: auto;
+}
+
+.nt-row-sel .nt-cell {
+  background: var(--nt-cell-active) !important;
+}
+
+.nt-row-sel .nt-cell-seq {
+  box-shadow: inset 3px 0 0 var(--nt-primary);
+}
