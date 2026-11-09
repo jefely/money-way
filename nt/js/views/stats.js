@@ -358,11 +358,25 @@ function pill(label, active, onClick) {
   return b;
 }
 
+function normalizeDate(v) {
+  const s = String(v || '').replace(/[^\d]/g, '');
+  if (s.length === 8) return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+  if (s.length === 6) return `${s.slice(0, 4)}-${s.slice(4, 6)}-01`;
+  if (s.length === 4) return `${s}-01-01`;
+  return String(v || '');
+}
+
 function dateInput(value, onChange) {
   const input = document.createElement('input');
   input.className = 'nt-input nt-input-sm';
-  input.type = 'date';
+  input.type = 'text';
+  input.inputMode = 'numeric';
+  input.placeholder = 'YYYY-MM-DD';
   input.value = value || '';
-  input.addEventListener('change', () => onChange(input.value));
+  const commit = () => onChange(normalizeDate(input.value));
+  input.addEventListener('change', commit);
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+  });
   return input;
 }
