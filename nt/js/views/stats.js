@@ -312,6 +312,12 @@ export function mountStats(section, ctx) {
       const b = ev.target.closest('.nt-cap');
       if (!b) return;
       sel.scope = b.getAttribute('data-scope');
+      if (sel.scope === 'range' && (!sel.start || !sel.end)) {
+        const y = now.getFullYear();
+        const m = now.getMonth() + 1;
+        sel.start = `${y}-${pad(m)}-01`;
+        sel.end = monthEnd(y, m);
+      }
       for (const x of scopeCaps.querySelectorAll('.nt-cap')) {
         x.setAttribute('aria-selected', x === b ? 'true' : 'false');
       }

@@ -587,3 +587,9 @@
 /* 统计页：月份模式的小年份输入框 + 区间行最右的清空按钮 */
 .nt-stats-year { width: 64px; height: 26px; padding: 0 6px; border: 1px solid var(--nt-bg-line); border-radius: 6px; background: var(--nt-bg); color: var(--nt-text); font-size: 13px; }
 .nt-pills-clear { margin-left: auto; }
+
+/* 区间：日期框与清空同一行；清空与流水工具条按钮同尺寸；默认本月起止 */
+#nt-stats-pills[data-scope="range"] { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
+#nt-stats-pills[data-scope="range"] > * { flex: 1 1 auto; min-width: 0; }
+#nt-stats-pills[data-scope="range"] .nt-pills-sep { flex: 0 0 auto; }
+#nt-stats-pills[data-scope="range"] .nt-pills-clear { flex: 0 0 auto; margin-left: 0; height: 26px; padding: 0 10px; font-size: 12px; }
