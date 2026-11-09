@@ -36,6 +36,8 @@ function saveActive(state) {
     accounts: state.accounts || [],
     transactions: state.transactions || [],
     scheduled: state.scheduled || [],
+    mappings: state.mappings || {},
+    voidedPlans: state.voidedPlans || [],
   };
   return { ...state, ledgers };
 }
@@ -47,7 +49,7 @@ export function createLedger(state, name) {
   const saved = saveActive(state);
   const ledgerNames = { ...(saved.ledgerNames || {}), [id]: n };
   const ledgers = { ...(saved.ledgers || {}) };
-  ledgers[id] = { accounts: [], transactions: [], scheduled: [] };
+  ledgers[id] = { accounts: [], transactions: [], scheduled: [], mappings: {}, voidedPlans: [] };
 
   return {
     ...saved,
@@ -57,6 +59,8 @@ export function createLedger(state, name) {
     accounts: [],
     transactions: [],
     scheduled: [],
+    mappings: {},
+    voidedPlans: [],
   };
 }
 
@@ -77,6 +81,8 @@ export function switchLedger(state, id) {
     accounts: target.accounts || [],
     transactions: target.transactions || [],
     scheduled: target.scheduled || [],
+    mappings: target.mappings || {},
+    voidedPlans: target.voidedPlans || [],
   };
 }
 
@@ -87,12 +93,20 @@ export function renameLedger(state, id, name) {
   return { ...state, ledgerNames: { ...(state.ledgerNames || {}), [id]: n } };
 }
 
-/** 删除账本（不能删活动账本） */
+/** 删除账本。只剩一本时不动。删的是当前这本时，先切到剩下的那本。 */
 export function removeLedger(state, id) {
-  if (!id || id === state.activeLedger) return state;
-  const ledgers = { ...(state.ledgers || {}) };
+  const names = state.ledgerNames || {};
+  const ids = Object.keys(names);
+  if (!id || !names[id] || ids.length < 2) return state;
+  let next = state;
+  if (id === state.activeLedger) {
+    const other = ids.find((x) => x !== id);
+    next = switchLedger(state, other);
+    if (!next || next.activeLedger === id) return state;
+  }
+  const ledgers = { ...(next.ledgers || {}) };
   delete ledgers[id];
-  const ledgerNames = { ...(state.ledgerNames || {}) };
+  const ledgerNames = { ...(next.ledgerNames || {}) };
   delete ledgerNames[id];
-  return { ...state, ledgers, ledgerNames };
+  return { ...next, ledgers, ledgerNames };
 }

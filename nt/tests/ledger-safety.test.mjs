@@ -10,7 +10,7 @@ import { shouldRemindBackup, BACKUP_STALE_MS, BACKUP_SNOOZE_MS } from '../js/cor
 import { cipherMatches } from '../js/core/vault-cas.js';
 import { normalizeTypedDate, todayIso } from '../js/core/format.js';
 import { outgoingArcColor, nodeColor } from '../js/graph/mw-layers.js';
-import { tipText } from '../js/ui/chart-tip.js';
+import { tipText, tipHoldPlan, TIP_HOLD_MS } from '../js/ui/chart-tip.js';
 import { legendRows } from '../js/ui/path-legend.js';
 import { deriveKey, encryptData, decryptData, randomSalt, bytesToBase64, base64ToBytes } from '../js/core/crypto-engine.js';
 import { createState, addAccount, addTransaction } from '../js/core/state-store.js';
@@ -129,6 +129,14 @@ test('悬停文案：弧块给净额，弦给两端和两位小数', () => {
   assert.match(text, /现金 → b/);
   assert.match(text, /12\.50/);
   assert.match(text, /午饭/);
+});
+
+test('环图点一下停 3 秒，再点另一段立刻换并重计', () => {
+  assert.equal(TIP_HOLD_MS, 3000);
+  assert.deepEqual(tipHoldPlan('现金', false), { action: 'show', ms: 3000 });
+  assert.deepEqual(tipHoldPlan('微信', true), { action: 'show', ms: 3000 });
+  assert.deepEqual(tipHoldPlan('', true), { action: 'keep', ms: 3000 });
+  assert.deepEqual(tipHoldPlan('', false), { action: 'hide', ms: 0 });
 });
 
 test('图例一行一个账户，带来颜色', () => {

@@ -62,8 +62,8 @@
               <tr>
                 <th class="nt-th nt-cell-seq" scope="col" data-col="seq">序</th>
                 <th class="nt-th nt-cell-date" scope="col" data-col="date">日期</th>
-                <th class="nt-th" scope="col" data-col="from">转出账户</th>
-                <th class="nt-th" scope="col" data-col="to">转入账户</th>
+                <th class="nt-th" scope="col" data-col="from">转出节点</th>
+                <th class="nt-th" scope="col" data-col="to">转入节点</th>
                 <th class="nt-th nt-cell-amount" scope="col" data-col="amount">金额</th>
                 <th class="nt-th" scope="col" data-col="note">备注</th>
                 <th class="nt-th nt-th-edge" scope="col" data-col="fixed" aria-label="固定收支"></th>
@@ -134,16 +134,16 @@
                 <section class="pw-frozen">
                   <div class="pw-flow-grid pw-flow-filter">
                     <input class="pw-qf pw-qf-date" id="pw-qf-date" placeholder="日期" aria-label="日期筛选">
-                    <input class="pw-qf" id="pw-qf-from" placeholder="转出" aria-label="转出账户">
-                    <input class="pw-qf" id="pw-qf-to" placeholder="转入" aria-label="转入账户">
+                    <input class="pw-qf" id="pw-qf-from" placeholder="转出" aria-label="转出节点">
+                    <input class="pw-qf" id="pw-qf-to" placeholder="转入" aria-label="转入节点">
                     <input class="pw-qf" id="pw-qf-amount" placeholder="金额" aria-label="金额">
                     <input class="pw-qf" id="pw-qf-note" placeholder="备注" aria-label="备注">
                   </div>
                   <div class="pw-flow-grid pw-flow-head" id="pw-flow-head">
                     <span>序</span>
                     <span>日期</span>
-                    <span>转出账户</span>
-                    <span>转入账户</span>
+                    <span>转出节点</span>
+                    <span>转入节点</span>
                     <b>金额</b>
                     <span>备注</span>
                   </div>
@@ -170,7 +170,7 @@
         </div>
         <details class="pw-help">
           <summary>点弧块 / 点线 / 点左侧流水</summary>
-          <p class="pw-help-body">点弧块：看这一户直接相连的一侧。点线：只亮这一笔。点左侧流水：沿这笔钱追上下游。弦的颜色等于转出账户的弧色。平时每条线一样粗，是为了一次画下大量流水；只有追踪时，线宽才随金额变化。</p>
+          <p class="pw-help-body">点弧块：看这个节点直接相连的一侧。点线：只亮这一笔。点左侧流水：沿这笔钱追上下游。弦的颜色等于转出节点的弧色。环图就是这张网络：弧块是节点，弦是边。平时每条线一样粗，是为了一次画下大量流水；只有追踪时，线宽才随金额变化。</p>
           <div class="pw-legend" id="pw-legend"></div>
         </details>
         <div class="pw-tip" id="pw-tip" hidden></div>
@@ -192,8 +192,8 @@
                     <th class="nt-th nt-c-seq" scope="col" data-col="seq">序</th>
                     <th class="nt-th nt-c-freq" scope="col" data-col="freq">频率</th>
                     <th class="nt-th nt-c-day" scope="col" data-col="day">日期</th>
-                    <th class="nt-th" scope="col" data-col="from">转出账户</th>
-                    <th class="nt-th" scope="col" data-col="to">转入账户</th>
+                    <th class="nt-th" scope="col" data-col="from">转出节点</th>
+                    <th class="nt-th" scope="col" data-col="to">转入节点</th>
                     <th class="nt-th nt-c-amount" scope="col" data-col="amount">金额</th>
                     <th class="nt-th" scope="col" data-col="note">备注</th>
                     <th class="nt-th nt-c-action nt-th-edge" scope="col" data-col="action">删除</th>
@@ -210,11 +210,11 @@
               <colgroup id="nt-inst-cols"></colgroup>
               <thead>
                 <!-- 两行表头（照单文件版）：
-                     上行 = 账户名称 / 账单日 / 每月合计 + 每个月那一列的合计
+                     上行 = 节点名称 / 账单日 / 每月合计 + 每个月那一列的合计
                      下行 = 分期金额 / 还款日 / 本息总计 + 月份标签
                      月份列由 JS 动态生成，这里只放固定列 -->
                 <tr id="nt-inst-sum">
-                  <th class="nt-th nt-c-inst-name" scope="col">账户名称</th>
+                  <th class="nt-th nt-c-inst-name" scope="col">分期银行</th>
                   <th class="nt-th nt-c-day" scope="col">账单日</th>
                   <th class="nt-th nt-c-num" scope="col">每月合计</th>
                 </tr>
@@ -251,7 +251,7 @@
                   <th class="nt-th nt-c-seq" scope="col" data-col="seq">序</th>
                   <th class="nt-th nt-c-type" scope="col" data-col="type">类型</th>
                   <th class="nt-th nt-c-cat" scope="col" data-col="cat">分类</th>
-                  <th class="nt-th nt-c-name" scope="col" data-col="name">账户名称</th>
+                  <th class="nt-th nt-c-name" scope="col" data-col="name">节点名称</th>
                   <th class="nt-th nt-c-num" scope="col" data-col="opening">期初余额</th>
                   <th class="nt-th nt-c-day" scope="col" data-col="billDay">账单日</th>
                   <th class="nt-th nt-c-day" scope="col" data-col="repayDay">还款日</th>
@@ -278,7 +278,7 @@
     </main>
 
     <div class="nt-backup-banner" id="nt-backup-banner" hidden>
-      <p>主屏幕里的账本只在这台手机上。系统清存储或很久不打开时可能丢掉。请到「导出」里点「分享加密备份」，存到网盘或文件。安卓和 iPhone 都用系统分享，文件要用账本密码才能打开。</p>
+      <p>主屏幕里的账本只在这台手机上。系统清存储或很久不打开时可能丢掉。请到「导出」里点「导出加密备份」，存到网盘或文件。安卓和 iPhone 都用系统分享，文件要用账本密码才能打开。</p>
       <button type="button" id="nt-backup-later">以后再说</button>
     </div>
     <footer class="nt-footer" id="nt-footer"></footer>

@@ -84,28 +84,41 @@ export function totalsOf(cells) {
  * @param {string} nowMonth
  * @returns {string[]} 形如 ['2026-08', '2026-09', …]
  */
-export function spanOf(rows, range, nowMonth) {
-  const now = normalizeMonth(nowMonth) || '';
+export function spanOf(rows, range, nowMonth, hidden) {
+  const skip = new Set();
+  for (const m of hidden || []) {
+    const n = normalizeMonth(m);
+    if (n) skip.add(n);
+  }
   const from = normalizeMonth(range && range.from);
   const to = normalizeMonth(range && range.to);
+  const now = normalizeMonth(nowMonth) || '';
 
-  let first = from || now;
-  let last = to || now;
+  let first = from || '';
+  let last = to || '';
 
   if (!from || !to) {
     for (const row of rows || []) {
-      for (const m of Object.keys(cellsOf(row))) {
+      const cells = cellsOf(row);
+      for (const m of Object.keys(cells)) {
+        const c = cells[m];
+        if (!c || (!Number(c.p) && !Number(c.i))) continue;
         if (!first || m < first) first = m;
         if (!last || m > last) last = m;
       }
     }
   }
+  if (!first) first = now;
+  if (!last) last = now;
   if (!first || !last) return [];
   if (first > last) { const t = first; first = last; last = t; }
 
   const n = monthsBetween(first, last);
   const count = Math.min(MAX_MONTHS, (Number.isFinite(n) ? n : 0) + 1);
   const out = [];
-  for (let k = 0; k < count; k += 1) out.push(addMonths(first, k));
+  for (let k = 0; k < count; k += 1) {
+    const m = addMonths(first, k);
+    if (!skip.has(m)) out.push(m);
+  }
   return out;
 }

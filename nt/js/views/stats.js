@@ -109,7 +109,7 @@ export function mountStats(section, ctx) {
     if (!items.length) renderEmpty(body, '这段时间没有数据', 8);
     else renderMixed(body, items);
 
-    ctx.setFooter(`${catCount} 个分类 · ${visibleCount(state)} 个账户 · ${scopeLabel()}`);
+    ctx.setFooter(`${catCount} 个分类 · ${visibleCount(state)} 个节点 · ${scopeLabel()}`);
   }
 
   function renderSummary(state, range) {
@@ -117,7 +117,7 @@ export function mountStats(section, ctx) {
 
     // 列顺序按核对过的设计：账户名称 · 序号 · 类型 · 分类 · 转出 · 转入 · 当前余额 · 历史 ×3
     buildHead(thead, [
-      { label: '账户名称', cls: 'nt-c-name', col: 'name' },
+      { label: '节点名称', cls: 'nt-c-name', col: 'name' },
       { label: '序号', cls: 'nt-c-seq', col: 'seq' },
       { label: '类型', cls: 'nt-c-type', col: 'type' },
       { label: '分类', cls: 'nt-c-cat', col: 'cat' },
@@ -146,10 +146,10 @@ export function mountStats(section, ctx) {
       },
     }));
 
-    if (!items.length) renderEmpty(body, '还没有账户', 10);
+    if (!items.length) renderEmpty(body, '还没有节点', 10);
     else renderMixed(body, items);
 
-    ctx.setFooter(`${visibleCount(state)} 个账户 · ${scopeLabel()}`);
+    ctx.setFooter(`${visibleCount(state)} 个节点 · ${scopeLabel()}`);
   }
 
   /* ---------- 范围与标签 ---------- */

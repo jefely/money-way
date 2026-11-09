@@ -9,6 +9,8 @@
  * 有交易单号时再加一把「单号」钥匙，避免只靠金额把两笔真账并成一笔。
  */
 
+import { isPosted } from './schema.js';
+
 /** 一笔流水或即将写入的行 → 指纹 */
 export function importFingerprint(tx) {
   const row = tx || {};
@@ -21,6 +23,7 @@ export function importFingerprint(tx) {
 export function fingerprintBag(transactions) {
   const bag = new Map();
   for (const t of transactions || []) {
+    if (!isPosted(t)) continue;
     const key = importFingerprint(t);
     bag.set(key, (bag.get(key) || 0) + 1);
   }

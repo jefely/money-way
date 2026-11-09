@@ -8,9 +8,11 @@
  * 纯函数：只吃 state，不碰 DOM。
  */
 
+import { visiblePlans } from '../core/plan-occurrence.js';
 import { money, moneyAlways, moneyOrBlank, shortDate } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
-import { indexAccounts } from '../core/schema.js';
+import { indexAccounts, isPosted } from '../core/schema.js';
+import { markerOf } from '../core/draft-book.js';
 
 /**
  * 流水 → 渲染行。排序：seq 升序。
@@ -21,19 +23,21 @@ import { indexAccounts } from '../core/schema.js';
  */
 export function buildFlowRows(state, virtual) {
   const real = buildRealRows(state);
-  if (!virtual || !virtual.length) return real;
+  const upcoming = visiblePlans(virtual, state);
+  if (!upcoming.length) return real;
 
   let n = real.length;
-  const virt = virtual.map((v) => {
+  const virt = upcoming.map((v) => {
     n += 1;
     return {
-      id: 'v_' + v.source + '_' + v.periodIndex,
+      id: 'v_' + String(v.planKey || v.source || n).replace(/\|/g, '_'),
       seq: n,
       date: v.date,
-      from: v.fromName || '分期还款',
+      from: v.fromName || '',
       to: v.toName || v.source || '',
       amount: v.amount,
-      note: `第 ${v.periodIndex}/${v.periods} 期`,
+      amountRaw: v.amount,
+      note: v.note || (v.periodIndex ? `第 ${v.periodIndex}/${v.periods} 期` : ''),
       dateEdit: shortDate(v.date),
       amountEdit: moneyOrBlank(v.amount),
       dateText: shortDate(v.date),
@@ -41,6 +45,12 @@ export function buildFlowRows(state, virtual) {
       isVirtual: true,
       isOpening: false,
       broken: false,
+      planKey: v.planKey || '',
+      sourceId: v.sourceId || '',
+      month: v.month || '',
+      fromId: v.fromId || null,
+      toId: v.toId || null,
+      mark: '',
     };
   });
   return real.concat(virt);
@@ -69,8 +79,7 @@ function buildRealRows(state) {
     to: nameOf(t.to_id),
     amount: t.amount,
     note: t.note,
-    // 期初行没有真实业务日期，显示成「期初」而不是 00-01-01
-    dateEdit: t.opening ? '' : shortDate(t.date),
+    dateEdit: shortDate(t.date),
     amountEdit: moneyOrBlank(t.amount),
     dateText: t.opening ? '期初' : shortDate(t.date),
     amountText: money(t.amount),
@@ -79,6 +88,7 @@ function buildRealRows(state) {
     fixed: !t.opening && fixedTx.has(String(t.id)),
     // 断链提示：有 ID 但映射不到名字（账户被删过）
     broken: (!!t.from_id && !accMap.has(t.from_id)) || (!!t.to_id && !accMap.has(t.to_id)),
+    mark: markerOf(t, state.accounts),
   }));
 }
 
@@ -86,8 +96,12 @@ function buildRealRows(state) {
 export function buildFooterInfo(state) {
   const list = state.transactions || [];
   let total = 0;
-  for (const t of list) total += toAmount(t.amount);
-  return { count: list.length, totalText: moneyAlways(total) };
+  let drafts = 0;
+  for (const t of list) {
+    if (!isPosted(t)) { drafts += 1; continue; }
+    total += toAmount(t.amount);
+  }
+  return { count: list.length, totalText: moneyAlways(total), drafts };
 }
 
 /** 账户下拉选项（名字 + 分类，供补全用） */

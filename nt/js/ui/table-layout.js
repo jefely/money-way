@@ -45,7 +45,7 @@ const FROZEN_COUNT = {
  *
  * 判据来自 TABLE-INTERACTION.md：CSS 产生值，JS 只消费。
  */
-const CSS_FROZEN = new Set(['nt-table-accounts', 'nt-table-inst']);
+const CSS_FROZEN = new Set(['nt-table-accounts', 'nt-table-inst', 'nt-table-flow', 'nt-table-stats']);
 
 const MIN_W = 30;
 const MAX_W = 600;
@@ -66,29 +66,28 @@ export function syncFrozen(tableEl) {
   if (!tableEl) return;
   const cls = [...tableEl.classList].find((c) => c in FROZEN_COUNT);
   if (!cls) return;
-  const n = FROZEN_COUNT[cls];
+  let n = FROZEN_COUNT[cls];
+  if (tableEl.classList.contains('is-sum')) n = 1;
   if (!n) return;
 
-  // 表头可能是**两行**（分期表就是：上行每月合计、下行月份标签）
-  const ths = [...tableEl.querySelectorAll('thead .nt-th')];
-  const rows = [...tableEl.querySelectorAll('tbody tr')];
-  // 每一行的前 n 列都要各自写 left，否则下面那行不跟着冻
   const headRows = [...tableEl.querySelectorAll('thead tr')];
+  const ths = [...tableEl.querySelectorAll('thead .nt-th')];
 
-  // 只冻结首列、偏移由 CSS 写死：清一次内联 left 就够，不再逐帧量宽度。
-  // 这一步是「纯 CSS 冻结」的开关 —— 表头和数据行都必须清，
-  // 否则旧代码留下的 left（比如上一版写的 129px）会压在 CSS 的 left:0 上面。
+  // 流水 / 统计的 left 在 CSS（--nt-freeze-2）。不要逐行写 style.left。
   if (CSS_FROZEN.has(cls)) {
+    const head = headRows[0];
+    const c0 = head && head.children[0];
+    if (cls === 'nt-table-stats' && tableEl.classList.contains('is-cat') && c0) {
+      const w = Math.round(c0.getBoundingClientRect().width);
+      if (w > 0) tableEl.style.setProperty('--nt-freeze-2', w + 'px');
+    }
     for (const th of ths) {
       if (th.style.left) th.style.left = '';
-    }
-    for (const tr of rows) {
-      const td = tr.children[0];
-      if (td && td.style.left) td.style.left = '';
     }
     return;
   }
 
+  const rows = [...tableEl.querySelectorAll('tbody tr')];
   let left = 0;
   for (let i = 0; i < n; i += 1) {
     const first = headRows[0] && headRows[0].children[i];
@@ -107,6 +106,19 @@ export function syncFrozen(tableEl) {
     }
 
     left += w;
+  }
+
+  const clearFrom = n;
+  for (const tr of headRows) {
+    for (let i = clearFrom; i < tr.children.length; i += 1) {
+      if (tr.children[i] && tr.children[i].style.left) tr.children[i].style.left = '';
+    }
+  }
+  for (const tr of rows) {
+    for (let i = clearFrom; i < tr.children.length; i += 1) {
+      const td = tr.children[i];
+      if (td && td.style.left) td.style.left = '';
+    }
   }
 }
 
@@ -255,15 +267,12 @@ function startDrag(tableEl, grip, downEv, o) {
     // 其余表：只改这一列的宽度，表宽由 `.cols-custom { width: max-content }` 跟着走。
     // col 和 th 都写 —— col 决定实际列宽（fixed 布局），th 留着给不支持 col 的场合兜底。
     // 同一列在**每一行表头**里都要写，否则两行宽度会分叉（表头和数据错开）。
-    th.style.width = width + 'px';
-    if (targetCol) targetCol.style.width = width + 'px';
-    if (idx >= 0) {
-      for (const tr of tableEl.querySelectorAll('thead tr')) {
-        const other = tr.children[idx];
-        if (other && other !== th) other.style.width = width + 'px';
-      }
+    const px = Math.round(width) + 'px';
+    th.style.width = px;
+    if (targetCol) targetCol.style.width = px;
+    if (idx === 0 && tableEl.classList.contains('is-cat')) {
+      tableEl.style.setProperty('--nt-freeze-2', px);
     }
-    syncFrozen(tableEl);
   };
 
   const onMove = (e) => {
@@ -344,7 +353,14 @@ const MIRROR_PREFIX = 'nt-colw:';
 /** 表 → 镜像键（用表类名，够稳定） */
 function mirrorKey(tableEl) {
   const cls = [...tableEl.classList].find((c) => c.startsWith('nt-table-'));
-  return cls ? MIRROR_PREFIX + cls : '';
+  if (!cls) return '';
+  // 分类和汇总共用一张表，列数不同。镜像必须分开，否则切回来会把
+  // 汇总的宽列套到「序」上，中间空出一截白、金额列被挤短。
+  if (cls === 'nt-table-stats') {
+    const mode = tableEl.classList.contains('is-sum') ? 'sum' : 'cat';
+    return MIRROR_PREFIX + cls + ':' + mode;
+  }
+  return MIRROR_PREFIX + cls;
 }
 
 /** 写镜像：widths 是「每列一个数字」的数组 */
@@ -366,7 +382,7 @@ export function applyColMirror(tableEl) {
     if (!widths.some((w) => w > 0)) return;
 
     const ths = [...tableEl.querySelectorAll('thead .nt-th')];
-    if (!ths.length) return;
+    if (!ths.length || widths.length !== ths.length) return;
     tableEl.classList.add('cols-custom');
     ths.forEach((th, i) => {
       const w = widths[i] || 0;

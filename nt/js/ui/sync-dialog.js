@@ -1,10 +1,10 @@
 /**
  * 同步弹窗（UI 层）
  *
- * 设计（用户 2026-10-29 定稿）：
- *   ① 年月滚轮在二维码上方居中（水平拖），日竖轮在二维码右侧居中（垂直拖）；
- *      选截止日 → 从这天往前按天装流水，装满 70 笔为止（fitWindow 二分，整天截断）。
- *      二维码固定 240×240，布局不因有码无码移动。
+ * 设计：
+ *   ① 年月横条在二维码上方，「存」在这条的右边。
+ *      日轮是二维码右侧的窄竖条。码在剩下的宽度里尽量做大，保持正方形。
+ *      选截止日 → 从这天往前按天装流水，装满 70 笔为止。
  *   ② 一个文本框打通复制与接收：复制 / 清空 / 粘贴 / 同步。
  *
  * 编解码在 core/sync-code.js、窗口自适应在 core/sync-window.js。
@@ -59,12 +59,12 @@ function sectionWindow(ctx, base) {
   h.textContent = '① 扫码同步';
   box.appendChild(h);
 
-  /* 年月：横排滚轮，宽度 = 二维码宽度（3 × 86.67 = 260），左对齐 */
+  /* 年月横条在二维码上面，「存」贴在这条右边。 */
   const monRow = document.createElement('div');
   monRow.className = 'nt-sync-monthrow';
   const monWheel = buildWheel({
     axis: 'x',
-    itemSize: 86.67,
+    itemSize: 78,
     visible: 3,
     labels: months,
     value: months.length,
@@ -81,8 +81,6 @@ function sectionWindow(ctx, base) {
     },
   });
   monRow.appendChild(monWheel.el);
-  // 「存」放在年月条右侧那块空缺里（滚轮 276 + 按钮 30 ≈ 容器 310），
-  // 正好把右上角补成一个完整的矩形（用户 2026-11-01）
   const save = document.createElement('button');
   save.type = 'button';
   save.className = 'nt-btn nt-btn-sm nt-sync-save';
@@ -93,8 +91,7 @@ function sectionWindow(ctx, base) {
   monRow.appendChild(save);
   box.appendChild(monRow);
 
-  /* 二维码 + 右侧日竖轮：竖向拖动、拇指在右边够得着（用户 2026-11-01）
-     横排那版只有 24px 高，手指落在上下空白就抓不到，所以退回来。 */
+  /* 二维码尽量占满「行宽 − 日竖条」。日轮在右侧，上下拖。 */
   const qrRow = document.createElement('div');
   qrRow.className = 'nt-sync-qrrow';
 
@@ -102,7 +99,6 @@ function sectionWindow(ctx, base) {
   canvas.className = 'nt-sync-qr';
   qrRow.appendChild(canvas);
 
-  // 没有流水时的占位：绝对定位盖住二维码，不改变布局尺寸
   const empty = document.createElement('div');
   empty.className = 'nt-sync-qr-empty';
   empty.textContent = '还没有可同步的流水';
@@ -110,9 +106,8 @@ function sectionWindow(ctx, base) {
   qrRow.appendChild(empty);
 
   const dayWheel = buildWheel({
-    // 8 格 × 32.5 = 260，和二维码上下同高（用户 2026-11-01）
-    itemSize: 32.5,
-    visible: 8,
+    itemSize: 36,
+    visible: 7,
     maxDay: monthDays(),
     value: day,
     onChange: (d) => { day = d; rebuild(); },

@@ -6,6 +6,7 @@
  */
 
 import { DEBIT_CATS, toAmount } from './stats.js';
+import { isPosted } from './schema.js';
 
 const VIRTUAL_CATS = ['权益类'];
 
@@ -20,6 +21,7 @@ export function checkBalanced(transactions) {
   const zeroAmount = [];
 
   for (const t of transactions || []) {
+    if (!isPosted(t)) continue;
     const amt = toAmount(t && t.amount);
     const from = String((t && t.from) || '').trim();
     const to = String((t && t.to) || '').trim();

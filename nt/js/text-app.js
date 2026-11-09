@@ -114,8 +114,8 @@ async function save(mode) {
 
   dirty = false;
   tip(mode === 'append'
-    ? `追加 ${r.txAdded} 笔${r.created.length ? `，新建 ${r.created.length} 个账户` : ''}`
-    : `已保存 ${r.txAdded} 笔${r.created.length ? `，新建 ${r.created.length} 个账户` : ''}`);
+    ? `追加 ${r.txAdded} 笔${r.created.length ? `，新建 ${r.created.length} 个节点` : ''}`
+    : `已保存 ${r.txAdded} 笔${r.created.length ? `，新建 ${r.created.length} 个节点` : ''}`);
 
   // 保存后重新按 state 生成文本（把简码/格式统一）
   loadFromState();

@@ -422,24 +422,32 @@ body.nt-col-resizing {
   padding: 0 12px;
 }
 
-.nt-add-ledger {
-  display: flex;
+.nt-add-ledger,
+.nt-add-ledger-new {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 6px;
+  column-gap: 6px;
   margin-bottom: 4px;
 }
 
 .nt-add-ledger-check {
-  flex: none;
+  justify-self: center;
   width: 14px;
   height: 14px;
   margin: 0;
   accent-color: var(--nt-primary);
 }
 
+.nt-add-ledger-gap {
+  width: 14px;
+  height: 14px;
+  justify-self: center;
+}
+
 .nt-add-ledger-name,
 .nt-add-ledger-input {
-  flex: 1;
+  width: 100%;
   min-width: 0;
   height: 32px;
   padding: 0 8px;
@@ -454,11 +462,7 @@ body.nt-col-resizing {
 }
 
 .nt-add-ledger-new {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   margin-top: 6px;
-  padding-left: 26px;
 }
 
 .nt-add-del {
@@ -466,8 +470,9 @@ body.nt-col-resizing {
 }
 
 .nt-add-del-off {
-  visibility: hidden;
-  pointer-events: none;
+  color: var(--nt-text-light);
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .nt-add-text {
@@ -555,36 +560,41 @@ body.nt-col-resizing {
   font: 12px/1.5 ui-monospace, Consolas, monospace;
   resize: vertical;
 }
-/* 同步弹窗：年月横排滚轮（左对齐，与二维码左边缘同一条线） */
+/* 年月横条在二维码上面，「存」靠这一行的右边。 */
 .nt-sync-monthrow {
   display: flex;
+  align-items: center;
   justify-content: flex-start;
-  margin: 6px 0 8px;
+  gap: 8px;
+  width: 100%;
+  margin: 0 0 8px;
 }
 
-/* 二维码 + 右侧日竖轮（竖向拖动，拇指在右边够得着）。
-   竖条紧跟二维码（gap 8），不贴容器右缘 —— 右侧那块留白是弹窗自己的边距。 */
+/* 二维码 + 右侧日竖轮。竖条只占两个数字的宽度，码吃掉剩下的宽度。 */
 .nt-sync-qrrow {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
+  width: 100%;
 }
 
-/* 二维码：**固定尺寸**，不跟随弹窗宽度（用户 2026-11-01：手机和电脑上显示要一致）。
-   固定之后年月条、日竖条、二维码三者都是 260，屏幕大小只影响四周留白。 */
 .nt-sync-qr {
   display: block;
-  flex: 0 0 260px;
-  width: 260px;
-  height: 260px;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  max-width: min(100%, 92vw);
+  aspect-ratio: 1 / 1;
+  height: auto;
   margin: 0;
+  background: #fff;
   cursor: zoom-in;
   image-rendering: pixelated;
 }
 
-/* 没有流水时的占位：绝对定位盖住二维码，不参与布局 */
+/* 没有流水时的占位：盖住二维码，不把日轮挤走 */
 .nt-sync-qr-empty {
   position: absolute;
   left: 0;
@@ -593,8 +603,10 @@ body.nt-col-resizing {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 260px;
-  height: 260px;
+  width: calc(100% - 42px);
+  max-width: min(100%, 92vw);
+  aspect-ratio: 1 / 1;
+  height: auto;
   padding: 14px;
   box-sizing: border-box;
   border: 1px dashed var(--nt-bg-line);
@@ -609,8 +621,8 @@ body.nt-col-resizing {
 .nt-sync-wheel {
   position: relative;
   flex: 0 0 auto;
-  /* 竖条宽度 = 「存」按钮边长（30），右侧一列上下同宽（用户 2026-11-01） */
-  width: 30px;
+  /* 日竖条只留两个数字的宽度，和「存」同宽 */
+  width: 34px;
   overflow: hidden;
   border: 0;
   border-radius: var(--nt-radius);
@@ -807,16 +819,14 @@ dialog.nt-sync-zoom::backdrop {
   padding-top: 0;
 }
 
-/* 「存」：占住年月条右侧那块空缺，和滚轮同一行、靠右。
-   样式照抄滚轮（玻璃 + 内阴影、无外框），让它看起来是滚轮的一部分而不是另一个按钮。 */
+/* 「存」跟在年月条后面，不占二维码的宽度。 */
 .nt-sync-save {
   display: flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  /* 紧跟年月条（同样留 8px），右缘正好和下面日竖条的右缘重合 */
-  margin-left: 8px;
-  width: 30px;
+  margin-left: auto;
+  width: 34px;
   height: 30px;
   padding: 0;
   line-height: 1;
@@ -855,9 +865,10 @@ dialog.nt-sync-zoom::backdrop {
 }
 
 /* 虚拟行（未来分期）：虚线 + 半透明，一眼分得清「计划」和「已发生」 */
-.nt-row-virtual .nt-cell-input {
-  color: var(--nt-text-muted);
-  font-style: italic;
+.nt-row-virtual .nt-cell-input,
+.nt-row-virtual .nt-cell {
+  color: #8a8478;
+  font-style: normal;
 }
 .nt-row-virtual {
   background-image: repeating-linear-gradient(
@@ -910,4 +921,137 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.nt-composer {
+  position: fixed;
+  right: 12px;
+  bottom: 16px;
+  z-index: 35;
+  width: min(320px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--nt-bg-line);
+  border-top: 3px solid var(--nt-primary);
+  border-radius: 18px;
+  background: var(--nt-bg);
+  color: var(--nt-text);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+
+.nt-composer[hidden] {
+  display: none;
+}
+
+.nt-composer-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 6px 0 12px;
+  background: var(--nt-bg-soft);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.nt-composer-mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--nt-primary);
+  flex: none;
+}
+
+.nt-composer-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.nt-composer-fold {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--nt-text-muted);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.nt-composer-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+}
+
+.nt-composer-input,
+.nt-composer-send {
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.nt-composer-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.nt-composer-send {
+  flex: none;
+  padding: 0 14px;
+  line-height: 1;
+}
+
+.nt-composer.is-collapsed {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border-top-width: 1px;
+}
+
+.nt-composer.is-collapsed .nt-composer-body,
+.nt-composer.is-collapsed .nt-composer-fold,
+.nt-composer.is-collapsed .nt-composer-mark {
+  display: none;
+}
+
+.nt-composer.is-collapsed .nt-composer-head {
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  justify-content: center;
+  background: var(--nt-primary);
+}
+
+.nt-composer.is-collapsed .nt-composer-title {
+  flex: none;
+  color: #fff;
+  font-size: 16px;
+}
+
+.nt-seq-missing { color: #c62828; }
+.nt-seq-untyped { color: #b58100; }
+[data-theme="dark"] .nt-seq-missing,
+[data-theme="alt2"] .nt-seq-missing { color: #ff8a80; }
+[data-theme="dark"] .nt-seq-untyped,
+[data-theme="alt2"] .nt-seq-untyped { color: #ffd54a; }
+
+.nt-fly-ghost {
+  position: fixed;
+  z-index: 80;
+  margin: 0;
+  padding: 0 4px;
+  pointer-events: none;
+  color: var(--nt-text);
+  background: transparent;
+  font: inherit;
 }

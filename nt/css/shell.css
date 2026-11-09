@@ -315,9 +315,14 @@ body {
    干脆把这两格合并成一个跨 2 列的单元格，文字放里面、左对齐
    （用户 2026-10-30）。两列宽度由表头 th 决定，合并格跟着走。 */
 .nt-table-stats .nt-row-total .nt-cell[colspan] {
+  position: sticky;
+  left: 0;
+  z-index: 6;
   text-align: left;
   padding-left: 10px;
-  box-shadow: none;
+  background: var(--nt-bg-soft);
+  background-clip: padding-box;
+  box-shadow: inset -1px 0 0 0 var(--nt-bg-line);
 }
 
 /* ============================================================
@@ -336,10 +341,15 @@ body {
    会盖住 sticky 表头，看起来就是「序」被数据行顶掉（2026-10 用户实测）。 */
 
 .nt-table-flow .nt-th:nth-child(1),
+.nt-table-flow .nt-cell:nth-child(1) {
+  left: 0;
+}
+
+.nt-table-flow .nt-th:nth-child(1),
 .nt-table-plan .nt-th:nth-child(1),
 .nt-table-inst .nt-th:nth-child(1),
 .nt-table-stats .nt-th:nth-child(1),
-.nt-table-stats .nt-th:nth-child(2) {
+.nt-table-stats.is-cat .nt-th:nth-child(2) {
   position: -webkit-sticky;   /* 老 Safari / 部分安卓 WebView 只认带前缀的 */
   position: sticky;
   z-index: 6;
@@ -348,7 +358,7 @@ body {
 .nt-table-flow .nt-cell:nth-child(1),
 .nt-table-plan .nt-cell:nth-child(1),
 .nt-table-inst .nt-cell:nth-child(1),
-.nt-table-stats .nt-cell:nth-child(1) {
+.nt-table-stats .nt-cell:nth-child(1):not([colspan]) {
   position: -webkit-sticky;
   position: sticky;
   z-index: 4;
@@ -357,9 +367,32 @@ body {
 /* 冻结两列的表：第二列压在第一列之下。
    :not([colspan]) 必须排除合计行的跨列单元格 —— 它是 nth-child(1) 的 2 列合并格，
    否则那一行会把「转出金额」当成第二列钉住（用户 2026-10-30）。 */
-.nt-table-stats .nt-cell:nth-child(2):not([colspan]) {
+.nt-table-stats.is-cat .nt-th:nth-child(1),
+.nt-table-stats.is-cat .nt-cell:nth-child(1):not([colspan]) {
+  left: 0;
+}
+.nt-table-stats.is-cat .nt-th:nth-child(2),
+.nt-table-stats.is-cat .nt-cell:nth-child(2):not([colspan]) {
   position: sticky;
-  z-index: 3;
+  left: var(--nt-freeze-2, 54px);
+  z-index: 5;
+}
+.nt-table-stats.is-sum .nt-th:nth-child(1),
+.nt-table-stats.is-sum .nt-cell:nth-child(1) {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  text-align: left;
+}
+.nt-table-stats .nt-th:nth-child(1),
+.nt-table-stats.is-cat .nt-th:nth-child(2),
+.nt-table-stats.is-sum .nt-th:nth-child(1) {
+  z-index: 8;
+  background: var(--nt-bg-soft);
+}
+.nt-table-stats tbody .nt-cell {
+  position: relative;
+  z-index: 0;
 }
 
 /* 冻结列必须不透明：否则横向滚动时后面的内容会透出来 */
@@ -393,8 +426,11 @@ body {
    层级相同就按 DOM 顺序画，后面的列会盖住冻结列的文字
    （用户 2026-11-01：「第一列表头冻结了，但是在后方」）。 */
 .nt-table-inst .nt-th:nth-child(1) { z-index: 7; }
-/* 第一行表头固定 44px 高：第二行的 sticky top 就是按它错开的（见 plan.css） */
-.nt-table-inst thead tr:nth-child(1) .nt-th { height: 44px; }
+/* 两行表头都跟数据行一样高，第二行按这个高度错开（见 plan.css） */
+.nt-table-inst thead .nt-th,
+.nt-table-inst tbody .nt-cell {
+  height: var(--nt-row-h, 32px);
+}
 .nt-table-inst .nt-cell:nth-child(1):not([colspan]) {
   left: 0;
   z-index: 5;
@@ -422,9 +458,27 @@ body {
 .nt-table-flow .nt-cell:nth-child(1),
 .nt-table-plan .nt-cell:nth-child(1),
 .nt-table-inst .nt-cell:nth-child(1),
-.nt-table-stats .nt-cell:nth-child(1),
-.nt-table-stats .nt-cell:nth-child(2) {
-  background: var(--nt-unit-row-bg, var(--nt-row-bg, var(--nt-bg)));
+.nt-table-stats .nt-cell:nth-child(1):not([colspan]),
+.nt-table-stats.is-cat .nt-cell:nth-child(2):not([colspan]),
+.nt-table-stats.is-sum .nt-cell:nth-child(1) {
+  z-index: 5;
+  background: var(--nt-bg-cell, var(--nt-bg));
+}
+
+/* 分类合计行的「转出金额」是该行第 2 个子格（第 1 格跨了序+分类）。
+   它会误中上面的「第 2 列冻结」，金额就盖住「资产类合计」。
+   金额格退回普通层，标题格用实色盖住冻结宽度。 */
+.nt-table-stats.is-cat .nt-row-total > .nt-cell:not([colspan]),
+.nt-table-stats.is-sum .nt-row-total > .nt-cell:nth-child(n + 2) {
+  position: static;
+  left: auto;
+  z-index: 0;
+  background: transparent;
+}
+
+.nt-table-stats .nt-row-total > .nt-cell[colspan] {
+  z-index: 7;
+  background-color: var(--nt-bg-soft);
 }
 
 /* 右边界：内描边，不占布局、不溢出（绝对定位伪元素会多出一条黑带） */
@@ -709,6 +763,17 @@ body.nt-col-resizing .nt-tablewrap {
 .nt-table-inst .nt-th:nth-child(3) { width: 100px; min-width: 100px; max-width: 100px; }
 .nt-table-inst .nt-th.nt-c-month { width: var(--nt-inst-mw, 86px); }
 
+/* 分期表头是**两行**（上行合计 / 下行的本息总计 + 月份）。
+   两行都是 .nt-th，而 .nt-th 的默认 `top: 0` —— 不单独处理时
+   下行会整条压在上行上，滚动时只能看到「分期金额 / 本息总计 / 2026-08」，
+   上行「账户名称 / 每月合计 / 合计数字」被盖掉（2026-11 用户截图）。
+   所以第二行的 sticky 位置下移一个列标行高。
+   z-index 不在这里写：第一列的冻结表头是 6，普通表头是 5，
+   沿用默认就正好「上行在上、下行在下」。 */
+.nt-table-inst thead tr:nth-child(2) > .nt-th {
+  top: var(--nt-th-h, 26px);
+}
+
 /* ---------- 账户设置（10 列：简码 · 序 · 类型 · 分类 · 名称 · 期初 · 账单日 · 还款日 · 上移 · 删除） ---------- */
 
 /* 同上：不再给表级 min-width。
@@ -724,6 +789,10 @@ body.nt-col-resizing .nt-tablewrap {
 .nt-table-accounts .nt-th[data-col="repayDay"] { width: var(--nt-col-accounts-repayDay, 56px); }
 .nt-table-accounts .nt-th[data-col="up"]       { width: var(--nt-col-accounts-up, 40px); }
 .nt-table-accounts .nt-th[data-col="action"]   { width: var(--nt-col-accounts-action, 40px); }
+
+.nt-backup-banner[hidden] {
+  display: none;
+}
 
 .nt-backup-banner {
   position: fixed;

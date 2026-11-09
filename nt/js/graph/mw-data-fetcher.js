@@ -15,7 +15,7 @@
  * 验收：折叠后总额守恒（Σ 原边 = Σ 折叠后边，误差 < 0.005）。
  */
 
-import { OPENING_ACCOUNT_ID, ACCOUNT_TYPE } from '../core/schema.js';
+import { OPENING_ACCOUNT_ID, ACCOUNT_TYPE, isPosted } from '../core/schema.js';
 
 /* ============================================================
    切片规则（2026-10 按单文件版对齐）
@@ -53,7 +53,7 @@ export function fetchGraphData(input) {
   /* ---------- ① 区间 + 有效性过滤 ---------- */
   const picked = [];
   for (const t of txs) {
-    if (!t) continue;
+    if (!t || !isPosted(t)) continue;
     const d = String(t.date || '');
     if (!d) continue;
     if (range.start && d < range.start) continue;

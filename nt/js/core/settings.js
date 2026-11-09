@@ -270,6 +270,8 @@ export const THEME_DEFAULTS = THEME_IDS.reduce((acc, id) => {
 const LEGACY_DEFAULT = {
   环厚: { 80: 60 },        // v1.210：80 → 60
   追踪字号: { 52: 46 },    // v1.210：52 → 46
+  外圈线厚比例: { 0.06: 0.1 },   // v1.227：0.06 → 0.1
+  外圈线间距比例: { 0.03: 0.05 }, // v1.227：0.03 → 0.05
 };
 
 export function normalize(raw, theme) {
@@ -493,5 +495,5 @@ export const ZONES = [
   { key: 'A', label: 'A 我的资产/成本/日常支出', hint: '转入增加，转出减少', types: ['资产类', '费用类', '成本类'] },
   { key: 'B', label: 'B 收入与本金/欠款与贷款', hint: '转出增加，转入减少', types: ['负债类', '权益类', '收入类'] },
   // 未分类账户：流水里有、设置表里没有的账户会被自动补成壳放在这里（类型/分类为空）
-  { key: 'U', label: 'U 未分类账户', hint: '流水里有、设置表里没有的账户；补上名称和类型就会归到 A / B', types: [] },
+  { key: 'U', label: 'U 未分类节点', hint: '流水里有、设置表里没有的节点；补上名称和类型就会归到 A / B', types: [] },
 ];

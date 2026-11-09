@@ -1,29 +1,29 @@
 /* NT账本 · 多文件版 Service Worker
- * 公约 4.4：CACHE_NAME 必须随静态资源更新自�?
+ * 公约 4.4：CACHE_NAME 必须随静态资源更新自�?
  *
  * ============================================================
  * 策略：stale-while-revalidate（离线优先）
  * ============================================================
- *   · 命中缓存   �?立刻返回（断网也秒开），同时后台拿新的写回缓�?
- *   · 没命中缓�?�?走网络，成功后写入缓�?
- *   · 离线且没缓存 �?报错
+ *   · 命中缓存   �?立刻返回（断网也秒开），同时后台拿新的写回缓�?
+ *   · 没命中缓�?�?走网络，成功后写入缓�?
+ *   · 离线且没缓存 �?报错
  *
- * 之前�?network-first，问题在离线场景：每个请求都要等网络超时才回落缓存，
- * 130 多个模块叠起来就是一片白屏。而且 ASSETS 只预缓存�?7 个文件，
- * 其余模块断网时压根没有缓存可用�?
+ * 之前�?network-first，问题在离线场景：每个请求都要等网络超时才回落缓存，
+ * 130 多个模块叠起来就是一片白屏。而且 ASSETS 只预缓存�?7 个文件，
+ * 其余模块断网时压根没有缓存可用�?
  *
- * 更新路径（两条，都不依赖自动检测）�?
- *   �?CACHE_NAME 变化 �?�?SW �?install 阶段重新预缓存全部资�?
- *   �?页面「重载」按�?�?等新 SW 装完 + SKIP_WAITING + 刷新（SW 换班，不注销�?
+ * 更新路径（两条，都不依赖自动检测）�?
+ *   �?CACHE_NAME 变化 �?�?SW �?install 阶段重新预缓存全部资�?
+ *   �?页面「重载」按�?�?等新 SW 装完 + SKIP_WAITING + 刷新（SW 换班，不注销�?
  *
- * 注意：「清所有缓�?+ 注销 SW」只在「已经打不开、必须重来」时用（连点 5 次版本号），
- * 它不是常规更新路�?—�?注销之后断网就是浏览器原生「打不开网页」�?
+ * 注意：「清所有缓�?+ 注销 SW」只在「已经打不开、必须重来」时用（连点 5 次版本号），
+ * 它不是常规更新路�?—�?注销之后断网就是浏览器原生「打不开网页」�?
  *
- * ASSETS 必须**完整**：漏掉的文件在离线时会直接加载失败�?
- * 新增文件记得加进来（tools 里有生成脚本）�?
+ * ASSETS 必须**完整**：漏掉的文件在离线时会直接加载失败�?
+ * 新增文件记得加进来（tools 里有生成脚本）�?
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.216';
+const CACHE_NAME = 'nt-v1.227';
 
 const ASSETS = [
   './index.html',
@@ -55,6 +55,7 @@ const ASSETS = [
   './js/browser/idb.js',
   './js/core/account-config.js',
   './js/core/account-index.js',
+  './js/core/account-match.js',
   './js/core/account-order.js',
   './js/core/account-resolver.js',
   './js/core/auth-manager.js',
@@ -115,6 +116,9 @@ const ASSETS = [
   './js/ui/apply-settings.js',
   './js/ui/checks-view.js',
   './js/ui/color-picker.js',
+  './js/ui/composer.js',
+  './js/ui/fly-in.js',
+  './js/ui/flow-ends.js',
   './js/ui/debug-panel.js',
   './js/ui/debug-pip.js',
   './js/ui/debug-themes.js',
@@ -133,9 +137,11 @@ const ASSETS = [
   './js/ui/path-flow-table.js',
   './js/ui/path-legend.js',
   './js/ui/path-view.js',
+  './js/ui/plan-rows.js',
   './js/ui/pwa.js',
   './js/ui/qr-canvas.js',
   './js/ui/render-transactions.js',
+  './js/ui/review-tip.js',
   './js/ui/reset-dialog.js',
   './js/ui/row-editor.js',
   './js/ui/share-block.js',
@@ -167,6 +173,11 @@ const ASSETS = [
   './js/core/bill-parse.js',
   './js/core/csv.js',
   './js/core/date-query.js',
+  './js/core/draft-book.js',
+  './js/core/lexicon.js',
+  './js/core/phrase-entry.js',
+  './js/core/phrase-parser.js',
+  './js/core/plan-occurrence.js',
   './js/core/xlsx-xml.js',
   './js/ui/range-bar.js',
   './js/ui/cell-range.js',
@@ -189,9 +200,9 @@ self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME)
       // 单个文件失败不该让整个安装失败（否则永远装不上）
-      // ⚠️ 必须�?cache:'reload' —�?c.add(url) 默认会走浏览�?HTTP 缓存�?
+      // ⚠️ 必须�?cache:'reload' —�?c.add(url) 默认会走浏览�?HTTP 缓存�?
       // GitHub Pages 的静态资源是 max-age=600，于是新 SW 预缓存时
-      // 装进去的其实�?*旧文�?*，看起来就是「点了更新、版本号永远不动」�?
+      // 装进去的其实�?*旧文�?*，看起来就是「点了更新、版本号永远不动」�?
       .then((c) => Promise.all(
         ASSETS.map((u) => c.add(new Request(u, { cache: 'reload' })).catch(() => null)),
       ))
@@ -227,8 +238,8 @@ self.addEventListener('fetch', (e) => {
     const cached = await caches.match(e.request);
 
     if (cached) {
-      // 后台更新缓存，不阻塞返回 —�?下一次打开就是新版
-      // 同样�?cache:'reload'，否则后台拿回来的还�?HTTP 缓存里的旧文�?
+      // 后台更新缓存，不阻塞返回 —�?下一次打开就是新版
+      // 同样�?cache:'reload'，否则后台拿回来的还�?HTTP 缓存里的旧文�?
       fetch(e.request, { cache: 'reload' })
         .then((res) => {
           if (res && res.ok && res.type === 'basic') {

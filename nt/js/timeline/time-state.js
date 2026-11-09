@@ -15,6 +15,7 @@
  */
 
 import { computeInstallment, addMonths, dayInMonth } from '../core/installment-engine.js';
+import { pickSavingsAccount, planKey } from '../core/plan-occurrence.js';
 
 export const SEGMENT = { PAST: 'past', CURRENT: 'current', FUTURE: 'future' };
 
@@ -44,7 +45,9 @@ export function splitByTime(transactions, accounts, installments, opts) {
     else current.push(t);
   }
 
-  const virtual = buildVirtualRepayments(installments, targetMonth, accounts);
+  const virtual = buildVirtualRepayments(installments, targetMonth, accounts)
+    .concat(buildVirtualFixed(installments, target, accounts));
+  virtual.sort((a, b) => String(a.date).localeCompare(String(b.date)));
 
   return {
     past,
@@ -92,31 +95,108 @@ export function buildVirtualRepayments(installments, targetMonth, accounts) {
     if (!st.firstMonth || st.periods <= 0) continue;
 
     const payDay = Number(inst.day) || Number((inst.inst || {}).day) || 1;
-    const target = nameOf(inst.to_id) || nameOf(inst.from_id) || inst.note || '分期';
+    const toName = nameOf(inst.to_id) || inst.note || inst.name || '分期';
+    const savedFrom = nameOf(inst.from_id);
+    const picked = savedFrom ? null : pickSavingsAccount(accounts);
+    const fromName = savedFrom || (picked ? picked.name : '');
+    const fromId = (savedFrom && inst.from_id) || (picked && picked.id) || null;
+    const sourceId = inst.id || inst.name || toName;
 
     for (let k = st.paidPeriods; k < st.periods; k++) {
       const month = addMonths(st.firstMonth, k);
       if (!month) continue;
       const day = dayInMonth(month, payDay);
+      const n = k + 1;
       out.push({
         isVirtual: true,
         kind: 'installment',
-        source: target,
-        periodIndex: k + 1,
+        source: sourceId,
+        sourceId,
+        periodIndex: n,
         periods: st.periods,
         month,
+        planKey: planKey(sourceId, month),
         date: `${month}-${String(day).padStart(2, '0')}`,
         amount: st.perPeriod,
         principal: st.principalPer,
         interest: st.interestPer,
-        fromName: '分期还款',
-        toName: target,
+        fromName,
+        fromId,
+        toName,
+        toId: inst.to_id || null,
+        note: `分期还款 第 ${n}/${st.periods} 期`,
       });
     }
   }
 
   out.sort((a, b) => String(a.date).localeCompare(String(b.date)));
   return out;
+}
+
+/**
+ * 固定收支的未来发生（不含分期）。每月最多望 6 个月，每天只望 14 天。
+ * 没有 isScheduled 且没有账户的裸对象不当成规则，避免把测试夹具拆成一堆虚拟行。
+ */
+export function buildVirtualFixed(list, targetDate, accounts) {
+  const out = [];
+  const start = String(targetDate || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) return out;
+  const fromMonth = start.slice(0, 7);
+  const accById = new Map();
+  for (const a of accounts || []) if (a && a.id) accById.set(a.id, a);
+  const nameOf = (id) => {
+    const a = accById.get(id);
+    return a ? String(a.name || '') : '';
+  };
+
+  for (const s of list || []) {
+    if (!s || s.inst || s.isScheduled !== true) continue;
+    const sourceId = s.id || s.note || 'fixed';
+    if (s.freq === 'daily') {
+      for (let i = 0; i < 14; i += 1) {
+        const date = shiftIso(start, i);
+        out.push(fixedRow(s, date, date, sourceId, nameOf));
+      }
+      continue;
+    }
+    for (let i = 0; i < 6; i += 1) {
+      const month = addMonths(fromMonth, i);
+      if (!month) continue;
+      const day = dayInMonth(month, Number(s.day) || 1);
+      const date = `${month}-${String(day).padStart(2, '0')}`;
+      if (date < start) continue;
+      out.push(fixedRow(s, date, month, sourceId, nameOf));
+    }
+  }
+  return out;
+}
+
+function fixedRow(s, date, key, sourceId, nameOf) {
+  return {
+    isVirtual: true,
+    kind: 'fixed',
+    source: sourceId,
+    sourceId,
+    month: key,
+    planKey: planKey(sourceId, key),
+    date,
+    amount: Number(s.amount) || 0,
+    fromName: nameOf(s.from_id),
+    fromId: s.from_id || null,
+    toName: nameOf(s.to_id),
+    toId: s.to_id || null,
+    note: s.note || '',
+    periodIndex: key,
+    periods: '',
+  };
+}
+
+function shiftIso(iso, days) {
+  const d = new Date(iso + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
 }
 
 /**

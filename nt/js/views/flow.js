@@ -7,18 +7,21 @@
  * 合计与余额全部来自 core 的纯函数，本文件不算钱。
  */
 
-import { addTransaction, updateTransaction, removeTransaction, nextSeq, removeBatch, restoreBatch, noteTextByCode, ensureAccountByText } from '../core/state-store.js';
+import { addTransaction, updateTransaction, removeTransaction, nextSeq, removeBatch, restoreBatch, noteTextByCode } from '../core/state-store.js';
+import { afterTxEdit } from '../core/draft-book.js';
+import { mountComposer } from '../ui/composer.js';
 import { createScheduled } from '../core/schema.js';
 import { buildFlowRows, buildFooterInfo } from '../ui/flow-model.js';
 import { moneyOrBlank, normalizeTypedDate, todayIso } from '../core/format.js';
 import { fingerprintBag, takeIfNew, keysForIncoming } from '../core/import-dedupe.js';
 import { renderRows, patchRow, promoteRow } from '../ui/render-transactions.js';
 import { parseAccountInput, suggestAccounts as suggestByIndex, ensurePendingAccount } from '../core/account-resolver.js';
+import { endFromText, endsFromFields, joinHeld } from '../ui/flow-ends.js';
 import { bindRowEditing } from '../ui/row-editor.js';
-import * as NtModal from '../ui/modal.js';
 import { openAddDialog } from '../ui/add-dialog.js';
 import { openSyncDialog } from '../ui/sync-dialog.js';
 import { splitByTime } from '../timeline/time-state.js';
+import { bindPlanRowActions, scrollPresent } from '../ui/plan-rows.js';
 import { mountCellRange } from '../ui/cell-range.js';
 import { showUndo } from '../ui/undo-bar.js';
 import { openImportHub } from '../ui/import-hub.js';
@@ -31,6 +34,9 @@ export function mountFlow(section, ctx) {
   let scrollInit = false;
   /** 上次渲染时的数据版本；切 tab 回来时用它判断要不要真的重画 */
   let renderedVer = -1;
+
+  mountComposer(section, ctx, body, () => render(true));
+  bindPlanRowActions(body, ctx, () => render(true));
 
   bindRowEditing(body, {
     onEdit,
@@ -241,7 +247,7 @@ export function mountFlow(section, ctx) {
       const wrap = body.closest('.nt-tablewrap');
       const first = body.querySelector('tr[data-id]') || body.querySelector('tr[data-new="1"]');
       const rowH = first ? first.getBoundingClientRect().height || 34 : 34;
-      if (wrap) wrap.scrollTop = Math.max(0, (body.querySelectorAll('tr[data-id]').length - 6) * rowH);
+      if (wrap) wrap.scrollTop = scrollPresent(body, rowH);
     });
   }
 
@@ -275,17 +281,21 @@ export function mountFlow(section, ctx) {
     ctx.setFooter(footerText());
   }
 
-  function footerText() { const i = buildFooterInfo(ctx.getState()); return `共 ${i.count} 笔 · 合计 ${i.totalText}`; }
+  function footerText() {
+    const i = buildFooterInfo(ctx.getState());
+    return `共 ${i.count} 笔 · 合计 ${i.totalText}` + (i.drafts ? ` · 草稿 ${i.drafts} 笔未入账` : '');
+  }
 
   function onEdit(id, field, value, resolvedId) {
     const patch = {};
     if (field === 'date') patch.date = normalizeTypedDate(value);
     else if (field === 'amount') patch.amount = normalizeAmountInput(value);
     else if (field === 'from' || field === 'to') {
-      // 流水只负责记录：认不出的文本自动建一个未分类账户（不拦录入）
-      let accId = resolvedId || (parseAccountInput(ctx.getIndex(), value).acc || {}).id || null;
-      if (!accId) { const r = ensureAccountByText(ctx.getState(), value); if (r.id) { ctx.setState(r.state); accId = r.id; } }
-      patch[field === 'from' ? 'from_id' : 'to_id'] = accId;
+      const tx = (ctx.getState().transactions || []).find((t) => t && t.id === id);
+      const hit = endFromText(ctx.getState(), ctx.getIndex(), value, resolvedId, tx && tx.note);
+      if (hit.state !== ctx.getState()) ctx.setState(hit.state);
+      if (hit.note !== (tx && tx.note || '')) patch.note = hit.note;
+      patch[field === 'from' ? 'from_id' : 'to_id'] = hit.id;
     } else {
       patch[field] = value;
     }
@@ -296,7 +306,7 @@ export function mountFlow(section, ctx) {
     else if (field === 'amount') patchRow(id, { amountEdit: value });
     else if (field === 'from' || field === 'to') patchRow(id, { [field]: value });
 
-    ctx.setState(updateTransaction(ctx.getState(), id, patch));
+    ctx.setState(afterTxEdit(updateTransaction(ctx.getState(), id, patch), id, field));
     ctx.setFooter(footerText());
     ctx.save();
   }
@@ -304,14 +314,9 @@ export function mountFlow(section, ctx) {
   function onCreate(fields, tr) {
     // 流水只负责记录（用户 2026-10-30）：转出/转入可以随便写，
     // 认不出的文本自动建一个未分类账户，不拦录入。
-    let s = ctx.getState();
-    const from = parseAccountInput(ctx.getIndex(), fields.from || '');
-    const to = parseAccountInput(ctx.getIndex(), fields.to || '');
-    let fromId = from.acc ? from.acc.id : null;
-    let toId = to.acc ? to.acc.id : null;
-    if (!fromId && fields.from) { const r = ensureAccountByText(s, fields.from); s = r.state; fromId = r.id; }
-    if (!toId && fields.to) { const r = ensureAccountByText(s, fields.to); s = r.state; toId = r.id; }
-    if (!fromId && !toId) return;   // 两边都空：不建单
+    const ends = endsFromFields(ctx.getState(), ctx.getIndex(), fields);
+    const s = ends.state;
+    if (!ends.fromId && !ends.toId) return;
 
     // 还没填金额 = 用户只是先把账户名写上了（自由录入：想在哪个空行写就在哪行写）。
     // 这时只把账户登记进设置表，不建一笔金额为空的流水。
@@ -321,10 +326,10 @@ export function mountFlow(section, ctx) {
 
     ctx.setState(addTransaction(s, {
       date: normalizeTypedDate(fields.date || todayIso()),
-      from_id: fromId,
-      to_id: toId,
+      from_id: ends.fromId,
+      to_id: ends.toId,
       amount: normalizeAmountInput(fields.amount || ''),
-      note: fields.note || '',
+      note: joinHeld(fields.note, ends.held),
       seq: nextSeq(s),
     }));
 
@@ -386,7 +391,7 @@ function bindToolbar(section, ctx, h) {
         const a = ctx.getIndex().byId.get(id);
         return a ? (a.name || '') : '';
       },
-      shareBackup: () => (ctx.shareBackup ? ctx.shareBackup() : Promise.reject(new Error('不能备份'))),
+      shareBackup: () => (ctx.shareBackup ? ctx.shareBackup() : Promise.reject(new Error('不能备份'))), encryptedBackupText: () => (ctx.encryptedBackupText ? ctx.encryptedBackupText() : Promise.reject(new Error('不能备份'))),
       onBackedUp: () => { if (ctx.markBackup) ctx.markBackup(); },
     }));
   }

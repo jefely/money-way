@@ -28,7 +28,7 @@ const SETTINGS_COLS = {
   code: ['简码'],
   type: ['类型'],
   category: ['分类'],
-  name: ['账户名称', '名称'],
+  name: ['节点名称', '账户名称', '名称'],
   opening: ['期初'],
   billDay: ['账单日'],
   repayDay: ['还款日'],
@@ -48,7 +48,7 @@ function findSettingsHead(rows) {
     const cells = (rows[i] || []).map(str);
     if (!cells.length) continue;
     const has = (kw) => cells.some((c) => c.includes(kw));
-    if (has('账户名称') && has('期初')) return i;
+    if ((has('节点名称') || has('账户名称')) && has('期初')) return i;
   }
   return -1;
 }
@@ -116,24 +116,33 @@ export function parseSettingsRows(rows) {
   return out;
 }
 
-/** 流水表：前两行是标题与表头 */
+/** 流水表：前两行是标题与表头。没有「状态」列 = 已入账。 */
 export function parseFlowRows(rows) {
   const out = [];
   let skipped = 0;
+  const head = (rows || [])[1] || [];
+  let statusCol = -1;
+  for (let c = 0; c < head.length; c += 1) {
+    if (str(head[c]) === '状态') statusCol = c;
+  }
 
   for (let i = 2; i < (rows || []).length; i += 1) {
     const r = rows[i] || [];
     const date = parseBillDate(r[1]);
     const amount = num(r[4]);
-    if (!date || !amount) { skipped += 1; continue; }
+    const statusText = statusCol >= 0 ? str(r[statusCol]) : '';
+    const draft = /^(草稿|draft)$/i.test(statusText);
+    if (!date || (!amount && !draft)) { skipped += 1; continue; }
 
-    out.push({
+    const item = {
       date,
       from: str(r[2]),
       to: str(r[3]),
       amount: Math.abs(amount),
       note: str(r[5]),
-    });
+    };
+    if (draft) item.status = 'draft';
+    out.push(item);
   }
 
   return { items: out, skipped };
@@ -171,7 +180,8 @@ export function parseInstRows(rows) {
 
   let headIdx = -1;
   for (let i = 0; i < Math.min(rows.length, 6); i += 1) {
-    if (str((rows[i] || [])[0]) === '账户名称') { headIdx = i; break; }
+    const headName = str((rows[i] || [])[0]);
+    if (headName === '节点名称' || headName === '账户名称') { headIdx = i; break; }
   }
   if (headIdx < 0) headIdx = 1;          // 老格式：标题 + 表头
 
@@ -263,6 +273,7 @@ export function stateFromTemplate(parsed) {
     bound += 1;
     state = addTransaction(state, {
       date: t.date, from_id: fromId, to_id: toId, amount: t.amount, note: t.note,
+      ...(t.status === 'draft' ? { status: 'draft' } : {}),
     });
   }
 
