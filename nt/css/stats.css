@@ -578,3 +578,8 @@
 /* 备注查询：表头行高26/字号12，数据行高32/字号14 */
 #nt-stats-notes .nt-note-detail-table thead th { height: 26px !important; font-size: 12px !important; }
 #nt-stats-notes .nt-note-detail-table tbody td { height: 32px !important; font-size: 14px !important; }
+
+/* 备注查询表头：相邻边框合并为 1px，避免序/日期交界出现双线 */
+#nt-stats-notes .nt-note-detail-table { border-collapse: collapse; }
+#nt-stats-notes .nt-note-detail-table thead th { border-left: 0; border-right: 1px solid var(--nt-bg-line); }
+#nt-stats-notes .nt-note-detail-table thead th:first-child { border-left: 1px solid var(--nt-bg-line); }
