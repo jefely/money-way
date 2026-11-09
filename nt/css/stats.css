@@ -566,3 +566,7 @@
 #nt-stats-notes .nt-stats-grid { grid-template-rows: minmax(0, 1fr); }
 #nt-stats-notes .nt-stats-panel { height: 100%; min-height: 0; }
 #nt-stats-notes .nt-stats-panel:first-child { display: block; overflow-y: auto; overflow-x: hidden; }
+
+/* 备注查询：行高与列宽默认值（节点统计表分类列表同款观感） */
+.nt-note-detail-table { table-layout: fixed; }
+.nt-note-detail-table td { height: 34px; }

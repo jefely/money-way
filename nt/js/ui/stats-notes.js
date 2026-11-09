@@ -46,10 +46,13 @@ export function mountStatsNotes(ctx, pane, getRange) {
   const title = el('b', '', '备注查询');
   const input = el('input', 'nt-stats-query-input');
   input.type = 'search';
-  input.placeholder = '点左侧分类/关键字，或输入关键字';
+  input.placeholder = '点左侧分类/关键字，或输入关键字/简码';
   input.setAttribute('aria-label', '备注查询');
+  const clearBtn = el('button', 'nt-btn nt-btn-sm', '清空');
+  clearBtn.type = 'button';
   head.appendChild(title);
   head.appendChild(input);
+  head.appendChild(clearBtn);
   const wrap = el('div', 'nt-tablewrap nt-note-detail-wrap');
   const body = el('div', 'nt-note-detail');
   wrap.appendChild(body);
@@ -66,7 +69,11 @@ export function mountStatsNotes(ctx, pane, getRange) {
   }
 
   function pick(kind, value) {
-    picked = picked && picked.kind === kind && picked.value === value ? null : { kind, value };
+    if (picked && picked.kind === kind && picked.value === value) {
+      picked = null; input.value = '';
+    } else {
+      picked = { kind, value }; input.value = value;
+    }
     render();
   }
 
@@ -124,7 +131,9 @@ export function mountStatsNotes(ctx, pane, getRange) {
         return (typeOf.get(String(t.noteKeyword || '').trim()) || '（未设分类）') === picked.value;
       }
       if (!kw) return false;
-      return String(t.noteKeyword || '').includes(kw) || String(t.note || '').includes(kw);
+      if (String(t.noteKeyword || '').includes(kw) || String(t.note || '').includes(kw)) return true;
+      const note = (state.notes || []).find((n) => String(n.keyword || '').trim() === String(t.noteKeyword || '').trim());
+      return !!note && String(note.code || '').toLowerCase().startsWith(kw.toLowerCase());
     });
     return rows.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
   }
@@ -146,6 +155,12 @@ export function mountStatsNotes(ctx, pane, getRange) {
       return;
     }
     const tableEl = el('table', 'nt-table nt-table-stats nt-note-detail-table');
+    const dcg = el('colgroup');
+    for (const w of [44, 70, 100, 110, 96]) {
+      const c = el('col'); c.style.width = w + 'px'; dcg.appendChild(c);
+    }
+    dcg.appendChild(el('col'));
+    tableEl.appendChild(dcg);
     const thead = el('thead');
     const hr = el('tr');
     for (const h of ['序', '日期', '转出', '转入', '金额', '备注']) hr.appendChild(el('th', 'nt-th', h));
@@ -169,6 +184,11 @@ export function mountStatsNotes(ctx, pane, getRange) {
 
   input.addEventListener('input', () => {
     picked = null;
+    render();
+  });
+  clearBtn.addEventListener('click', () => {
+    picked = null;
+    input.value = '';
     render();
   });
 
