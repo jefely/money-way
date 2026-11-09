@@ -162,7 +162,7 @@
 | `ui/mw-svg-renderer.js` | 路径 tab / path.html → SVG 渲染 |
 | `ui/node-relations.js` | 节点关系（上下级配置表） |
 | `ui/note-popover.js` | 流水 / 查询 → 长备注 |
-| `ui/note-stats.js` | 备注统计（两个小表：备注分类 / 备注，沿用统计页的日期筛选） |
+| `ui/note-stats.js` | 备注统计（两个小表：备注分类 / 备注；表头沿用节点统计表的四列余额口径） |
 | `ui/note-table.js` | 设置页的备注区（独立于账户的 A/B 区） |
 | `ui/open-drafts.js` | 开放录入区草稿的持久化 |
 | `ui/open-rows.js` | 开放录入区的结算 |
