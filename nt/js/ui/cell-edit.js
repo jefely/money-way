@@ -96,6 +96,7 @@ export function bindCellEdit(tbody) {
     const td = cell(ev.target);
     if (!td) { down = null; return; }
     down = { td, wasSelected: td.classList.contains(SEL) };
+    if (!down.wasSelected && active) clearCells();
     // 焦点交给 click 决定：否则浏览器先 focus → focusin 先跑 → click 再判一次，
     // 就成了「点一下变取消」。这一句是整套交互能成立的前提。
     ev.preventDefault();

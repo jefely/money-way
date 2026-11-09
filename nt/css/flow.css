@@ -1469,7 +1469,13 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
   box-shadow: inset 0 0 0 2px var(--nt-primary);
 }
 
+/* 选中 = 整格淡紫底（空值时也看得见，不会像「已经进去了」） */
 .nt-cell-sel .nt-cell-input {
+  background: rgba(107, 91, 196, 0.16);
+}
+
+/* 编辑 = 底变透明、光标显形 */
+.nt-cell-editing .nt-cell-input {
   background: transparent;
 }
 
