@@ -57,6 +57,13 @@ test('★ 旧默认值跟着新默认走（老存档不会卡在旧值上）', (
   const custom = normalize({ 锥形第一档: 60, 锥形第二档: 130 }, 'dark');
   assert.equal(custom['锥形第一档'], 60, '用户自调值不该被迁移');
   assert.equal(custom['锥形第二档'], 130);
+
+  const ring = normalize({ 外圈线厚比例: 0.06, 外圈线间距比例: 0.03 }, 'dark');
+  assert.equal(ring['外圈线厚比例'], 0.1);
+  assert.equal(ring['外圈线间距比例'], 0.05);
+  const ringKept = normalize({ 外圈线厚比例: 0.2, 外圈线间距比例: 0.08 }, 'dark');
+  assert.equal(ringKept['外圈线厚比例'], 0.2);
+  assert.equal(ringKept['外圈线间距比例'], 0.08);
 });
 
 test('每项默认值都落在自己的 min/max 内（默认值本身不该被钳）', () => {  for (const s of MW_SCHEMA) {

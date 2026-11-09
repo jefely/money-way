@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { tipPosition, TIP_GAP } from '../js/ui/chart-tip.js';
+import { tipPosition, TIP_GAP, tipHoldPlan, TIP_HOLD_MS } from '../js/ui/chart-tip.js';
 
 test('1cm ≈ 38 CSS px', () => {
   assert.equal(TIP_GAP, 38);
@@ -31,6 +31,14 @@ test('水平以指针为中心，左右夹在视口内', () => {
 test('顶部放不下时翻到指针下方（至少 16px）', () => {
   const p = tipPosition({ x: 100, y: 40, w: 160, h: 50, vw: 390, vh: 844 });
   assert.equal(p.y, 56);   // 40 + 16
+});
+
+test('点一下停 3 秒，再点另一段立刻换并重计', () => {
+  assert.equal(TIP_HOLD_MS, 3000);
+  assert.deepEqual(tipHoldPlan('现金', false), { action: 'show', ms: 3000 });
+  assert.deepEqual(tipHoldPlan('微信', true), { action: 'show', ms: 3000 });
+  assert.deepEqual(tipHoldPlan('', true), { action: 'keep', ms: 3000 });
+  assert.deepEqual(tipHoldPlan('', false), { action: 'hide', ms: 0 });
 });
 
 test('超出视口底部时夹回来', () => {

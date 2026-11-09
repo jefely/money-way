@@ -29,7 +29,7 @@
  * 聚合后再画一圈同色系的分类带，等于把「分类边界」说两遍，还多出一整圈颜色。
  * 现在外层只留一条**细线**表示六大类型，其余全给节点弧块。
  */
-const BAND = { type: 0.06, gap: 0.03, node: 0.91 };
+const BAND = { type: 0.1, gap: 0.05, node: 0.85 };
 
 /**
  * 两层同心环的半径。
@@ -38,7 +38,7 @@ const BAND = { type: 0.06, gap: 0.03, node: 0.91 };
  * @param {number} rIn  最内沿（= R_connect，连线从这里射出）
  * @param {{typeWidth?:number, typeGap?:number}} [opts]
  *        typeWidth 外圈细线占环厚的比例（默认 0.1）
- *        typeGap   细线与节点环之间的空隙，同样是**环厚的比例**（默认 0）
+ *        typeGap   细线与节点环之间的空隙，同样是**环厚的比例**（默认 0.05）
  *        两个都在面板「环图·几何」里可调（2026-11 用户要求）。
  * @returns {{r3:number,r2:number,r1:number,r0:number,typeBand:number,catBand:number,nodeBand:number}}
  */

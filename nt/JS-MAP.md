@@ -123,7 +123,7 @@
 | `ui/cell-range.js` | 单元格区域框选（长按起手 → 拖动框选 → 复制 / 粘贴 / 删除行） |
 | `ui/cell-select.js` | 流水表的选区（Excel 式：锚点 + 右下角手柄 + 长按菜单） |
 | `ui/chart-gestures.js` | 环网图的手势（拖动 / 缩放 / 平移 / 旋转） |
-| `ui/chart-tip.js` | 路径 tab → 悬停提示 |
+| `ui/chart-tip.js` | 路径 tab → 点击停留提示 |
 | `ui/checks-view.js` | 校验 tab → 账本校验区 |
 | `ui/col-save.js` | 把某张表某列的宽度存进「用户设置」 |
 | `ui/col-widths.js` | 列宽持久化（拖动 → 参数 → CSS 变量） |

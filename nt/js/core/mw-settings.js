@@ -33,7 +33,6 @@ export const MW_SCHEMA = [
   { key: '环厚', type: 'num', group: '环图·几何', def: 60, min: 8, max: 200, cssVar: '--nt-mw-thick', field: 'thick' },
   // 外圈那条细线（六大类节点类型）的粗细，以及它与内圈节点环之间的空隙。
   // 两个都是**环厚的比例**：0.1 = 环厚的十分之一，0 = 贴死不留缝。
-  // 2026-11 用户实测调出 0.06 / 0.03 这一组，定为默认。
   { key: '外圈线厚比例', type: 'num', group: '环图·几何', def: 0.1, min: 0.01, max: 0.5, cssVar: '--nt-mw-type-w', field: 'typeWidth' },
   { key: '外圈线间距比例', type: 'num', group: '环图·几何', def: 0.05, min: 0, max: 0.3, cssVar: '--nt-mw-type-gap', field: 'typeGap' },
   { key: '扇区分界线宽', type: 'num', group: '环图·几何', def: 0.6, min: 0, max: 10, cssVar: '--nt-mw-sector-w', field: 'sectorW' },

@@ -108,10 +108,10 @@ test('★ 外圈细线的粗细与间距可调（面板「环图·几何」）',
   assert.ok(huge.r1 <= huge.r2 && huge.r0 >= 0);
 });
 
-test('外圈默认值：线厚 0.06 / 间距 0.03（2026-11 用户实测）', () => {
+test('外圈默认值：线厚 0.1 / 间距 0.05', () => {
   const r = ringRadii(2000, 1800);   // 环厚 200
-  assert.ok(Math.abs(r.typeBand - 12) < 1e-6, '200 × 0.06 = 12');
-  assert.ok(Math.abs(r.r2 - r.r1 - 6) < 1e-6, '间距 200 × 0.03 = 6');
+  assert.ok(Math.abs(r.typeBand - 20) < 1e-6, '200 × 0.1 = 20');
+  assert.ok(Math.abs(r.r2 - r.r1 - 10) < 1e-6, '间距 200 × 0.05 = 10');
 });
 
 /* ---------- ② 三层配色 ---------- */
