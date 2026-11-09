@@ -19,8 +19,8 @@ import { ZONES } from '../core/settings.js';
 import { money } from '../core/format.js';
 import { toAmount } from '../core/stats.js';
 import { updateAccount, removeAccount, addNote, updateNote, removeNote, NOTE_TYPES, accountTypesOf } from '../core/state-store.js';
-import { accountsOfZone, orderBySeq, effectiveSeq, moveWithinType, withUndefinedAccounts } from '../core/account-order.js';
-import { bindTypePicker, promptType } from './type-picker.js';
+import { accountsOfZone, orderBySeq, effectiveSeq, moveWithinType, withUndefinedAccounts, pruneEmptyAccounts } from '../core/account-order.js';
+import { bindTypePicker } from './type-picker.js';
 import { zoneHead } from './table-parts.js';
 import { normalizeCode, isValidCode } from '../core/schema.js';
 import { balanceOf } from '../core/balance-calculator.js';
@@ -47,7 +47,7 @@ const FULL_OF_SHORT = Object.fromEntries(
 /** 账本里的类型 → 格子里显示的文字：`资产类` → `[资产]`；自定义类型原样加括号 */
 export function typeLabel(type) {
   const t = String(type || '').trim();
-  if (!t) return '';
+  if (!t) return '[其他]';
   return '[' + (SHORT_OF_TYPE[t] || t) + ']';
 }
 
@@ -96,8 +96,9 @@ export function mountAccountTable(ctx, tbody, opts) {
     let state = ctx.getState();
     // 自动扫描：流水里引用了、设置表里没有的账户 → 补一个「未分类账户」行
     // （类型/分类留空，归到 U 区；流水是主表，这里只是给它一个可编辑的壳）
-    const filled = withUndefinedAccounts(state);
-    if (filled !== state) { ctx.setState(filled); state = filled; ctx.saveNow(); }
+    // 没有有效内容的行（名称/简码/期初全空且没被引用）直接清掉，序号跟着消失
+    const pruned = pruneEmptyAccounts(withUndefinedAccounts(state));
+    if (pruned !== state) { ctx.setState(pruned); state = pruned; ctx.saveNow(); }
     const visible = (state.accounts || []).filter((a) => a && !a.isHidden);
 
     // 简码校验：缺简码不标（简码只是高频录入的快捷键，空着不影响统计）；
@@ -184,13 +185,12 @@ export function mountAccountTable(ctx, tbody, opts) {
           // 显示成 `[资产]`（半角方括号、去掉「类」）—— 表头已经写着「类型」，
           // 每个格子再带个「类」字既重复又占宽度（用户 2026-11）。
           typeInput.value = typeLabel(acc.type);
-          // 点击弹候选，选「其他…」再弹输入框（用户 2026-10-30：原生下拉坏掉）
-          bindTypePicker(typeInput, () => accountTypesOf(state), (v) => {
-            if (v === '__custom__') {
-              promptType((t) => applyEdit(acc.id, 'type', t));
-              return;
-            }
-            applyEdit(acc.id, 'type', v);
+          // 只读：类型是点选模式，不出编辑光标，也不能手动输入
+          typeInput.readOnly = true;
+          bindTypePicker(typeInput, () => TYPES, (v) => {
+            // 「其他」= 固定的 U 区分类（不提供新增/改名）
+            const t = v === '__custom__' ? '' : v;
+            applyEdit(acc.id, 'type', t); typeInput.value = typeLabel(t);
           });
         }
         setCell(tr, 'category', acc.category || '');
@@ -307,10 +307,8 @@ export function mountAccountTable(ctx, tbody, opts) {
     const patch = {};
     let dupNames = [];
     if (field === 'type') {
-      // 类型可以手填，也可以点格子弹候选（见 bindTypePicker）
-      const t = String(v || '').trim();
-      if (!t) return;
-      patch.type = t;
+      // 选「其他」= 清空类型 → 固定在 U 区；不再拒绝空
+      patch.type = v;
     } else if (field === 'seq') {
       const n = parseInt(v, 10);
       if (!Number.isFinite(n) || n <= 0) return;

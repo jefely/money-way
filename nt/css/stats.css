@@ -517,3 +517,11 @@
     display: flex;
   }
 }
+
+/* 统计页第三块：备注统计（与分类 / 节点并列切换） */
+.nt-stats-notes {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 12px;
+}

@@ -39,7 +39,7 @@ export function showPicker(anchor, items, onPick) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'nt-picker-item';
-    b.textContent = it === '__custom__' ? '其他…' : it;
+    b.textContent = it === '__custom__' ? '其他' : it;
     b.addEventListener('click', () => {
       hidePicker();
       onPick(it);

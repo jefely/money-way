@@ -23,7 +23,7 @@
  * 鏂板鏂囦欢璁板緱鍔犺繘鏉ワ紙tools 閲屾湁鐢熸垚鑴氭湰锛夈€?
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.512';
+const CACHE_NAME = 'nt-v1.513';
 
 const ASSETS = [
   './css/base.css',
@@ -224,7 +224,7 @@ const ASSETS = [
   './js/ui/stat-order.js',
   './js/ui/stat-resize.js',
   './js/ui/stats-category.js',
-  './js/ui/stats-group-tables.js',
+  './js/ui/stats-group-tables.js', './js/ui/stats-notes.js',
   './js/ui/stats-split.js',
   './js/ui/stats-swipe.js',
   './js/ui/suggest-popover.js',

@@ -797,3 +797,21 @@ Tab / Enter 换格和批量粘贴不被重绘打断；流水页行为不回退�
   flow-shell 的 onSettings / onFlow 都走它。
 - 实测：设置页复制费用行简码..分类粘到资产行（序号不变、类型+分类都生效、行不立刻动，切出后重排，
   切回行元素保持）；流水开放行切到统计时后台结算出 1 笔，切回不重建。
+
+
+## 16. 2026-11-09 清空行 / 类型点选 / 切出重排（`nt-v1.513`）
+
+- 账户表 render 开头 `pruneEmptyAccounts(withUndefinedAccounts(state))`：名称/简码/期初全空且没被
+  流水或固定收支引用的行直接清掉，序号跟着消失（切出设置页时也会跑一次）。
+- 类型列改 `readOnly`：点选模式，没有编辑光标；候选 = 六类 + 其他；「其他」= 清空类型 → 固定 U 区；
+  不再提供新增/改名（`promptType` 不再从账户表调用）。
+- 类型/序/期初不再立刻重排；切出设置页时后台重排，切回只做 version 检查、不重建。
+- 流水开放行带金额时，切出流水页后台结算 + 隐藏重排；切回只 `focusEnd`，不重建。
+
+## 17. 统计页第三块「备注」+ 关闭节点关系（`nt-v1.513`）
+
+- 统计页 caps 改为 分类 / 节点 / **备注**（最后）；备注页 = 原「备注统计」内容，
+  `ui/note-stats.js` 抽出 `renderNoteStats(ctx, body)`，弹窗（`openNoteStats`）与统计页内嵌
+  （`ui/stats-notes.js` 的 `mountStatsNotes`）共用；`#nt-stats-notes` 显隐由 cap 控制。
+- 设置页备注工具条里的「节点关系」按钮移除（`alias-batch.js` 不再创建/绑定，
+  `node-relations.js` 文件保留但无入口）。

@@ -15,6 +15,7 @@ import { mountStatsSplit } from '../ui/stats-split.js';
 import { mountStatsSwipe } from '../ui/stats-swipe.js';
 import { loadStatOrder, moveStatUp } from '../ui/stat-order.js';
 import { renderStatTables } from '../ui/stats-group-tables.js';
+import { mountStatsNotes } from '../ui/stats-notes.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 
@@ -50,6 +51,8 @@ export function mountStats(section, ctx) {
   const pills = section.querySelector('#nt-stats-pills');
   const grid = section.querySelector('#nt-stats-grid');
   const summaryWrap = section.querySelector('#nt-stats-summary-wrap');
+  const notesPane = section.querySelector('#nt-stats-notes');
+  const renderNotes = notesPane ? mountStatsNotes(ctx, notesPane) : () => {};
   const summaryHost = section.querySelector('#nt-stats-sum');
 
   bindCaps();
@@ -116,7 +119,9 @@ export function mountStats(section, ctx) {
     const range = currentRange();
     renderPills();
 
-    if (sel.cap === 'summary') renderSummary(state, range);
+    if (notesPane) notesPane.hidden = sel.cap !== 'notes';
+    if (sel.cap === 'notes') { if (grid) grid.hidden = true; if (summaryWrap) summaryWrap.hidden = true; renderNotes(); }
+    else if (sel.cap === 'summary') renderSummary(state, range);
     else renderCategory(state, range);
 
     if (!sameCap) return;

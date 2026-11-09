@@ -19,41 +19,47 @@ const el = (tag, cls, text) => {
 };
 
 /**
+ * 把备注统计画进任意容器（弹窗 / 统计页的第三块共用）
+ * @param {{getState:Function}} ctx
+ * @param {HTMLElement} body
+ */
+export function renderNoteStats(ctx, body) {
+  const rows = noteTotals(ctx.getState());
+  const byKw = rollupByKeyword(rows);
+  body.textContent = '';
+  if (!byKw.length) {
+    body.appendChild(el('p', 'nt-sync-hint nt-imp-sub', '还没有带关键字的流水。导入账单或手动填备注关键字后，这里会按关键字累加。'));
+    return;
+  }
+  body.appendChild(el('p', 'nt-sync-hint nt-imp-sub', '只累加、不平账：一级按关键字，二级按备注类型。'));
+
+  const list = el('div', 'nt-note-sum');
+  for (const kw of byKw) {
+    const line = el('div', 'nt-note-sum-line');
+    line.appendChild(el('span', 'nt-note-sum-kw', kw.keyword));
+    line.appendChild(el('span', 'nt-note-sum-n', kw.count + ' 笔'));
+    line.appendChild(el('span', 'nt-note-sum-amt', money(kw.sum)));
+    list.appendChild(line);
+
+    for (const t of kw.types) {
+      const sub = el('div', 'nt-note-sum-sub');
+      sub.appendChild(el('span', 'nt-note-sum-type', t.type || '（未设类型）'));
+      sub.appendChild(el('span', 'nt-note-sum-n', t.count + ' 笔'));
+      sub.appendChild(el('span', 'nt-note-sum-amt', money(t.sum)));
+      list.appendChild(sub);
+    }
+  }
+  body.appendChild(list);
+}
+
+/**
  * @param {{getState:Function, setFooter?:Function}} ctx
  */
 export function openNoteStats(ctx) {
-  const rows = noteTotals(ctx.getState());
-  const byKw = rollupByKeyword(rows);
-
   NtModal.open({
     title: '备注统计',
     body: '',
-    build: (body) => {
-      body.textContent = '';
-      if (!byKw.length) {
-        body.appendChild(el('p', 'nt-sync-hint nt-imp-sub', '还没有带关键字的流水。导入账单或手动填备注关键字后，这里会按关键字累加。'));
-        return;
-      }
-      body.appendChild(el('p', 'nt-sync-hint nt-imp-sub', '只累加、不平账：一级按关键字，二级按备注类型。'));
-
-      const list = el('div', 'nt-note-sum');
-      for (const kw of byKw) {
-        const line = el('div', 'nt-note-sum-line');
-        line.appendChild(el('span', 'nt-note-sum-kw', kw.keyword));
-        line.appendChild(el('span', 'nt-note-sum-n', kw.count + ' 笔'));
-        line.appendChild(el('span', 'nt-note-sum-amt', money(kw.sum)));
-        list.appendChild(line);
-
-        for (const t of kw.types) {
-          const sub = el('div', 'nt-note-sum-sub');
-          sub.appendChild(el('span', 'nt-note-sum-type', t.type || '（未设类型）'));
-          sub.appendChild(el('span', 'nt-note-sum-n', t.count + ' 笔'));
-          sub.appendChild(el('span', 'nt-note-sum-amt', money(t.sum)));
-          list.appendChild(sub);
-        }
-      }
-      body.appendChild(list);
-    },
+    build: (body) => renderNoteStats(ctx, body),
     actions: [{ label: '知道了', kind: 'primary', close: true }],
   });
 }

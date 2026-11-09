@@ -90,3 +90,15 @@ export function withUndefinedAccounts(state) {
   }));
   return { ...state, accounts: [...(state.accounts || []), ...extra] };
 }
+/**
+ * 清掉「没有有效内容」的账户行：名称/简码/期初都空，且没有被流水/固定收支引用。
+ * 用户 2026-11-09：删掉/清空的行不该留个序号占着位置；切出设置页时统一清一次。
+ */
+export function pruneEmptyAccounts(state) {
+  const list = state.accounts || [];
+  const refs = new Set();
+  for (const t of state.transactions || []) { refs.add(t.from_id); refs.add(t.to_id); }
+  for (const s of state.scheduled || []) { refs.add(s.from_id); refs.add(s.to_id); }
+  const keep = list.filter((a) => a && (String(a.name || '').trim() || String(a.code || '').trim() || Number(a.opening) || refs.has(a.id)));
+  return keep.length === list.length ? state : { ...state, accounts: keep };
+}
