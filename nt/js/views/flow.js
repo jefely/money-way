@@ -8,7 +8,7 @@
  */
 
 import { addTransaction, updateTransaction, noteTextByCode } from '../core/state-store.js';
-import { afterTxEdit } from '../core/draft-book.js';
+import { afterTxEdit, markerOf } from '../core/draft-book.js';
 import { removeFlowTx, markPlanHandled } from '../ui/plan-links.js';
 import { mountComposer } from '../ui/composer.js';
 import { createScheduled } from '../core/schema.js';
@@ -297,6 +297,12 @@ export function mountFlow(section, ctx) {
     ctx.setState(afterTxEdit(updateTransaction(ctx.getState(), id, patch), id, field));
     ctx.setFooter(footerText());
     ctx.save();
+    // 这一行的界面上已经就地改好了：把序号颜色也补一下，并记下版本，
+    // 切 tab 回来时 render 看到版本一致就直接跳过 250 行的重建（用户 2026-11-09 报的卡）
+    const mark = markerOf((ctx.getState().transactions || []).find((t) => t && t.id === id), ctx.getState().accounts);
+    const seq = body.querySelector('tr[data-id="' + id + '"] .nt-cell-seq');
+    if (seq) { seq.classList.toggle('nt-seq-missing', mark === 'missing'); seq.classList.toggle('nt-seq-untyped', mark === 'untyped'); }
+    renderedVer = typeof ctx.getVersion === 'function' ? ctx.getVersion() : -1;
     // 手动把草稿补全（或改回非草稿）时，一句话输入条的引导也要跟着归零
     if (composer && typeof composer.syncDraft === 'function') composer.syncDraft();
   }
@@ -306,11 +312,18 @@ export function mountFlow(section, ctx) {
    * 没金额的行留在原位、不编号。用户 2026-11-09。
    */
   function activate() {
-    const r = settleOpenRows(ctx.getState());
-    if (!r) return;
-    ctx.setState(r.state);
-    ctx.save();
-    openDrafts.reseed(r.keep);
+    const has = (ctx.getState().openRows || []).some((d) => d && Number(String(d.amount || '').replace(/[¥,\s]/g, '')) > 0);
+    if (!has) return;
+    // 先让切页画出来，再在下一帧结算 + 重建：避免点 tab 后整页同步卡住
+    setTimeout(() => {
+      const r = settleOpenRows(ctx.getState());
+      if (!r) return;
+      ctx.setState(r.state);
+      ctx.save();
+      openDrafts.reseed(r.keep);
+      render();
+      scrollLast(body);
+    }, 0);
   }
 
   /** 空行录入了金额：补日期/序号（不建单、不移动），并安排草稿落盘 */

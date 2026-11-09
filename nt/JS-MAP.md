@@ -118,7 +118,6 @@
 | `ui/cell-geom.js` | 流水表的格子几何（给 cell-select 用） |
 | `ui/cell-menu.js` | 单元格长按菜单（剪切 / 复制 / 粘贴 / 清除 / 编辑） |
 | `ui/cell-nav.js` | 流水表格子的方向导航 / 留出可视区 |
-| `ui/cell-outline.js` | 多格选区的整体描边 |
 | `ui/cell-proxy.js` | 选中态的隐藏键盘输入框 |
 | `ui/cell-range.js` | 单元格区域框选（长按起手 → 拖动框选 → 复制 / 粘贴 / 删除行） |
 | `ui/cell-select.js` | 流水表的选区（Excel 式：锚点 + 右下角手柄 + 长按菜单） |

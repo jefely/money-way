@@ -63,7 +63,7 @@ export function bindOpenDrafts(tbody, ctx, seed, onSaved) {
     const rows = blankDrafts();
     const st = ctx.getState();
     if (same(rows, st.openRows || [])) return;
-    ctx.setState({ ...st, openRows: rows }, { silent: true });
+    ctx.setState({ ...st, openRows: rows }, { silent: true, quiet: true });
     if (now && ctx.saveNow) ctx.saveNow();
     else ctx.save();
     if (onSaved) onSaved();

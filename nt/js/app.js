@@ -70,13 +70,15 @@ let dataVersion = 0;
 /* ---------- state 与索引 ---------- */
 
 function setState(next, opts) {
+  // quiet：只换 state（开放录入区草稿这种不影响视图结构的改动）——
+  // 不抬 dataVersion，切 tab 回来就不会为了草稿白重建 250 行。
+  if (opts && opts.quiet) { state = next; return; }
   // 自动到账这类「系统补的」流水不进撤销栈：否则一撤销，下一次渲染又补回来，
   // 用户会看到撤销键像失灵。opts.silent 只给自动动作使用。
   if (!opts || !opts.silent) undo.note(state, next);
   state = next;
   dataVersion += 1;
-  index = buildAccountIndex(state.accounts);
-  updateDocTitle();
+  index = buildAccountIndex(state.accounts); updateDocTitle();
 }
 
 /**

@@ -4,26 +4,26 @@
  * ============================================================
  * 策略：stale-while-revalidate（离线优先）
  * ============================================================
- *   · 命中缓存   → 立刻返回（断网也秒开），同时后台拿新的写回缓存。
- *   · 没命中缓存 → 走网络，成功后写入缓存。
- *   · 离线且没缓存 → 报错
+ *   · 命中缓存   �?立刻返回（断网也秒开），同时后台拿新的写回缓存�?
+ *   · 没命中缓�?�?走网络，成功后写入缓存�?
+ *   · 离线且没缓存 �?报错
  *
- * 之前是 network-first，问题在离线场景：每个请求都要等网络超时才回落缓存，
- * 130 多个模块叠起来就是一片白屏。而且 ASSETS 只预缓存了 7 个文件，
- * 其余模块断网时压根没有缓存可用。
+ * 之前�?network-first，问题在离线场景：每个请求都要等网络超时才回落缓存，
+ * 130 多个模块叠起来就是一片白屏。而且 ASSETS 只预缓存�?7 个文件，
+ * 其余模块断网时压根没有缓存可用�?
  *
- * 更新路径（两条，都不依赖自动检测）：
- *   ① CACHE_NAME 变化 → 新 SW 的 install 阶段重新预缓存全部资源
- *   ② 页面「重载」按钮 → 等新 SW 装完 + SKIP_WAITING + 刷新（SW 换班，不注销）
+ * 更新路径（两条，都不依赖自动检测）�?
+ *   �?CACHE_NAME 变化 �?�?SW �?install 阶段重新预缓存全部资�?
+ *   �?页面「重载」按�?�?等新 SW 装完 + SKIP_WAITING + 刷新（SW 换班，不注销�?
  *
- * 注意：「清所有缓存 + 注销 SW」只在「已经打不开、必须重来」时用（连点 5 次版本号），
- * 它不是常规更新路径 —— 注销之后断网就是浏览器原生「打不开网页」。
+ * 注意：「清所有缓�?+ 注销 SW」只在「已经打不开、必须重来」时用（连点 5 次版本号），
+ * 它不是常规更新路�?—�?注销之后断网就是浏览器原生「打不开网页」�?
  *
- * ASSETS 必须**完整**：漏掉的文件在离线时会直接加载失败。
- * 新增文件记得加进来（tools 里有生成脚本）。
+ * ASSETS 必须**完整**：漏掉的文件在离线时会直接加载失败�?
+ * 新增文件记得加进来（tools 里有生成脚本）�?
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.507';
+const CACHE_NAME = 'nt-v1.508';
 
 const ASSETS = [
   './css/base.css',
@@ -158,7 +158,7 @@ const ASSETS = [
   './js/ui/cell-edit.js',
   './js/ui/cell-geom.js',
   './js/ui/cell-menu.js', './js/ui/cell-nav.js',
-  './js/ui/cell-outline.js', './js/ui/cell-proxy.js',
+  './js/ui/cell-proxy.js',
   './js/ui/cell-range.js',
   './js/ui/cell-select.js',
   './js/ui/chart-gestures.js',
@@ -261,9 +261,9 @@ self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME)
       // 单个文件失败不该让整个安装失败（否则永远装不上）
-      // ⚠️ 必须带 cache:'reload' —— c.add(url) 默认会走浏览器的 HTTP 缓存，
+      // ⚠️ 必须�?cache:'reload' —�?c.add(url) 默认会走浏览器的 HTTP 缓存�?
       // GitHub Pages 的静态资源是 max-age=600，于是新 SW 预缓存时
-      // 装进去的其实是**旧文件**，看起来就是「点了更新、版本号永远不动」。
+      // 装进去的其实�?*旧文�?*，看起来就是「点了更新、版本号永远不动」�?
       .then((c) => Promise.all(
         ASSETS.map((u) => c.add(new Request(u, { cache: 'reload' })).catch(() => null)),
       ))
@@ -284,20 +284,20 @@ self.addEventListener('message', (e) => {
   if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-/* 代码和样式走 **network-first**，其余走 stale-while-revalidate。
+/* 代码和样式走 **network-first**，其余走 stale-while-revalidate�?
  *
- * 为什么必须分开（2026-11 用户反复踩）：
- *   stale-while-revalidate 命中缓存就**立刻返回旧文件**，后台再去更新。
- *   对图片这类「慢一点无所谓」的资源很好，但对 css/js 是灾难 ——
- *   改完样式后用户打开看到的永远是上一版，得手动开两次、或者点「更新」。
- *   用户报的「备注列怎么都不拉伸」就是这么来的：服务端已经是新 CSS，
- *   浏览器一直在跑旧的那份。
+ * 为什么必须分开�?026-11 用户反复踩）�?
+ *   stale-while-revalidate 命中缓存�?*立刻返回旧文�?*，后台再去更新�?
+ *   对图片这类「慢一点无所谓」的资源很好，但�?css/js 是灾�?—�?
+ *   改完样式后用户打开看到的永远是上一版，得手动开两次、或者点「更新」�?
+ *   用户报的「备注列怎么都不拉伸」就是这么来的：服务端已经是�?CSS�?
+ *   浏览器一直在跑旧的那份�?
  *
- * network-first 的代价只有一次网络往返：`fetch` 默认走 HTTP 缓存
- * （GitHub Pages 是 max-age=600），命中时几乎零成本；断网时 fetch 会快速失败，
- * 落到下面的 cache 分支，离线能力照样在。
- * 注意这里**不能**用 `cache: 'reload'` —— 那会绕过 HTTP 缓存，
- * 130 多个模块每个都重新下载，首屏会明显变慢。
+ * network-first 的代价只有一次网络往返：`fetch` 默认�?HTTP 缓存
+ * （GitHub Pages �?max-age=600），命中时几乎零成本；断网时 fetch 会快速失败，
+ * 落到下面�?cache 分支，离线能力照样在�?
+ * 注意这里**不能**�?`cache: 'reload'` —�?那会绕过 HTTP 缓存�?
+ * 130 多个模块每个都重新下载，首屏会明显变慢�?
  */
 const NETWORK_FIRST = /\.(?:js|css)(?:\?|$)/;
 
@@ -318,7 +318,7 @@ self.addEventListener('fetch', (e) => {
 
     if (NETWORK_FIRST.test(path) || path.endsWith('/') || path.endsWith('.html')) {
       try {
-        // 默认 cache 模式：走 HTTP 缓存，不额外压网络
+        // 默认 cache 模式：走 HTTP 缓存，不额外压网�?
         const res = await fetch(e.request);
         if (res && res.ok && res.type === 'basic') {
           const copy = res.clone();
@@ -331,8 +331,8 @@ self.addEventListener('fetch', (e) => {
     }
 
     if (cached) {
-      // 后台更新缓存，不阻塞返回 —— 下一次打开就是新版
-      // 同样带 cache:'reload'，否则后台拿回来的还是 HTTP 缓存里的旧文件
+      // 后台更新缓存，不阻塞返回 —�?下一次打开就是新版
+      // 同样�?cache:'reload'，否则后台拿回来的还�?HTTP 缓存里的旧文�?
       fetch(e.request, { cache: 'reload' })
         .then((res) => {
           if (res && res.ok && res.type === 'basic') {
