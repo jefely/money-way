@@ -13,7 +13,6 @@ import * as NtModal from './modal.js';
 import { mergeAccountInto } from '../core/account-merge.js';
 import { updateAccount, removeNote } from '../core/state-store.js';
 import { aliasPutMany, pendingKeywords } from '../core/alias-table.js';
-import { openNoteStats } from './note-stats.js';
 
 const norm = (v) => String(v == null ? '' : v).trim();
 
@@ -39,10 +38,6 @@ export function noteTools(ctx, rerender) {
     box.appendChild(go);
   }
 
-  const stats = el('button', 'nt-btn nt-btn-sm nt-note-batch', '备注统计');
-  stats.type = 'button';
-  stats.addEventListener('click', () => openNoteStats(ctx));
-  box.appendChild(stats);
   return box;
 }
 

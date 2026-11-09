@@ -52,7 +52,7 @@ export function mountStats(section, ctx) {
   const grid = section.querySelector('#nt-stats-grid');
   const summaryWrap = section.querySelector('#nt-stats-summary-wrap');
   const notesPane = section.querySelector('#nt-stats-notes');
-  const renderNotes = notesPane ? mountStatsNotes(ctx, notesPane) : () => {};
+  const renderNotes = notesPane ? mountStatsNotes(ctx, notesPane, currentRange) : () => {};
   const summaryHost = section.querySelector('#nt-stats-sum');
 
   bindCaps();

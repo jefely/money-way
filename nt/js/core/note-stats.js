@@ -33,19 +33,41 @@ export function typeOfKeyword(notes) {
  * @param {object} state
  * @returns {Array<{keyword:string, type:string, count:number, sum:number}>}
  */
-export function noteTotals(state) {
+export function noteTotals(state, range) {
+  const start = String((range && range.start) || '');
+  const end = String((range && range.end) || '9999-12-31');
   const typeOf = typeOfKeyword((state && state.notes) || []);
   const map = new Map();
   for (const t of (state && state.transactions) || []) {
     if (!t) continue;
+    const d = String(t.date || '');
+    if (start && d < start) continue;
+    if (d > end) continue;
+    const amt = Math.abs(Number(t.amount) || 0);
+    if (!(amt > 0)) continue;
     const kw = norm(t.noteKeyword);
     if (!kw) continue;
     const type = typeOf.get(kw) || '';
     const key = kw + '\u0000' + type;
     const cur = map.get(key) || { keyword: kw, type, count: 0, sum: 0 };
     cur.count += 1;
-    cur.sum += Math.abs(Number(t.amount) || 0);
+    cur.sum += amt;
     map.set(key, cur);
+  }
+  return [...map.values()]
+    .map((r) => ({ ...r, sum: Math.round(r.sum * 100) / 100 }))
+    .sort((a, b) => b.sum - a.sum);
+}
+
+/** 二级合计：按备注分类（type）合并 */
+export function rollupByType(rows) {
+  const map = new Map();
+  for (const r of rows || []) {
+    const label = r.type || '（未设分类）';
+    const cur = map.get(label) || { label, count: 0, sum: 0 };
+    cur.count += r.count;
+    cur.sum += r.sum;
+    map.set(label, cur);
   }
   return [...map.values()]
     .map((r) => ({ ...r, sum: Math.round(r.sum * 100) / 100 }))

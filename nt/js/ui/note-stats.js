@@ -1,14 +1,17 @@
-// 界面：备注统计（关键字 → 金额，再按备注类型分两级）
+// 界面：备注统计（两个小表：备注分类 / 备注，沿用统计页的日期筛选）
 /**
  * 备注统计（UI 层）
+ * 层：第五层 · UI
  *
- * 用户 2026-11-08：备注统计 **不参与平账**，只是累加。
- * 一级按关键字（味丰源）合计，二级按备注的统计分类（类型）分组。
- * 累加出来怎么用由用户自己判断，这里只负责把数摆清楚。
+ * 用户 2026-11-09：
+ *   · 备注统计本质是自动合计；只统计**有金额**的备注；
+ *   · 上表按备注分类（备注表里的类型）合计，下表按关键字合计；
+ *   · 两个表的表头结构和样式跟节点统计表的资产类一致；
+ *   · 日期筛选沿用统计页的 区间/年份/月份（range 传进来）。
  */
 
 import * as NtModal from './modal.js';
-import { noteTotals, rollupByKeyword } from '../core/note-stats.js';
+import { noteTotals, rollupByType, rollupByKeyword } from '../core/note-stats.js';
 import { money } from '../core/format.js';
 
 const el = (tag, cls, text) => {
@@ -18,38 +21,44 @@ const el = (tag, cls, text) => {
   return node;
 };
 
+/** 一个小表：标题 + 表头（名称 / 笔数 / 金额），样式沿用统计页的资产类表 */
+function statsTable(title, rows, nameOf) {
+  const wrap = el('section', 'nt-note-stat');
+  wrap.appendChild(el('h4', 'nt-note-stat-title', title));
+  const table = el('table', 'nt-table nt-note-stat-table');
+  const thead = el('thead');
+  const hr = el('tr');
+  for (const h of ['名称', '笔数', '金额']) hr.appendChild(el('th', '', h));
+  thead.appendChild(hr);
+  table.appendChild(thead);
+  const tb = el('tbody');
+  for (const r of rows) {
+    const tr = el('tr');
+    tr.appendChild(el('td', '', nameOf(r)));
+    tr.appendChild(el('td', 'nt-note-stat-n', r.count + ' 笔'));
+    tr.appendChild(el('td', 'nt-note-stat-amt', money(r.sum)));
+    tb.appendChild(tr);
+  }
+  table.appendChild(tb);
+  wrap.appendChild(table);
+  return wrap;
+}
+
 /**
- * 把备注统计画进任意容器（弹窗 / 统计页的第三块共用）
+ * 把备注统计画进容器（统计页第三块 / 设置页弹窗共用）
  * @param {{getState:Function}} ctx
  * @param {HTMLElement} body
+ * @param {{start:string,end:string}} [range] 统计页的日期筛选范围
  */
-export function renderNoteStats(ctx, body) {
-  const rows = noteTotals(ctx.getState());
-  const byKw = rollupByKeyword(rows);
+export function renderNoteStats(ctx, body, range) {
+  const rows = noteTotals(ctx.getState(), range);
   body.textContent = '';
-  if (!byKw.length) {
-    body.appendChild(el('p', 'nt-sync-hint nt-imp-sub', '还没有带关键字的流水。导入账单或手动填备注关键字后，这里会按关键字累加。'));
+  if (!rows.length) {
+    body.appendChild(el('p', 'nt-sync-hint nt-imp-sub', '这个日期范围内还没有带金额的备注。'));
     return;
   }
-  body.appendChild(el('p', 'nt-sync-hint nt-imp-sub', '只累加、不平账：一级按关键字，二级按备注类型。'));
-
-  const list = el('div', 'nt-note-sum');
-  for (const kw of byKw) {
-    const line = el('div', 'nt-note-sum-line');
-    line.appendChild(el('span', 'nt-note-sum-kw', kw.keyword));
-    line.appendChild(el('span', 'nt-note-sum-n', kw.count + ' 笔'));
-    line.appendChild(el('span', 'nt-note-sum-amt', money(kw.sum)));
-    list.appendChild(line);
-
-    for (const t of kw.types) {
-      const sub = el('div', 'nt-note-sum-sub');
-      sub.appendChild(el('span', 'nt-note-sum-type', t.type || '（未设类型）'));
-      sub.appendChild(el('span', 'nt-note-sum-n', t.count + ' 笔'));
-      sub.appendChild(el('span', 'nt-note-sum-amt', money(t.sum)));
-      list.appendChild(sub);
-    }
-  }
-  body.appendChild(list);
+  body.appendChild(statsTable('备注分类', rollupByType(rows), (r) => r.label));
+  body.appendChild(statsTable('备注', rollupByKeyword(rows), (r) => r.keyword));
 }
 
 /**
