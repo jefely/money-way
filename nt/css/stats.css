@@ -551,3 +551,9 @@
 .nt-note-stat-table { width: 100%; }
 .nt-note-stat-table th.nt-th:first-child, .nt-note-stat-table td:first-child { border-left: 0; }
 .nt-note-stat-table th.nt-th:last-child, .nt-note-stat-table td:last-child { border-right: 0; }
+
+/* 右侧备注查询：表头居中+节点统计表同款质感渐变；金额右齐，备注左齐，其它居中 */
+.nt-note-detail-table thead th { text-align: center; }
+.nt-note-detail-table td { text-align: center; }
+.nt-note-detail-table td.nt-cell-num { text-align: right; }
+.nt-note-detail-table td:last-child { text-align: left; }

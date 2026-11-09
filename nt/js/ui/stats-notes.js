@@ -145,10 +145,10 @@ export function mountStatsNotes(ctx, pane, getRange) {
       body.appendChild(el('p', 'nt-sync-hint nt-imp-sub', picked ? '没有匹配的流水。' : '点左侧的备注分类或关键字，查看对应流水。'));
       return;
     }
-    const tableEl = el('table', 'nt-table nt-note-detail-table');
+    const tableEl = el('table', 'nt-table nt-table-stats nt-note-detail-table');
     const thead = el('thead');
     const hr = el('tr');
-    for (const h of ['序', '日期', '转出', '转入', '金额', '备注']) hr.appendChild(el('th', '', h));
+    for (const h of ['序', '日期', '转出', '转入', '金额', '备注']) hr.appendChild(el('th', 'nt-th', h));
     thead.appendChild(hr);
     tableEl.appendChild(thead);
     const tb = el('tbody');
