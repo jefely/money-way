@@ -38,14 +38,21 @@ export function moveBy(tbody, td, dx, dy) {
   return null;
 }
 
-/** Enter：下一行同一列，跳过只读行（未来分期 / 期初日期） */
-export function nextRowSameField(tbody, td) {
+/** Enter / 键盘「下一个」：同一行往右，走到备注后接下一行的转出节点 */
+export function nextField(tbody, td) {
   const p = cellCoords(tbody, td);
   if (!p) return null;
+  const tr = td.parentElement;
+
+  for (let c = p.c + 1; c < tr.children.length; c += 1) {
+    const inp = tr.children[c].querySelector('input.nt-cell-input');
+    if (inp && !inp.readOnly && !inp.disabled) return tr.children[c];
+  }
+
+  // 到备注了：下一行的「转出节点」（不是下一行的日期）
   for (let r = p.r + 1; r < tbody.children.length; r += 1) {
-    const cell = cellAt(tbody, r, p.c);
-    const inp = inputIn(cell);
-    if (inp && !inp.readOnly && !inp.disabled) return cell;
+    const from = tbody.children[r].querySelector('input[data-field="from"]');
+    if (from && !from.readOnly && !from.disabled) return from.closest('td');
   }
   return null;
 }

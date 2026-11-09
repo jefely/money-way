@@ -2,7 +2,7 @@
 
 import { placeCaret } from './cell-caret.js';
 import { createCellProxy } from './cell-proxy.js';
-import { adjacentEditable, ensureVisible, moveBy, nextRowSameField } from './cell-nav.js';
+import { adjacentEditable, ensureVisible, moveBy, nextField } from './cell-nav.js';
 /**
  * 单元格编辑
  * 层：第五层 · UI
@@ -172,7 +172,11 @@ export function bindCellEdit(tbody, opts) {
     // 只有「这一格已选中、而且键盘焦点就在它上面」时，再点一次才是取消选中。
     // 菜单 / 拖手柄之后选区还在但键盘已收起，这时点它是「继续输入」，不能取消。
     const sameSelected = !!(down && down.td === td && down.wasSelected && down.wasFocused);
-    if (!sameSelected) focusCell(td);
+    if (!sameSelected) {
+      // 换格之前先把上一格收尾：简码要解析成节点名、金额要格式化、空行要建单
+      if (active && active.td !== td) leaveCell();
+      focusCell(td);
+    }
 
     // 再点一次 = 取消选中。推迟一下，双击的第二下会把它取消。
     if (sameSelected && active && active.td === td && active.mode === 'selected') {
@@ -200,6 +204,16 @@ export function bindCellEdit(tbody, opts) {
     proxy.setValue(active.input.value);
   });
 
+  // 空行转正：选区如果还在旧空行里（建单正好发生在离开这一行时），
+  // 把选中格接到新行的同一个字段上，别让键盘输入落在一个已脱离的 td 上。
+  tbody.addEventListener('nt-row-promoting', (ev) => {
+    const newTr = ev.detail && ev.detail.newTr;
+    if (!active || !newTr || !ev.target.contains(active.td)) return;
+    const field = active.input && active.input.dataset.field;
+    const input = field ? newTr.querySelector('input[data-field="' + field + '"]') : null;
+    if (input) focusCell(input.closest('td'));
+  });
+
   /* ---------- 键盘：Enter / Tab / Esc / 方向键 ---------- */
 
   function leaveCell() {
@@ -218,7 +232,8 @@ export function bindCellEdit(tbody, opts) {
 
   function moveEnter() {
     if (!active) return;
-    const td = nextRowSameField(tbody, active.td);
+    // 键盘的「下一个」/ 回车：同一行往右，备注之后接下一行的转出节点
+    const td = nextField(tbody, active.td);
     leaveCell();
     if (td) focusCell(td); else proxy.blur();
   }
@@ -288,6 +303,8 @@ export function bindCellEdit(tbody, opts) {
 
   function release() {
     clearTimeout(timer);
+    // 取消选中前也要收尾：简码 → 节点名、金额格式化、空行建单
+    leaveCell();
     proxy.blur();
     if (active && document.activeElement === active.input) {
       try { active.input.blur(); } catch (e) { /* 忽略 */ }

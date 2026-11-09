@@ -1182,8 +1182,9 @@ const aligned = thBox.length === tdBox.length
 | 直接打字 | **整格替换**（隐藏格 focus 时全选），回车填入；**不进入编辑态** |
 | 再单击同一格 | 取消选中（340ms 后；双击窗口内算双击） |
 | 双击 | 才进**编辑**：焦点交回可见 input，光标落在点下去的位置，可精确增删 |
-| Enter | 填入 + 下移同列一行（`cell-edit.js` + `cell-nav.js`） |
-| Tab / Shift+Tab | 右 / 左一格，跳过只读行 |
+| Enter / 键盘「下一个」 | 同一行往右（日期 → 转出 → 转入 → 金额 → 备注）；到备注后接**下一行的转出节点** |
+| Tab / Shift+Tab | DOM 顺序的右 / 左一格，跳过只读行 |
+| 点另一格 / 取消选中 | 先收尾上一格：简码解析成节点名、金额格式化、空行建单 |
 | 方向键 | 选中态移动格子；编辑态交给浏览器 |
 | Esc | 编辑态 → 还原并退回选中态；再 Esc → 取消选中 |
 | **拖右下角手柄** | 把选区扩成矩形（手机 / 鼠标都行）；手柄跟着新右下角走，横滚纵滚不离格 |
@@ -1210,6 +1211,18 @@ const aligned = thBox.length === tdBox.length
 - 选中态：派发**合成 focusout**（打 `__ntSynthetic` 标记）走同一套收尾。
 `cell-edit` 自己的 focusout 看到 `__ntSynthetic` 或焦点在隐藏格上就直接忽略，
 否则合成事件会把刚选中的下一格清掉。
+
+**③补 换格（点另一格 / 取消选中 / 回车 / Tab）前必须 `leaveCell()`。**
+选中态的可见 input 从不失焦，row-editor 的 focusout 收尾（简码 → 节点名、
+金额格式化、空行建单）不会自己发生。所以 `cell-edit` 在换格前合成一次
+`focusout`（编辑态则直接 `blur()`）。不补这一步，用户输入简码后点另一格，
+格子里会一直留着简码。
+
+**③补二 空行转正时选区要跟着走。**
+从金额按「下一个」跳到备注的那一刻，正好触发 120ms 的空行建单；
+旧空行被移除，选区还指着它就会把后续输入写进一个脱离 DOM 的 input。
+`render-transactions.js` 的 `promoteRow` 在移除旧行前派发
+`nt-row-promoting`（`detail.newTr`），`cell-edit` 把选区接到新行的同一个字段上。
 
 **④ 编辑态下的长按不弹我们的菜单。**
 用户正在改文字，长按要留给系统选字；`cell-select` 的 pointerdown 里

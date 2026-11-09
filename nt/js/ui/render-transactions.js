@@ -380,7 +380,16 @@ export function promoteRow(tbody, tr, row) {
   if (firstBlank) tbody.insertBefore(fresh, firstBlank);
   else tbody.appendChild(fresh);
 
-  if (tr && tr.isConnected) tr.remove();
+  // 空行被转正、马上要从 DOM 里拿掉：如果光标/选区还停在这一行
+  //（比如按「下一个」从金额跳到备注，正好触发建单），先让 cell-edit 把
+  // 选区接到新行的同一个字段上，否则会选中一个已脱离的 td，键盘输入全丢。
+  if (tr && tr.isConnected) {
+    tr.dispatchEvent(new CustomEvent('nt-row-promoting', {
+      bubbles: true,
+      detail: { newTr: fresh },
+    }));
+    tr.remove();
+  }
   // 空行恒 BLANK_ROWS 个：末尾补一个刚被消耗掉的
   if (newTpl) tbody.appendChild(blankRow(newTpl, BLANK_ROWS - 1));
   renumberBlanks(tbody);
