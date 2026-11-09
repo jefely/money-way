@@ -21,6 +21,9 @@ const el = (tag, cls, text) => {
   return node;
 };
 
+/** 日期沿用流水表的 260801（YYMMDD）格式 */
+const d6 = (s) => String(s || '').replace(/-/g, '').slice(2, 8);
+
 /** 左边小表第一列（分类/关键字）的宽度：和节点统计表一样可拖，存本地 */
 function savedColW() {
   try {
@@ -206,7 +209,7 @@ export function mountStatsNotes(ctx, pane, getRange) {
     list.forEach((t, i) => {
       const tr = el('tr', 'nt-row');
       tr.appendChild(el('td', 'nt-cell', String(t.seq || i + 1)));
-      tr.appendChild(el('td', 'nt-cell', String(t.date || '')));
+      tr.appendChild(el('td', 'nt-cell', d6(t.date)));
       tr.appendChild(el('td', 'nt-cell', acc.get(t.from_id) || ''));
       tr.appendChild(el('td', 'nt-cell', acc.get(t.to_id) || ''));
       tr.appendChild(el('td', 'nt-cell nt-cell-num', money(Number(t.amount) || 0)));
