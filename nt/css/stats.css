@@ -527,7 +527,7 @@
 }
 
 /* 备注统计的两个小表（统计页第三块 / 设置页弹窗共用） */
-.nt-note-stat { margin: 10px 12px; padding: 8px 0 0; border: 1px solid var(--nt-bg-line); border-radius: 12px; overflow: hidden; background: var(--nt-bg); }
+.nt-note-stat { margin: 4px 6px; padding: 4px 0 0; border: 1px solid var(--nt-bg-line); border-radius: 12px; overflow: hidden; background: var(--nt-bg); }
 .nt-note-stat-title { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
 .nt-note-stat-table { width: 100%; }
 
