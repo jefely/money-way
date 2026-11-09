@@ -17,8 +17,9 @@
  */
 
 import { bindBar, showBar, hideBar, setPasteEnabled } from './range-bar.js';
+import { bindCellCursor } from './cell-cursor.js';
 
-const LONG_PRESS_MS = 480;
+const LONG_PRESS_MS = 320;
 const MOVE_TOLERANCE = 8;      // 长按期间移动超过这个距离就算滚动，放弃长按
 
 /** 内部剪贴板：二维字符串数组（跨表共享：流水表复制 → 别的表也能粘） */
@@ -60,6 +61,13 @@ export function mountCellRange(tableEl, opts) {
     onDelete: doDelete,
     onCancel: clearSelection,
   });
+
+  // Excel 式单元格光标：只给需要编辑的表（流水表）挂，只读表（统计）不挂
+  if (o.cursor && !tableEl.dataset.cursorBound) {
+    tableEl.dataset.cursorBound = '1';
+    const tbody = tableEl.querySelector('tbody');
+    if (tbody) bindCellCursor(tbody);
+  }
 
   if (tableEl.dataset.rangeBound === '1') return;
   tableEl.dataset.rangeBound = '1';
@@ -154,6 +162,10 @@ function onDown(tableEl, ev) {
 function startSelection(tableEl, hit, ev) {
   // 在别的表上起新选区时，先把上一张表的高亮清掉 —— 否则会同时亮着两处
   clearSelection();
+
+  // 单元格光标与框选互斥：框选期间不需要键盘，也避免两个高亮叠着
+  for (const td of tableEl.querySelectorAll('.nt-cell-sel')) td.classList.remove('nt-cell-sel');
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   sel = { anchorR: hit.r, anchorC: hit.c, focusR: hit.r, focusC: hit.c, tableEl };
 
   document.body.classList.add('nt-range-mode');
