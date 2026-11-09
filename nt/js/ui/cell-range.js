@@ -14,6 +14,9 @@
  * 多表共存：每张表各自登记一份能力（能否粘贴、能否删行、粘贴是整片还是一格），
  * 记在 tableMap 里；选区与剪贴板仍是全局单份 —— 同一时刻只有一个选区。
  * 早期版本把回调放在模块级变量里，第二张表一挂就把第一张表的删除回调顶掉了。
+ *
+ * 流水表另有 Excel 式单元格编辑器（cell-edit.js）：框选起手时先把它 release()，
+ * 否则键盘 / 选中框会和框选高亮叠在一起。
  */
 
 import { bindBar, showBar, hideBar, setPasteEnabled } from './range-bar.js';
@@ -32,6 +35,7 @@ let sel = null;
  *   paste:         'block'（整片）| 'single'（一次一格）| 'off'（只读，不给粘贴按钮）
  *   onDeleteRows:  (ids:string[]) => void   —— 没有就不显示「删除行」
  *   onNotice:      (text:string) => void    —— 粘贴结果如实回报（写到页脚）
+ *   editor:        cell-edit 实例（可编辑表才有）—— 框选起手时先收掉它的选中框
  */
 const tableMap = new WeakMap();
 
@@ -52,6 +56,7 @@ export function mountCellRange(tableEl, opts) {
     paste: o.paste || 'block',
     onDeleteRows: o.onDeleteRows || null,
     onNotice: o.onNotice || null,
+    editor: o.editor || null,
   });
 
   bindBar({
@@ -64,6 +69,10 @@ export function mountCellRange(tableEl, opts) {
   if (tableEl.dataset.rangeBound === '1') return;
   tableEl.dataset.rangeBound = '1';
   tableEl.addEventListener('pointerdown', (ev) => onDown(tableEl, ev));
+  // 手机上长按输入框会弹系统选字菜单，和框选抢手势；表格里有输入框就压掉
+  tableEl.addEventListener('contextmenu', (ev) => {
+    if (ev.target.closest && ev.target.closest('input, textarea')) ev.preventDefault();
+  });
 }
 
 function capsOf(tableEl) {
@@ -72,6 +81,7 @@ function capsOf(tableEl) {
     paste: c.paste || 'block',
     onDeleteRows: c.onDeleteRows || null,
     notice: c.onNotice || (() => {}),
+    editor: c.editor || null,
   };
 }
 
@@ -116,8 +126,36 @@ function onDown(tableEl, ev) {
   // 点在列宽手柄上时不参与框选
   if (ev.target.closest && ev.target.closest('.nt-col-handle')) return;
 
+  // 上一次框选还亮着：手指落在表格里就当成「开始新的选择」，先收掉旧选区
+  // （菜单的「取消」和点外面也会走 clearSelection，这里只是兜底）
+  if (sel) clearSelection();
+
   const hit = cellOf(tableEl, ev.target);
   if (!hit) return;
+
+  // 鼠标：按住一拖就是框选（Excel 桌面习惯）。手机上不行 —— 直接拖是滚动。
+  // 头 6px 浏览器可能已经开始选字，startSelection 里的 release() 会把它清掉。
+  if (ev.pointerType === 'mouse') {
+    const startX = ev.clientX;
+    const startY = ev.clientY;
+    let started = false;
+    const stop = () => {
+      tableEl.removeEventListener('pointermove', onMove);
+      tableEl.removeEventListener('pointerup', stop);
+      tableEl.removeEventListener('pointercancel', stop);
+    };
+    function onMove(e) {
+      if (started || !(e.buttons & 1)) return;
+      if (Math.hypot(e.clientX - startX, e.clientY - startY) < 6) return;
+      started = true;
+      stop();
+      startSelection(tableEl, hit, ev);
+    }
+    tableEl.addEventListener('pointermove', onMove);
+    tableEl.addEventListener('pointerup', stop);
+    tableEl.addEventListener('pointercancel', stop);
+    return;
+  }
 
   const startX = ev.clientX;
   const startY = ev.clientY;
@@ -154,10 +192,20 @@ function onDown(tableEl, ev) {
 function startSelection(tableEl, hit, ev) {
   // 在别的表上起新选区时，先把上一张表的高亮清掉 —— 否则会同时亮着两处
   clearSelection();
-  sel = { anchorR: hit.r, anchorC: hit.c, focusR: hit.r, focusC: hit.c, tableEl };
+
+  // 单元格选中 / 编辑和框选互斥：先收掉选中框和键盘，免得两个高亮叠着
+  const caps = capsOf(tableEl);
+  if (caps.editor) caps.editor.release();
 
   document.body.classList.add('nt-range-mode');
   try { tableEl.setPointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
+
+  // 长按之后手指一滑，浏览器会把它当成滚动（touch-action 在手指按下那一刻
+  // 就已经定好了，这时候再改 body 的 touch-action 不一定生效）。
+  // 直接吃掉 touchmove 的默认行为，滚动不会开始，pointermove 才能一直送来。
+  const stopScroll = (e) => { if (e.cancelable) e.preventDefault(); };
+  tableEl.addEventListener('touchmove', stopScroll, { passive: false });
+  sel = { anchorR: hit.r, anchorC: hit.c, focusR: hit.r, focusC: hit.c, tableEl, stopScroll };
 
   paint();
 
@@ -173,17 +221,43 @@ function startSelection(tableEl, hit, ev) {
     tableEl.removeEventListener('pointermove', onMove);
     tableEl.removeEventListener('pointerup', finish);
     tableEl.removeEventListener('pointercancel', finish);
+    tableEl.removeEventListener('touchmove', stopScroll);
+    if (sel) sel.stopScroll = null;
     try { tableEl.releasePointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
 
     document.body.classList.remove('nt-range-mode');
-    showBar(tableEl, barState(tableEl));
+    showBar(selRect(), barState(tableEl));
   };
 
   tableEl.addEventListener('pointermove', onMove);
   tableEl.addEventListener('pointerup', finish);
   tableEl.addEventListener('pointercancel', finish);
 
-  showBar(tableEl, barState(tableEl));
+  // 注意：这里**不能** showBar —— 菜单会盖在选区旁边，拖动时
+  // elementFromPoint 命中的是菜单而不是格子，框选就再也扩不出去
+  // （2026-11-09 实测：菜单在起点右下方，手指划到它就停住）。
+  // 菜单只在松手后出现。
+}
+
+/** 选区的屏幕矩形：菜单就贴在它上方（放不下翻到下方） */
+function selRect() {
+  if (!sel) return null;
+  const { r1, r2, c1, c2 } = bounds();
+  const rows = bodyRows(sel.tableEl);
+  const first = rows[r1] && rows[r1].children[c1];
+  const last = rows[r2] && rows[r2].children[c2];
+  if (!first || !last) return null;
+  const a = first.getBoundingClientRect();
+  const b = last.getBoundingClientRect();
+  const head = sel.tableEl.querySelector('thead');
+  return {
+    top: Math.min(a.top, b.top),
+    bottom: Math.max(a.bottom, b.bottom),
+    left: Math.min(a.left, b.left),
+    right: Math.max(a.right, b.right),
+    // 表头底边：菜单别飘到工具条上去（第一行选区上方没空间时改放选区下面）
+    tableTop: head ? head.getBoundingClientRect().bottom : sel.tableEl.getBoundingClientRect().top,
+  };
 }
 
 /** 工具条的状态：能力来自这张表自己，不是全局 */
@@ -216,6 +290,8 @@ function paint() {
 /** 清掉高亮与选区 */
 export function clearSelection() {
   if (sel) {
+    // 这个守卫必须一起撤：残留在表上会让整张表拖不动（touchmove 一直被吃掉）
+    if (sel.stopScroll) sel.tableEl.removeEventListener('touchmove', sel.stopScroll);
     for (const td of sel.tableEl.querySelectorAll('.nt-range-sel')) {
       td.classList.remove('nt-range-sel', 'nt-range-edge-top', 'nt-range-edge-bottom',
         'nt-range-edge-left', 'nt-range-edge-right');
@@ -280,6 +356,7 @@ function doCopy() {
   } catch (e) { /* 忽略 */ }
 
   setPasteEnabled(true);
+  capsOf(sel.tableEl).notice(`已复制 ${clip.length} 行 × ${clip[0] ? clip[0].length : 0} 格`);
 }
 
 function doPaste() {

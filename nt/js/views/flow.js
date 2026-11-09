@@ -19,6 +19,7 @@ import { renderRows, patchRow, promoteRow } from '../ui/render-transactions.js';
 import { parseAccountInput, suggestAccounts as suggestByIndex, ensurePendingAccount } from '../core/account-resolver.js';
 import { endFromText, endsFromFields, joinHeld } from '../ui/flow-ends.js';
 import { bindRowEditing } from '../ui/row-editor.js';
+import { bindCellEdit } from '../ui/cell-edit.js';
 import { openAddDialog } from '../ui/add-dialog.js';
 import { openSyncDialog } from '../ui/sync-dialog.js';
 import { splitByTime } from '../timeline/time-state.js';
@@ -186,8 +187,7 @@ export function mountFlow(section, ctx) {
     }
 
     ctx.setState(st);
-    ctx.save();
-    render();
+    ctx.save(); render();
 
     ctx.setFooter(`导入 ${added} 笔`
       + (dup ? `，跳过重复 ${dup} 笔` : '')
@@ -209,29 +209,29 @@ export function mountFlow(section, ctx) {
     },
     onRestore: (next) => {
       ctx.setState(next);
-      ctx.saveNow();
-      render();
+      ctx.saveNow(); render();
       ctx.setFooter('已从加密备份恢复');
     },
   });
 
+  // Excel 式单元格：单击选中（不显示光标、弹键盘）、再点取消、双击定位光标
+  const cellEditor = bindCellEdit(body);
+
   // 单元格区域框选：长按起手，可复制 / 粘贴 / 批量删除行
   const flowTable = section.querySelector('.nt-table-flow');
   mountCellRange(flowTable, {
+    editor: cellEditor,
     onNotice: (t) => ctx.setFooter(t),
     onDeleteRows: (ids) => {
       const r = removeFlowBatch(ctx.getState(), ids);
-      ctx.setState(r.state);
-      ctx.save();
-      render();
+      ctx.setState(r.state); ctx.save(); render();
 
       // 框选一次能删掉整片，误删的代价太大 —— 给 8 秒撤销
       showUndo(`已删除 ${r.removed.length} 笔流水`, () => {
         const s0 = ctx.getState();
         const restored = restoreBatch(s0, 'transactions', r.removed);
         ctx.setState(unvoidKeys(restored, r.keys));
-        ctx.saveNow();
-        render();
+        ctx.saveNow(); render();
         ctx.setFooter(`已恢复 ${r.removed.length} 笔流水`);
       });
     },
@@ -262,6 +262,8 @@ export function mountFlow(section, ctx) {
       window.__tlError = String(e && e.message || e);
     }
     const rows = buildFlowRows(st, virtual);
+    // 整表重建前先放下单元格状态：旧 DOM 一换，引用就是死的
+    if (cellEditor) cellEditor.reset();
     renderRows(body, rows);
     if (!scrollInit) { scrollInit = true; scrollLast(body); }
     ctx.setFooter(footerText());

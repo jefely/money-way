@@ -79,11 +79,11 @@ NT 本地调试: http://127.0.0.1:8080/nt/index.html?debug=1
 
 | 项 | 值 |
 |---|---|
-| 版本 | `nt-v1.490` |
+| 版本 | `nt-v1.499` |
 | 最新提交 | 见 `git log -1` |
-| 线上 | 已确认 `nt-v1.490` |
+| 线上 | 已确认 `nt-v1.499` |
 | 测试 | 全部测试文件；**723 通过**（66 个文件，含 `lifevein-model.test.mjs`） |
-| 公约 | `check-rules` 通过，313 个文件，300 行/文件 |
+| 公约 | `check-rules` 通过，314 个文件，300 行/文件 |
 | 工作区 | 干净 |
 
 ### 新内核的桥已经搭好（2026-11-07）
@@ -694,3 +694,27 @@ tests/account-merge.test.mjs 3 条
 - 工作区干净（只有一个未跟踪的 `MINIPROGRAM-FEASIBILITY.md`，与本轮无关）
 - 临时探针都在 `D:\myproject\.tmp-freeze\`（不提交）
 - 线上已确认 `nt-v1.472`
+
+---
+
+## 13. 2026-11-09 流水表改 Excel 式单元格（`nt-v1.499`）
+
+> 上一轮 v1.493–v1.497 的「Excel 单元格光标」在 v1.498 整体回退，原因是
+> 「把流水表搞乱」。这一版重写，交互口径与五条实现约束见
+> [`TABLE-INTERACTION.md`](TABLE-INTERACTION.md) §十一，这里只记状态。
+
+**已实现**（headless Chrome 实测，鼠标 + 触屏两套）：
+
+- 单击选中（2px 描边、全选、光标隐藏、键盘弹出）→ 打字替换 → 回车填入并下移
+- 再单击取消选中（340ms 延迟，避开双击窗口）
+- 双击进编辑，`caretPositionFromPoint` 把光标放到点下去的位置
+- 长按 480ms 拖动框选（手机）/ 鼠标按住拖动（桌面）；松手弹复制 / 粘贴 / 删除行 / 取消
+- 行 hover 只在 `hover:hover and pointer:fine` 生效 —— 手机上不再整行染色
+- 新增 `js/ui/cell-edit.js`（已进 `sw.js` ASSETS）；`cell-range` / `range-bar` 改选区定位
+
+**没做 / 下次别踩**：
+
+- 框选粘贴进空行仍只填草稿、不建单（老行为）
+- 双击间隔由系统决定；极慢的双击会退化成「选中 → 取消」
+- 手机真机（不是模拟器）的键盘弹起高度还没在用户的机器上验过；
+  `ensureVisible` 已按 `visualViewport` 把选中格留在可视区

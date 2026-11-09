@@ -63,6 +63,9 @@ export function bindRowEditing(tbody, h) {
     if (!tr) return;
     const field = input.dataset.field;
 
+    // 中文输入法正在组字：空格 / 回车都是「选字」，不是确认
+    if (ev.isComposing || ev.keyCode === 229) return;
+
     // 账户格：空格当成"确认简码"，不输入空格
     if (ACCOUNT_FIELDS.includes(field) && ev.key === ' ') {
       ev.preventDefault();

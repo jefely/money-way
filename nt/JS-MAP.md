@@ -112,6 +112,7 @@
 | `ui/apply-settings.js` | 全局：把界面参数写成 CSS 变量（主题/列宽） |
 | `ui/backup-guard.js` | 主屏幕备份提醒 |
 | `ui/cat-suggest.js` | 统计 → 分类查询的候选气泡（输入首字母弹出分类） |
+| `ui/cell-edit.js` | 流水表的单元格选中 / 编辑（Excel 式） |
 | `ui/cell-range.js` | 单元格区域框选（长按起手 → 拖动框选 → 复制 / 粘贴 / 删除行） |
 | `ui/chart-gestures.js` | 环网图的手势（拖动 / 缩放 / 平移 / 旋转） |
 | `ui/chart-tip.js` | 路径 tab → 悬停提示 |

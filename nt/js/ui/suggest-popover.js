@@ -109,7 +109,7 @@ export function showSuggest(anchor, items, onPick) {
   pop.hidden = false;
 }
 
-/** 定位：默认在输入框下方，超出视口就翻到上方 */
+/** 定位：默认在输入框下方，超出**可视区**就翻到上方（键盘弹出后 innerHeight 已经不是真值） */
 function place(anchor) {
   const pop = _pop;
   if (!pop || !anchor) return;
@@ -118,12 +118,15 @@ function place(anchor) {
   pop.style.left = Math.max(8, r.left) + 'px';
   pop.style.minWidth = Math.max(160, r.width) + 'px';
 
+  const vv = window.visualViewport;
+  const viewBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+
   // 先放下去量高度，再决定翻不翻
   pop.style.top = (r.bottom + 4) + 'px';
   const h = pop.offsetHeight || 0;
-  const overflow = r.bottom + 4 + h > (window.innerHeight - 8);
+  const overflow = r.bottom + 4 + h > (viewBottom - 8);
   if (overflow) {
-    pop.style.top = Math.max(8, r.top - 4 - h) + 'px';
+    pop.style.top = Math.max(vv ? vv.offsetTop + 8 : 8, r.top - 4 - h) + 'px';
   }
 }
 

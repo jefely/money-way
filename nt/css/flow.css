@@ -549,21 +549,62 @@ body.nt-col-resizing {
   outline: none;
 }
 
-/* 交互态照单文件版（personal/index.html 1166 / 3953 那两组）：
-   · 行悬停：整行一个色（含冻结列）
-   · 编辑中：再亮一档 + 一圈内描边，正在编辑哪一格一眼能看到
-
-   两条都必须带 !important：斑马纹选择器是 (0,3,1)，
-   hover / focus-within 天然只有 (0,2,x)，不压就会被斑马纹吃掉 ——
-   单文件版当年也踩过（注释原话：「斑马纹带 !important，hover 被压掉」）。 */
-.nt-table tbody tr:hover .nt-cell {
-  background: var(--nt-row-hover) !important;
+/* 整行 hover 只给「真有鼠标」的设备：手机上点一下会留 sticky hover，
+   看起来像「整行被选中」，而用户要的是「单格被选中」（2026-11-09）。
+   hover + pointer:fine 两个一起判 —— 有的安卓浏览器会谎报 hover:hover。 */
+@media (hover: hover) and (pointer: fine) {
+  .nt-table tbody tr:hover .nt-cell:not(.nt-cell-sel) {
+    background: var(--nt-row-hover) !important;
+  }
 }
 
-.nt-table tbody tr .nt-cell:focus-within {
+/* 其它表（设置 / 固定 / 分期）编辑态：底亮一档 + 1px 内描边 */
+.nt-table:not(.nt-table-flow) tbody tr .nt-cell:focus-within {
   background: var(--nt-cell-active) !important;
-  /* 用 inset 阴影而不是 outline：表格是 border-collapse:separate，
-     outline 画在盒外会压到相邻格上。 */
+  box-shadow: inset 0 0 0 1px var(--nt-primary);
+}
+
+/* ---------- 流水表：Excel 式单元格（2026-11-09） ----------
+   选中 = 2px 主色内描边 + 淡紫底；此时**不是编辑**：光标由 cell-edit.js
+   用 caret-color 关掉，但输入框仍持有焦点（手机键盘照常弹出）。
+   双击进入编辑 = 同样的框，光标显形。 */
+.nt-table-flow tbody tr .nt-cell.nt-cell-sel {
+  background: var(--nt-cell-active) !important;
+  box-shadow: inset 0 0 0 2px var(--nt-primary);
+}
+
+.nt-table-flow .nt-cell-input {
+  caret-color: transparent;
+  cursor: cell;
+}
+
+/* 选中但不是编辑：长按交给框选，不要弹系统的选字放大镜。
+   不用 user-select: none —— 实测它拦不住 input 内的拖动选字，
+   反而在 iOS 上有「输入框点不进」的风险；真正的压制靠
+   cell-range 起手时的 blur + contextmenu 拦截。 */
+.nt-table-flow .nt-cell:not(.nt-cell-editing) .nt-cell-input {
+  -webkit-touch-callout: none;
+}
+
+.nt-table-flow .nt-cell-editing .nt-cell-input {
+  caret-color: auto;
+  cursor: text;
+}
+
+/* 选中的是「整格」，不是格子里的字：不画文字选中色（Excel 也不画） */
+.nt-table-flow .nt-cell-sel:not(.nt-cell-editing) .nt-cell-input::selection {
+  background: transparent;
+  color: inherit;
+}
+
+/* 双击进入编辑 → 别让浏览器把双击当成缩放 */
+.nt-table-flow .nt-cell {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 焦点落在格子里但还没选中（比如刚重建、类名还没补上）：给一条细框，别裸着 */
+.nt-table-flow .nt-cell:not(.nt-cell-sel):focus-within {
   box-shadow: inset 0 0 0 1px var(--nt-primary);
 }
 
