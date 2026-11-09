@@ -593,3 +593,6 @@
 #nt-stats-pills[data-scope="range"] > * { flex: 1 1 auto; min-width: 0; }
 #nt-stats-pills[data-scope="range"] .nt-pills-sep { flex: 0 0 auto; }
 #nt-stats-pills[data-scope="range"] .nt-pills-clear { flex: 0 0 auto; margin-left: 0; height: 26px; padding: 0 10px; font-size: 12px; }
+
+/* 所有小表第一列：文字放不下直接截断，不用省略号（能多显示一个字） */
+.nt-stats-panel .nt-cell:first-child { text-overflow: clip !important; }
