@@ -1166,13 +1166,15 @@ const aligned = thBox.length === tdBox.length
 ## 十一、流水表的单元格编辑（Excel 式，2026-11-09 重写）
 
 > 背景：v1.493–v1.497 试过一版「选中层叠在输入框上」，v1.498 整体回退
-> （提交原话：「Excel 单元格模式把流水表搞乱」）。这一版是重写，结论如下。
+> （提交原话：「Excel 单元格模式把流水表搞乱」）。v1.499 重写了选中/双击，
+> v1.500 按用户要求补上**右下角调整大小手柄**和**长按五按钮菜单**，
+> 并撤掉旧的四按钮框选条 —— 之前长按会同时弹两条。
 
 ### 11.1 交互口径
 
 | 动作 | 结果 |
 |---|---|
-| 单击格 | 选中：2px 主色内描边 + 淡紫底；**不显示光标**，但输入框持焦点（手机键盘弹出） |
+| 单击格 | 选中：2px 主色内描边；**不显示光标**，但输入框持焦点（手机键盘弹出）；右下角出现**调整大小手柄** |
 | 直接打字 | 整格替换（内容已全选）；回车填入 |
 | 再单击同一格 | 取消选中（340ms 后；双击窗口内算双击） |
 | 双击 | 进编辑，光标落在点下去的位置 |
@@ -1180,51 +1182,69 @@ const aligned = thBox.length === tdBox.length
 | Tab / Shift+Tab | 右 / 左一格，跳过只读行 |
 | 方向键 | 选中态移动格子；编辑态交给浏览器 |
 | Esc | 编辑态 → 还原并退回选中态；再 Esc → 取消选中 |
-| 长按 480ms 后拖动 | 框选矩形（手机） |
-| 鼠标按住拖动 | 框选矩形（桌面） |
-| 松手 | 选区旁弹 `复制 / 粘贴 / 删除行 / 取消`；点外面取消 |
+| **拖右下角手柄** | 把选区扩成矩形（手机 / 鼠标都行）；手柄跟着新右下角走，横滚纵滚不离格 |
+| **长按 480ms** | 在**该单元格上方**弹唯一一条菜单：`剪切 / 复制 / 粘贴 / 清除 / 编辑` |
+| 菜单外任意处 | 收起菜单；点在表格外同时取消选区 |
 
-### 11.2 五条实现约束（每条都对应一次实测故障）
+### 11.2 六条实现约束（每条都对应一次实测故障）
 
 **① 焦点就是唯一真相，不要 preventDefault pointerdown。**
 上一版在 pointerdown 里 preventDefault 再手动 focus：手机上 click 被滚动 /
 长按吃掉时格子点不动，且 `:hover` 整行染色会让人以为「选中了一整行」。
 现在原生 focus 全权负责，`cell-edit.js` 只在 focusin/focusout 上挂类名。
 
-**② 选中态不要画文字选中色。**
-`input.select()` 是为了「打字即替换」，不是为了让用户看见文字被选。
-`::selection { background: transparent }` 让格子看起来仍是「整格选中」。
+**② 长按松手必须拦掉 touchend 的默认行为。**
+不拦的话，松手那一刻浏览器会 focus 输入框 + 派 click：键盘弹出来盖住菜单，
+click 还会把菜单/选区收掉。touchend 的 `{ passive: false }` + `preventDefault()`
+实测能同时挡掉 focus 和 click；再在表格上用捕获阶段吞一次 click 兜底。
 
-**③ 双击光标用 `document.caretPositionFromPoint`。**
+**③ 长按后浏览器重新 focus 输入框时，不许把多格选区收成 1×1。**
+鼠标长按松手不会走 touchend，浏览器会在 mouseup 时把输入框重新聚焦，
+focusin → `cellSelect.single()` → 选区塌成一格、菜单被「点外面」逻辑收掉。
+现在 `single()` 看到菜单开着就直接 return；菜单自己只在动作 / 点外面时关。
+另外 `cell-edit.js` 的「点外面失焦」必须排除 `.nt-cell-menu`，
+否则按菜单按钮的 pointerdown 会先把输入框 blur 掉、连带 `release()` 清选区。
+
+**④ 手柄要算内容坐标，不能算视口坐标。**
+`.nt-tablewrap` 加 `position: relative`，手柄 `position: absolute`；
+`left/top = 格子 rect - wrap rect + scrollLeft/scrollTop`。
+这样横滚 / 纵滚 / 列宽变化后手柄仍贴着格子角。拖手柄时用
+`elementsFromPoint` 逐层找 td（手柄自己也命中的话 `elementFromPoint` 拿不到格子），
+并吃 `touchmove` 的默认行为，否则手指一动表格先滚了。
+
+**⑤ 禁用的菜单按钮必须 `pointer-events: none`。**
+实测：点在置灰的「粘贴」上，事件穿透到菜单外 → 菜单的「点外面收起」和
+cell-select 的「点外面清选区」一起触发，菜单和选区一起消失。按钮禁用后
+让 pointerdown 落在菜单容器上。
+
+**⑥ 双击光标用 `document.caretPositionFromPoint`。**
 Chrome / Edge 对 `<input>` 直接返回字符下标（实测 `offsetNode === input`），
 比按字宽测量准。Safari / 老浏览器降级为 canvas 逐字量宽。
 浏览器原生的双击会选词（`selectionStart` = 词首），所以不能拿它当光标位置。
 
-**④ 长按框选必须吃掉 `touchmove` 的默认行为。**
-`touch-action` 在手指按下那一刻就定好了，到长按触发时再改 body 不一定生效；
-不 `preventDefault` 的话，手指一滑浏览器就开始滚动，`pointermove` 断掉，
-框选只能扩 1 格（实测）。加一个 `{ passive: false }` 的 touchmove 守卫，
-并在 `clearSelection` / `finish` 里一并撤掉 —— 残留在表上会让整表拖不动。
-
-**⑤ 菜单不能在拖动过程中出现。**
-`showBar` 在选区旁（优先上方、放不下放下方、不盖工具条）。如果长按刚触发就
-showBar，菜单会落在起点右下方，拖动时 `elementFromPoint` 命中的是菜单，
-框选扩不出去（实测只到第 2 列）。只在松手后 showBar。
+**⑦ 行 hover 只给真鼠标。**
+`@media (hover: hover) and (pointer: fine)`；否则手机上点一下整行留 sticky hover。
 
 ### 11.3 涉及文件
 
 ```
-js/ui/cell-edit.js     选中 / 光标 / 方向键 / Tab / Esc（只给可编辑表挂）
-js/ui/cell-range.js    长按 / 鼠标拖动框选；起手时 release() 单元格编辑器
-js/ui/range-bar.js     菜单定位与按钮；点外面取消
-js/ui/row-editor.js    输入解析、回车下移（新增 isComposing 守卫，中文选字不误提交）
+js/ui/cell-edit.js     选中 / 光标 / 双击编辑 / 方向键 / Tab / Esc
+js/ui/cell-select.js   选区矩形 / 右下角手柄 / 长按菜单 / 剪切复制粘贴清除
+js/ui/cell-menu.js     五按钮菜单的摆放与点外面收起
+js/ui/cell-clip.js     格子 ↔ 矩阵（复制 / 清除 / 粘贴），流水/固定/分期共用
+js/ui/cell-range.js    其它表（固定 / 分期 / 统计）的长按框选与四按钮条
+js/ui/range-bar.js     四按钮条（只给非流水表）
+js/ui/row-editor.js    输入解析、回车下移（isComposing 守卫，中文选字不误提交）
 js/ui/suggest-popover.js  候选气泡按 visualViewport 避键盘
-css/flow.css           行 hover 只给真鼠标；选中/编辑/光标/双击缩放
+css/flow.css           行 hover 只给真鼠标；选中/锚点/光标/双击缩放
+css/range.css          手柄、五按钮菜单、框选高亮
 ```
 
 ### 11.4 已知边界
 
-- 框选粘贴进**空行**仍只填草稿，不建单（建单要失焦触发，老行为，未改）。
-- 触屏长按的系统选字菜单：`-webkit-touch-callout: none` + `user-select: none`
-  在选中态压掉；进入编辑后恢复，编辑态仍可正常选字。
+- 粘贴进**空行**仍只填草稿，不建单（建单要失焦触发，老行为，未改）。
+- 剪切 / 清除已有行的 from/to 时，靠合成一次 `focusout` 让 row-editor
+  解析空账户、把 `from_id/to_id` 清掉；空行不发（会触发建单）。
+- 流水表不再有「框选批量删除行」：五按钮里没有删除行（用户只要这五个），
+  单行删除仍走行尾 `×`。
 - 双击进编辑依赖系统双击间隔（`click.detail`）；极慢的双击会退化成「选中 → 取消选中」。

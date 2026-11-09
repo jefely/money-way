@@ -40,9 +40,10 @@ const editors = new WeakMap();
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 
-export function bindCellEdit(tbody) {
+export function bindCellEdit(tbody, opts) {
   if (!tbody) return null;
   if (editors.has(tbody)) return editors.get(tbody);
+  const o = opts || {};
 
   /** { td, input, mode:'selected'|'editing', original } */
   let active = null;
@@ -76,6 +77,7 @@ export function bindCellEdit(tbody) {
     active = { td, input, mode: 'selected', original: input.value };
     paint();
     try { input.select(); } catch (e) { /* 只读格也能选 */ }
+    if (o.onSelect) o.onSelect(td);
     ensureVisible(td);
   }
 
@@ -223,6 +225,32 @@ export function bindCellEdit(tbody) {
       try { input.blur(); } catch (e) { /* 忽略 */ }
     }
     clear();
+    if (o.onRelease) o.onRelease();
+  }
+
+  /** 只收键盘，不收选区：长按菜单 / 拖手柄时用 */
+  function blurInput() {
+    if (!active) return;
+    if (document.activeElement === active.input) {
+      try { active.input.blur(); } catch (e) { /* 忽略 */ }
+    }
+  }
+
+  /** 菜单「编辑」：选中这一格并进入编辑，光标放末尾 */
+  function editAt(td) {
+    const input = inputOf(td);
+    if (!usable(input)) return false;
+    if (!active || active.td !== td) {
+      active = { td, input, mode: 'selected', original: input.value };
+    }
+    try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
+    active.mode = 'editing';
+    paint();
+    const len = String(input.value || '').length;
+    try { input.setSelectionRange(len, len); } catch (e) { /* 忽略 */ }
+    if (o.onSelect) o.onSelect(td);
+    ensureVisible(td);
+    return true;
   }
 
   /** 表格重画前清掉状态：旧 DOM 已经不在，类名和引用都不能留 */
@@ -349,12 +377,14 @@ export function bindCellEdit(tbody) {
   document.addEventListener('pointerdown', (ev) => {
     if (!active) return;
     if (tbody.contains(ev.target)) return;
-    if (ev.target.closest && ev.target.closest('.nt-range-bar, .nt-suggest')) return;
+    if (ev.target.closest && ev.target.closest('.nt-range-bar, .nt-cell-menu, .nt-suggest')) return;
     release();
   });
 
   const api = {
     release,
+    blurInput,
+    editAt,
     reset,
     /** 当前选中格（诊断用；不暴露 DOM 引用给业务层） */
     active: () => (active ? { td: active.td, mode: active.mode } : null),

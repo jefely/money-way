@@ -7,9 +7,9 @@
  * 合计与余额全部来自 core 的纯函数，本文件不算钱。
  */
 
-import { addTransaction, updateTransaction, nextSeq, restoreBatch, noteTextByCode } from '../core/state-store.js';
+import { addTransaction, updateTransaction, nextSeq, noteTextByCode } from '../core/state-store.js';
 import { afterTxEdit } from '../core/draft-book.js';
-import { removeFlowTx, removeFlowBatch, unvoidKeys, markPlanHandled } from '../ui/plan-links.js';
+import { removeFlowTx, markPlanHandled } from '../ui/plan-links.js';
 import { mountComposer } from '../ui/composer.js';
 import { createScheduled } from '../core/schema.js';
 import { buildFlowRows, buildFooterInfo } from '../ui/flow-model.js';
@@ -20,12 +20,11 @@ import { parseAccountInput, suggestAccounts as suggestByIndex, ensurePendingAcco
 import { endFromText, endsFromFields, joinHeld } from '../ui/flow-ends.js';
 import { bindRowEditing } from '../ui/row-editor.js';
 import { bindCellEdit } from '../ui/cell-edit.js';
+import { mountCellSelect } from '../ui/cell-select.js';
 import { openAddDialog } from '../ui/add-dialog.js';
 import { openSyncDialog } from '../ui/sync-dialog.js';
 import { splitByTime } from '../timeline/time-state.js';
 import { bindPlanRowActions, scrollToLast as scrollLast } from '../ui/plan-rows.js';
-import { mountCellRange } from '../ui/cell-range.js';
-import { showUndo } from '../ui/undo-bar.js';
 import { openImportHub } from '../ui/import-hub.js';
 import { applyBillPlan } from '../core/bill-apply.js';
 import { openExportDialog } from '../ui/export-dialog.js';
@@ -214,28 +213,18 @@ export function mountFlow(section, ctx) {
     },
   });
 
-  // Excel 式单元格：单击选中（不显示光标、弹键盘）、再点取消、双击定位光标
-  const cellEditor = bindCellEdit(body);
-
-  // 单元格区域框选：长按起手，可复制 / 粘贴 / 批量删除行
+  // Excel 式单元格：单击选中（不显示光标、弹键盘）、再点取消、双击定位光标；
+  // 选中的格子右下角有调整大小手柄，长按弹「剪切/复制/粘贴/清除/编辑」。
+  // 旧的「长按拖框选 + 四按钮条」在流水表上已撤掉 —— 否则长按会同时出两条。
   const flowTable = section.querySelector('.nt-table-flow');
-  mountCellRange(flowTable, {
-    editor: cellEditor,
+  const cellSelect = mountCellSelect(flowTable, body, {
     onNotice: (t) => ctx.setFooter(t),
-    onDeleteRows: (ids) => {
-      const r = removeFlowBatch(ctx.getState(), ids);
-      ctx.setState(r.state); ctx.save(); render();
-
-      // 框选一次能删掉整片，误删的代价太大 —— 给 8 秒撤销
-      showUndo(`已删除 ${r.removed.length} 笔流水`, () => {
-        const s0 = ctx.getState();
-        const restored = restoreBatch(s0, 'transactions', r.removed);
-        ctx.setState(unvoidKeys(restored, r.keys));
-        ctx.saveNow(); render();
-        ctx.setFooter(`已恢复 ${r.removed.length} 笔流水`);
-      });
-    },
   });
+  const cellEditor = bindCellEdit(body, {
+    onSelect: (td) => cellSelect.single(td),
+    onRelease: () => cellSelect.clear(),
+  });
+  cellSelect.setEditor(cellEditor);
 
   function render(force) {
     const ver = typeof ctx.getVersion === 'function' ? ctx.getVersion() : -1;
@@ -264,6 +253,7 @@ export function mountFlow(section, ctx) {
     const rows = buildFlowRows(st, virtual);
     // 整表重建前先放下单元格状态：旧 DOM 一换，引用就是死的
     if (cellEditor) cellEditor.reset();
+    cellSelect.reset();
     renderRows(body, rows);
     if (!scrollInit) { scrollInit = true; scrollLast(body); }
     ctx.setFooter(footerText());

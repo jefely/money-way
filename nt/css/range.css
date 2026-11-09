@@ -125,3 +125,89 @@ body.nt-range-mode .nt-tablewrap {
   color: var(--nt-text-muted);
   white-space: nowrap;
 }
+
+/* ============================================================
+   流水表 · Excel 式选区（2026-11-09）
+   ------------------------------------------------------------
+   选区右下角一个方块手柄，拖它把选区扩成矩形。
+   手柄是 wrap 里的绝对定位元素：坐标按内容坐标算，横滚纵滚都跟着格子走。
+   ============================================================ */
+
+/* 手柄的定位基准。只给挂了选区的表加，别动其它表的 wrap 布局 */
+.nt-tablewrap.nt-has-grip {
+  position: relative;
+}
+
+.nt-cell-grip {
+  position: absolute;
+  z-index: 7;
+  width: 26px;               /* 26 的命中区，里面只有右下角 8px 是可见的 */
+  height: 26px;
+  touch-action: none;
+  cursor: nwse-resize;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nt-cell-grip[hidden] {
+  display: none;
+}
+
+.nt-cell-grip::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--nt-bg, #000);   /* 和格子底色隔开，不然和边框糊在一起 */
+  border-radius: 1px;
+  background: var(--nt-primary);
+}
+
+/* 拖手柄期间：整页不许选字、光标变斜向缩放 */
+body.nt-cell-gripping {
+  user-select: none;
+  cursor: nwse-resize;
+}
+
+/* ---------- 长按菜单：剪切 / 复制 / 粘贴 / 清除 / 编辑 ---------- */
+
+.nt-cell-menu {
+  position: fixed;
+  z-index: 61;
+  display: flex;
+  gap: 4px;
+  padding: 4px 5px;
+  border: 1px solid var(--nt-line-strong, var(--nt-bg-line));
+  border-radius: 8px;
+  background: var(--nt-bg-soft, var(--nt-bg));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.nt-cell-menu[hidden] {
+  display: none;
+}
+
+.nt-cell-menu-btn {
+  padding: 4px 7px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 4px;
+  background: var(--nt-bg);
+  color: var(--nt-text);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.nt-cell-menu-btn:hover:not(:disabled) {
+  border-color: var(--nt-primary);
+  color: var(--nt-primary);
+}
+
+.nt-cell-menu-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  /* 禁用的按钮也要让 pointerdown 落在菜单里：否则事件穿透到菜单外，
+     菜单会被「点外面收起」的逻辑收掉，连带选区也被清空 */
+  pointer-events: none;
+}

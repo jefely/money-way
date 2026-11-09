@@ -112,8 +112,11 @@
 | `ui/apply-settings.js` | 全局：把界面参数写成 CSS 变量（主题/列宽） |
 | `ui/backup-guard.js` | 主屏幕备份提醒 |
 | `ui/cat-suggest.js` | 统计 → 分类查询的候选气泡（输入首字母弹出分类） |
+| `ui/cell-clip.js` | 单元格剪贴板（复制 / 剪切 / 清除 / 粘贴） |
 | `ui/cell-edit.js` | 流水表的单元格选中 / 编辑（Excel 式） |
+| `ui/cell-menu.js` | 单元格长按菜单（剪切 / 复制 / 粘贴 / 清除 / 编辑） |
 | `ui/cell-range.js` | 单元格区域框选（长按起手 → 拖动框选 → 复制 / 粘贴 / 删除行） |
+| `ui/cell-select.js` | 流水表的选区（Excel 式：锚点 + 右下角手柄 + 长按菜单） |
 | `ui/chart-gestures.js` | 环网图的手势（拖动 / 缩放 / 平移 / 旋转） |
 | `ui/chart-tip.js` | 路径 tab → 悬停提示 |
 | `ui/checks-view.js` | 校验 tab → 账本校验区 |

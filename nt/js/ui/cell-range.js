@@ -20,12 +20,10 @@
  */
 
 import { bindBar, showBar, hideBar, setPasteEnabled } from './range-bar.js';
+import { copyCells, pasteCells, getClip } from './cell-clip.js';
 
 const LONG_PRESS_MS = 480;
 const MOVE_TOLERANCE = 8;      // 长按期间移动超过这个距离就算滚动，放弃长按
-
-/** 内部剪贴板：二维字符串数组（跨表共享：流水表复制 → 别的表也能粘） */
-let clip = null;
 
 /** 当前选区 { anchorR, anchorC, focusR, focusC, tableEl } */
 let sel = null;
@@ -264,7 +262,7 @@ function selRect() {
 function barState(tableEl) {
   const caps = capsOf(tableEl);
   return {
-    hasClip: !!clip,
+    hasClip: !!getClip(),
     canPaste: caps.paste !== 'off',
     canDelete: !!caps.onDeleteRows,
   };
@@ -314,52 +312,16 @@ export function clearSelection() {
    四、操作
    ============================================================ */
 
-/** 读一个格子的值：有 input 读 value，否则读文本 */
-function cellValue(td) {
-  const input = td.querySelector('input, textarea');
-  return input ? input.value : td.textContent.trim();
-}
-
-/** 写一个格子的值（只设 value，不派发事件；派发统一放在循环之后） */
-function writeCell(td, v) {
-  const input = td.querySelector('input, textarea');
-  if (!input) return null;
-  input.value = v;
-  return input;
-}
-
-/** 一行的每个 td 都是整格（没有跨列）才取，跨列行整行跳过 */
-function rowCells(tr) {
-  const tds = [...tr.children];
-  return tds.some(isSpan) ? null : tds;
-}
-
 function doCopy() {
   if (!sel) return;
   const { r1, r2, c1, c2 } = bounds();
-
-  clip = [];
-  for (const tr of bodyRows(sel.tableEl).slice(r1, r2 + 1)) {
-    const tds = rowCells(tr);
-    if (!tds) continue;                       // 合计行 / 空状态行不参与复制
-    const out = [];
-    for (let c = c1; c <= c2; c += 1) out.push(tds[c] ? cellValue(tds[c]) : '');
-    clip.push(out);
-  }
-
-  // 同时写系统剪贴板：统计表这类只读表复制出来就是为了贴到别处
-  const tsv = clip.map((line) => line.join('\t')).join('\n');
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(tsv).catch(() => { /* 无权限就算了 */ });
-    }
-  } catch (e) { /* 忽略 */ }
-
+  const m = copyCells(sel.tableEl, r1, c1, r2, c2);
   setPasteEnabled(true);
-  capsOf(sel.tableEl).notice(`已复制 ${clip.length} 行 × ${clip[0] ? clip[0].length : 0} 格`);
+  capsOf(sel.tableEl).notice(`已复制 ${m.length} 行 × ${m[0] ? m[0].length : 0} 格`);
 }
 
 function doPaste() {
+  const clip = getClip();
   if (!sel || !clip) return;
   const caps = capsOf(sel.tableEl);
   if (caps.paste === 'off') return;
@@ -374,33 +336,11 @@ function doPaste() {
     return;
   }
 
-  const rows = bodyRows(sel.tableEl);
-  const inputs = [];
-  let blocked = 0;
-
-  clip.forEach((line, dr) => {
-    const tr = rows[r1 + dr];
-    const tds = tr ? rowCells(tr) : null;
-    line.forEach((v, dc) => {
-      const td = tds ? tds[c1 + dc] : null;
-      const input = td ? writeCell(td, v) : null;
-      if (input) inputs.push(input);
-      else blocked += 1;
-    });
-  });
-
-  // 值先全部落地，再统一派发 —— 否则第一格的 change 触发重渲染，后面的格子就写在旧节点上了
-  for (const input of inputs) {
-    try {
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    } catch (e) { /* 重渲染后旧节点可能已脱离 */ }
-  }
-
+  const r = pasteCells(sel.tableEl, r1, c1, clip);
   clearSelection();
-  caps.notice(blocked
-    ? `粘贴 ${inputs.length} 格，另有 ${blocked} 格是只读列没写`
-    : `粘贴 ${inputs.length} 格`);
+  caps.notice(r.blocked
+    ? `粘贴 ${r.written} 格，另有 ${r.blocked} 格是只读列没写`
+    : `粘贴 ${r.written} 格`);
 }
 
 function doDelete() {
