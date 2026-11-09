@@ -31,10 +31,21 @@ function savedColW() {
   }
 }
 
+/** 备注查询表最后一列（备注）的宽度：只有这一列能拖 */
+function savedNoteW() {
+  try {
+    const n = Number(localStorage.getItem('nt_note_detail_note_w'));
+    return Number.isFinite(n) && n >= 60 ? Math.round(n) : 160;
+  } catch (e) {
+    return 160;
+  }
+}
+
 /** 备注统计页挂载；返回统计页每次重画时调用的 render */
 export function mountStatsNotes(ctx, pane, getRange) {
   let picked = null; // {kind:'type'|'keyword', value}
   let firstW = savedColW();
+  let noteW = savedNoteW();
 
   pane.textContent = '';
   const grid = el('div', 'nt-stats-grid');
@@ -156,16 +167,40 @@ export function mountStatsNotes(ctx, pane, getRange) {
     }
     const tableEl = el('table', 'nt-table nt-table-stats nt-note-detail-table');
     const dcg = el('colgroup');
-    for (const w of [44, 70, 100, 110, 96]) {
+    for (const w of [44, 84, 108, 118, 96]) {
       const c = el('col'); c.style.width = w + 'px'; dcg.appendChild(c);
     }
-    dcg.appendChild(el('col'));
+    const lastCol = el('col');
+    lastCol.style.width = noteW + 'px';
+    dcg.appendChild(lastCol);
     tableEl.appendChild(dcg);
     const thead = el('thead');
     const hr = el('tr');
     for (const h of ['序', '日期', '转出', '转入', '金额', '备注']) hr.appendChild(el('th', 'nt-th', h));
     thead.appendChild(hr);
     tableEl.appendChild(thead);
+    // 只有「备注」列能拖宽：和节点分类列表同一套手柄样式
+    const lastTh = hr.lastElementChild;
+    lastTh.appendChild(el('span', 'nt-col-handle'));
+    lastTh.addEventListener('pointerdown', (ev) => {
+      if (ev.button !== 0 && ev.pointerType === 'mouse') return;
+      const r = lastTh.getBoundingClientRect();
+      if (ev.clientX < r.right - 14 || ev.clientX > r.right + 2) return;
+      ev.preventDefault(); ev.stopPropagation();
+      const startX = ev.clientX;
+      const startW = Math.round(r.width);
+      const move = (e2) => {
+        noteW = Math.max(60, Math.round(startW + e2.clientX - startX));
+        lastCol.style.width = noteW + 'px';
+      };
+      const up = () => {
+        document.removeEventListener('pointermove', move);
+        document.removeEventListener('pointerup', up);
+        try { localStorage.setItem('nt_note_detail_note_w', String(noteW)); } catch (e) { /* 忽略 */ }
+      };
+      document.addEventListener('pointermove', move);
+      document.addEventListener('pointerup', up);
+    });
     const tb = el('tbody');
     const acc = new Map((ctx.getState().accounts || []).map((a) => [a.id, a.name || '']));
     list.forEach((t, i) => {

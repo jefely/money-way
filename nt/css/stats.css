@@ -569,4 +569,4 @@
 
 /* 备注查询：行高与列宽默认值（节点统计表分类列表同款观感） */
 .nt-note-detail-table { table-layout: fixed; }
-.nt-note-detail-table td { height: 34px; }
+.nt-note-detail-table td { height: 32px; }
