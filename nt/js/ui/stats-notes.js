@@ -187,6 +187,8 @@ export function mountStatsNotes(ctx, pane, getRange) {
     tableEl.appendChild(thead);
     // 每列都能拖宽（照搬节点分类列表）：标题右缘拖动，宽度存本地
     [...hr.children].forEach((th, i) => {
+      // 备注列吃剩余宽度：不参与拖宽，否则会变成其它列跟着变的适应宽度模式
+      if (i === 5) return;
       th.appendChild(el('span', 'nt-col-handle'));
       th.addEventListener('pointerdown', (ev) => {
         if (ev.button !== 0 && ev.pointerType === 'mouse') return;
