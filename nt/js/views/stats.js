@@ -233,7 +233,7 @@ export function mountStats(section, ctx) {
       clear.type = 'button';
       clear.className = 'nt-btn nt-btn-sm nt-pills-clear';
       clear.textContent = '清空';
-      clear.addEventListener('click', () => { sel.scope = 'all'; render(); });
+      clear.addEventListener('click', () => { sel.start = ''; sel.end = ''; render(); });
       pills.appendChild(clear);
     }
   }
