@@ -574,3 +574,7 @@
 /* 备注查询：用 id 级规则压过通用表样式，固定列宽才生效（拖动备注列才有用），行高 32 */
 #nt-stats-notes .nt-note-detail-table { table-layout: fixed !important; width: 100%; }
 #nt-stats-notes .nt-note-detail-table th, #nt-stats-notes .nt-note-detail-table td { height: 32px !important; }
+
+/* 备注查询：表头行高26/字号12，数据行高32/字号14 */
+#nt-stats-notes .nt-note-detail-table thead th { height: 26px !important; font-size: 12px !important; }
+#nt-stats-notes .nt-note-detail-table tbody td { height: 32px !important; font-size: 14px !important; }

@@ -169,7 +169,7 @@ export function mountStatsNotes(ctx, pane, getRange) {
     }
     const tableEl = el('table', 'nt-table nt-table-stats nt-note-detail-table');
     const dcg = el('colgroup');
-    const widths = detailCols.slice();
+    const widths = savedDetailCols();
     for (let i = 0; i < 6; i += 1) {
       const c = el('col');
       if (i < 5) c.style.width = widths[i] + 'px';
