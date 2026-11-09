@@ -17,7 +17,7 @@
  */
 
 import { bindBar, showBar, hideBar, setPasteEnabled } from './range-bar.js';
-import { bindCellCursor } from './cell-cursor.js';
+import { bindCellEdit } from './cell-edit.js';
 
 const LONG_PRESS_MS = 320;
 const MOVE_TOLERANCE = 8;      // 长按期间移动超过这个距离就算滚动，放弃长按
@@ -35,6 +35,9 @@ let sel = null;
  *   onNotice:      (text:string) => void    —— 粘贴结果如实回报（写到页脚）
  */
 const tableMap = new WeakMap();
+
+/** 每张表自己的单元格编辑器（只有可编辑的表才有） */
+const editorMap = new WeakMap();
 
 /* ============================================================
    一、挂载
@@ -64,11 +67,11 @@ export function mountCellRange(tableEl, opts) {
     onCancel: clearSelection,
   });
 
-  // Excel 式单元格光标：只给需要编辑的表（流水表）挂，只读表（统计）不挂
+  // Excel 式单元格编辑：只给需要编辑的表（流水表）挂，只读表（统计）不挂
   if (o.cursor && !tableEl.dataset.cursorBound) {
     tableEl.dataset.cursorBound = '1';
     const tbody = tableEl.querySelector('tbody');
-    if (tbody) bindCellCursor(tbody);
+    if (tbody) editorMap.set(tableEl, bindCellEdit(tbody));
   }
 
   if (tableEl.dataset.rangeBound === '1') return;
@@ -165,9 +168,9 @@ function startSelection(tableEl, hit, ev) {
   // 在别的表上起新选区时，先把上一张表的高亮清掉 —— 否则会同时亮着两处
   clearSelection();
 
-  // 单元格光标与框选互斥：框选期间不需要键盘，也避免两个高亮叠着
-  for (const td of tableEl.querySelectorAll('.nt-cell-sel')) td.classList.remove('nt-cell-sel');
-  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  // 单元格编辑与框选互斥：框选期间不需要键盘，也避免两个高亮叠着
+  const ed = editorMap.get(tableEl);
+  if (ed) ed.release();
   sel = { anchorR: hit.r, anchorC: hit.c, focusR: hit.r, focusC: hit.c, tableEl };
 
   document.body.classList.add('nt-range-mode');
@@ -403,14 +406,9 @@ function doEdit() {
   const tableEl = sel.tableEl;
   const tr = bodyRows(tableEl)[r1];
   const td = tr && tr.children[c1];
-  const input = td && td.querySelector('input, textarea');
   clearSelection();
-  if (!input) return;
-  td.classList.add('nt-cell-sel', 'nt-cell-editing');
-  try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
-  const len = String(input.value || '').length;
-  try { input.setSelectionRange(len, len); } catch (e) { /* 忽略 */ }
-  tableEl.dispatchEvent(new CustomEvent('nt:edit-cell', { bubbles: true, detail: { td, input } }));
+  const ed = editorMap.get(tableEl);
+  if (ed && td) ed.editAt(td);
 }
 
 function doDelete() {
