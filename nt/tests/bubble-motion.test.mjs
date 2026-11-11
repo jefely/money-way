@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {
   eventProgress, elastic, bubbleRadius, classifyFlow, flowFractions,
   shownBalance, gooAngles, packCluster, packEdge, yOfDay,
-  pixelsPerDay, formatAmount, tangentBridge,
+  pixelsPerDay, formatAmount, tangentBridge, juiceAt,
 } from '../js/core/bubble-motion.js';
 import { assembleScene } from '../js/core/bubble-scene.js';
 import { buildLifeVein, balanceAt } from '../js/core/lifevein-model.js';
@@ -155,6 +155,16 @@ test('金额整数不带小数点，有零头才留一位', () => {
   assert.equal(formatAmount(12.04), '12');
   assert.equal(formatAmount(12.26), '12.3');
   assert.equal(formatAmount(-8), '8');
+});
+
+test('挤压和冲击只由进度决定，两端收回', () => {
+  const a = juiceAt(0);
+  const b = juiceAt(0.5);
+  const c = juiceAt(1);
+  assert.ok(Math.abs(a.sx - 1) < 1e-6 && Math.abs(c.sx - 1) < 1e-6);
+  assert.ok(b.sx > 1 && b.sy < 1);
+  assert.ok(juiceAt(0.84).ripple > juiceAt(0.2).ripple);
+  assert.deepEqual(juiceAt(0.4), juiceAt(0.4));
 });
 
 test('公切弧：靠近才有，越近弧越大', () => {

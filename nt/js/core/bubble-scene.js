@@ -143,6 +143,7 @@ export function assembleScene(model, view) {
         srcId: e.kind === 'inflow' ? '' : e.fromId,
         dstId: (e.kind === 'spend' || e.kind === 'charge') ? '' : e.toId,
         meet: (e.fromType === INCOME || e.fromType === EQUITY) && t < 0.5 ? ('L' + e.key) : '',
+        t,
         stick: merge ? (t > 0.55 ? e.toId : '') : (t < 0.4 ? e.fromId : ''),
       });
     }

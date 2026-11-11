@@ -27,6 +27,20 @@ function smooth(t) {
  * 端点精确落在 0 和 1，中途略微过冲再收回。
  * 过冲只取决于进度，倒放会把这一下原样倒回去。
  */
+/**
+ * 飞行动作的手感，只看进度 t。
+ * 中段拉长，靠近并入时压扁并给出一圈冲击；分开的一瞬间溅出小滴。
+ * 端点回到 1，倒放是同一条曲线。
+ */
+export function juiceAt(t) {
+  const x = Math.min(1, Math.max(0, t));
+  const travel = Math.sin(x * Math.PI);
+  const stretch = 1 + 0.16 * travel;
+  const impact = Math.exp(-((x - 0.84) * (x - 0.84)) / 0.004);
+  const split = Math.exp(-((x - 0.16) * (x - 0.16)) / 0.004);
+  return { sx: stretch, sy: 1 / Math.sqrt(stretch), ripple: impact, droplets: split };
+}
+
 export function elastic(p) {
   const x = clamp01(p);
   const base = x * x * (3 - 2 * x);

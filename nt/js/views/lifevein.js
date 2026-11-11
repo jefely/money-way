@@ -56,6 +56,7 @@ export function mountLifeVein(section, ctx) {
       width: W(),
       height: H(),
       month: monthFrame(),
+      reduced: typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches,
     });
   }
 

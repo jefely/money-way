@@ -4,7 +4,7 @@
  * 层：第五层 · UI
  */
 
-import { tangentBridge, formatAmount } from '../core/bubble-motion.js';
+import { tangentBridge, formatAmount, juiceAt } from '../core/bubble-motion.js';
 import { assembleScene } from '../core/bubble-scene.js';
 import { calendarDayAt } from '../core/lifevein-model.js';
 
@@ -119,7 +119,79 @@ function label(g, b, ink) {
   if (amt) g.fillText(amt, b.x, b.y + size * 0.6);
 }
 
-/** 画一整帧。view = { scrollDay, ppd, width, height } */
+function mixHex(a, b, t) {
+  const A = rgb(a);
+  const B = rgb(b);
+  const c = A.map((v, i) => Math.round(v + (B[i] - v) * t));
+  return '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+
+function squashOf(fly) {
+  const j = juiceAt(fly.t || 0);
+  return {
+    ang: Math.atan2(fly.y - fly.sy, fly.x - fly.sx),
+    sx: j.sx,
+    sy: j.sy,
+    ripple: j.ripple,
+    droplets: j.droplets,
+  };
+}
+
+function paintSquash(g, b, hex, squash) {
+  if (!squash) {
+    bubble(g, b.x, b.y, b.r, hex);
+    return;
+  }
+  g.save();
+  g.translate(b.x, b.y);
+  g.rotate(squash.ang);
+  g.scale(squash.sx, squash.sy);
+  bubble(g, 0, 0, b.r, hex);
+  g.restore();
+}
+
+function paintTrail(g, fly) {
+  const hex = colorOf(fly.lane);
+  for (let i = 1; i <= 2; i += 1) {
+    const k = i / 3;
+    g.globalAlpha = 0.16 / i;
+    bubble(g, fly.x + (fly.sx - fly.x) * k, fly.y + (fly.sy - fly.y) * k, fly.r * (1 - k * 0.45), hex);
+  }
+  g.globalAlpha = 1;
+}
+
+function paintImpact(g, fly) {
+  const j = squashOf(fly);
+  if (j.ripple > 0.15) {
+    g.beginPath();
+    g.arc(fly.x, fly.y, fly.r * (1 + j.ripple * 0.7), 0, Math.PI * 2);
+    g.strokeStyle = colorOf(fly.lane);
+    g.globalAlpha = j.ripple * 0.45;
+    g.lineWidth = 1.5;
+    g.stroke();
+    g.globalAlpha = 1;
+  }
+  if (j.droplets < 0.2) return;
+  const ang = j.ang + Math.PI;
+  for (let i = 0; i < 3; i += 1) {
+    const a = ang + (i - 1) * 0.5;
+    const d = fly.r * (1.2 + j.droplets);
+    bubble(g, fly.x + Math.cos(a) * d, fly.y + Math.sin(a) * d, Math.max(2, fly.r * 0.18), colorOf(fly.lane));
+  }
+}
+
+function paintGlow(g, b) {
+  const [R, G, B] = rgb(colorOf(b.lane));
+  const shade = g.createRadialGradient(b.x, b.y, b.r * 0.6, b.x, b.y, b.r * 1.45);
+  shade.addColorStop(0, 'rgba(' + R + ',' + G + ',' + B + ',0.22)');
+  shade.addColorStop(1, 'rgba(' + R + ',' + G + ',' + B + ',0)');
+  g.beginPath();
+  g.arc(b.x, b.y, b.r * 1.45, 0, Math.PI * 2);
+  g.fillStyle = shade;
+  g.fill();
+}
+
+/** 画一整帧。view = { scrollDay, ppd, width, height, reduced } */
 export function drawBubbleStage(g, model, view) {
   const w = view.width;
   const h = view.height;
@@ -127,10 +199,20 @@ export function drawBubbleStage(g, model, view) {
   g.clearRect(0, 0, w, h);
 
   const scene = assembleScene(model, view);
+  const reduced = !!view.reduced;
+  const juicy = reduced ? [] : scene.flies.filter((f) => f.r > 7).sort((a, b) => b.r - a.r).slice(0, 8);
+  for (const fly of juicy) paintTrail(g, fly);
   for (const fly of scene.flies) neck(g, fly);
-  for (const b of [...scene.flies, ...scene.left, ...scene.right, ...scene.liab, ...scene.asset]) {
+  if (!reduced) for (const fly of juicy) paintImpact(g, fly);
+  for (const b of [...scene.left, ...scene.right, ...scene.liab, ...scene.asset]) {
+    if (!reduced && b.v > 4000) paintGlow(g, b);
     bubble(g, b.x, b.y, b.r, colorOf(b.lane));
     label(g, b, ink);
+  }
+  for (const fly of scene.flies) {
+    const hex = mixHex(colorOf(fly.lane), colorOf(fly.toLane), (fly.t || 0) * 0.6);
+    const squash = reduced ? null : squashOf(fly);
+    paintSquash(g, fly, hex, squash);
   }
 
   g.fillStyle = ink.muted;
