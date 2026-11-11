@@ -71,7 +71,7 @@ export function eventProgress(day, scrollDay, ppd, height) {
 export function pixelsPerDay(vspan, height, zoom) {
   const span = Math.max(1, Number(vspan) || 1);
   const h = Math.max(240, Number(height) || 700);
-  const horizonDays = Math.max(2.2, span * 0.2);
+  const horizonDays = Math.min(4.2, Math.max(2.2, span * 0.08));
   const raw = (h * 0.5) / horizonDays;
   return Math.max(14, Math.min(120, raw)) * (Number(zoom) || 1);
 }
@@ -281,7 +281,7 @@ export function packEdge(items, edgeX, inward, width) {
     let x = edgeX + inward * it.r;
     for (const p of out) {
       const dy = Math.abs(p.y - it.y);
-      const need = p.r + it.r + 3;
+      const need = p.r + it.r + 8;
       if (dy >= need) continue;
       const dx = Math.sqrt(Math.max(0, need * need - dy * dy));
       const nudged = p.x + inward * dx;

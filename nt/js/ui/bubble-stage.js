@@ -6,6 +6,7 @@
 
 import { tangentBridge, formatAmount, juiceAt } from '../core/bubble-motion.js';
 import { assembleScene } from '../core/bubble-scene.js';
+import { layoutCallouts } from '../core/bubble-callout.js';
 import { calendarDayAt } from '../core/lifevein-model.js';
 
 const LANE = ['#12b76a', '#0e8a57', '#ef4444', '#3b6cff', '#f97316', '#d4a017'];
@@ -30,21 +31,39 @@ function rgb(hex) {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-function bubble(g, x, y, r, hex) {
+function orb(g, x, y, r, hex, reduced) {
   const [R, G, B] = rgb(hex);
-  const shade = g.createRadialGradient(x - r * 0.34, y - r * 0.4, r * 0.04, x, y, r);
-  shade.addColorStop(0, 'rgba(255,255,255,0.82)');
-  shade.addColorStop(0.2, 'rgba(' + R + ',' + G + ',' + B + ',0.42)');
-  shade.addColorStop(0.62, 'rgba(' + R + ',' + G + ',' + B + ',0.16)');
-  shade.addColorStop(0.84, 'rgba(' + R + ',' + G + ',' + B + ',0.48)');
-  shade.addColorStop(1, 'rgba(255,255,255,0.62)');
+  const halo = g.createRadialGradient(x, y, r * 0.2, x, y, r * 1.7);
+  halo.addColorStop(0, 'rgba(' + R + ',' + G + ',' + B + ',0.28)');
+  halo.addColorStop(1, 'rgba(' + R + ',' + G + ',' + B + ',0)');
+  g.beginPath();
+  g.arc(x, y, r * 1.7, 0, Math.PI * 2);
+  g.fillStyle = halo;
+  g.fill();
+  if (!reduced) {
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    g.fillStyle = halo;
+    g.beginPath();
+    g.arc(x, y, r * 1.7, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
+  }
+  const core = g.createRadialGradient(x - r * 0.22, y - r * 0.28, r * 0.04, x, y, r);
+  core.addColorStop(0, 'rgba(255,255,255,0.96)');
+  core.addColorStop(0.16, 'rgba(' + R + ',' + G + ',' + B + ',0.92)');
+  core.addColorStop(0.55, 'rgba(' + R + ',' + G + ',' + B + ',0.62)');
+  core.addColorStop(1, 'rgba(' + R + ',' + G + ',' + B + ',0.08)');
   g.beginPath();
   g.arc(x, y, r, 0, Math.PI * 2);
-  g.fillStyle = shade;
+  g.fillStyle = core;
   g.fill();
+  const rim = g.createRadialGradient(x, y, r * 0.68, x, y, r);
+  rim.addColorStop(0, 'rgba(255,255,255,0)');
+  rim.addColorStop(1, 'rgba(255,255,255,0.55)');
   g.beginPath();
-  g.ellipse(x - r * 0.28, y - r * 0.34, r * 0.2, r * 0.1, -0.7, 0, Math.PI * 2);
-  g.fillStyle = 'rgba(255,255,255,0.5)';
+  g.arc(x, y, r, 0, Math.PI * 2);
+  g.fillStyle = rim;
   g.fill();
 }
 
@@ -54,69 +73,83 @@ function neck(g, fly) {
     [{ x: fly.x, y: fly.y, r: fly.r }, { x: fly.dx, y: fly.dy, r: fly.dr }, colorOf(fly.lane), colorOf(fly.toLane)],
   ];
   for (const [a, b, ca, cb] of pairs) {
-    if (!(b.r > 3) || !(a.r > 2)) continue;
+    if (!(b.r > 6) || !(a.r > 4)) continue;
     const bridge = tangentBridge(a, b);
     if (!bridge) continue;
+    const ang = Math.atan2(b.y - a.y, b.x - a.x);
+    const spread = 0.42 + 0.5 * bridge.closeness;
+    const rim = (c, t) => [c.x + Math.cos(t) * c.r, c.y + Math.sin(t) * c.r];
+    const aR = rim(a, ang + spread);
+    const aL = rim(a, ang - spread);
+    const bL = rim(b, ang + Math.PI + spread);
+    const bR = rim(b, ang + Math.PI - spread);
+    const mx = (a.x + b.x) / 2;
+    const my = (a.y + b.y) / 2;
     const grad = g.createLinearGradient(a.x, a.y, b.x, b.y);
     grad.addColorStop(0, ca);
+    grad.addColorStop(0.5, 'rgba(255,255,255,0.95)');
     grad.addColorStop(1, cb);
+    g.save();
+    g.globalCompositeOperation = 'lighter';
     g.beginPath();
-    const arc0 = bridge.arcs[0];
-    const arc1 = bridge.arcs[1];
-    g.arc(arc0.x, arc0.y, arc0.r, arc0.a0, arc0.a1);
-    g.arc(arc1.x, arc1.y, arc1.r, arc1.a1, arc1.a0, true);
+    g.moveTo(aR[0], aR[1]);
+    g.quadraticCurveTo(mx, my, bL[0], bL[1]);
+    g.lineTo(bR[0], bR[1]);
+    g.quadraticCurveTo(mx, my, aL[0], aL[1]);
     g.closePath();
     g.fillStyle = grad;
-    g.globalAlpha = 0.72;
+    g.globalAlpha = 0.72 + 0.25 * bridge.closeness;
     g.fill();
-    g.globalAlpha = 1;
+    g.beginPath();
+    g.moveTo((aL[0] + aR[0]) / 2, (aL[1] + aR[1]) / 2);
+    g.quadraticCurveTo(mx, my, (bL[0] + bR[0]) / 2, (bL[1] + bR[1]) / 2);
+    g.strokeStyle = 'rgba(255,255,255,0.9)';
+    g.lineWidth = 2.5 + 4 * bridge.closeness;
+    g.globalAlpha = 0.95;
+    g.stroke();
+    g.restore();
   }
 }
 
-function tag(g, b, text, ink) {
-  g.font = '11px sans-serif';
-  const tw = Math.max(28, g.measureText(text).width + 12);
-  const x = b.x - tw / 2;
-  const y = b.y + b.r + 8;
-  g.strokeStyle = ink.muted;
-  g.beginPath();
-  g.moveTo(b.x, b.y + b.r);
-  g.lineTo(b.x, y);
-  g.stroke();
-  g.fillStyle = ink.bg;
-  g.globalAlpha = 0.9;
-  g.fillRect(x, y, tw, 18);
-  g.globalAlpha = 1;
-  g.fillStyle = ink.text;
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.fillText(text, b.x, y + 9);
-}
-
-function label(g, b, ink) {
+function caption(b) {
   const name = b.name || '';
   const amt = b.amount != null ? formatAmount(b.amount) : (b.v != null ? formatAmount(b.v) : '');
-  if (!name && !amt) return;
-  const maxW = b.r * 1.45;
-  let size = Math.min(15, Math.max(8, b.r * 0.34));
-  const fit = (s) => {
-    g.font = s + 'px sans-serif';
-    const nw = name ? g.measureText(name).width : 0;
-    const aw = amt ? g.measureText(amt).width : 0;
-    return nw <= maxW && aw <= maxW && s * 2.4 <= b.r * 1.35;
-  };
-  while (size > 8 && !fit(size)) size -= 0.5;
-  if (!fit(size)) {
-    tag(g, b, (name + ' ' + amt).trim(), ink);
-    return;
+  return [name, amt].filter(Boolean).join(' ');
+}
+
+function drawCallouts(g, ink, width, bodies, flies) {
+  g.font = '11px sans-serif';
+  const items = [];
+  for (const b of flies) {
+    const text = caption(b);
+    if (!text) continue;
+    items.push({ ...b, text, tw: g.measureText(text).width + 2, priority: 2 });
   }
-  g.fillStyle = ink.text;
-  g.textAlign = 'center';
+  for (const b of bodies) {
+    const text = caption(b);
+    if (!text) continue;
+    items.push({ ...b, text, tw: g.measureText(text).width + 2, priority: b.r > 28 ? 1 : 0 });
+  }
+  const slots = layoutCallouts(items, width, [{ x: width - 122, y: 0, w: 122, h: 42 }]);
+  g.lineWidth = 1;
   g.textBaseline = 'middle';
-  g.font = '600 ' + size + 'px sans-serif';
-  if (name) g.fillText(name, b.x, b.y - size * 0.55);
-  g.font = size + 'px sans-serif';
-  if (amt) g.fillText(amt, b.x, b.y + size * 0.6);
+  for (const s of slots) {
+    g.globalAlpha = s.alpha;
+    g.strokeStyle = ink.text;
+    g.beginPath();
+    g.moveTo(s.x1, s.y1);
+    g.lineTo(s.x2, s.y2);
+    g.stroke();
+    g.textAlign = s.side > 0 ? 'left' : 'right';
+    const tx = s.side > 0 ? s.x2 + 3 : s.x2 - 3;
+    g.lineWidth = 3;
+    g.strokeStyle = ink.bg;
+    g.strokeText(s.text, tx, s.y2);
+    g.fillStyle = ink.text;
+    g.fillText(s.text, tx, s.y2);
+    g.lineWidth = 1;
+  }
+  g.globalAlpha = 1;
 }
 
 function mixHex(a, b, t) {
@@ -126,58 +159,18 @@ function mixHex(a, b, t) {
   return '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('');
 }
 
-function squashOf(fly) {
-  const j = juiceAt(fly.t || 0);
-  return {
-    ang: Math.atan2(fly.y - fly.sy, fly.x - fly.sx),
-    sx: j.sx,
-    sy: j.sy,
-    ripple: j.ripple,
-    droplets: j.droplets,
-  };
-}
-
-function paintSquash(g, b, hex, squash) {
-  if (!squash) {
-    bubble(g, b.x, b.y, b.r, hex);
-    return;
-  }
-  g.save();
-  g.translate(b.x, b.y);
-  g.rotate(squash.ang);
-  g.scale(squash.sx, squash.sy);
-  bubble(g, 0, 0, b.r, hex);
-  g.restore();
-}
-
-function paintTrail(g, fly) {
-  const hex = colorOf(fly.lane);
-  for (let i = 1; i <= 2; i += 1) {
-    const k = i / 3;
-    g.globalAlpha = 0.16 / i;
-    bubble(g, fly.x + (fly.sx - fly.x) * k, fly.y + (fly.sy - fly.y) * k, fly.r * (1 - k * 0.45), hex);
-  }
-  g.globalAlpha = 1;
-}
-
 function paintImpact(g, fly) {
-  const j = squashOf(fly);
-  if (j.ripple > 0.15) {
-    g.beginPath();
-    g.arc(fly.x, fly.y, fly.r * (1 + j.ripple * 0.7), 0, Math.PI * 2);
-    g.strokeStyle = colorOf(fly.lane);
-    g.globalAlpha = j.ripple * 0.45;
-    g.lineWidth = 1.5;
-    g.stroke();
-    g.globalAlpha = 1;
-  }
-  if (j.droplets < 0.2) return;
-  const ang = j.ang + Math.PI;
-  for (let i = 0; i < 3; i += 1) {
-    const a = ang + (i - 1) * 0.5;
-    const d = fly.r * (1.2 + j.droplets);
-    bubble(g, fly.x + Math.cos(a) * d, fly.y + Math.sin(a) * d, Math.max(2, fly.r * 0.18), colorOf(fly.lane));
-  }
+  const j = juiceAt(fly.t || 0);
+  if (j.ripple < 0.2) return;
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  g.beginPath();
+  g.arc(fly.x, fly.y, fly.r * (1.15 + j.ripple * 0.45), 0, Math.PI * 2);
+  g.strokeStyle = colorOf(fly.lane);
+  g.globalAlpha = j.ripple * 0.55;
+  g.lineWidth = 1.25;
+  g.stroke();
+  g.restore();
 }
 
 function paintGlow(g, b) {
@@ -201,19 +194,18 @@ export function drawBubbleStage(g, model, view) {
   const scene = assembleScene(model, view);
   const reduced = !!view.reduced;
   const juicy = reduced ? [] : scene.flies.filter((f) => f.r > 7).sort((a, b) => b.r - a.r).slice(0, 8);
-  for (const fly of juicy) paintTrail(g, fly);
-  for (const fly of scene.flies) neck(g, fly);
-  if (!reduced) for (const fly of juicy) paintImpact(g, fly);
-  for (const b of [...scene.left, ...scene.right, ...scene.liab, ...scene.asset]) {
+  const bodies = [...scene.liab, ...scene.asset, ...scene.left, ...scene.right];
+  for (const b of bodies) {
     if (!reduced && b.v > 4000) paintGlow(g, b);
-    bubble(g, b.x, b.y, b.r, colorOf(b.lane));
-    label(g, b, ink);
+    orb(g, b.x, b.y, b.r, colorOf(b.lane), reduced);
   }
   for (const fly of scene.flies) {
-    const hex = mixHex(colorOf(fly.lane), colorOf(fly.toLane), (fly.t || 0) * 0.6);
-    const squash = reduced ? null : squashOf(fly);
-    paintSquash(g, fly, hex, squash);
+    const hex = mixHex(colorOf(fly.lane), colorOf(fly.toLane), (fly.t || 0) * 0.55);
+    orb(g, fly.x, fly.y, fly.r, hex, reduced);
   }
+  for (const fly of scene.flies) neck(g, fly);
+  if (!reduced) for (const fly of juicy) paintImpact(g, fly);
+  drawCallouts(g, ink, w, bodies, scene.flies);
 
   g.fillStyle = ink.muted;
   g.font = '10px sans-serif';

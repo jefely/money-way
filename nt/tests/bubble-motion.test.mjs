@@ -7,7 +7,8 @@ import {
   shownBalance, gooAngles, packCluster, packEdge, yOfDay,
   pixelsPerDay, formatAmount, tangentBridge, juiceAt,
 } from '../js/core/bubble-motion.js';
-import { assembleScene } from '../js/core/bubble-scene.js';
+import { assembleScene, arcPoint } from '../js/core/bubble-scene.js';
+import { layoutCallouts } from '../js/core/bubble-callout.js';
 import { buildLifeVein, balanceAt } from '../js/core/lifevein-model.js';
 
 const H = 800;
@@ -196,6 +197,32 @@ test('不同日期的飞泡不挤在同一条水平中线', () => {
   } else {
     assert.ok(scene.flies.length + scene.left.length + scene.right.length >= 1);
   }
+});
+
+test('路线绕开挡在中间的簇，两端仍落在起终点', () => {
+  const src = { x: 0, y: 100 };
+  const dst = { x: 200, y: 100 };
+  const block = { x: 100, y: 100, r: 36 };
+  const mid = arcPoint(src, dst, [block], 0.5);
+  const start = arcPoint(src, dst, [block], 0);
+  const end = arcPoint(src, dst, [block], 1);
+  assert.ok(Math.abs(mid.y - 100) > 18);
+  assert.ok(Math.hypot(start.x, start.y - 100) < 1);
+  assert.ok(Math.abs(end.x - 200) < 1);
+  assert.deepEqual(mid, arcPoint(src, dst, [block], 0.5));
+});
+
+test('引出线默认朝右上，贴右缘翻到左上', () => {
+  const slots = layoutCallouts([
+    { id: 'a', x: 40, y: 200, r: 16, text: '工资 800', tw: 56, priority: 2 },
+    { id: 'b', x: 340, y: 200, r: 16, text: '早餐 40', tw: 52, priority: 2 },
+  ], 390);
+  const leftish = slots.find((s) => s.id === 'a');
+  const rightish = slots.find((s) => s.id === 'b');
+  assert.equal(leftish.side, 1);
+  assert.ok(leftish.y2 < 200);
+  assert.equal(rightish.side, -1);
+  assert.ok(rightish.box.x + rightish.box.w <= 390);
 });
 
 test('静止泡迎向飞泡，飞走后回到锚点', () => {

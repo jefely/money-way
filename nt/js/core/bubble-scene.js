@@ -19,6 +19,50 @@ function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
+function clusterDisc(list) {
+  if (!list.length) return null;
+  let x = 0;
+  let y = 0;
+  for (const b of list) { x += b.x; y += b.y; }
+  x /= list.length;
+  y /= list.length;
+  let r = 0;
+  for (const b of list) r = Math.max(r, Math.hypot(b.x - x, b.y - y) + b.r);
+  return { x, y, r: r + 16 };
+}
+
+/** 二次曲线绕开簇。t=0 在起点，t=1 在终点，中段被障碍往旁边推。 */
+export function arcPoint(src, dst, obstacles, t) {
+  const dx = dst.x - src.x;
+  const dy = dst.y - src.y;
+  const len2 = dx * dx + dy * dy || 1;
+  const len = Math.sqrt(len2);
+  const nx = -dy / len;
+  const ny = dx / len;
+  let push = 0;
+  for (const o of obstacles) {
+    if (!o) continue;
+    const u = Math.max(0, Math.min(1, ((o.x - src.x) * dx + (o.y - src.y) * dy) / len2));
+    const px = src.x + dx * u;
+    const py = src.y + dy * u;
+    const ox = o.x - px;
+    const oy = o.y - py;
+    const d = Math.hypot(ox, oy);
+    const need = o.r + 6;
+    if (d >= need) continue;
+    const sign = Math.sign(ox * nx + oy * ny) || -1;
+    push += -sign * (need - d);
+  }
+  const cx = (src.x + dst.x) / 2 + nx * push;
+  const cy = (src.y + dst.y) / 2 + ny * push;
+  const s = 1 - t;
+  return {
+    x: s * s * src.x + 2 * s * t * cx + t * t * dst.x,
+    y: s * s * src.y + 2 * s * t * cy + t * t * dst.y,
+    cx, cy,
+  };
+}
+
 function smooth(t) {
   const x = Math.min(1, Math.max(0, t));
   return x * x * (3 - 2 * x);
@@ -44,7 +88,7 @@ function separateBubbles(scene) {
         const dy = B.y - A.y;
         const dist = Math.hypot(dx, dy) || 0.01;
         const stick = A.stick === B.id || B.stick === A.id;
-        const min = stick ? (A.r + B.r) * 0.8 : A.r + B.r + 2;
+        const min = stick ? (A.r + B.r) * 0.86 : A.r + B.r + 5;
         if (dist >= min) continue;
         const push = (min - dist) / 2;
         const ux = dx / dist;
@@ -86,6 +130,7 @@ export function assembleScene(model, view) {
   const at = new Map();
   for (const p of liab) at.set(p.id, p);
   for (const p of asset) at.set(p.id, p);
+  const discs = [clusterDisc(liab), clusterDisc(asset)].filter(Boolean);
   const spot = (id) => {
     const hit = at.get(id);
     if (hit) return hit;
@@ -126,18 +171,16 @@ export function assembleScene(model, view) {
       const t = clamp01(fr.flyT);
       const flyR = radius(e.amount * fr.fly);
       const merge = e.kind === 'inflow' || e.kind === 'borrow' || e.kind === 'repay' || e.kind === 'transfer';
-      const along = merge ? smooth((t - 0.62) / 0.38) : smooth(Math.min(1, t / 0.3));
-      const yy = merge ? lerp(y, dst.y, along) : lerp(src.y, y, along);
-      const xx = lerp(src.x, dst.x, t);
+      const curve = arcPoint(src, dst, discs, t);
       flies.push({
         id: 'F' + e.key,
-        x: Math.max(flyR, Math.min(width - flyR, xx)),
-        y: Math.max(flyR, Math.min(height - flyR, yy)),
+        x: Math.max(flyR, Math.min(width - flyR, curve.x)),
+        y: Math.max(flyR, Math.min(height - flyR, curve.y)),
         r: flyR,
         lane: from ? from.lane : (to ? to.lane : 0),
         toLane: to ? to.lane : 0,
         amount: e.amount * fr.fly,
-        name,
+        name: (e.kind === 'spend' || e.kind === 'charge') ? ((to && to.name) || name) : ((from && from.name) || name),
         sx: src.x, sy: src.y, sr: src.r,
         dx: dst.x, dy: dst.y, dr: dst.r,
         srcId: e.kind === 'inflow' ? '' : e.fromId,

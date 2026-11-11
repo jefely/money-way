@@ -26,6 +26,7 @@
 | `core/bill-match.js` | （无界面）账单账户匹配：支付方式 → 我的账户，商户/分类 → 对方账户 |
 | `core/bill-parse.js` | 三家账单（支付宝 / 微信支付 / 招商银行）的识别与解析 |
 | `core/bill-plan.js` | （无界面）账单 → 导入计划：方向、账户、日期过滤、备注线索 |
+| `core/bubble-callout.js` | 脉络标注的引出线 |
 | `core/bubble-motion.js` | 脉络气泡的滚动进度、分组与形变 |
 | `core/bubble-scene.js` | 脉络一帧里每颗泡的位置 |
 | `core/calc-engine.js` | （无界面）计算引擎：余额 / 双式恒等 / 实物成本台账 |
