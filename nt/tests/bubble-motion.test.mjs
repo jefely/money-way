@@ -238,7 +238,7 @@ test('引出线默认朝右上，贴右缘翻到左上', () => {
   assert.ok(rightish.box.x + rightish.box.w <= 390);
 });
 
-test('静止泡迎向飞泡，飞走后回到锚点', () => {
+test('收入飞泡留在左缘，演完后资产停在自己的轴上', () => {
   const state = {
     accounts: [
       { id: 'salary', name: '工资', type: '收入类' },
@@ -260,9 +260,8 @@ test('静止泡迎向飞泡，飞走后回到锚点', () => {
   assert.ok(bank && bank.ax != null);
   if (scene.flies.length) {
     const fly = scene.flies[0];
-    const toward = Math.hypot(bank.x - fly.x, bank.y - fly.y);
-    const anchor = Math.hypot(bank.ax - fly.x, bank.ay - fly.y);
-    assert.ok(toward < anchor - 0.4);
+    assert.ok(fly.x < 390 * 0.2);
+    assert.equal(fly.y, fly.homeY);
   }
   const later = assembleScene(m, { scrollDay: day + 4, ppd, width: 390, height: h });
   const back = later.asset.find((a) => a.name === '储蓄卡');

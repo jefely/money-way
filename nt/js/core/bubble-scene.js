@@ -11,18 +11,6 @@ import {
 } from './bubble-motion.js';
 import { settleColumns } from './bubble-columns.js';
 
-function clusterDisc(list) {
-  if (!list.length) return null;
-  let x = 0;
-  let y = 0;
-  for (const b of list) { x += b.x; y += b.y; }
-  x /= list.length;
-  y /= list.length;
-  let r = 0;
-  for (const b of list) r = Math.max(r, Math.hypot(b.x - x, b.y - y) + b.r);
-  return { x, y, r: r + 16 };
-}
-
 /** 二次曲线绕开簇。t=0 在起点，t=1 在终点，中段被障碍往旁边推。 */
 export function arcPoint(src, dst, obstacles, t) {
   const dx = dst.x - src.x;
@@ -70,7 +58,6 @@ function separateBubbles(scene) {
   for (const b of scene.asset) add(b, false);
   for (const b of scene.left) add(b, true);
   for (const b of scene.right) add(b, true);
-  for (const b of scene.flies) add(b, false);
   for (let n = 0; n < 36; n += 1) {
     for (let i = 0; i < body.length; i += 1) {
       for (let j = i + 1; j < body.length; j += 1) {
@@ -139,7 +126,6 @@ export function assembleScene(model, view) {
   const at = new Map();
   for (const p of liab) at.set(p.id, p);
   for (const p of asset) at.set(p.id, p);
-  const discs = [clusterDisc(liab), clusterDisc(asset)].filter(Boolean);
   const spot = (id) => {
     const hit = at.get(id);
     if (hit) return hit;
@@ -208,12 +194,17 @@ export function assembleScene(model, view) {
     const src = e.edge === 'L' ? edgePt : spot(e.fromId);
     const dst = toAsset ? edgePt : spot(e.toId);
     const t = arriving ? 0 : smooth(clamp01(local));
-    const curve = arcPoint(src, dst, discs, t);
+    const onRight = e.edge === 'R';
+    const onLeft = e.edge === 'L';
+    const x = onRight ? xRight : onLeft ? xLeft : src.x + (dst.x - src.x) * t;
     const lane = toAsset ? (to ? to.lane : 4) : (from ? from.lane : (to ? to.lane : 0));
     flies.push({
       id: 'F' + e.key,
-      x: curve.x,
-      y: curve.y,
+      x,
+      y,
+      axisX: onRight ? xRight : onLeft ? xLeft : null,
+      homeX: x,
+      homeY: y,
       r: flyR,
       lane,
       amount: e.amount,
@@ -242,6 +233,11 @@ export function assembleScene(model, view) {
   leanToMeet(scene);
   pinEnds(scene);
   settleColumns(scene, width);
+  for (const f of scene.flies) {
+    if (f.homeX == null) continue;
+    f.x = f.homeX;
+    f.y = f.homeY;
+  }
   return scene;
 }
 

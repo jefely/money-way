@@ -73,6 +73,30 @@ test('600 笔时静止泡互不重叠，列也不会堆到右边', () => {
   assert.ok(rightmost < width * 0.62, '收入和负债不该贴到右边 ' + rightmost);
 });
 
+test('费用飞泡钉在右缘的日期线上，收入钉在左缘', () => {
+  const model = book(12);
+  const width = 1600;
+  const height = 900;
+  const ppd = pixelsPerDay(model.vspan, height, 1, 0);
+  const scene = assembleScene(model, {
+    scrollDay: model.events[Math.floor(model.events.length / 2)].vday,
+    ppd, width, height, zone: 0.8, windowPx: 880, dayGap: 0.65,
+    xLiab: 35, xAsset: 65, insetL: 8, insetR: 8,
+  });
+  const spend = scene.flies.filter((f) => f.name === '日常' || f.name === '通勤');
+  const income = scene.flies.filter((f) => f.name === '工资');
+  assert.ok(spend.length > 0 && income.length > 0);
+  for (const f of spend) {
+    assert.ok(f.x > width * 0.75, '费用应在右缘 ' + f.x);
+    assert.equal(f.y, f.homeY);
+  }
+  for (const f of income) {
+    assert.ok(f.x < width * 0.2, '收入应在左缘 ' + f.x);
+    assert.equal(f.y, f.homeY);
+  }
+  assert.ok(scene.right.every((b) => b.x > width * 0.72));
+});
+
 test('脉络参数在布局里单独一页，不再挂在主界面', () => {
   assert.ok(SCREENS.some((s) => s.id === 'vein' && s.label === '脉络'));
   assert.deepEqual(LV_GROUPS, ['背景/颗粒', '泡泡外观', '中心渐变', '大小分档', '文字', '动画/时间轴', '物理']);
