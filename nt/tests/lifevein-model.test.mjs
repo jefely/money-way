@@ -126,6 +126,12 @@ test('账户带泳道与同泳道槽位：两张卡不会挤在一个位置', ()
   assert.deepEqual(cards.map((a) => a.slot), [0, 1]);
 });
 
+test('事件种类：工资进卡、刷卡、还款', () => {
+  const m = buildLifeVein(STATE, '2026-11-03');
+  const kinds = m.events.map((e) => e.kind);
+  assert.deepEqual(kinds, ['inflow', 'spend', 'charge', 'repay', 'inflow', 'spend']);
+});
+
 test('空账本：一天、今天、没有泡', () => {
   const m = buildLifeVein({ accounts: [], transactions: [] }, '2026-11-08');
   assert.equal(m.days, 1);

@@ -15,6 +15,7 @@
  */
 
 import { ACCOUNT_TYPE, isDebitType, isPosted } from './schema.js';
+import { classifyFlow } from './bubble-motion.js';
 
 /** 三根轴线：每根一个固定基准位置，左右两侧各吸附一种类型（3 轴 × 2 侧 = 6 类） */
 export const AXES = [
@@ -90,13 +91,17 @@ export function buildLifeVein(state, todayIso) {
     const amount = Number(t.amount) || 0;
     if (!amount) continue;
     const e = {
+      key: events.length,
       day: Math.max(0, Math.min(days - 1, dayOf(t.date))),
       fromId: t.from_id || '',
       toId: t.to_id || '',
+      fromType: from ? from.type : '',
+      toType: to ? to.type : '',
       fromLane: from ? laneOfType(from.type) : -1,
       toLane: to ? laneOfType(to.type) : -1,
       amount,
       opening: !!t.opening,
+      kind: classifyFlow(from && from.type, to && to.type),
     };
     events.push(e);
     if (!byDay.has(e.day)) byDay.set(e.day, []);
@@ -112,7 +117,7 @@ export function buildLifeVein(state, todayIso) {
     const slot = laneCount[lane];
     laneCount[lane] += 1;
     accs.push({
-      id: a.id, name: String(a.name || ''), lane, slot,
+      id: a.id, name: String(a.name || ''), type: a.type, lane, slot,
       axis: Math.floor(lane / 2),
       side: lane % 2 === 0 ? -1 : 1,
       stock: isStockType(a.type),
