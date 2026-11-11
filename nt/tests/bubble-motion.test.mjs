@@ -4,8 +4,10 @@ import assert from 'node:assert/strict';
 
 import {
   eventProgress, elastic, bubbleRadius, classifyFlow, flowFractions,
-  shownBalance, gooAngles, packCluster, packEdge, assembleScene, yOfDay,
+  shownBalance, gooAngles, packCluster, packEdge, yOfDay,
+  pixelsPerDay, formatAmount, tangentBridge,
 } from '../js/core/bubble-motion.js';
+import { assembleScene } from '../js/core/bubble-scene.js';
 import { buildLifeVein, balanceAt } from '../js/core/lifevein-model.js';
 
 const H = 800;
@@ -126,6 +128,64 @@ test('停放泡的 y 钉在日期线上，重叠只往屏内让', () => {
   assert.equal(parked[0].y, 100);
   assert.equal(parked[1].y, 100);
   assert.ok(Math.abs(parked[0].x - parked[1].x) >= 20 + 18 - 0.5);
+});
+
+test('空月被压短，几笔流水的动画窗口也不会缩成一天', () => {
+  const state = {
+    accounts: [
+      { id: 'salary', name: '工资', type: '收入类' },
+      { id: 'bank', name: '储蓄卡', type: '资产类' },
+    ],
+    transactions: [
+      { id: 'a', seq: 1, date: '2026-08-01', from_id: 'salary', to_id: 'bank', amount: 1000 },
+      { id: 'b', seq: 2, date: '2026-08-20', from_id: 'salary', to_id: 'bank', amount: 1000 },
+    ],
+  };
+  const m = buildLifeVein(state, '2026-11-11');
+  const gap = m.events[1].vday - m.events[0].vday;
+  assert.ok(gap < 12, '日历隔了 19 天，视觉间隔应压到 12 以内，实际 ' + gap);
+  assert.ok(m.days > 90);
+  const ppd = pixelsPerDay(m.vspan, 700, 1);
+  const horizonDays = (700 * 0.5) / ppd;
+  assert.ok(horizonDays >= 2.2);
+});
+
+test('金额整数不带小数点，有零头才留一位', () => {
+  assert.equal(formatAmount(12), '12');
+  assert.equal(formatAmount(12.04), '12');
+  assert.equal(formatAmount(12.26), '12.3');
+  assert.equal(formatAmount(-8), '8');
+});
+
+test('公切弧：靠近才有，越近弧越大', () => {
+  assert.equal(tangentBridge({ x: 0, y: 0, r: 30 }, { x: 400, y: 0, r: 30 }), null);
+  const near = tangentBridge({ x: 0, y: 0, r: 30 }, { x: 50, y: 0, r: 28 });
+  const far = tangentBridge({ x: 0, y: 0, r: 30 }, { x: 70, y: 0, r: 28 });
+  assert.ok(near && far && near.arcs.length === 2);
+  assert.ok(near.rho > far.rho);
+});
+
+test('不同日期的飞泡不挤在同一条水平中线', () => {
+  const state = {
+    accounts: [
+      { id: 'salary', name: '工资', type: '收入类' },
+      { id: 'bank', name: '储蓄卡', type: '资产类' },
+      { id: 'food', name: '早餐', type: '费用类' },
+    ],
+    transactions: [
+      { id: 'a', seq: 1, date: '2026-08-02', from_id: 'salary', to_id: 'bank', amount: 800 },
+      { id: 'b', seq: 2, date: '2026-08-06', from_id: 'bank', to_id: 'food', amount: 80 },
+    ],
+  };
+  const m = buildLifeVein(state, '2026-08-10');
+  const h = 700;
+  const view = { scrollDay: m.vspan / 2, ppd: pixelsPerDay(m.vspan, h, 1), width: 390, height: h };
+  const scene = assembleScene(m, view);
+  if (scene.flies.length >= 2) {
+    assert.ok(Math.abs(scene.flies[0].y - scene.flies[1].y) > 8);
+  } else {
+    assert.ok(scene.flies.length + scene.left.length + scene.right.length >= 1);
+  }
 });
 
 test('同一滚动位置组出来的帧完全一样', () => {

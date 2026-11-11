@@ -11,10 +11,10 @@
  * 不算钱：余额和事件在 core/lifevein-model.js，形变在 core/bubble-motion.js。
  */
 
-import { buildLifeVein } from '../core/lifevein-model.js';
+import { buildLifeVein, monthLabel } from '../core/lifevein-model.js';
 import { drawBubbleStage } from '../ui/bubble-stage.js';
-
-const BASE_PPD = 72;
+import { pixelsPerDay } from '../core/bubble-motion.js';
+import { emptyFilter, visibleIdx } from '../ui/path-filter.js';
 
 export function mountLifeVein(section, ctx) {
   const canvas = section.querySelector('[data-lv-canvas]');
@@ -25,10 +25,13 @@ export function mountLifeVein(section, ctx) {
   let model = null;
   let drag = null;
   let frame = 0;
+  let filter = emptyFilter();
+  let refit = true;
+  let month = { from: '', to: '', p: 1, dir: 1, t0: 0 };
 
   const W = () => canvas.clientWidth;
   const H = () => canvas.clientHeight;
-  const ppd = () => BASE_PPD * view.zoom;
+  const ppd = () => pixelsPerDay(model ? model.vspan : 1, H() || 700, view.zoom);
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -52,7 +55,28 @@ export function mountLifeVein(section, ctx) {
       ppd: ppd(),
       width: W(),
       height: H(),
+      month: monthFrame(),
     });
+  }
+
+  function monthFrame() {
+    if (month.t0 && month.p < 1) {
+      month.p = Math.min(1, (performance.now() - month.t0) / 280);
+      if (month.p < 1) requestAnimationFrame(draw);
+    }
+    return month;
+  }
+
+  function syncMonth(dir) {
+    if (!model) return;
+    const label = monthLabel(model, view.scrollDay);
+    if (!label) return;
+    if (!month.to) {
+      month = { from: label, to: label, p: 1, dir: dir || 1, t0: 0 };
+      return;
+    }
+    if (label === month.to) return;
+    month = { from: month.to, to: label, p: 0, dir: dir || 1, t0: performance.now() };
   }
 
   function schedule() {
@@ -64,8 +88,10 @@ export function mountLifeVein(section, ctx) {
   }
 
   function setScroll(day) {
-    const hi = model ? model.days + 8 : 0;
-    view.scrollDay = Math.max(-8, Math.min(hi, day));
+    const prev = view.scrollDay;
+    const hi = model ? model.vspan + 3 : 0;
+    view.scrollDay = Math.max(-2, Math.min(hi, day));
+    syncMonth(view.scrollDay >= prev ? 1 : -1);
     schedule();
   }
 
@@ -95,15 +121,41 @@ export function mountLifeVein(section, ctx) {
 
   window.addEventListener('resize', schedule);
 
+  for (const el of section.querySelectorAll('[data-lv-f]')) {
+    el.addEventListener('input', () => {
+      filter[el.getAttribute('data-lv-f')] = el.value;
+      refit = true;
+      render();
+    });
+  }
+  const clearBtn = section.querySelector('[data-lv-clear]');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      filter = emptyFilter();
+      for (const el of section.querySelectorAll('[data-lv-f]')) el.value = '';
+      refit = true;
+      render();
+    });
+  }
+  const rail = section.querySelector('[data-lv-rail]');
+  const side = section.querySelector('[data-lv-side]');
+  if (rail && side) {
+    rail.addEventListener('click', () => side.classList.toggle('is-open'));
+  }
+
   function render() {
-    model = buildLifeVein(ctx.getState());
-    if (!view.ready && H() > 0) {
-      const last = model.events.length
-        ? model.events.reduce((m, e) => Math.max(m, e.day), 0)
-        : model.todayDay;
-      view.scrollDay = last;
+    const st = ctx.getState();
+    const txs = st.transactions || [];
+    const accounts = st.accounts || [];
+    const byId = new Map(accounts.map((a) => [a.id, a]));
+    const picked = visibleIdx(txs, filter, byId, accounts).map((i) => txs[i]);
+    model = buildLifeVein({ accounts, transactions: picked });
+    if ((!view.ready || refit) && H() > 0) {
+      view.scrollDay = model.vspan / 2;
       view.ready = true;
+      refit = false;
     }
+    syncMonth(1);
     draw();
     ctx.setFooter('脉络 · 上拖正放，下拖倒回 · ' + model.events.length + ' 笔');
   }

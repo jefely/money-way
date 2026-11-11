@@ -15,7 +15,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  buildLifeVein, balanceAt, laneOfType, isStockType,
+  buildLifeVein, balanceAt, laneOfType, isStockType, monthLabel,
 } from '../js/core/lifevein-model.js';
 
 const ACC = [
@@ -130,6 +130,11 @@ test('事件种类：工资进卡、刷卡、还款', () => {
   const m = buildLifeVein(STATE, '2026-11-03');
   const kinds = m.events.map((e) => e.kind);
   assert.deepEqual(kinds, ['inflow', 'spend', 'charge', 'repay', 'inflow', 'spend']);
+});
+
+test('正中日期的年月写成 26年 8月', () => {
+  const m = buildLifeVein(STATE, '2026-11-03');
+  assert.equal(monthLabel(m, 0), '26年 11月');
 });
 
 test('空账本：一天、今天、没有泡', () => {

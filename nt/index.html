@@ -274,6 +274,17 @@
            左缘收入/权益，中左借贷簇，中右资产簇，右缘成本/费用。
            没有连线：靠拢时用粘连颈。数据在 core/lifevein-model.js。 -->
       <section class="nt-view nt-view-lv" data-view="lifevein" hidden>
+        <aside class="nt-lv-side" data-lv-side>
+          <button class="nt-lv-rail" type="button" data-lv-rail>筛选</button>
+          <div class="nt-lv-fields">
+            <input class="nt-lv-f" data-lv-f="date" placeholder="日期" aria-label="日期筛选">
+            <input class="nt-lv-f" data-lv-f="from" placeholder="转出" aria-label="转出节点">
+            <input class="nt-lv-f" data-lv-f="to" placeholder="转入" aria-label="转入节点">
+            <input class="nt-lv-f" data-lv-f="amount" placeholder="金额" aria-label="金额">
+            <input class="nt-lv-f" data-lv-f="note" placeholder="备注" aria-label="备注">
+            <button class="nt-lv-clear" type="button" data-lv-clear>清空</button>
+          </div>
+        </aside>
         <canvas class="nt-lv-canvas" data-lv-canvas aria-label="LifeVein 时间流"></canvas>
         <div class="nt-lv-zoom">
           <button class="nt-lv-zbtn" type="button" data-lv-zoom="0.6">缩</button>

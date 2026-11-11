@@ -46,3 +46,60 @@
   color: var(--nt-text);
   border-color: var(--nt-line-strong);
 }
+
+/* 筛选侧栏：默认只露一条把手，展开后盖在画布左侧。条件和路径页同一套。 */
+.nt-lv-side {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  align-items: stretch;
+  pointer-events: none;
+}
+
+.nt-lv-rail,
+.nt-lv-fields,
+.nt-lv-clear {
+  pointer-events: auto;
+}
+
+.nt-lv-rail {
+  width: 28px;
+  border: 0;
+  border-right: 1px solid var(--nt-bg-line);
+  background: var(--nt-bg-soft);
+  color: var(--nt-text-muted);
+  writing-mode: vertical-rl;
+  letter-spacing: 0.2em;
+}
+
+.nt-lv-fields {
+  display: none;
+  width: min(168px, 62vw);
+  padding: 8px;
+  background: var(--nt-bg);
+  border-right: 1px solid var(--nt-bg-line);
+  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.12);
+}
+
+.nt-lv-side.is-open .nt-lv-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nt-lv-f,
+.nt-lv-clear {
+  height: 32px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: 8px;
+  background: var(--nt-bg);
+  color: var(--nt-text);
+  padding: 0 8px;
+}
+
+.nt-lv-clear {
+  cursor: pointer;
+}

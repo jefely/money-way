@@ -23,7 +23,7 @@
  * 鏂板鏂囦欢璁板緱鍔犺繘鏉ワ紙tools 閲屾湁鐢熸垚鑴氭湰锛夈€?
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.548';
+const CACHE_NAME = 'nt-v1.549';
 
 const ASSETS = [
   './css/base.css',
@@ -66,7 +66,7 @@ const ASSETS = [
   './js/core/bill-apply.js',
   './js/core/bill-match.js',
   './js/core/bill-parse.js',
-  './js/core/bill-plan.js', './js/core/bubble-motion.js',
+  './js/core/bill-plan.js', './js/core/bubble-motion.js', './js/core/bubble-scene.js',
   './js/core/calc-engine.js',
   './js/core/category-query.js',
   './js/core/color.js',

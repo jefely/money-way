@@ -152,8 +152,31 @@ export function buildLifeVein(state, todayIso) {
     }
   }
 
+  // 空档超过两天就压短：八月账本接到「今天」时，中间的空月不再把时间轴拉成一片空白。
+  // 有流水的日子仍按真实间隔排，顺序不变。
+  const uniq = [...new Set(events.map((e) => e.day))].sort((a, b) => a - b);
+  const vmap = new Map();
+  const vmarks = [];
+  let cursor = 0;
+  let prev = uniq.length ? uniq[0] : 0;
+  if (uniq.length) {
+    vmap.set(uniq[0], 0);
+    vmarks.push({ day: uniq[0], vday: 0 });
+  }
+  for (let i = 1; i < uniq.length; i += 1) {
+    const d = uniq[i];
+    const gap = d - prev;
+    cursor += gap <= 2 ? gap : 2 + Math.log2(gap);
+    vmap.set(d, cursor);
+    vmarks.push({ day: d, vday: cursor });
+    prev = d;
+  }
+  for (const e of events) e.vday = vmap.get(e.day) || 0;
+
   return {
     days,
+    vspan: Math.max(1, cursor),
+    vmarks,
     maxStock,
     startIso,
     endIso,
@@ -180,6 +203,30 @@ export function balanceAt(model, id, day) {
 /** 把 ISO 日期翻成浮点日（视图给「今天」定位用） */
 export function dayOfIso(model, iso) {
   return Math.round((msOf(iso) - msOf(model.startIso)) / DAY_MS);
+}
+
+/** 视觉日 → 日历日（空月被压短之后，用两端的刻度插值） */
+export function calendarDayAt(model, vday) {
+  const marks = (model && model.vmarks) || [];
+  if (!marks.length) return 0;
+  if (vday <= marks[0].vday) return marks[0].day;
+  for (let i = 1; i < marks.length; i += 1) {
+    const a = marks[i - 1];
+    const b = marks[i];
+    if (vday <= b.vday) {
+      const t = (vday - a.vday) / Math.max(1e-6, b.vday - a.vday);
+      return a.day + (b.day - a.day) * t;
+    }
+  }
+  return marks[marks.length - 1].day;
+}
+
+/** 正中那一天所在的年月，形如 26年 1月 */
+export function monthLabel(model, vday) {
+  const cal = calendarDayAt(model, vday);
+  const dt = new Date(Date.parse(model.startIso + 'T00:00:00') + Math.round(cal) * 86400000);
+  if (Number.isNaN(dt.getTime())) return '';
+  return String(dt.getFullYear()).slice(2) + '年 ' + (dt.getMonth() + 1) + '月';
 }
 
 /** 只在测试里用：把天翻回 ISO */

@@ -7,8 +7,6 @@
  * 弹力不做逐帧积分（那会让倒放滞后），而是写进进度曲线和固定次数的松弛里。
  */
 
-import { isDebitType } from './schema.js';
-
 const INCOME = '收入类';
 const EQUITY = '权益类';
 const ASSET = '资产类';
@@ -49,6 +47,61 @@ export function eventProgress(day, scrollDay, ppd, height) {
   if (!(height > 0)) return 0;
   const y = yOfDay(day, scrollDay, ppd, height);
   return (height * 0.75 - y) / (height * 0.5);
+}
+
+/**
+ * 一屏里的动画窗口跟数据跨度走，不跟死的「每天 72 像素」。
+ * 视界（半屏）大约盖住全程的两成，再少也有 2.2 个视觉日，
+ * 所以只有几笔流水时，拖半屏就能看完飞入飞出。
+ */
+export function pixelsPerDay(vspan, height, zoom) {
+  const span = Math.max(1, Number(vspan) || 1);
+  const h = Math.max(240, Number(height) || 700);
+  const horizonDays = Math.max(2.2, span * 0.2);
+  const raw = (h * 0.5) / horizonDays;
+  return Math.max(14, Math.min(120, raw)) * (Number(zoom) || 1);
+}
+
+/** 金额：一位小数；整数不带「.0」。 */
+export function formatAmount(n) {
+  const v = Math.abs(Math.round((Number(n) || 0) * 10) / 10);
+  if (Math.abs(v - Math.round(v)) < 1e-6) return String(Math.round(v));
+  return v.toFixed(1);
+}
+
+/**
+ * 两圆之间的公切圆弧（粘连颈）。
+ * 半径由两圆大小和距离一起决定：靠得越近，弧越大、颈越粗；拉开到阈值就没有弧。
+ */
+export function tangentBridge(a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const d = Math.hypot(dx, dy);
+  const reach = a.r + b.r + Math.min(a.r, b.r) * 0.85;
+  if (!(d > 1) || d >= reach || d <= Math.abs(a.r - b.r) + 0.4) return null;
+  const span = reach - Math.abs(a.r - b.r);
+  const closeness = span > 0 ? 1 - (d - Math.abs(a.r - b.r)) / span : 0;
+  const rho = Math.min(a.r, b.r) * (0.2 + 1.2 * closeness);
+  const R1 = a.r + rho;
+  const R2 = b.r + rho;
+  const along = (d * d - R2 * R2 + R1 * R1) / (2 * d);
+  const h2 = R1 * R1 - along * along;
+  if (!(h2 > 0.5)) return null;
+  const h = Math.sqrt(h2);
+  const ux = dx / d;
+  const uy = dy / d;
+  const px = a.x + ux * along;
+  const py = a.y + uy * along;
+  const centers = [
+    { x: px - uy * h, y: py + ux * h },
+    { x: px + uy * h, y: py - ux * h },
+  ];
+  const touch = (c, circle) => Math.atan2(circle.y - c.y, circle.x - c.x);
+  return {
+    rho,
+    closeness,
+    arcs: centers.map((c) => ({ x: c.x, y: c.y, r: rho, a0: touch(c, a), a1: touch(c, b) })),
+  };
 }
 
 /** 半径：金额的平方根，膝部之后不再线性涨，并夹在上下限里。面积大致跟金额走。 */
@@ -126,7 +179,8 @@ export function shownBalance(events, accountId, debit, scrollDay, ppd, height) {
   let run = 0;
   for (const e of events) {
     if (e.toId !== accountId && e.fromId !== accountId) continue;
-    const fr = flowFractions(e.kind, eventProgress(e.day, scrollDay, ppd, height));
+    const coord = e.vday == null ? e.day : e.vday;
+    const fr = flowFractions(e.kind, eventProgress(coord, scrollDay, ppd, height));
     if (e.toId === accountId && fr.dst) run += debit ? e.amount * fr.dst : -e.amount * fr.dst;
     if (e.fromId === accountId && fr.src) run += debit ? -e.amount * fr.src : e.amount * fr.src;
   }
@@ -224,90 +278,4 @@ export function packEdge(items, edgeX, inward, width) {
     out.push({ id: it.id, name: it.name, lane: it.lane, r: it.r, y: it.y, x, amount: it.amount });
   }
   return out;
-}
-
-function lerp(a, b, t) {
-  return a + (b - a) * t;
-}
-
-/**
- * 整帧画面。stocks 是两根轴上的簇，markers 是左右缘的日期泡，flies 是正在飞的那一颗。
- */
-export function assembleScene(model, view) {
-  const width = view.width;
-  const height = view.height;
-  const ppd = view.ppd;
-  const scrollDay = view.scrollDay;
-  const radius = (v) => bubbleRadius(v, { max: Math.max(16, Math.min(48, width * 0.14)) });
-  const byId = new Map((model.accounts || []).map((a) => [a.id, a]));
-  const stocks = [];
-  for (const a of model.accounts || []) {
-    if (!a.stock) continue;
-    const v = shownBalance(model.events, a.id, isDebitType(a.type), scrollDay, ppd, height);
-    if (Math.abs(v) < 0.5) continue;
-    stocks.push({ id: a.id, name: a.name, r: radius(v), v, lane: a.lane, kind: a.lane === 2 ? 'liab' : 'asset' });
-  }
-  const limit = { top: height * 0.25, bottom: height * 0.75 };
-  const liab = packCluster(stocks.filter((s) => s.kind === 'liab'), width * 0.30, height * 0.5, limit);
-  const asset = packCluster(stocks.filter((s) => s.kind === 'asset'), width * 0.68, height * 0.5, limit);
-  const at = new Map();
-  for (const p of liab) at.set(p.id, p);
-  for (const p of asset) at.set(p.id, p);
-  const spot = (id) => {
-    const hit = at.get(id);
-    if (hit) return hit;
-    const acc = byId.get(id);
-    const x = acc && acc.lane === 2 ? width * 0.30 : width * 0.68;
-    return { x, y: height * 0.5, r: 10 };
-  };
-
-  const left = [];
-  const right = [];
-  const flies = [];
-  for (const e of model.events || []) {
-    const p = eventProgress(e.day, scrollDay, ppd, height);
-    if (!(p > 0)) continue;
-    const y = yOfDay(e.day, scrollDay, ppd, height);
-    const fr = flowFractions(e.kind, p);
-    const from = byId.get(e.fromId);
-    const to = byId.get(e.toId);
-    const name = (from && from.name) || (to && to.name) || '';
-    if (fr.marker > 0.04 && (e.fromType === INCOME || e.fromType === EQUITY)) {
-      left.push({
-        id: 'L' + e.key, name, lane: from ? from.lane : 0,
-        r: radius(e.amount * fr.marker), y, amount: e.amount,
-      });
-    }
-    if (fr.marker > 0.04 && (e.toType === EXPENSE || e.toType === COST)) {
-      right.push({
-        id: 'R' + e.key, name: to ? to.name : name, lane: to ? to.lane : 4,
-        r: radius(e.amount * fr.marker), y, amount: e.amount,
-      });
-    }
-    if (fr.fly > 0.04) {
-      const src = e.kind === 'inflow' ? { x: 8, y, r: 8 } : spot(e.fromId);
-      const dst = (e.kind === 'spend' || e.kind === 'charge')
-        ? { x: width - 8, y, r: 8 }
-        : spot(e.toId);
-      const t = clamp01(fr.flyT);
-      const flyR = radius(e.amount * fr.fly);
-      const flyX = Math.max(flyR, Math.min(width - flyR, lerp(src.x, dst.x, t)));
-      const flyY = Math.max(flyR, Math.min(height - flyR, lerp(src.y, dst.y, t)));
-      flies.push({
-        id: 'F' + e.key,
-        x: flyX,
-        y: flyY,
-        r: flyR,
-        lane: from ? from.lane : (to ? to.lane : 0),
-        sx: src.x, sy: src.y, sr: src.r,
-        dx: dst.x, dy: dst.y, dr: dst.r,
-      });
-    }
-  }
-  return {
-    liab, asset,
-    left: packEdge(left, 6, 1, width),
-    right: packEdge(right, width - 6, -1, width),
-    flies,
-  };
 }
