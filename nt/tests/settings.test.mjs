@@ -195,7 +195,7 @@ test('★ 每张表都有列宽项；有尺寸参数的表还多 4 项', () => {
 
 test('★ 每个表组都有自己的屏：tab 一一对应，没有孤儿组', () => {
   const ids = SCREENS.map((s) => s.id);
-  assert.deepEqual(ids, ['main', 'flow', 'stats', 'query', 'path', 'plan', 'settings']);
+  assert.deepEqual(ids, ['main', 'vein', 'flow', 'stats', 'query', 'path', 'plan', 'settings']);
 
   for (const t of Object.values(TABLE_COLS)) {
     if (t.noGroup) continue; // 七张统计小表共用「分类统计」组

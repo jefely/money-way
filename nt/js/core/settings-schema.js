@@ -54,7 +54,7 @@ export const GROUP_FILE = {
   '环图·线': 'ui/mw-svg-renderer.js',
   '环图·追踪': 'graph/path-tracer.js',
   '环图·规则': 'graph/mw-layers.js',
-  脉络: 'ui/bubble-stage.js',
+  ...Object.fromEntries(LV_GROUPS.map((g) => [g, 'ui/bubble-stage.js'])),
 };
 
 export const GROUPS = [
@@ -74,6 +74,7 @@ export const GROUPS = [
 /** 调试面板的界面标签：与顶部 7 个 tab 一一对应 */
 export const SCREENS = [
   { id: 'main', label: '主界面' },
+  { id: 'vein', label: '脉络' },
   { id: 'flow', label: '流水' },
   { id: 'stats', label: '统计' },
   { id: 'query', label: '查询' },
@@ -99,7 +100,7 @@ export const GROUP_SCREEN = {
   节点统计: 'stats',
   // 环图参数只在路径页看得见效果，所以归「路径」屏，不和主界面挤在一起
   ...Object.fromEntries(MW_GROUPS.map((g) => [g, 'path'])),
-  脉络: 'main',
+  ...Object.fromEntries(LV_GROUPS.map((g) => [g, 'vein'])),
 };
 
 /** 参数作用域：global=写全局(:root)；其余=写到对应标签页容器 [data-view] */
@@ -123,7 +124,7 @@ export const GROUP_SCOPE = {
   // 环图参数写在 :root 上：渲染器从 getComputedStyle(documentElement) 读，
   // 不依赖路径页容器是否存在（切 tab / 未解锁时读到的也是同一份值）。
   ...Object.fromEntries(MW_GROUPS.map((g) => [g, 'global'])),
-  脉络: 'global',
+  ...Object.fromEntries(LV_GROUPS.map((g) => [g, 'global'])),
 };
 
 /**

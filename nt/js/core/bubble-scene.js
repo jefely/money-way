@@ -9,6 +9,7 @@ import {
   bagShare, bubbleRadius, clamp01, eventProgress, flyLocal, flyScale, textFade,
   packCluster, packEdge, shownBalance, yOfDay,
 } from './bubble-motion.js';
+import { settleColumns } from './bubble-columns.js';
 
 function clusterDisc(list) {
   if (!list.length) return null;
@@ -92,7 +93,7 @@ function separateBubbles(scene) {
     }
     if (n < 24) {
       for (const b of body) {
-        if (b.axisX == null || b.pinY) continue;
+        if (b.axisX == null) continue;
         b.x += (b.axisX - b.x) * 0.34;
       }
     }
@@ -233,15 +234,14 @@ export function assembleScene(model, view) {
   };
   dropOffstage(scene, height);
   separateBubbles(scene);
-  clampOnScreen(scene, width, height);
   separateBubbles(scene);
-  clampOnScreen(scene, width, height);
   for (const b of [...scene.liab, ...scene.asset, ...scene.left, ...scene.right]) {
     b.ax = b.x;
     b.ay = b.y;
   }
   leanToMeet(scene);
   pinEnds(scene);
+  settleColumns(scene, width);
   return scene;
 }
 
@@ -250,16 +250,6 @@ function dropOffstage(scene, height) {
   scene.liab = scene.liab.filter(vis); scene.asset = scene.asset.filter(vis);
   scene.left = scene.left.filter(vis); scene.right = scene.right.filter(vis);
   scene.flies = scene.flies.filter((b) => b.y > -20 && b.y < height + 20);
-}
-
-function clampOnScreen(scene, width) {
-  const band = Math.max(24, width * 0.06);
-  const all = [...scene.liab, ...scene.asset, ...scene.left, ...scene.right, ...scene.flies];
-  for (const b of all) {
-    if (!(b.r > 0)) continue;
-    if (b.axisX != null) b.x = Math.min(b.axisX + band, Math.max(b.axisX - band, b.x));
-    b.x = b.r * 2 + 4 >= width ? width / 2 : Math.min(width - b.r - 2, Math.max(b.r + 2, b.x));
-  }
 }
 
 /**

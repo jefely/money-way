@@ -27,6 +27,7 @@
 | `core/bill-parse.js` | 三家账单（支付宝 / 微信支付 / 招商银行）的识别与解析 |
 | `core/bill-plan.js` | （无界面）账单 → 导入计划：方向、账户、日期过滤、备注线索 |
 | `core/bubble-callout.js` | 脉络标注的引出线 |
+| `core/bubble-columns.js` | 脉络四列各自守住自己的位置 |
 | `core/bubble-motion.js` | 脉络气泡的滚动进度、分组与形变 |
 | `core/bubble-scene.js` | 脉络一帧里每颗泡的位置 |
 | `core/bubble-union.js` | 两颗脉络气泡的融合轮廓 |
