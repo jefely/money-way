@@ -27,6 +27,8 @@ export function mountLifeVein(section, ctx) {
   const cam = { s: 1, x: 0, y: 0 };
   let panMode = false;
   let needFit = true;
+  let zoomed = false;
+  let laid = '';
   let model = null;
   let drag = null;
   let frame = 0;
@@ -55,6 +57,12 @@ export function mountLifeVein(section, ctx) {
 
   function draw() {
     if (!model || !resize()) return;
+    const key = Math.round(W()) + 'x' + Math.round(H());
+    if (key !== laid) {
+      if (!zoomed) needFit = true;
+      laid = key;
+    }
+    const lv = readLvParams();
     const shot = {
       scrollDay: view.scrollDay,
       ppd: ppd(),
@@ -64,14 +72,18 @@ export function mountLifeVein(section, ctx) {
       cam: needFit ? null : cam,
       fit: needFit,
       reduced: typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches,
-      zone: readLvParams().zone01,
-      gap: readLvParams().gap,
-      repel: readLvParams().repel,
-      mults: readLvParams().mults,
-      lv: readLvParams(),
-      fade: readLvParams().fade,
-      windowPx: readLvParams().windowPx,
-      dayGap: readLvParams().dayGap,
+      zone: lv.zone01,
+      gap: lv.gap,
+      repel: lv.repel,
+      mults: lv.mults,
+      lv,
+      fade: lv.fade,
+      windowPx: lv.windowPx,
+      dayGap: lv.dayGap,
+      xLiab: lv.xLiab,
+      xAsset: lv.xAsset,
+      insetL: lv.insetL,
+      insetR: lv.insetR,
     };
     drawBubbleStage(g, model, shot);
     if (needFit && shot.cam) {
@@ -86,6 +98,7 @@ export function mountLifeVein(section, ctx) {
     const next = Math.max(0.015, Math.min(8, cam.s * factor));
     const wx = (px - W() / 2 - cam.x) / cam.s + W() / 2;
     const wy = (py - H() / 2 - cam.y) / cam.s + H() / 2;
+    zoomed = true;
     cam.s = next;
     cam.x = px - W() / 2 - (wx - W() / 2) * next;
     cam.y = py - H() / 2 - (wy - H() / 2) * next;
@@ -194,7 +207,7 @@ export function mountLifeVein(section, ctx) {
   for (const btn of section.querySelectorAll('[data-lv-zoom]')) {
     btn.addEventListener('click', () => {
       const z = Number(btn.getAttribute('data-lv-zoom') || 1);
-      if (z === 1) { needFit = true; schedule(); return; }
+      if (z === 1) { zoomed = false; needFit = true; schedule(); return; }
       zoomAt(W() / 2, H() / 2, z);
     });
   }

@@ -29,6 +29,7 @@
 | `core/bubble-callout.js` | 脉络标注的引出线 |
 | `core/bubble-motion.js` | 脉络气泡的滚动进度、分组与形变 |
 | `core/bubble-scene.js` | 脉络一帧里每颗泡的位置 |
+| `core/bubble-union.js` | 两颗脉络气泡的融合轮廓 |
 | `core/calc-engine.js` | （无界面）计算引擎：余额 / 双式恒等 / 实物成本台账 |
 | `core/category-query.js` | 分类查询（纯函数） |
 | `core/color.js` | （无界面）颜色转换 |

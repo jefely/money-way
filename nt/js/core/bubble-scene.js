@@ -98,7 +98,6 @@ function separateBubbles(scene) {
     }
   }
   for (const b of body) {
-    if (String(b.id || '').startsWith('L') && b.r < 48 && b.x - b.r < 56) b.x = b.r + 56;
     b.ref.x = b.x;
     b.ref.y = b.y;
   }
@@ -127,8 +126,11 @@ export function assembleScene(model, view) {
     stocks.push({ id: a.id, name: a.name, r: fitR(v), v, lane: a.lane, kind: a.lane === 2 ? 'liab' : 'asset' });
   }
   const limit = { top: height * 0.1, bottom: height * 0.9 };
-  const xLiab = width * 0.32;
-  const xAsset = width * 0.68;
+  const pct = (n, d) => width * ((n == null ? d : n) / 100);
+  const xLeft = pct(view.insetL, 8);
+  const xRight = width - pct(view.insetR, 8);
+  const xLiab = pct(view.xLiab, 35);
+  const xAsset = pct(view.xAsset, 65);
   const liab = packCluster(stocks.filter((s) => s.kind === 'liab'), xLiab, height * 0.5, limit);
   const asset = packCluster(stocks.filter((s) => s.kind === 'asset'), xAsset, height * 0.5, limit);
   for (const b of liab) b.axisX = xLiab;
@@ -173,10 +175,10 @@ export function assembleScene(model, view) {
     if (bag.edge === 'L') left.push(item);
     else right.push(item);
   }
-  const packedL = packEdge(left, width * 0.07, 1, width);
-  const packedR = packEdge(right, width * 0.93, -1, width);
-  for (const b of packedL) b.axisX = width * 0.08;
-  for (const b of packedR) b.axisX = width * 0.92;
+  const packedL = packEdge(left, xLeft, 1, width);
+  const packedR = packEdge(right, xRight, -1, width);
+  for (const b of packedL) b.axisX = xLeft;
+  for (const b of packedR) b.axisX = xRight;
   const bagAt = new Map();
   for (const b of packedL) bagAt.set(b.id, b);
   for (const b of packedR) bagAt.set(b.id, b);
@@ -224,18 +226,10 @@ export function assembleScene(model, view) {
       stick: '',
     });
   }
-  const claimed = new Map();
-  for (const f of flies) {
-    if (!f.stick) continue;
-    const prev = claimed.get(f.stick);
-    if (!prev || f.t > prev.t) claimed.set(f.stick, f);
-  }
-  for (const f of flies) {
-    if (f.stick && claimed.get(f.stick) !== f) f.stick = '';
-  }
   const scene = {
     liab, asset, left: packedL, right: packedR, flies,
     gap: view.gap, repel: view.repel,
+    axes: [xLeft, xLiab, xAsset, xRight],
   };
   dropOffstage(scene, height);
   separateBubbles(scene);
@@ -253,15 +247,19 @@ export function assembleScene(model, view) {
 
 function dropOffstage(scene, height) {
   const vis = (b) => b.y > -12 && b.y < height + 12;
-  scene.liab = scene.liab.filter(vis);
-  scene.asset = scene.asset.filter(vis);
-  scene.left = scene.left.filter(vis);
-  scene.right = scene.right.filter(vis);
+  scene.liab = scene.liab.filter(vis); scene.asset = scene.asset.filter(vis);
+  scene.left = scene.left.filter(vis); scene.right = scene.right.filter(vis);
   scene.flies = scene.flies.filter((b) => b.y > -20 && b.y < height + 20);
 }
 
-function clampOnScreen() {
-  // 大小差开之后，泡可以超出这一屏。缩放负责把它们装回来，这里不再往屏幕里挤。
+function clampOnScreen(scene, width) {
+  const band = Math.max(24, width * 0.06);
+  const all = [...scene.liab, ...scene.asset, ...scene.left, ...scene.right, ...scene.flies];
+  for (const b of all) {
+    if (!(b.r > 0)) continue;
+    if (b.axisX != null) b.x = Math.min(b.axisX + band, Math.max(b.axisX - band, b.x));
+    b.x = b.r * 2 + 4 >= width ? width / 2 : Math.min(width - b.r - 2, Math.max(b.r + 2, b.x));
+  }
 }
 
 /**
@@ -310,20 +308,20 @@ function pinEnds(scene) {
 export function cameraFit(scene, width, height) {
   const all = [...scene.liab, ...scene.asset, ...scene.left, ...scene.right, ...scene.flies];
   if (!all.length || !(width > 0) || !(height > 0)) return { s: 1, x: 0, y: 0 };
-  let x0 = Infinity;
-  let y0 = Infinity;
-  let x1 = -Infinity;
-  let y1 = -Infinity;
+  const padX = 16;
+  const padY = 28;
+  let fit = 1;
+  const halfW = width / 2 - padX;
+  const halfH = height / 2 - padY;
   for (const b of all) {
-    x0 = Math.min(x0, b.x - b.r - 8);
-    y0 = Math.min(y0, b.y - b.r - 8);
-    x1 = Math.max(x1, b.x + b.r + 8);
-    y1 = Math.max(y1, b.y + b.r + 8);
+    const right = b.x + b.r - width / 2;
+    const left = width / 2 - (b.x - b.r);
+    const bot = b.y + b.r - height / 2;
+    const top = height / 2 - (b.y - b.r);
+    if (right > 1) fit = Math.min(fit, halfW / right);
+    if (left > 1) fit = Math.min(fit, halfW / left);
+    if (bot > 1) fit = Math.min(fit, halfH / bot);
+    if (top > 1) fit = Math.min(fit, halfH / top);
   }
-  const bw = Math.max(48, x1 - x0);
-  const bh = Math.max(48, y1 - y0);
-  const s = Math.max(0.015, Math.min(1, Math.min((width - 20) / bw, (height - 52) / bh)));
-  const midX = (x0 + x1) / 2;
-  const midY = (y0 + y1) / 2;
-  return { s, x: (width / 2 - midX) * s, y: (height / 2 - midY) * s };
+  return { s: Math.max(0.02, Math.min(1, fit)), x: 0, y: 0 };
 }

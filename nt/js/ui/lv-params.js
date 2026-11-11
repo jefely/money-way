@@ -21,7 +21,7 @@ export function readLvParams() {
     for (const s of LV_SCHEMA) {
       const raw = cs.getPropertyValue(s.cssVar).trim();
       if (!raw) continue;
-      if (s.field === 'stroke' || s.field === 'preset' || s.field === 'grainTint') out[s.field] = raw;
+      if (s.field === 'stroke' || s.field === 'preset' || s.field === 'grainTint' || s.field === 'guides' || s.field === 'fillMode') out[s.field] = raw;
       else {
         const n = parseFloat(raw);
         if (Number.isFinite(n)) out[s.field] = n;
@@ -32,6 +32,9 @@ export function readLvParams() {
   const tintId = { 单色: 'mono', 暖色: 'warm', 冷色: 'cool' };
   out.preset = presetId[out.preset] || out.preset || 'pastel';
   out.grainTint = tintId[out.grainTint] || out.grainTint || 'mono';
+  out.guides = (out.guides === '开' || out.guides === '1') ? '1' : '0';
+  const fillId = { 白色: 'white', 分类色: 'lane', 线颜色: 'stroke' };
+  out.fillMode = fillId[out.fillMode] || out.fillMode || 'white';
   out.mults = [out.m1, out.m10, out.m100, out.m1000, out.m5000, out.m10000, out.m100000];
   out.zone01 = Math.min(1, Math.max(0.4, out.zone / 100));
   out.fade = Math.min(0.8, Math.max(0, (out.fadePct == null ? 18 : out.fadePct) / 100));
@@ -50,36 +53,38 @@ function hashByte(x, y) {
 
 /** 按设备像素铺的小块噪点。泡泡缩放时它留在屏幕坐标里。 */
 export function grainCanvas(dpr, p) {
-  const cell = Math.max(1, Math.round((p.grainSize || 1) * (dpr || 1)));
-  const contrast = p.grainContrast == null ? 1 : p.grainContrast;
+  const want = Math.max(0.5, Number(p.grainSize) || 1);
+  const cell = Math.max(1, Math.round(want));
+  const contrast = p.grainContrast == null ? 0.55 : p.grainContrast;
   const tint = p.grainTint || 'mono';
-  const key = cell + '|' + contrast + '|' + tint;
+  const key = cell + '|' + contrast + '|' + tint + '|' + (dpr || 1);
   if (key === grainKey && grainTile) return grainTile;
-  const cells = 48;
+  const cells = 256;
   const px = cells * cell;
   const c = document.createElement('canvas');
   c.width = px;
   c.height = px;
   const cg = c.getContext('2d');
   const img = cg.createImageData(px, px);
-  const amp = 90 * contrast;
+  const amp = 22 * contrast;
   for (let cy = 0; cy < cells; cy += 1) {
     for (let cx = 0; cx < cells; cx += 1) {
-      const n = (hashByte(cx, cy) / 255 - 0.5) * amp;
-      let r = 148 + n;
-      let gv = 148 + n;
-      let b = 148 + n;
-      if (tint === 'warm') { r += 22; b -= 18; }
-      else if (tint === 'cool') { r -= 14; b += 22; }
-      r = Math.max(0, Math.min(255, r));
-      gv = Math.max(0, Math.min(255, gv));
-      b = Math.max(0, Math.min(255, b));
+      const n = (hashByte(cx + cy * 3, cy) / 255 - 0.5) * amp;
+      let r = 128 + n;
+      let gv = 128 + n;
+      let b = 128 + n;
+      if (tint === 'warm') { r += 8; b -= 6; }
+      else if (tint === 'cool') { r -= 6; b += 8; }
+      const cr = Math.max(0, Math.min(255, r));
+      const cgv = Math.max(0, Math.min(255, gv));
+      const cb = Math.max(0, Math.min(255, b));
       for (let yy = 0; yy < cell; yy += 1) {
+        const row = (cy * cell + yy) * px;
         for (let xx = 0; xx < cell; xx += 1) {
-          const i = ((cy * cell + yy) * px + (cx * cell + xx)) * 4;
-          img.data[i] = r;
-          img.data[i + 1] = gv;
-          img.data[i + 2] = b;
+          const i = (row + cx * cell + xx) * 4;
+          img.data[i] = cr;
+          img.data[i + 1] = cgv;
+          img.data[i + 2] = cb;
           img.data[i + 3] = 255;
         }
       }

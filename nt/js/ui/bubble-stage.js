@@ -5,6 +5,7 @@
  */
 
 import { formatAmount } from '../core/bubble-motion.js';
+import { unionOutline } from '../core/bubble-union.js';
 import { assembleScene, cameraFit } from '../core/bubble-scene.js';
 import { grainCanvas, readLvParams } from './lv-params.js';
 import { calendarDayAt } from '../core/lifevein-model.js';
@@ -57,24 +58,32 @@ const THEME_STROKE = { '#f4eef2': 1, '#f7f4ff': 1, '#2a2428': 1, '#3a3228': 1, '
 function paintField(g, dw, dh, dpr, p, light) {
   const id = p.preset || 'pastel';
   const preset = FIELD[id];
+  g.globalCompositeOperation = 'source-over';
   g.globalAlpha = 1;
-  g.fillStyle = light ? '#f4f1ee' : '#100e14';
-  g.fillRect(0, 0, dw, dh);
-  const strength = p.bg == null ? 0.75 : p.bg;
-  if (preset && strength > 0.01) {
-    const grd = g.createLinearGradient(0, 0, dw * 0.15, dh);
+  if (preset) {
+    const grd = g.createLinearGradient(0, 0, 0, dh);
     grd.addColorStop(0, preset.a);
-    grd.addColorStop(0.48, preset.b);
+    grd.addColorStop(0.5, preset.b);
     grd.addColorStop(1, preset.c);
-    g.globalAlpha = strength;
     g.fillStyle = grd;
     g.fillRect(0, 0, dw, dh);
-    g.globalAlpha = 1;
+    const strength = p.bg == null ? 1 : p.bg;
+    if (strength < 0.999) {
+      g.globalAlpha = 1 - strength;
+      g.fillStyle = light ? '#f6f3f0' : '#100e14';
+      g.fillRect(0, 0, dw, dh);
+      g.globalAlpha = 1;
+    }
+  } else {
+    g.fillStyle = light ? '#f7f4f2' : '#100e14';
+    g.fillRect(0, 0, dw, dh);
   }
-  if ((p.grain || 0) > 0.004 && typeof document !== 'undefined') {
+  const grain = p.grain == null ? 0.04 : p.grain;
+  if (grain > 0.004 && typeof document !== 'undefined') {
     const pat = g.createPattern(grainCanvas(dpr, p), 'repeat');
     if (pat) {
-      g.globalAlpha = p.grain;
+      g.imageSmoothingEnabled = false;
+      g.globalAlpha = grain;
       g.fillStyle = pat;
       g.fillRect(0, 0, dw, dh);
       g.globalAlpha = 1;
@@ -95,14 +104,14 @@ function rgba(hex, a) {
   return 'rgba(' + r + ',' + gv + ',' + b + ',' + a + ')';
 }
 
-/** 透明圆。细描边，中心一小块偏暗的色晕，没有亮点。 */
-function orb(g, x, y, r, hex, p, cam) {
-  if (p.fillA > 0.01) {
-    g.beginPath();
-    g.arc(x, y, r, 0, Math.PI * 2);
-    g.fillStyle = rgba(hex, p.fillA);
-    g.fill();
-  }
+function fillHexOf(hex, p) {
+  const mode = p.fillMode || 'white';
+  if (mode === 'lane') return hex;
+  if (mode === 'stroke') return p.strokeHex || '#ffffff';
+  return '#ffffff';
+}
+
+function paintCore(g, x, y, r, hex, p) {
   const rad = Math.max(0.8, r * (p.coreR || 0.32));
   const ink = p.coreInk == null ? 0.75 : p.coreInk;
   const [R, G, B] = rgb(hex).map((c) => Math.max(0, Math.min(255, Math.round(c * ink))));
@@ -116,35 +125,43 @@ function orb(g, x, y, r, hex, p, cam) {
   g.arc(x, y, rad, 0, Math.PI * 2);
   g.fillStyle = grd;
   g.fill();
-  g.beginPath();
-  g.arc(x, y, r, 0, Math.PI * 2);
+}
+
+function strokeOf(g, r, p, cam) {
   g.lineWidth = Math.min(r * 0.09, (p.strokeW || 1.3) / (cam || 1));
   g.strokeStyle = rgba(p.strokeHex, p.strokeA == null ? 0.9 : p.strokeA);
   g.stroke();
 }
 
-function paintNeck(g, a, b, p, cam) {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const dist = Math.hypot(dx, dy);
-  if (!(dist > 1) || dist > a.r + b.r + 16) return;
-  const ang = Math.atan2(dy, dx);
-  const spread = 0.45;
-  const rim = (c, t) => [c.x + Math.cos(t) * c.r, c.y + Math.sin(t) * c.r];
-  const a1 = rim(a, ang + spread);
-  const a2 = rim(a, ang - spread);
-  const b1 = rim(b, ang + Math.PI - spread);
-  const b2 = rim(b, ang + Math.PI + spread);
-  const mx = (a.x + b.x) / 2;
-  const my = (a.y + b.y) / 2;
+/** 单独一颗泡：整圆填充、中心色晕、一圈细边。 */
+function orb(g, x, y, r, hex, p, cam) {
+  const fillA = p.fillA == null ? 0.05 : p.fillA;
+  if (fillA > 0.004) {
+    g.beginPath();
+    g.arc(x, y, r, 0, Math.PI * 2);
+    g.fillStyle = rgba(fillHexOf(hex, p), fillA);
+    g.fill();
+  }
+  paintCore(g, x, y, r, hex, p);
   g.beginPath();
-  g.moveTo(a1[0], a1[1]);
-  g.quadraticCurveTo(mx, my, b1[0], b1[1]);
-  g.moveTo(a2[0], a2[1]);
-  g.quadraticCurveTo(mx, my, b2[0], b2[1]);
-  g.lineWidth = Math.min(a.r, b.r, (p.strokeW || 1.3) / (cam || 1)) * 0.7;
-  g.strokeStyle = rgba(p.strokeHex, (p.strokeA == null ? 0.9 : p.strokeA) * 0.85);
-  g.stroke();
+  g.arc(x, y, r, 0, Math.PI * 2);
+  strokeOf(g, r, p, cam);
+}
+
+/** 合并轮廓：只描外圈，不补圆心之间的直线。 */
+export function paintUnion(g, parts, hex, p, cam, capR) {
+  if (!parts || !parts.length) return;
+  g.beginPath();
+  const s0 = parts[0];
+  g.moveTo(s0.x + Math.cos(s0.a0) * s0.r, s0.y + Math.sin(s0.a0) * s0.r);
+  for (const seg of parts) g.arc(seg.x, seg.y, seg.r, seg.a0, seg.a1, !!seg.ccw);
+  g.closePath();
+  const fillA = p.fillA == null ? 0.05 : p.fillA;
+  if (fillA > 0.004) {
+    g.fillStyle = rgba(fillHexOf(hex, p), fillA);
+    g.fill();
+  }
+  strokeOf(g, capR || s0.r, p, cam);
 }
 
 function paintLabel(g, b, cam, fill, p) {
@@ -184,11 +201,6 @@ function paintLabel(g, b, cam, fill, p) {
   g.globalAlpha = 1;
 }
 
-function partner(fly, which) {
-  if (which === 'src') return { x: fly.sx, y: fly.sy, r: fly.sr, id: fly.srcId, lane: fly.srcLane };
-  return { x: fly.dx, y: fly.dy, r: fly.dr, id: fly.dstId, lane: fly.dstLane };
-}
-
 /** 画一整帧。view = { scrollDay, ppd, width, height, cam } */
 export function drawBubbleStage(g, model, view) {
   const w = view.width;
@@ -198,20 +210,7 @@ export function drawBubbleStage(g, model, view) {
   const cam = view.cam || { s: 1, x: 0, y: 0 };
   const lv = view.lv || readLvParams();
   const look = lookOf(lv, light);
-  const style = {
-    ...lv,
-    strokeHex: look.strokeHex,
-    fillA: lv.fillA,
-    coreR: lv.coreR,
-    coreA: lv.coreA,
-    coreSoft: lv.coreSoft,
-    coreInk: lv.coreInk,
-    strokeW: lv.strokeW,
-    strokeA: lv.strokeA,
-    fontK: lv.fontK,
-    fontMin: lv.fontMin,
-    fontMax: lv.fontMax,
-  };
+  const style = { ...lv, strokeHex: look.strokeHex };
   const tf = g.getTransform();
   const dpr = tf && tf.a ? tf.a : 1;
   g.save();
@@ -226,13 +225,40 @@ export function drawBubbleStage(g, model, view) {
   g.translate(w / 2 + (use.x || 0), h / 2 + (use.y || 0));
   g.scale(use.s || 1, use.s || 1);
   g.translate(-w / 2, -h / 2);
+  if (lv.guides === '1' || lv.guides === 1) {
+    g.strokeStyle = light ? 'rgba(40,30,50,0.18)' : 'rgba(255,255,255,0.16)';
+    g.lineWidth = 1 / (use.s || 1);
+    for (const x of scene.axes || []) {
+      g.beginPath();
+      g.moveTo(x, 0);
+      g.lineTo(x, h);
+      g.stroke();
+    }
+  }
   const bodies = [...scene.liab, ...scene.asset, ...scene.left, ...scene.right];
-  for (const b of bodies) orb(g, b.x, b.y, b.r, colorOf(b.lane), style, use.s || 1);
-  for (const fly of scene.flies) orb(g, fly.x, fly.y, fly.r, colorOf(fly.lane), style, use.s || 1);
+  const byId = new Map(bodies.map((b) => [b.id, b]));
+  const covered = new Set();
+  const joins = [];
   for (const fly of scene.flies) {
-    if (!fly.neck) continue;
-    const end = partner(fly, 'dst');
-    if (end.id) paintNeck(g, fly, end, style, use.s || 1);
+    const dst = byId.get(fly.dstId);
+    if (!dst) continue;
+    const parts = unionOutline(fly, dst);
+    if (!parts) continue;
+    joins.push({ fly, dst, parts });
+    covered.add(fly.id);
+    covered.add(dst.id);
+  }
+  const camS = use.s || 1;
+  for (const b of bodies) if (!covered.has(b.id)) orb(g, b.x, b.y, b.r, colorOf(b.lane), style, camS);
+  for (const fly of scene.flies) if (!covered.has(fly.id)) orb(g, fly.x, fly.y, fly.r, colorOf(fly.lane), style, camS);
+  const cored = new Set();
+  for (const j of joins) {
+    paintUnion(g, j.parts, colorOf(j.dst.lane), style, camS, Math.min(j.fly.r, j.dst.r));
+    if (!cored.has(j.dst.id)) {
+      paintCore(g, j.dst.x, j.dst.y, j.dst.r, colorOf(j.dst.lane), style);
+      cored.add(j.dst.id);
+    }
+    paintCore(g, j.fly.x, j.fly.y, j.fly.r, colorOf(j.fly.lane), style);
   }
   for (const b of bodies) paintLabel(g, b, use.s || 1, look.text, style);
   for (const fly of scene.flies) paintLabel(g, fly, use.s || 1, look.text, style);
