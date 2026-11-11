@@ -238,7 +238,7 @@ test('引出线默认朝右上，贴右缘翻到左上', () => {
   assert.ok(rightish.box.x + rightish.box.w <= 390);
 });
 
-test('收入飞泡留在左缘，演完后资产停在自己的轴上', () => {
+test('收入并进左缘的一颗分类泡，演完后资产停在自己的轴上', () => {
   const state = {
     accounts: [
       { id: 'salary', name: '工资', type: '收入类' },
@@ -258,11 +258,8 @@ test('收入飞泡留在左缘，演完后资产停在自己的轴上', () => {
   const scene = assembleScene(m, view);
   const bank = scene.asset.find((a) => a.name === '储蓄卡');
   assert.ok(bank && bank.ax != null);
-  if (scene.flies.length) {
-    const fly = scene.flies[0];
-    assert.ok(fly.x < 390 * 0.2);
-    assert.equal(fly.y, fly.homeY);
-  }
+  assert.equal(scene.flies.length, 0);
+  assert.ok(scene.left.some((b) => b.name === '工资' && b.x < 390 * 0.45));
   const later = assembleScene(m, { scrollDay: day + 4, ppd, width: 390, height: h });
   const back = later.asset.find((a) => a.name === '储蓄卡');
   assert.ok(back);

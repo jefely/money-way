@@ -57,7 +57,12 @@ test('同一天同一分类并成一颗，每笔仍各自飞', () => {
   assert.ok(pay && Math.round(pay.amount) === 800);
   const y = h * 0.48;
   const mid = assembleScene(m, { scrollDay: day - (y - h / 2) / ppd, ppd, width: 390, height: h });
-  assert.ok(mid.flies.length >= 1);
+  assert.equal(mid.right.filter((b) => b.name === '日常').length, 1);
+  assert.equal(mid.flies.length, 0);
+  if (mid.right.length >= 2) {
+    const d = Math.hypot(mid.right[0].x - mid.right[1].x, mid.right[0].y - mid.right[1].y);
+    assert.ok(d + 0.5 >= mid.right[0].r + mid.right[1].r);
+  }
   assert.ok(mid.flies.every((f) => f.amount <= 800));
   const names = mid.flies.map((f) => f.name);
   assert.equal(new Set(names).size, names.length);

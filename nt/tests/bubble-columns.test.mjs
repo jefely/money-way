@@ -73,28 +73,24 @@ test('600 笔时静止泡互不重叠，列也不会堆到右边', () => {
   assert.ok(rightmost < width * 0.62, '收入和负债不该贴到右边 ' + rightmost);
 });
 
-test('费用飞泡钉在右缘的日期线上，收入钉在左缘', () => {
-  const model = book(12);
+test('同一天同一分类只有一颗边缘泡，边缘泡互不重叠', () => {
+  const model = book(40);
   const width = 1600;
   const height = 900;
-  const ppd = pixelsPerDay(model.vspan, height, 1, 0);
-  const scene = assembleScene(model, {
-    scrollDay: model.events[Math.floor(model.events.length / 2)].vday,
-    ppd, width, height, zone: 0.8, windowPx: 880, dayGap: 0.65,
-    xLiab: 35, xAsset: 65, insetL: 8, insetR: 8,
-  });
-  const spend = scene.flies.filter((f) => f.name === '日常' || f.name === '通勤');
-  const income = scene.flies.filter((f) => f.name === '工资');
-  assert.ok(spend.length > 0 && income.length > 0);
-  for (const f of spend) {
-    assert.ok(f.x > width * 0.75, '费用应在右缘 ' + f.x);
-    assert.equal(f.y, f.homeY);
+  const scene = sceneAt(model, width, height);
+  const ids = [...scene.left, ...scene.right].map((b) => b.id);
+  assert.equal(ids.length, new Set(ids).size);
+  assert.equal(scene.flies.filter((f) => f.name === '工资' || f.name === '日常' || f.name === '通勤').length, 0);
+  const edge = [...scene.left, ...scene.right];
+  for (let i = 0; i < edge.length; i += 1) {
+    for (let j = i + 1; j < edge.length; j += 1) {
+      const d = Math.hypot(edge[i].x - edge[j].x, edge[i].y - edge[j].y);
+      assert.ok(d + 0.6 >= edge[i].r + edge[j].r, edge[i].name + '/' + edge[j].name);
+    }
+    if (edge[i].dateY != null) assert.ok(Math.abs(edge[i].y - edge[i].dateY) <= edge[i].band + 0.5);
   }
-  for (const f of income) {
-    assert.ok(f.x < width * 0.2, '收入应在左缘 ' + f.x);
-    assert.equal(f.y, f.homeY);
-  }
-  assert.ok(scene.right.every((b) => b.x > width * 0.72));
+  assert.ok(scene.left.every((b) => b.x < width * 0.4));
+  assert.ok(scene.right.every((b) => b.x > width * 0.6));
 });
 
 test('脉络参数在布局里单独一页，不再挂在主界面', () => {

@@ -156,7 +156,8 @@ export function assembleScene(model, view) {
   for (const bag of bags.values()) {
     if (!(bag.amount >= 0.5)) continue;
     const item = {
-      id: bag.id, name: bag.name, lane: bag.lane, y: bag.y,
+      id: bag.id, name: bag.name, lane: bag.lane, y: bag.y, dateY: bag.y,
+      band: Math.max(8, ppd * 0.42),
       amount: bag.done >= 0.5 ? bag.done : null, r: fitR(bag.amount),
     };
     if (bag.edge === 'L') left.push(item);
@@ -166,14 +167,11 @@ export function assembleScene(model, view) {
   const packedR = packEdge(right, xRight, -1, width);
   for (const b of packedL) b.axisX = xLeft;
   for (const b of packedR) b.axisX = xRight;
-  const bagAt = new Map();
-  for (const b of packedL) bagAt.set(b.id, b);
-  for (const b of packedR) bagAt.set(b.id, b);
-
   const flies = [];
   for (const e of model.events || []) {
+    if (e.edge === 'L' || e.edge === 'R') continue;
     const dayP = prog(e);
-    const local = e.edge && !(gap > 0) ? flyLocal(dayP, e.queue || 0, e.queueN || 1) : dayP;
+    const local = dayP;
     const y = yOfDay(coordOf(e), scrollDay, ppd, height);
     if (y < -40 || y > height + 40) continue;
     const arriving = local <= 0 && local > -0.22;
@@ -186,23 +184,16 @@ export function assembleScene(model, view) {
       : ((from && from.name) || (to && to.name) || '');
     const full = fitR(e.amount);
     const flyR = scale > 0.92 ? full : Math.max(3, full * scale);
-    const bag = bagAt.get(e.edge + ':' + e.day + ':' + e.cat);
-    const edgePt = bag || (e.edge === 'R'
-      ? { x: width - 28, y, r: 8, id: '', lane: e.toLane }
-      : { x: 84, y, r: 8, id: '', lane: e.fromLane });
-    const toAsset = e.kind === 'spend' || e.kind === 'charge';
-    const src = e.edge === 'L' ? edgePt : spot(e.fromId);
-    const dst = toAsset ? edgePt : spot(e.toId);
+    const src = spot(e.fromId);
+    const dst = spot(e.toId);
     const t = arriving ? 0 : smooth(clamp01(local));
-    const onRight = e.edge === 'R';
-    const onLeft = e.edge === 'L';
-    const x = onRight ? xRight : onLeft ? xLeft : src.x + (dst.x - src.x) * t;
-    const lane = toAsset ? (to ? to.lane : 4) : (from ? from.lane : (to ? to.lane : 0));
+    const x = src.x + (dst.x - src.x) * t;
+    const lane = (from ? from.lane : (to ? to.lane : 0));
     flies.push({
       id: 'F' + e.key,
       x,
       y,
-      axisX: onRight ? xRight : onLeft ? xLeft : null,
+      axisX: null,
       homeX: x,
       homeY: y,
       r: flyR,
