@@ -45,7 +45,7 @@ test('同一天同一分类并成一颗，每笔仍各自飞', () => {
   const h = 700;
   const ppd = pixelsPerDay(m.vspan, h, 1);
   const day = m.events[0].vday;
-  const yDone = h * 0.22;
+  const yDone = h * 0.08;
   const done = assembleScene(m, { scrollDay: day - (yDone - h / 2) / ppd, ppd, width: 390, height: h });
   assert.equal(done.flies.length, 0);
   const daily = done.right.find((b) => b.name === '日常');

@@ -54,6 +54,7 @@
 | `core/ledgers.js` | （无界面）多账本 create/switch/rename/remove |
 | `core/lexicon.js` | （无界面）渐进式记账词库 |
 | `core/lifevein-model.js` | LifeVein 页（时间流里的泡） |
+| `core/lv-settings.js` | 脉络页的界面参数 |
 | `core/lz-file.js` | .lz 快照文件（跨设备同步码）的解析与还原（纯函数，Node 可跑） |
 | `core/meta.js` | （未标注界面）项目地址（常量） |
 | `core/migrate.js` | （无界面）旧数据迁移 |
@@ -161,6 +162,7 @@
 | `ui/layout-text.js` | 布局文本导出/导入 |
 | `ui/leave-hooks.js` | 切页时的后台收尾 |
 | `ui/locate-tx.js` | 从校验跳到出问题的那一笔 |
+| `ui/lv-params.js` | 脉络参数（CSS 变量 → 数字） |
 | `ui/modal.js` | 全局 → 统一弹窗（<dialog>） |
 | `ui/mw-params.js` | 全局：环图参数（CSS 变量 → 数字） |
 | `ui/mw-svg-renderer.js` | 路径 tab / path.html → SVG 渲染 |

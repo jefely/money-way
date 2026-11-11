@@ -23,7 +23,7 @@
  * 鏂板鏂囦欢璁板緱鍔犺繘鏉ワ紙tools 閲屾湁鐢熸垚鑴氭湰锛夈€?
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.554';
+const CACHE_NAME = 'nt-v1.555';
 
 const ASSETS = [
   './css/base.css',
@@ -95,7 +95,7 @@ const ASSETS = [
   './js/core/lz-file.js',
   './js/core/meta.js',
   './js/core/migrate.js',
-  './js/core/mw-settings.js',
+  './js/core/lv-settings.js', './js/core/mw-settings.js',
   './js/core/note-stats.js',
   './js/core/node-relations.js',
   './js/core/opening-migrator.js',
@@ -196,7 +196,7 @@ const ASSETS = [
   './js/ui/layout-text.js', './js/ui/leave-hooks.js',
   './js/ui/locate-tx.js',
   './js/ui/modal.js',
-  './js/ui/mw-params.js',
+  './js/ui/lv-params.js', './js/ui/mw-params.js',
   './js/ui/mw-svg-renderer.js',
   './js/ui/note-popover.js',
   './js/ui/note-stats.js',

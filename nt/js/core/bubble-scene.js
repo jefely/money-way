@@ -6,7 +6,7 @@
 
 import { isDebitType } from './schema.js';
 import {
-  bagShare, bubbleRadius, clamp01, eventProgress, flyLocal, flyScale,
+  bagShare, bubbleRadius, clamp01, eventProgress, flyLocal, flyScale, textFade,
   packCluster, packEdge, shownBalance, yOfDay,
 } from './bubble-motion.js';
 
@@ -63,7 +63,7 @@ function smooth(t) {
 function separateBubbles(scene) {
   const body = [];
   const add = (b, pinY) => body.push({
-    x: b.x, y: b.y, r: b.r, id: b.id, stick: b.stick || '', pinY, ref: b,
+    x: b.x, y: b.y, r: b.r, id: b.id, stick: b.stick || '', pinY, axisX: b.axisX, ref: b,
   });
   for (const b of scene.liab) add(b, false);
   for (const b of scene.asset) add(b, false);
@@ -78,8 +78,8 @@ function separateBubbles(scene) {
         const dx = B.x - A.x;
         const dy = B.y - A.y;
         const dist = Math.hypot(dx, dy) || 0.01;
-        const stick = A.stick === B.id || B.stick === A.id;
-        const min = stick ? (A.r + B.r) * 0.74 : A.r + B.r + 5;
+        const gap = Math.max(0, scene.gap == null ? 4 : scene.gap) * (scene.repel == null ? 1 : scene.repel);
+        const min = A.r + B.r + gap;
         if (dist >= min) continue;
         const push = (min - dist) / 2;
         const ux = dx / dist;
@@ -88,6 +88,12 @@ function separateBubbles(scene) {
         else { A.x -= ux * push; A.y -= uy * push; }
         if (B.pinY) B.x += ux * push;
         else { B.x += ux * push; B.y += uy * push; }
+      }
+    }
+    if (n < 24) {
+      for (const b of body) {
+        if (b.axisX == null || b.pinY) continue;
+        b.x += (b.axisX - b.x) * 0.34;
       }
     }
   }
@@ -106,18 +112,27 @@ export function assembleScene(model, view) {
   const height = view.height;
   const ppd = view.ppd;
   const scrollDay = view.scrollDay;
-  const fitR = (v) => bubbleRadius(v);
+  const zone = view.zone;
+  const win = view.windowPx;
+  const gap = Number(view.dayGap) || 0;
+  const fitR = (v) => bubbleRadius(v, { mults: view.mults });
+  const coordOf = (e) => (e.vday == null ? e.day : e.vday) + (e.edge && gap ? (e.queue || 0) * gap : 0);
+  const prog = (e) => eventProgress(coordOf(e), scrollDay, ppd, height, zone, win);
   const byId = new Map((model.accounts || []).map((a) => [a.id, a]));
   const stocks = [];
   for (const a of model.accounts || []) {
     if (!a.stock) continue;
-    const v = shownBalance(model.events, a.id, isDebitType(a.type), scrollDay, ppd, height);
+    const v = shownBalance(model.events, a.id, isDebitType(a.type), scrollDay, ppd, height, zone, gap, win);
     if (Math.abs(v) < 0.5) continue;
     stocks.push({ id: a.id, name: a.name, r: fitR(v), v, lane: a.lane, kind: a.lane === 2 ? 'liab' : 'asset' });
   }
-  const limit = { top: height * 0.25, bottom: height * 0.75 };
-  const liab = packCluster(stocks.filter((s) => s.kind === 'liab'), width * 0.30, height * 0.5, limit);
-  const asset = packCluster(stocks.filter((s) => s.kind === 'asset'), width * 0.68, height * 0.5, limit);
+  const limit = { top: height * 0.1, bottom: height * 0.9 };
+  const xLiab = width * 0.32;
+  const xAsset = width * 0.68;
+  const liab = packCluster(stocks.filter((s) => s.kind === 'liab'), xLiab, height * 0.5, limit);
+  const asset = packCluster(stocks.filter((s) => s.kind === 'asset'), xAsset, height * 0.5, limit);
+  for (const b of liab) b.axisX = xLiab;
+  for (const b of asset) b.axisX = xAsset;
   const at = new Map();
   for (const p of liab) at.set(p.id, p);
   for (const p of asset) at.set(p.id, p);
@@ -126,25 +141,26 @@ export function assembleScene(model, view) {
     const hit = at.get(id);
     if (hit) return hit;
     const acc = byId.get(id);
-    const x = acc && acc.lane === 2 ? width * 0.30 : width * 0.68;
+    const x = acc && acc.lane === 2 ? xLiab : xAsset;
     return { x, y: height * 0.5, r: 10, id: '', lane: acc ? acc.lane : 3 };
   };
 
   const bags = new Map();
   for (const e of model.events || []) {
     if (e.edge !== 'L' && e.edge !== 'R') continue;
-    const coord = e.vday == null ? e.day : e.vday;
-    const dayP = eventProgress(coord, scrollDay, ppd, height);
-    const local = flyLocal(dayP, e.queue || 0, e.queueN || 1);
+    const dayP = prog(e);
+    const local = gap > 0 ? dayP : flyLocal(dayP, e.queue || 0, e.queueN || 1);
     if (!(local > 0)) continue;
     const id = e.edge + ':' + e.day + ':' + e.cat;
     let bag = bags.get(id);
     if (!bag) {
       const lane = e.edge === 'R' ? (e.toLane < 0 ? 4 : e.toLane) : (e.fromLane < 0 ? 0 : e.fromLane);
-      bag = { id, name: e.cat || '', edge: e.edge, y: yOfDay(coord, scrollDay, ppd, height), lane, amount: 0 };
+      const y0 = yOfDay(e.vday == null ? e.day : e.vday, scrollDay, ppd, height);
+      bag = { id, name: e.cat || '', edge: e.edge, lane, amount: 0, done: 0, y: y0 };
       bags.set(id, bag);
     }
     bag.amount += e.amount * bagShare(e.kind, local);
+    if (local >= 1) bag.done += e.amount;
   }
   const left = [];
   const right = [];
@@ -152,25 +168,28 @@ export function assembleScene(model, view) {
     if (!(bag.amount >= 0.5)) continue;
     const item = {
       id: bag.id, name: bag.name, lane: bag.lane, y: bag.y,
-      amount: bag.amount, r: fitR(bag.amount),
+      amount: bag.done >= 0.5 ? bag.done : null, r: fitR(bag.amount),
     };
     if (bag.edge === 'L') left.push(item);
     else right.push(item);
   }
-  const packedL = packEdge(left, 64, 1, width);
-  const packedR = packEdge(right, width - 10, -1, width);
+  const packedL = packEdge(left, width * 0.07, 1, width);
+  const packedR = packEdge(right, width * 0.93, -1, width);
+  for (const b of packedL) b.axisX = width * 0.08;
+  for (const b of packedR) b.axisX = width * 0.92;
   const bagAt = new Map();
   for (const b of packedL) bagAt.set(b.id, b);
   for (const b of packedR) bagAt.set(b.id, b);
 
   const flies = [];
   for (const e of model.events || []) {
-    const coord = e.vday == null ? e.day : e.vday;
-    const dayP = eventProgress(coord, scrollDay, ppd, height);
-    const local = e.edge ? flyLocal(dayP, e.queue || 0, e.queueN || 1) : dayP;
-    const scale = flyScale(e.kind, local);
+    const dayP = prog(e);
+    const local = e.edge && !(gap > 0) ? flyLocal(dayP, e.queue || 0, e.queueN || 1) : dayP;
+    const y = yOfDay(coordOf(e), scrollDay, ppd, height);
+    if (y < -40 || y > height + 40) continue;
+    const arriving = local <= 0 && local > -0.22;
+    const scale = arriving ? 1 : flyScale(e.kind, local);
     if (!(scale > 0.04)) continue;
-    const y = yOfDay(coord, scrollDay, ppd, height);
     const from = byId.get(e.fromId);
     const to = byId.get(e.toId);
     const name = (e.kind === 'spend' || e.kind === 'charge')
@@ -185,23 +204,24 @@ export function assembleScene(model, view) {
     const toAsset = e.kind === 'spend' || e.kind === 'charge';
     const src = e.edge === 'L' ? edgePt : spot(e.fromId);
     const dst = toAsset ? edgePt : spot(e.toId);
-    const t = smooth(clamp01(local));
+    const t = arriving ? 0 : smooth(clamp01(local));
     const curve = arcPoint(src, dst, discs, t);
     const lane = toAsset ? (to ? to.lane : 4) : (from ? from.lane : (to ? to.lane : 0));
     flies.push({
       id: 'F' + e.key,
-      x: Math.max(flyR, Math.min(width - flyR, curve.x)),
-      y: Math.max(flyR, Math.min(height - flyR, curve.y)),
+      x: curve.x,
+      y: curve.y,
       r: flyR,
       lane,
       amount: e.amount,
       name,
-      label: scale > 0.92,
+      fade: textFade(arriving ? 0 : local, view.fade == null ? 0.18 : view.fade),
       sx: src.x, sy: src.y, sr: src.r, srcId: src.id || '', srcLane: src.lane,
       dx: dst.x, dy: dst.y, dr: dst.r, dstId: dst.id || '', dstLane: dst.lane,
       t,
       meet: t > 0.45 && t <= 0.82 ? (dst.id || '') : '',
-      stick: t > 0.82 ? (dst.id || '') : (t < 0.32 ? (src.id || '') : ''),
+      neck: !arriving && t > 0.55 && t < 0.88,
+      stick: '',
     });
   }
   const claimed = new Map();
@@ -213,7 +233,10 @@ export function assembleScene(model, view) {
   for (const f of flies) {
     if (f.stick && claimed.get(f.stick) !== f) f.stick = '';
   }
-  const scene = { liab, asset, left: packedL, right: packedR, flies };
+  const scene = {
+    liab, asset, left: packedL, right: packedR, flies,
+    gap: view.gap, repel: view.repel,
+  };
   dropOffstage(scene, height);
   separateBubbles(scene);
   clampOnScreen(scene, width, height);
@@ -229,12 +252,12 @@ export function assembleScene(model, view) {
 }
 
 function dropOffstage(scene, height) {
-  const vis = (b) => b.y > 64 && b.y < height - 18;
+  const vis = (b) => b.y > -12 && b.y < height + 12;
   scene.liab = scene.liab.filter(vis);
   scene.asset = scene.asset.filter(vis);
   scene.left = scene.left.filter(vis);
   scene.right = scene.right.filter(vis);
-  scene.flies = scene.flies.filter((b) => b.y > 40 && b.y < height - 12);
+  scene.flies = scene.flies.filter((b) => b.y > -20 && b.y < height + 20);
 }
 
 function clampOnScreen() {

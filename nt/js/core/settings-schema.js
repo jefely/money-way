@@ -13,6 +13,7 @@
  */
 
 import { MW_GROUPS, MW_SCHEMA } from './mw-settings.js';
+import { LV_GROUPS, LV_SCHEMA } from './lv-settings.js';
 import {
   TABLE_GROUPS, TABLE_SCREENS, TABLE_SIZE_SCHEMA, TABLE_DEFAULT_WIDTHS,
 } from './table-cols.js';
@@ -53,6 +54,7 @@ export const GROUP_FILE = {
   '环图·线': 'ui/mw-svg-renderer.js',
   '环图·追踪': 'graph/path-tracer.js',
   '环图·规则': 'graph/mw-layers.js',
+  脉络: 'ui/bubble-stage.js',
 };
 
 export const GROUPS = [
@@ -66,6 +68,7 @@ export const GROUPS = [
   // 环图那 30 项（路径页）单独四组：它们是「基准单位」，由 SVG 渲染器消费，
   // 和上面这些 --nt-col-* 的 CSS 消费方不是一回事。见 core/mw-settings.js。
   ...MW_GROUPS,
+  ...LV_GROUPS,
 ];
 
 /** 调试面板的界面标签：与顶部 7 个 tab 一一对应 */
@@ -96,6 +99,7 @@ export const GROUP_SCREEN = {
   节点统计: 'stats',
   // 环图参数只在路径页看得见效果，所以归「路径」屏，不和主界面挤在一起
   ...Object.fromEntries(MW_GROUPS.map((g) => [g, 'path'])),
+  脉络: 'main',
 };
 
 /** 参数作用域：global=写全局(:root)；其余=写到对应标签页容器 [data-view] */
@@ -119,6 +123,7 @@ export const GROUP_SCOPE = {
   // 环图参数写在 :root 上：渲染器从 getComputedStyle(documentElement) 读，
   // 不依赖路径页容器是否存在（切 tab / 未解锁时读到的也是同一份值）。
   ...Object.fromEntries(MW_GROUPS.map((g) => [g, 'global'])),
+  脉络: 'global',
 };
 
 /**
@@ -249,6 +254,7 @@ export const SCHEMA = [
      30 项的声明在 core/mw-settings.js：面板、导出文本、存档都走同一份 SCHEMA，
      消费方是 ui/mw-params.js（读 --nt-mw-* → 数字），不是 CSS 规则。 */
   ...MW_SCHEMA,
+  ...LV_SCHEMA,
 ];
 
 /**

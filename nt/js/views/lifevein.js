@@ -14,12 +14,14 @@
 import { buildLifeVein, monthLabel } from '../core/lifevein-model.js';
 import { drawBubbleStage } from '../ui/bubble-stage.js';
 import { pixelsPerDay } from '../core/bubble-motion.js';
+import { readLvParams, onLvLayout } from '../ui/lv-params.js';
 import { emptyFilter, visibleIdx } from '../ui/path-filter.js';
 
 export function mountLifeVein(section, ctx) {
   const canvas = section.querySelector('[data-lv-canvas]');
   if (!canvas) return { render() {} };
   const g = canvas.getContext('2d');
+  onLvLayout(() => schedule());
 
   const view = { scrollDay: 0, ready: false };
   const cam = { s: 1, x: 0, y: 0 };
@@ -34,7 +36,7 @@ export function mountLifeVein(section, ctx) {
 
   const W = () => canvas.clientWidth;
   const H = () => canvas.clientHeight;
-  const ppd = () => pixelsPerDay(model ? model.vspan : 1, H() || 700, 1);
+  const ppd = () => pixelsPerDay(model ? model.vspan : 1, H() || 700, 1, readLvParams().ppd);
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -62,6 +64,14 @@ export function mountLifeVein(section, ctx) {
       cam: needFit ? null : cam,
       fit: needFit,
       reduced: typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches,
+      zone: readLvParams().zone01,
+      gap: readLvParams().gap,
+      repel: readLvParams().repel,
+      mults: readLvParams().mults,
+      lv: readLvParams(),
+      fade: readLvParams().fade,
+      windowPx: readLvParams().windowPx,
+      dayGap: readLvParams().dayGap,
     };
     drawBubbleStage(g, model, shot);
     if (needFit && shot.cam) {
@@ -112,7 +122,7 @@ export function mountLifeVein(section, ctx) {
 
   function setScroll(day) {
     const prev = view.scrollDay;
-    const hi = model ? model.vspan + 3 : 0;
+    const hi = model ? model.vspan + 40 : 0;
     view.scrollDay = Math.max(-2, Math.min(hi, day));
     syncMonth(view.scrollDay >= prev ? 1 : -1);
     schedule();
@@ -165,7 +175,8 @@ export function mountLifeVein(section, ctx) {
       return;
     }
     // 手指往上：更晚的日期进入，正放。
-    setScroll(drag.day - (e.clientY - drag.y) / ppd());
+    const sens = readLvParams().scrub == null ? 0.6 : readLvParams().scrub;
+    setScroll(drag.day - (e.clientY - drag.y) / ppd() * sens);
   });
   const end = (e) => {
     pts.delete(e.pointerId);

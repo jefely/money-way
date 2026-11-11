@@ -34,18 +34,13 @@ function smooth(t) {
  */
 export function juiceAt(t) {
   const x = Math.min(1, Math.max(0, t));
-  const travel = Math.sin(x * Math.PI);
-  const stretch = 1 + 0.16 * travel;
-  const impact = Math.exp(-((x - 0.84) * (x - 0.84)) / 0.004);
-  const split = Math.exp(-((x - 0.16) * (x - 0.16)) / 0.004);
-  return { sx: stretch, sy: 1 / Math.sqrt(stretch), ripple: impact, droplets: split };
+  const stretch = 1 + 0.16 * Math.sin(x * Math.PI);
+  return { sx: stretch, sy: 1 / Math.sqrt(stretch), ripple: Math.exp(-((x - 0.84) ** 2) / 0.004), droplets: Math.exp(-((x - 0.16) ** 2) / 0.004) };
 }
 
 export function elastic(p) {
   const x = clamp01(p);
-  const base = x * x * (3 - 2 * x);
-  const bounce = Math.sin(x * Math.PI) * Math.sin(x * Math.PI * 2) * 0.08;
-  return base + bounce;
+  return x * x * (3 - 2 * x) + Math.sin(x * Math.PI) * Math.sin(x * Math.PI * 2) * 0.08;
 }
 
 /** 事件日期线在屏幕上的 y。过去在上，未来在下，scrollDay 对准屏幕正中。 */
@@ -57,10 +52,13 @@ export function yOfDay(day, scrollDay, ppd, height) {
  * 动画进度。日期线在下中带下沿（0.75H）时为 0，上中带上沿（0.25H）时为 1。
  * 不钳制：小于 0 还没开始，大于 1 已经演完。
  */
-export function eventProgress(day, scrollDay, ppd, height) {
+export function eventProgress(day, scrollDay, ppd, height, zone, windowPx) {
   if (!(height > 0)) return 0;
+  const z = Math.min(1, Math.max(0.4, Number(zone) || 0.8));
   const y = yOfDay(day, scrollDay, ppd, height);
-  return (height * 0.75 - y) / (height * 0.5);
+  const bot = height * (0.5 + z / 2);
+  const win = Number(windowPx) > 0 ? Number(windowPx) : height * z;
+  return (bot - y) / win;
 }
 
 /**
@@ -68,12 +66,14 @@ export function eventProgress(day, scrollDay, ppd, height) {
  * 视界（半屏）大约盖住全程的两成，再少也有 2.2 个视觉日，
  * 所以只有几笔流水时，拖半屏就能看完飞入飞出。
  */
-export function pixelsPerDay(vspan, height, zoom) {
+export function pixelsPerDay(vspan, height, zoom, override) {
+  const z = Number(zoom) || 1;
+  if (Number(override) > 0) return Number(override) * z;
   const span = Math.max(1, Number(vspan) || 1);
   const h = Math.max(240, Number(height) || 700);
   const horizonDays = Math.min(4.2, Math.max(2.2, span * 0.08));
   const raw = (h * 0.5) / horizonDays;
-  return Math.max(14, Math.min(176, raw)) * (Number(zoom) || 1);
+  return Math.max(14, Math.min(176, raw)) * z;
 }
 
 /** 金额：一位小数；整数不带「.0」。 */
@@ -179,22 +179,48 @@ export function bagShare(kind, localP) {
 /** 飞泡大小。借款和刷卡从小变大；并入的末段收回。两端是 0。 */
 export function flyScale(kind, localP) {
   if (!(localP > 0) || localP >= 1) return 0;
-  let s = 1;
-  if (kind === 'borrow' || kind === 'charge') s = smooth(Math.min(1, localP / 0.3));
-  if (localP > 0.78) s *= 1 - smooth((localP - 0.78) / 0.22);
-  return s;
+  return (kind === 'borrow' || kind === 'charge') ? smooth(Math.min(1, localP / 0.3)) : 1;
+}
+
+/** 飞泡文字在并完前保持 1，最后一段按进度渐隐。倒放是同一条曲线。 */
+export function textFade(localP, span) {
+  const w = Math.max(0, Number(span) || 0);
+  if (!(localP < 1)) return 0;
+  return (!(w > 0) || localP <= 1 - w) ? 1 : (1 - localP) / w;
 }
 
 /**
  * 半径跟金额的平方根走，不夹上下限。
  * 1 元是一个小点，10 万比它大两个数量级，整屏靠缩放去装。
  */
+const TIERS = [1, 10, 100, 1000, 5000, 10000, 100000];
+
+/** 金额在各档倍率之间按对数插值。不传倍率时每一档都是 1。 */
+export function tierMult(amount, mults) {
+  const ms = mults && mults.length ? mults : [1, 1, 1, 1, 1, 1, 1];
+  const v = Math.max(0.5, Math.abs(Number(amount) || 0));
+  const x = Math.log10(v);
+  const xs = TIERS.map((t) => Math.log10(t));
+  if (x <= xs[0]) return ms[0];
+  const last = xs.length - 1;
+  if (x >= xs[last]) return ms[Math.min(last, ms.length - 1)];
+  for (let i = 1; i < xs.length; i += 1) {
+    if (x <= xs[i]) {
+      const t = (x - xs[i - 1]) / (xs[i] - xs[i - 1]);
+      const a = ms[i - 1] == null ? 1 : ms[i - 1];
+      return a + ((ms[i] == null ? 1 : ms[i]) - a) * t;
+    }
+  }
+  return 1;
+}
+
 export function bubbleRadius(amount, opt) {
   const v = Math.abs(Number(amount) || 0);
   if (v < 0.5) return 2;
   const exp = (opt && opt.exp) || 0.5;
   const k = (opt && opt.k) || 2.6;
-  return k * Math.pow(v, exp);
+  const m = tierMult(v, opt && opt.mults);
+  return k * Math.pow(v, exp) * m;
 }
 
 /** 这笔钱在四列之间怎么走。 */
@@ -256,13 +282,15 @@ export function flowFractions(kind, p) {
 }
 
 /** 滚动所对应的存量。规则与每日余额相同，只是每笔按进度比例计入。 */
-export function shownBalance(events, accountId, debit, scrollDay, ppd, height) {
+export function shownBalance(events, accountId, debit, scrollDay, ppd, height, zone, dayGap, windowPx) {
   let run = 0;
+  const gap = Number(dayGap) || 0;
   for (const e of events) {
     if (e.toId !== accountId && e.fromId !== accountId) continue;
     const coord = e.vday == null ? e.day : e.vday;
-    const dayP = eventProgress(coord, scrollDay, ppd, height);
-    const p = e.edge ? flyLocal(dayP, e.queue || 0, e.queueN || 1) : dayP;
+    const shifted = coord + (e.edge && gap ? (e.queue || 0) * gap : 0);
+    const dayP = eventProgress(shifted, scrollDay, ppd, height, zone, windowPx);
+    const p = e.edge && !gap ? flyLocal(dayP, e.queue || 0, e.queueN || 1) : dayP;
     const fr = flowFractions(e.kind, p);
     if (e.toId === accountId && fr.dst) run += debit ? e.amount * fr.dst : -e.amount * fr.dst;
     if (e.fromId === accountId && fr.src) run += debit ? -e.amount * fr.src : e.amount * fr.src;

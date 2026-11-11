@@ -61,24 +61,28 @@ const THEME_COLORS = {
     按钮区文字颜色: '#1b1430', 按钮区背景颜色: '#f8f7fd', 按钮区行背景色: '#ffffff',
     默认文字颜色: '#1b1430', 默认背景颜色: '#ffffff', 整行背景色: '#ffffff', 横向边框颜色: '#e6e2f5', 纵向边框颜色: '#e6e2f5',
     信息栏文字颜色: '#5f5878', 信息栏背景颜色: '#f8f7fd',
+    脉络线颜色: '#2a2428',
   },
   dark: {
     标签栏文字颜色: '#b9b2d0', 标签栏背景颜色: '#0e0b16', 标签栏行背景色: '#0e0b16', 标签栏边框颜色: '#2a2438',
     按钮区文字颜色: '#f2eeff', 按钮区背景颜色: '#0e0b16', 按钮区行背景色: '#000000',
     默认文字颜色: '#f2eeff', 默认背景颜色: '#000000', 整行背景色: '#000000', 横向边框颜色: '#2a2438', 纵向边框颜色: '#2a2438',
     信息栏文字颜色: '#b9b2d0', 信息栏背景颜色: '#0e0b16',
+    脉络线颜色: '#f4eef2',
   },
   alt1: {
     标签栏文字颜色: '#6b5f48', 标签栏背景颜色: '#f3ece0', 标签栏行背景色: '#f3ece0', 标签栏边框颜色: '#e5dcc9',
     按钮区文字颜色: '#2a2418', 按钮区背景颜色: '#f3ece0', 按钮区行背景色: '#fffdf8',
     默认文字颜色: '#2a2418', 默认背景颜色: '#fffdf8', 整行背景色: '#fffdf8', 横向边框颜色: '#e5dcc9', 纵向边框颜色: '#e5dcc9',
     信息栏文字颜色: '#6b5f48', 信息栏背景颜色: '#f3ece0',
+    脉络线颜色: '#3a3228',
   },
   alt2: {
     标签栏文字颜色: '#9ec4ae', 标签栏背景颜色: '#0f1f18', 标签栏行背景色: '#0f1f18', 标签栏边框颜色: '#1e3328',
     按钮区文字颜色: '#e0f2e8', 按钮区背景颜色: '#0f1f18', 按钮区行背景色: '#0a1410',
     默认文字颜色: '#e0f2e8', 默认背景颜色: '#0a1410', 整行背景色: '#0a1410', 横向边框颜色: '#1e3328', 纵向边框颜色: '#1e3328',
     信息栏文字颜色: '#9ec4ae', 信息栏背景颜色: '#0f1f18',
+    脉络线颜色: '#e7f6ee',
   },
 };
 
@@ -287,7 +291,8 @@ export function toCssList(settings, theme) {
       else if (v === '不显示') val = 'plain';
       else if (v === '显示') val = 'solid';
       else val = 'solid';
-      out.push({ group: item.group, attr: item.attr, value: val });
+      if (item.cssVar) out.push({ group: item.group, cssVar: item.cssVar, value: val });
+      else out.push({ group: item.group, attr: item.attr, value: val });
     } else {
       out.push({ group: item.group, cssVar: item.cssVar, value: item.unit === 'px' ? v + 'px' : v });
     }

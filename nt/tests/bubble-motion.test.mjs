@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {
   eventProgress, elastic, bubbleRadius, classifyFlow, flowFractions,
   shownBalance, gooAngles, packCluster, packEdge, yOfDay,
-  pixelsPerDay, formatAmount, tangentBridge, juiceAt,
+  pixelsPerDay, formatAmount, tangentBridge, juiceAt, textFade,
 } from '../js/core/bubble-motion.js';
 import { assembleScene, arcPoint } from '../js/core/bubble-scene.js';
 import { layoutCallouts } from '../js/core/bubble-callout.js';
@@ -21,9 +21,19 @@ test('进度：下沿是 0，上沿是 1，正中是 0.5', () => {
     const scroll = day - (y - H / 2) / PPD;
     return eventProgress(day, scroll, PPD, H);
   };
-  assert.ok(Math.abs(at(H * 0.75) - 0) < 1e-9);
-  assert.ok(Math.abs(at(H * 0.25) - 1) < 1e-9);
+  assert.ok(Math.abs(at(H * 0.9) - 0) < 1e-9);
+  assert.ok(Math.abs(at(H * 0.1) - 1) < 1e-9);
   assert.ok(Math.abs(at(H * 0.5) - 0.5) < 1e-9);
+  const wide = eventProgress(day, day - (H * 0.5 - H / 2) / PPD, PPD, H, 0.8, 1600);
+  assert.ok(Math.abs(wide - 0.2) < 1e-9);
+});
+
+test('并入末段文字才渐隐，倒放回到同一透明度', () => {
+  assert.equal(textFade(0.4, 0.18), 1);
+  assert.equal(textFade(1, 0.18), 0);
+  const mid = textFade(0.91, 0.18);
+  assert.ok(mid > 0.4 && mid < 0.7, mid);
+  assert.equal(mid, textFade(0.91, 0.18));
 });
 
 test('上拖（scrollDay 变大）进度增加，下拖则倒回', () => {

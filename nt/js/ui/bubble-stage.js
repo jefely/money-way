@@ -4,8 +4,9 @@
  * 层：第五层 · UI
  */
 
-import { bridgeOutline, formatAmount } from '../core/bubble-motion.js';
+import { formatAmount } from '../core/bubble-motion.js';
 import { assembleScene, cameraFit } from '../core/bubble-scene.js';
+import { grainCanvas, readLvParams } from './lv-params.js';
 import { calendarDayAt } from '../core/lifevein-model.js';
 
 const LANE = ['#2fbfa8', '#3a9e88', '#e25d86', '#4d86e0', '#e15b4a', '#d4893c'];
@@ -30,13 +31,6 @@ function rgb(hex) {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-function lift(hex, amt) {
-  return rgb(hex).map((c) => {
-    const n = amt > 0 ? c + (255 - c) * amt : c * (1 + amt);
-    return Math.max(0, Math.min(255, Math.round(n)));
-  });
-}
-
 function lum(bg) {
   const m = String(bg || '').match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
   let r = 0;
@@ -50,80 +44,130 @@ function lum(bg) {
   return (0.2126 * r + 0.7152 * gv + 0.0722 * b) / 255;
 }
 
-/** 一块平的底。深色略偏暖，浅色跟主题，没有管壁。 */
-function paintVessel(g, w, h, light) {
-  g.fillStyle = light ? '#f6f3f4' : '#141018';
-  g.fillRect(0, 0, w, h);
+const FIELD = {
+  pastel: { a: '#7ed4c8', b: '#c5c2ee', c: '#b7c6f0', text: '#ffffff', stroke: '#f7f4ff' },
+  light: { a: '#fff6ec', b: '#f3e4d2', c: '#e6d5c2', text: '#2a221c', stroke: '#3a322c' },
+  darkfield: { a: '#322c40', b: '#14121c', c: '#07060c', text: '#f7f2f5', stroke: '#f4eef2' },
+  dusk: { a: '#f0b48c', b: '#c46d98', c: '#5a4e86', text: '#fff8f3', stroke: '#fff1e8' },
+  mint: { a: '#e7f6ef', b: '#c5e8d8', c: '#c5d6ee', text: '#1b2a24', stroke: '#24362e' },
+};
+
+const THEME_STROKE = { '#f4eef2': 1, '#f7f4ff': 1, '#2a2428': 1, '#3a3228': 1, '#e7f6ee': 1 };
+
+function paintField(g, dw, dh, dpr, p, light) {
+  const id = p.preset || 'pastel';
+  const preset = FIELD[id];
+  g.globalAlpha = 1;
+  g.fillStyle = light ? '#f4f1ee' : '#100e14';
+  g.fillRect(0, 0, dw, dh);
+  const strength = p.bg == null ? 0.75 : p.bg;
+  if (preset && strength > 0.01) {
+    const grd = g.createLinearGradient(0, 0, dw * 0.15, dh);
+    grd.addColorStop(0, preset.a);
+    grd.addColorStop(0.48, preset.b);
+    grd.addColorStop(1, preset.c);
+    g.globalAlpha = strength;
+    g.fillStyle = grd;
+    g.fillRect(0, 0, dw, dh);
+    g.globalAlpha = 1;
+  }
+  if ((p.grain || 0) > 0.004 && typeof document !== 'undefined') {
+    const pat = g.createPattern(grainCanvas(dpr, p), 'repeat');
+    if (pat) {
+      g.globalAlpha = p.grain;
+      g.fillStyle = pat;
+      g.fillRect(0, 0, dw, dh);
+      g.globalAlpha = 1;
+    }
+  }
 }
 
-/** 正圆细胞：半透明身体、亮核、窄光晕、一圈细膜。线宽按屏幕像素，放大仍清晰。 */
-function orb(g, x, y, r, hex, stroke, cam) {
-  const [R, G, B] = rgb(hex);
-  const halo = g.createRadialGradient(x, y, r * 0.55, x, y, r * 1.28);
-  halo.addColorStop(0, 'rgba(' + R + ',' + G + ',' + B + ',0.22)');
-  halo.addColorStop(1, 'rgba(' + R + ',' + G + ',' + B + ',0)');
+function lookOf(p, light) {
+  const preset = FIELD[p.preset || 'pastel'] || FIELD.pastel;
+  const custom = p.stroke && !THEME_STROKE[String(p.stroke).toLowerCase()];
+  const strokeHex = custom ? p.stroke : (p.preset === 'plain' ? (light ? '#2a2428' : '#f4eef2') : preset.stroke);
+  const text = p.preset === 'plain' ? (light ? '#241820' : '#f6f1f3') : preset.text;
+  return { strokeHex, text };
+}
+
+function rgba(hex, a) {
+  const [r, gv, b] = rgb(hex);
+  return 'rgba(' + r + ',' + gv + ',' + b + ',' + a + ')';
+}
+
+/** 透明圆。细描边，中心一小块偏暗的色晕，没有亮点。 */
+function orb(g, x, y, r, hex, p, cam) {
+  if (p.fillA > 0.01) {
+    g.beginPath();
+    g.arc(x, y, r, 0, Math.PI * 2);
+    g.fillStyle = rgba(hex, p.fillA);
+    g.fill();
+  }
+  const rad = Math.max(0.8, r * (p.coreR || 0.32));
+  const ink = p.coreInk == null ? 0.75 : p.coreInk;
+  const [R, G, B] = rgb(hex).map((c) => Math.max(0, Math.min(255, Math.round(c * ink))));
+  const soft = Math.min(0.92, Math.max(0.08, p.coreSoft == null ? 0.55 : p.coreSoft));
+  const a0 = p.coreA == null ? 0.42 : p.coreA;
+  const grd = g.createRadialGradient(x, y, 0, x, y, rad);
+  grd.addColorStop(0, 'rgba(' + R + ',' + G + ',' + B + ',' + a0 + ')');
+  grd.addColorStop(soft, 'rgba(' + R + ',' + G + ',' + B + ',' + (a0 * 0.28) + ')');
+  grd.addColorStop(1, 'rgba(' + R + ',' + G + ',' + B + ',0)');
   g.beginPath();
-  g.arc(x, y, r * 1.28, 0, Math.PI * 2);
-  g.fillStyle = halo;
+  g.arc(x, y, rad, 0, Math.PI * 2);
+  g.fillStyle = grd;
   g.fill();
-  const hot = lift(hex, 0.78);
-  const body = g.createRadialGradient(x, y, r * 0.02, x, y, r);
-  body.addColorStop(0, 'rgba(' + hot[0] + ',' + hot[1] + ',' + hot[2] + ',0.95)');
-  body.addColorStop(0.18, 'rgba(' + R + ',' + G + ',' + B + ',0.78)');
-  body.addColorStop(0.7, 'rgba(' + R + ',' + G + ',' + B + ',0.5)');
-  body.addColorStop(1, 'rgba(' + R + ',' + G + ',' + B + ',0.34)');
   g.beginPath();
   g.arc(x, y, r, 0, Math.PI * 2);
-  g.fillStyle = body;
-  g.fill();
-  g.lineWidth = Math.min(r * 0.12, 1.15 / (cam || 1));
-  g.strokeStyle = stroke;
+  g.lineWidth = Math.min(r * 0.09, (p.strokeW || 1.3) / (cam || 1));
+  g.strokeStyle = rgba(p.strokeHex, p.strokeA == null ? 0.9 : p.strokeA);
   g.stroke();
 }
 
-function paintUnion(g, a, b, ca, cb, stroke, cam) {
-  const outline = bridgeOutline(a, b);
-  if (!outline) return false;
-  const [R, G, B] = rgb(ca);
-  const halo = g.createRadialGradient(a.x, a.y, a.r * 0.2, a.x, a.y, Math.max(a.r, b.r) * 1.6);
-  halo.addColorStop(0, 'rgba(' + R + ',' + G + ',' + B + ',0.22)');
-  halo.addColorStop(1, 'rgba(' + R + ',' + G + ',' + B + ',0)');
+function paintNeck(g, a, b, p, cam) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const dist = Math.hypot(dx, dy);
+  if (!(dist > 1) || dist > a.r + b.r + 16) return;
+  const ang = Math.atan2(dy, dx);
+  const spread = 0.45;
+  const rim = (c, t) => [c.x + Math.cos(t) * c.r, c.y + Math.sin(t) * c.r];
+  const a1 = rim(a, ang + spread);
+  const a2 = rim(a, ang - spread);
+  const b1 = rim(b, ang + Math.PI - spread);
+  const b2 = rim(b, ang + Math.PI + spread);
+  const mx = (a.x + b.x) / 2;
+  const my = (a.y + b.y) / 2;
   g.beginPath();
-  g.arc(a.x, a.y, a.r * 1.55, 0, Math.PI * 2);
-  g.arc(b.x, b.y, b.r * 1.55, 0, Math.PI * 2);
-  g.fillStyle = halo;
-  g.fill();
-  g.beginPath();
-  for (const arc of outline) g.arc(arc.x, arc.y, arc.r, arc.a0, arc.a1, arc.ccw);
-  g.closePath();
-  const grad = g.createLinearGradient(a.x, a.y, b.x, b.y);
-  const ha = lift(ca, 0.55);
-  const hb = lift(cb, 0.55);
-  grad.addColorStop(0, 'rgba(' + ha[0] + ',' + ha[1] + ',' + ha[2] + ',0.78)');
-  grad.addColorStop(1, 'rgba(' + hb[0] + ',' + hb[1] + ',' + hb[2] + ',0.78)');
-  g.fillStyle = grad;
-  g.fill();
-  g.lineWidth = Math.min(Math.min(a.r, b.r) * 0.12, 1.15 / (cam || 1));
-  g.strokeStyle = stroke;
+  g.moveTo(a1[0], a1[1]);
+  g.quadraticCurveTo(mx, my, b1[0], b1[1]);
+  g.moveTo(a2[0], a2[1]);
+  g.quadraticCurveTo(mx, my, b2[0], b2[1]);
+  g.lineWidth = Math.min(a.r, b.r, (p.strokeW || 1.3) / (cam || 1)) * 0.7;
+  g.strokeStyle = rgba(p.strokeHex, (p.strokeA == null ? 0.9 : p.strokeA) * 0.85);
   g.stroke();
-  return true;
 }
 
-function paintLabel(g, b, cam, fill) {
+function paintLabel(g, b, cam, fill, p) {
   if (!b || b.label === false) return;
-  const screen = b.r * (cam || 1);
-  if (screen < 15) return;
   const name = b.name || '';
   const amt = b.amount != null ? formatAmount(b.amount) : (b.v != null ? formatAmount(b.v) : '');
   if (!name && !amt) return;
-  let namePx = Math.min(14, b.r * 0.36);
-  const maxW = b.r * 1.5;
+  const k = p.fontK == null ? 0.32 : p.fontK;
+  const minPx = p.fontMin == null ? 8 : p.fontMin;
+  const maxPx = p.fontMax == null ? 18 : p.fontMax;
+  let screenPx = b.r * (cam || 1) * k;
+  if (screenPx < minPx) return;
+  screenPx = Math.min(maxPx, screenPx);
+  let namePx = screenPx / (cam || 1);
+  const maxW = b.r * 1.55;
   g.font = '500 ' + namePx + 'px sans-serif';
-  while (namePx > 6 && g.measureText(name).width > maxW) {
+  while (namePx > minPx / (cam || 1) && g.measureText(name).width > maxW) {
     namePx -= 0.5;
     g.font = '500 ' + namePx + 'px sans-serif';
   }
-  if (namePx * (cam || 1) < 7) return;
+  const fade = b.fade == null ? 1 : b.fade;
+  if (fade <= 0.01) return;
+  if (namePx * (cam || 1) < minPx) return;
   let shown = name;
   while (shown.length > 1 && g.measureText(shown).width > maxW) shown = shown.slice(0, -1);
   if (shown !== name && shown.length > 1) shown = shown.slice(0, -1) + '…';
@@ -132,22 +176,17 @@ function paintLabel(g, b, cam, fill) {
   g.textBaseline = 'middle';
   g.fillStyle = fill;
   g.font = '500 ' + namePx + 'px sans-serif';
+  g.globalAlpha = (p.nameA == null ? 1 : p.nameA) * fade;
   if (shown) g.fillText(shown, b.x, b.y - namePx * 0.52);
   g.font = '500 ' + amtPx + 'px sans-serif';
+  g.globalAlpha = (p.amtA == null ? 1 : p.amtA) * fade;
   if (amt) g.fillText(amt, b.x, b.y + amtPx * 0.62);
+  g.globalAlpha = 1;
 }
 
 function partner(fly, which) {
   if (which === 'src') return { x: fly.sx, y: fly.sy, r: fly.sr, id: fly.srcId, lane: fly.srcLane };
   return { x: fly.dx, y: fly.dy, r: fly.dr, id: fly.dstId, lane: fly.dstLane };
-}
-
-function screenOf(x, y, view) {
-  const cam = view.cam || { s: 1, x: 0, y: 0 };
-  return {
-    x: (x - view.width / 2) * cam.s + view.width / 2 + (cam.x || 0),
-    y: (y - view.height / 2) * cam.s + view.height / 2 + (cam.y || 0),
-  };
 }
 
 /** 画一整帧。view = { scrollDay, ppd, width, height, cam } */
@@ -157,10 +196,28 @@ export function drawBubbleStage(g, model, view) {
   const ink = inkOf();
   const light = lum(ink.bg) > 0.6;
   const cam = view.cam || { s: 1, x: 0, y: 0 };
-  const stroke = light ? 'rgba(28,16,24,0.72)' : 'rgba(255,244,246,0.82)';
-  const labelInk = light ? '#241820' : '#f6f1f3';
-  g.clearRect(0, 0, w, h);
-  paintVessel(g, w, h, light);
+  const lv = view.lv || readLvParams();
+  const look = lookOf(lv, light);
+  const style = {
+    ...lv,
+    strokeHex: look.strokeHex,
+    fillA: lv.fillA,
+    coreR: lv.coreR,
+    coreA: lv.coreA,
+    coreSoft: lv.coreSoft,
+    coreInk: lv.coreInk,
+    strokeW: lv.strokeW,
+    strokeA: lv.strokeA,
+    fontK: lv.fontK,
+    fontMin: lv.fontMin,
+    fontMax: lv.fontMax,
+  };
+  const tf = g.getTransform();
+  const dpr = tf && tf.a ? tf.a : 1;
+  g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  paintField(g, w * dpr, h * dpr, dpr, lv, light);
+  g.restore();
 
   const scene = assembleScene(model, view);
   if (view.fit && !view.cam) view.cam = cameraFit(scene, w, h);
@@ -170,44 +227,15 @@ export function drawBubbleStage(g, model, view) {
   g.scale(use.s || 1, use.s || 1);
   g.translate(-w / 2, -h / 2);
   const bodies = [...scene.liab, ...scene.asset, ...scene.left, ...scene.right];
-  const hidden = new Set();
-  const unions = [];
-  const candidates = [];
+  for (const b of bodies) orb(g, b.x, b.y, b.r, colorOf(b.lane), style, use.s || 1);
+  for (const fly of scene.flies) orb(g, fly.x, fly.y, fly.r, colorOf(fly.lane), style, use.s || 1);
   for (const fly of scene.flies) {
-    let best = null;
-    let bestD = Infinity;
-    for (const which of ['src', 'dst']) {
-      const p = partner(fly, which);
-      if (!p.id || !(p.r > 3)) continue;
-      const d = Math.hypot(fly.x - p.x, fly.y - p.y);
-      if (d < bestD && bridgeOutline(fly, p)) { best = p; bestD = d; }
-    }
-    if (best) candidates.push({ fly, best, d: bestD });
+    if (!fly.neck) continue;
+    const end = partner(fly, 'dst');
+    if (end.id) paintNeck(g, fly, end, style, use.s || 1);
   }
-  candidates.sort((a, b) => a.d - b.d);
-  const taken = new Set();
-  for (const c of candidates) {
-    if (taken.has(c.fly.id) || taken.has(c.best.id)) continue;
-    unions.push([c.fly, c.best]);
-    taken.add(c.fly.id);
-    taken.add(c.best.id);
-    hidden.add(c.fly.id);
-    hidden.add(c.best.id);
-  }
-  for (const b of bodies) {
-    if (hidden.has(b.id)) continue;
-    orb(g, b.x, b.y, b.r, colorOf(b.lane), stroke, use.s || 1);
-  }
-  for (const fly of scene.flies) {
-    if (hidden.has(fly.id)) continue;
-    orb(g, fly.x, fly.y, fly.r, colorOf(fly.lane), stroke, use.s || 1);
-  }
-  for (const [fly, end] of unions) paintUnion(g, fly, end, colorOf(fly.lane), colorOf(end.lane), stroke, use.s || 1);
-  for (const b of bodies) paintLabel(g, b, use.s || 1, labelInk);
-  for (const fly of scene.flies) {
-    if (hidden.has(fly.id)) continue;
-    paintLabel(g, fly, use.s || 1, labelInk);
-  }
+  for (const b of bodies) paintLabel(g, b, use.s || 1, look.text, style);
+  for (const fly of scene.flies) paintLabel(g, fly, use.s || 1, look.text, style);
   g.restore();
 
   g.fillStyle = ink.muted;
