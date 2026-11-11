@@ -6,18 +6,9 @@
 
 import { isDebitType } from './schema.js';
 import {
-  bubbleRadius, clamp01, eventProgress, flowFractions, packCluster, packEdge,
-  shownBalance, yOfDay,
+  bagShare, bubbleRadius, clamp01, eventProgress, flyLocal, flyScale, formatAmount,
+  packCluster, packEdge, shownBalance, yOfDay,
 } from './bubble-motion.js';
-
-const INCOME = '收入类';
-const EQUITY = '权益类';
-const EXPENSE = '费用类';
-const COST = '成本类';
-
-function lerp(a, b, t) {
-  return a + (b - a) * t;
-}
 
 function clusterDisc(list) {
   if (!list.length) return null;
@@ -79,7 +70,7 @@ function separateBubbles(scene) {
   for (const b of scene.left) add(b, true);
   for (const b of scene.right) add(b, true);
   for (const b of scene.flies) add(b, false);
-  for (let n = 0; n < 8; n += 1) {
+  for (let n = 0; n < 22; n += 1) {
     for (let i = 0; i < body.length; i += 1) {
       for (let j = i + 1; j < body.length; j += 1) {
         const A = body[i];
@@ -88,7 +79,7 @@ function separateBubbles(scene) {
         const dy = B.y - A.y;
         const dist = Math.hypot(dx, dy) || 0.01;
         const stick = A.stick === B.id || B.stick === A.id;
-        const min = stick ? (A.r + B.r) * 0.86 : A.r + B.r + 5;
+        const min = stick ? (A.r + B.r) * 0.74 : A.r + B.r + 5;
         if (dist >= min) continue;
         const push = (min - dist) / 2;
         const ux = dx / dist;
@@ -101,7 +92,7 @@ function separateBubbles(scene) {
     }
   }
   for (const b of body) {
-    if (String(b.id || '').startsWith('L') && b.x - b.r < 70) b.x = b.r + 70;
+    if (String(b.id || '').startsWith('L') && b.x - b.r < 56) b.x = b.r + 56;
     b.ref.x = b.x;
     b.ref.y = b.y;
   }
@@ -115,14 +106,21 @@ export function assembleScene(model, view) {
   const height = view.height;
   const ppd = view.ppd;
   const scrollDay = view.scrollDay;
-  const radius = (v) => bubbleRadius(v, { max: Math.max(16, Math.min(48, width * 0.14)) });
+  const cap = Math.max(36, Math.min(56, width * 0.16));
+  const fitR = (v, name, labeled) => {
+    const floor = labeled ? 22 : 8;
+    const base = bubbleRadius(Math.max(0.5, Math.abs(v) || 0), { min: floor, max: cap, knee: 900 });
+    if (!labeled) return base;
+    const glyphs = Math.max(String(name || '').length, String(formatAmount(v)).length * 0.62);
+    return Math.max(base, Math.min(glyphs * 11 / 1.45, width * 0.22));
+  };
   const byId = new Map((model.accounts || []).map((a) => [a.id, a]));
   const stocks = [];
   for (const a of model.accounts || []) {
     if (!a.stock) continue;
     const v = shownBalance(model.events, a.id, isDebitType(a.type), scrollDay, ppd, height);
     if (Math.abs(v) < 0.5) continue;
-    stocks.push({ id: a.id, name: a.name, r: radius(v), v, lane: a.lane, kind: a.lane === 2 ? 'liab' : 'asset' });
+    stocks.push({ id: a.id, name: a.name, r: fitR(v, a.name, true), v, lane: a.lane, kind: a.lane === 2 ? 'liab' : 'asset' });
   }
   const limit = { top: height * 0.25, bottom: height * 0.75 };
   const liab = packCluster(stocks.filter((s) => s.kind === 'liab'), width * 0.30, height * 0.5, limit);
@@ -136,74 +134,123 @@ export function assembleScene(model, view) {
     if (hit) return hit;
     const acc = byId.get(id);
     const x = acc && acc.lane === 2 ? width * 0.30 : width * 0.68;
-    return { x, y: height * 0.5, r: 10 };
+    return { x, y: height * 0.5, r: 10, id: '', lane: acc ? acc.lane : 3 };
   };
 
+  const bags = new Map();
+  for (const e of model.events || []) {
+    if (e.edge !== 'L' && e.edge !== 'R') continue;
+    const coord = e.vday == null ? e.day : e.vday;
+    const dayP = eventProgress(coord, scrollDay, ppd, height);
+    const local = flyLocal(dayP, e.queue || 0, e.queueN || 1);
+    if (!(local > 0)) continue;
+    const id = e.edge + ':' + e.day + ':' + e.cat;
+    let bag = bags.get(id);
+    if (!bag) {
+      const lane = e.edge === 'R' ? (e.toLane < 0 ? 4 : e.toLane) : (e.fromLane < 0 ? 0 : e.fromLane);
+      bag = { id, name: e.cat || '', edge: e.edge, y: yOfDay(coord, scrollDay, ppd, height), lane, amount: 0 };
+      bags.set(id, bag);
+    }
+    bag.amount += e.amount * bagShare(e.kind, local);
+  }
   const left = [];
   const right = [];
+  for (const bag of bags.values()) {
+    if (!(bag.amount >= 0.5)) continue;
+    const item = {
+      id: bag.id, name: bag.name, lane: bag.lane, y: bag.y,
+      amount: bag.amount, r: fitR(bag.amount, bag.name, true),
+    };
+    if (bag.edge === 'L') left.push(item);
+    else right.push(item);
+  }
+  const packedL = packEdge(left, 64, 1, width);
+  const packedR = packEdge(right, width - 10, -1, width);
+  const bagAt = new Map();
+  for (const b of packedL) bagAt.set(b.id, b);
+  for (const b of packedR) bagAt.set(b.id, b);
+
   const flies = [];
   for (const e of model.events || []) {
     const coord = e.vday == null ? e.day : e.vday;
-    const p = eventProgress(coord, scrollDay, ppd, height);
-    if (!(p > 0)) continue;
+    const dayP = eventProgress(coord, scrollDay, ppd, height);
+    const local = e.edge ? flyLocal(dayP, e.queue || 0, e.queueN || 1) : dayP;
+    const scale = flyScale(e.kind, local);
+    if (!(scale > 0.04)) continue;
     const y = yOfDay(coord, scrollDay, ppd, height);
-    const fr = flowFractions(e.kind, p);
     const from = byId.get(e.fromId);
     const to = byId.get(e.toId);
-    const name = (from && from.name) || (to && to.name) || '';
-    if (fr.marker > 0.04 && (e.fromType === INCOME || e.fromType === EQUITY)) {
-      left.push({
-        id: 'L' + e.key, name, lane: from ? from.lane : 0,
-        r: radius(e.amount * fr.marker), y, amount: e.amount,
-      });
-    }
-    if (fr.marker > 0.04 && (e.toType === EXPENSE || e.toType === COST)) {
-      right.push({
-        id: 'R' + e.key, name: to ? to.name : name, lane: to ? to.lane : 4,
-        r: radius(e.amount * fr.marker), y, amount: e.amount,
-      });
-    }
-    if (fr.fly > 0.04) {
-      const src = e.kind === 'inflow' ? { x: 8, y, r: 8 } : spot(e.fromId);
-      const dst = (e.kind === 'spend' || e.kind === 'charge')
-        ? { x: width - 8, y, r: 8 }
-        : spot(e.toId);
-      const t = clamp01(fr.flyT);
-      const flyR = radius(e.amount * fr.fly);
-      const merge = e.kind === 'inflow' || e.kind === 'borrow' || e.kind === 'repay' || e.kind === 'transfer';
-      const curve = arcPoint(src, dst, discs, t);
-      flies.push({
-        id: 'F' + e.key,
-        x: Math.max(flyR, Math.min(width - flyR, curve.x)),
-        y: Math.max(flyR, Math.min(height - flyR, curve.y)),
-        r: flyR,
-        lane: from ? from.lane : (to ? to.lane : 0),
-        toLane: to ? to.lane : 0,
-        amount: e.amount * fr.fly,
-        name: (e.kind === 'spend' || e.kind === 'charge') ? ((to && to.name) || name) : ((from && from.name) || name),
-        sx: src.x, sy: src.y, sr: src.r,
-        dx: dst.x, dy: dst.y, dr: dst.r,
-        srcId: e.kind === 'inflow' ? '' : e.fromId,
-        dstId: (e.kind === 'spend' || e.kind === 'charge') ? '' : e.toId,
-        meet: (e.fromType === INCOME || e.fromType === EQUITY) && t < 0.5 ? ('L' + e.key) : '',
-        t,
-        stick: merge ? (t > 0.55 ? e.toId : '') : (t < 0.4 ? e.fromId : ''),
-      });
-    }
+    const name = (e.kind === 'spend' || e.kind === 'charge')
+      ? ((to && to.name) || '')
+      : ((from && from.name) || (to && to.name) || '');
+    const full = fitR(e.amount, name, true);
+    const flyR = scale > 0.92 ? full : Math.max(5, full * scale);
+    const bag = bagAt.get(e.edge + ':' + e.day + ':' + e.cat);
+    const edgePt = bag || (e.edge === 'R'
+      ? { x: width - 36, y, r: 22, id: '', lane: e.toLane }
+      : { x: 96, y, r: 22, id: '', lane: e.fromLane });
+    const toAsset = e.kind === 'spend' || e.kind === 'charge';
+    const src = e.edge === 'L' ? edgePt : spot(e.fromId);
+    const dst = toAsset ? edgePt : spot(e.toId);
+    const t = smooth(clamp01(local));
+    const curve = arcPoint(src, dst, discs, t);
+    const lane = toAsset ? (to ? to.lane : 4) : (from ? from.lane : (to ? to.lane : 0));
+    flies.push({
+      id: 'F' + e.key,
+      x: Math.max(flyR, Math.min(width - flyR, curve.x)),
+      y: Math.max(flyR, Math.min(height - flyR, curve.y)),
+      r: flyR,
+      lane,
+      amount: e.amount,
+      name,
+      label: scale > 0.92,
+      sx: src.x, sy: src.y, sr: src.r, srcId: src.id || '', srcLane: src.lane,
+      dx: dst.x, dy: dst.y, dr: dst.r, dstId: dst.id || '', dstLane: dst.lane,
+      t,
+      meet: t > 0.45 && t <= 0.82 ? (dst.id || '') : '',
+      stick: t > 0.82 ? (dst.id || '') : (t < 0.32 ? (src.id || '') : ''),
+    });
   }
-  const scene = {
-    liab, asset,
-    left: packEdge(left, 72, 1, width),
-    right: packEdge(right, width - 6, -1, width),
-    flies,
-  };
+  const claimed = new Map();
+  for (const f of flies) {
+    if (!f.stick) continue;
+    const prev = claimed.get(f.stick);
+    if (!prev || f.t > prev.t) claimed.set(f.stick, f);
+  }
+  for (const f of flies) {
+    if (f.stick && claimed.get(f.stick) !== f) f.stick = '';
+  }
+  const scene = { liab, asset, left: packedL, right: packedR, flies };
+  dropOffstage(scene, height);
+  separateBubbles(scene);
+  clampOnScreen(scene, width, height);
+  separateBubbles(scene);
+  clampOnScreen(scene, width, height);
   for (const b of [...scene.liab, ...scene.asset, ...scene.left, ...scene.right]) {
     b.ax = b.x;
     b.ay = b.y;
   }
   leanToMeet(scene);
-  separateBubbles(scene);
+  pinEnds(scene);
   return scene;
+}
+
+function dropOffstage(scene, height) {
+  const vis = (b) => b.y > 64 && b.y < height - 18;
+  scene.liab = scene.liab.filter(vis);
+  scene.asset = scene.asset.filter(vis);
+  scene.left = scene.left.filter(vis);
+  scene.right = scene.right.filter(vis);
+  scene.flies = scene.flies.filter((b) => b.y > 40 && b.y < height - 12);
+}
+
+function clampOnScreen(scene, width) {
+  const all = [...scene.liab, ...scene.asset, ...scene.left, ...scene.right, ...scene.flies];
+  for (const b of all) {
+    if (b.y - b.r < 46 && b.x + b.r > width - 122) b.x = Math.min(b.x, width - 122 - b.r);
+    const left = String(b.id || '').startsWith('L') ? b.r + 56 : b.r + 2;
+    b.x = Math.max(left, Math.min(width - b.r - 2, b.x));
+  }
 }
 
 /**
@@ -234,12 +281,16 @@ function leanToMeet(scene) {
     s.x = s.ax + ox / n;
     s.y = s.ay + oy / n;
   }
+  pinEnds(scene);
+}
+
+function pinEnds(scene) {
   const at = new Map();
-  for (const s of [...scene.liab, ...scene.asset]) at.set(s.id, s);
+  for (const s of [...scene.liab, ...scene.asset, ...scene.left, ...scene.right]) at.set(s.id, s);
   for (const f of scene.flies) {
     const src = at.get(f.srcId);
     const dst = at.get(f.dstId);
-    if (src) { f.sx = src.x; f.sy = src.y; f.sr = src.r; }
-    if (dst) { f.dx = dst.x; f.dy = dst.y; f.dr = dst.r; }
+    if (src) { f.sx = src.x; f.sy = src.y; f.sr = src.r; f.srcLane = src.lane; }
+    if (dst) { f.dx = dst.x; f.dy = dst.y; f.dr = dst.r; f.dstLane = dst.lane; }
   }
 }

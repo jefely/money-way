@@ -73,7 +73,7 @@ export function pixelsPerDay(vspan, height, zoom) {
   const h = Math.max(240, Number(height) || 700);
   const horizonDays = Math.min(4.2, Math.max(2.2, span * 0.08));
   const raw = (h * 0.5) / horizonDays;
-  return Math.max(14, Math.min(120, raw)) * (Number(zoom) || 1);
+  return Math.max(14, Math.min(176, raw)) * (Number(zoom) || 1);
 }
 
 /** 金额：一位小数；整数不带「.0」。 */
@@ -116,6 +116,73 @@ export function tangentBridge(a, b) {
     closeness,
     arcs: centers.map((c) => ({ x: c.x, y: c.y, r: rho, a0: touch(c, a), a1: touch(c, b) })),
   };
+}
+
+function turn(d) {
+  let x = d % (Math.PI * 2);
+  if (x < 0) x += Math.PI * 2;
+  return x;
+}
+
+/** 外圆弧要绕开对方，所以取背对另一颗圆心的那一侧。 */
+function outerCCW(cx, cy, from, to, other) {
+  const mid = from + turn(to - from) / 2;
+  const face = Math.cos(mid) * (other.x - cx) + Math.sin(mid) * (other.y - cy) > 0;
+  return face;
+}
+
+/**
+ * 两圆的融合轮廓：各自的外圆弧，加上两侧与两圆相切的凹弧。
+ * 拉开到阈值就没有这条轮廓。
+ */
+export function bridgeOutline(a, b) {
+  const bridge = tangentBridge(a, b);
+  if (!bridge) return null;
+  const [c1, c2] = bridge.arcs;
+  const ang = (from, to) => Math.atan2(to.y - from.y, to.x - from.x);
+  const a1 = ang(a, c1);
+  const a2 = ang(a, c2);
+  const b1 = ang(b, c1);
+  const b2 = ang(b, c2);
+  const fillet = (c, from, to) => ({
+    x: c.x, y: c.y, r: c.r, a0: from, a1: to, ccw: turn(to - from) > Math.PI,
+  });
+  return [
+    { x: a.x, y: a.y, r: a.r, a0: a1, a1: a2, ccw: outerCCW(a.x, a.y, a1, a2, b) },
+    fillet(c2, c2.a0, c2.a1),
+    { x: b.x, y: b.y, r: b.r, a0: b2, a1: b1, ccw: outerCCW(b.x, b.y, b2, b1, a) },
+    fillet(c1, c1.a1, c1.a0),
+  ];
+}
+
+/**
+ * 同一天里第 index 笔的飞行进度。一笔就跟日期线走；
+ * 多笔则错开，先飞的先到，后飞的还在后面，整段都落在日期线穿过视界的过程里。
+ */
+export function flyLocal(dayP, index, count) {
+  const n = Math.max(1, count || 1);
+  if (n === 1) return dayP;
+  const span = Math.min(0.55, Math.max(0.22, 1 / n));
+  const gap = (1 - span) / (n - 1);
+  return (dayP - (index || 0) * gap) / span;
+}
+
+/** 分类泡已经吃进这笔的比例。费用在飞到边上时长大，收入一出发就记上。 */
+export function bagShare(kind, localP) {
+  if (!(localP > 0)) return 0;
+  if (localP >= 1) return 1;
+  if (kind === 'inflow') return smooth(Math.min(1, localP / 0.28));
+  if (kind === 'spend' || kind === 'charge') return smooth(Math.max(0, (localP - 0.42) / 0.58));
+  return 0;
+}
+
+/** 飞泡大小。借款和刷卡从小变大；并入的末段收回。两端是 0。 */
+export function flyScale(kind, localP) {
+  if (!(localP > 0) || localP >= 1) return 0;
+  let s = 1;
+  if (kind === 'borrow' || kind === 'charge') s = smooth(Math.min(1, localP / 0.3));
+  if (localP > 0.78) s *= 1 - smooth((localP - 0.78) / 0.22);
+  return s;
 }
 
 /** 半径：金额的平方根，膝部之后不再线性涨，并夹在上下限里。面积大致跟金额走。 */
@@ -194,7 +261,9 @@ export function shownBalance(events, accountId, debit, scrollDay, ppd, height) {
   for (const e of events) {
     if (e.toId !== accountId && e.fromId !== accountId) continue;
     const coord = e.vday == null ? e.day : e.vday;
-    const fr = flowFractions(e.kind, eventProgress(coord, scrollDay, ppd, height));
+    const dayP = eventProgress(coord, scrollDay, ppd, height);
+    const p = e.edge ? flyLocal(dayP, e.queue || 0, e.queueN || 1) : dayP;
+    const fr = flowFractions(e.kind, p);
     if (e.toId === accountId && fr.dst) run += debit ? e.amount * fr.dst : -e.amount * fr.dst;
     if (e.fromId === accountId && fr.src) run += debit ? -e.amount * fr.src : e.amount * fr.src;
   }

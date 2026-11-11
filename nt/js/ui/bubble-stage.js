@@ -4,12 +4,12 @@
  * 层：第五层 · UI
  */
 
-import { tangentBridge, formatAmount, juiceAt } from '../core/bubble-motion.js';
+import { bridgeOutline, formatAmount } from '../core/bubble-motion.js';
 import { assembleScene } from '../core/bubble-scene.js';
-import { layoutCallouts } from '../core/bubble-callout.js';
 import { calendarDayAt } from '../core/lifevein-model.js';
 
-const LANE = ['#12b76a', '#0e8a57', '#ef4444', '#3b6cff', '#f97316', '#d4a017'];
+const LANE = ['#2d6b58', '#3c7562', '#7a4248', '#34527f', '#7a5636', '#655245'];
+const INK = '#f4f0e8';
 
 function colorOf(lane) {
   return LANE[lane] || '#8b84a8';
@@ -31,157 +31,93 @@ function rgb(hex) {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-function orb(g, x, y, r, hex, reduced) {
+function lift(hex, amt) {
+  return rgb(hex).map((c) => {
+    const n = amt > 0 ? c + (255 - c) * amt : c * (1 + amt);
+    return Math.max(0, Math.min(255, Math.round(n)));
+  });
+}
+
+function css(rgb3) {
+  return 'rgb(' + rgb3[0] + ',' + rgb3[1] + ',' + rgb3[2] + ')';
+}
+
+/** 正圆。中心略亮、边缘略暗，外圈只留很窄的一层光。没有高光点。 */
+function orb(g, x, y, r, hex) {
   const [R, G, B] = rgb(hex);
-  const halo = g.createRadialGradient(x, y, r * 0.2, x, y, r * 1.7);
-  halo.addColorStop(0, 'rgba(' + R + ',' + G + ',' + B + ',0.28)');
+  const halo = g.createRadialGradient(x, y, r * 0.9, x, y, r * 1.12);
+  halo.addColorStop(0, 'rgba(' + R + ',' + G + ',' + B + ',0.16)');
   halo.addColorStop(1, 'rgba(' + R + ',' + G + ',' + B + ',0)');
   g.beginPath();
-  g.arc(x, y, r * 1.7, 0, Math.PI * 2);
+  g.arc(x, y, r * 1.12, 0, Math.PI * 2);
   g.fillStyle = halo;
   g.fill();
-  if (!reduced) {
-    g.save();
-    g.globalCompositeOperation = 'lighter';
-    g.fillStyle = halo;
-    g.beginPath();
-    g.arc(x, y, r * 1.7, 0, Math.PI * 2);
-    g.fill();
-    g.restore();
-  }
-  const core = g.createRadialGradient(x - r * 0.22, y - r * 0.28, r * 0.04, x, y, r);
-  core.addColorStop(0, 'rgba(255,255,255,0.96)');
-  core.addColorStop(0.16, 'rgba(' + R + ',' + G + ',' + B + ',0.92)');
-  core.addColorStop(0.55, 'rgba(' + R + ',' + G + ',' + B + ',0.62)');
-  core.addColorStop(1, 'rgba(' + R + ',' + G + ',' + B + ',0.08)');
+  const body = g.createRadialGradient(x, y, r * 0.15, x, y, r);
+  body.addColorStop(0, css(lift(hex, 0.12)));
+  body.addColorStop(0.7, hex);
+  body.addColorStop(1, css(lift(hex, -0.2)));
   g.beginPath();
   g.arc(x, y, r, 0, Math.PI * 2);
-  g.fillStyle = core;
-  g.fill();
-  const rim = g.createRadialGradient(x, y, r * 0.68, x, y, r);
-  rim.addColorStop(0, 'rgba(255,255,255,0)');
-  rim.addColorStop(1, 'rgba(255,255,255,0.55)');
-  g.beginPath();
-  g.arc(x, y, r, 0, Math.PI * 2);
-  g.fillStyle = rim;
+  g.fillStyle = body;
   g.fill();
 }
 
-function neck(g, fly) {
-  const pairs = [
-    [{ x: fly.x, y: fly.y, r: fly.r }, { x: fly.sx, y: fly.sy, r: fly.sr }, colorOf(fly.lane), colorOf(fly.lane)],
-    [{ x: fly.x, y: fly.y, r: fly.r }, { x: fly.dx, y: fly.dy, r: fly.dr }, colorOf(fly.lane), colorOf(fly.toLane)],
-  ];
-  for (const [a, b, ca, cb] of pairs) {
-    if (!(b.r > 6) || !(a.r > 4)) continue;
-    const bridge = tangentBridge(a, b);
-    if (!bridge) continue;
-    const ang = Math.atan2(b.y - a.y, b.x - a.x);
-    const spread = 0.42 + 0.5 * bridge.closeness;
-    const rim = (c, t) => [c.x + Math.cos(t) * c.r, c.y + Math.sin(t) * c.r];
-    const aR = rim(a, ang + spread);
-    const aL = rim(a, ang - spread);
-    const bL = rim(b, ang + Math.PI + spread);
-    const bR = rim(b, ang + Math.PI - spread);
-    const mx = (a.x + b.x) / 2;
-    const my = (a.y + b.y) / 2;
-    const grad = g.createLinearGradient(a.x, a.y, b.x, b.y);
-    grad.addColorStop(0, ca);
-    grad.addColorStop(0.5, 'rgba(255,255,255,0.95)');
-    grad.addColorStop(1, cb);
-    g.save();
-    g.globalCompositeOperation = 'lighter';
-    g.beginPath();
-    g.moveTo(aR[0], aR[1]);
-    g.quadraticCurveTo(mx, my, bL[0], bL[1]);
-    g.lineTo(bR[0], bR[1]);
-    g.quadraticCurveTo(mx, my, aL[0], aL[1]);
-    g.closePath();
-    g.fillStyle = grad;
-    g.globalAlpha = 0.72 + 0.25 * bridge.closeness;
-    g.fill();
-    g.beginPath();
-    g.moveTo((aL[0] + aR[0]) / 2, (aL[1] + aR[1]) / 2);
-    g.quadraticCurveTo(mx, my, (bL[0] + bR[0]) / 2, (bL[1] + bR[1]) / 2);
-    g.strokeStyle = 'rgba(255,255,255,0.9)';
-    g.lineWidth = 2.5 + 4 * bridge.closeness;
-    g.globalAlpha = 0.95;
-    g.stroke();
-    g.restore();
-  }
+function paintUnion(g, a, b, ca, cb) {
+  const outline = bridgeOutline(a, b);
+  if (!outline) return false;
+  const [R, G, B] = rgb(ca);
+  const halo = g.createRadialGradient(a.x, a.y, a.r * 0.9, a.x, a.y, a.r * 1.12);
+  halo.addColorStop(0, 'rgba(' + R + ',' + G + ',' + B + ',0.12)');
+  halo.addColorStop(1, 'rgba(' + R + ',' + G + ',' + B + ',0)');
+  g.beginPath();
+  g.arc(a.x, a.y, a.r * 1.12, 0, Math.PI * 2);
+  g.arc(b.x, b.y, b.r * 1.12, 0, Math.PI * 2);
+  g.fillStyle = halo;
+  g.fill();
+  g.beginPath();
+  for (const arc of outline) g.arc(arc.x, arc.y, arc.r, arc.a0, arc.a1, arc.ccw);
+  g.closePath();
+  const grad = g.createLinearGradient(a.x, a.y, b.x, b.y);
+  grad.addColorStop(0, ca);
+  grad.addColorStop(1, cb);
+  g.fillStyle = grad;
+  g.fill();
+  return true;
 }
 
-function caption(b) {
+function fitLine(g, text, px, maxW) {
+  let size = px;
+  let shown = text;
+  g.font = '500 ' + size + 'px sans-serif';
+  while (size > 11 && g.measureText(shown).width > maxW) {
+    size -= 0.5;
+    g.font = '500 ' + size + 'px sans-serif';
+  }
+  while (shown.length > 1 && g.measureText(shown).width > maxW) shown = shown.slice(0, -1);
+  if (shown !== text) shown = shown.slice(0, Math.max(1, shown.length - 1)) + '…';
+  return { size, shown };
+}
+
+function paintLabel(g, b) {
+  if (!b || b.r < 20 || b.label === false) return;
   const name = b.name || '';
   const amt = b.amount != null ? formatAmount(b.amount) : (b.v != null ? formatAmount(b.v) : '');
-  return [name, amt].filter(Boolean).join(' ');
-}
-
-function drawCallouts(g, ink, width, bodies, flies) {
-  g.font = '11px sans-serif';
-  const items = [];
-  for (const b of flies) {
-    const text = caption(b);
-    if (!text) continue;
-    items.push({ ...b, text, tw: g.measureText(text).width + 2, priority: 2 });
-  }
-  for (const b of bodies) {
-    const text = caption(b);
-    if (!text) continue;
-    items.push({ ...b, text, tw: g.measureText(text).width + 2, priority: b.r > 28 ? 1 : 0 });
-  }
-  const slots = layoutCallouts(items, width, [{ x: width - 122, y: 0, w: 122, h: 42 }]);
-  g.lineWidth = 1;
+  if (!name && !amt) return;
+  const maxW = b.r * 1.55;
+  const nameFit = fitLine(g, name, Math.min(14, Math.max(11, b.r * 0.3)), maxW);
+  const amtFit = fitLine(g, amt, Math.max(10, nameFit.size - 1), maxW);
+  g.textAlign = 'center';
   g.textBaseline = 'middle';
-  for (const s of slots) {
-    g.globalAlpha = s.alpha;
-    g.strokeStyle = ink.text;
-    g.beginPath();
-    g.moveTo(s.x1, s.y1);
-    g.lineTo(s.x2, s.y2);
-    g.stroke();
-    g.textAlign = s.side > 0 ? 'left' : 'right';
-    const tx = s.side > 0 ? s.x2 + 3 : s.x2 - 3;
-    g.lineWidth = 3;
-    g.strokeStyle = ink.bg;
-    g.strokeText(s.text, tx, s.y2);
-    g.fillStyle = ink.text;
-    g.fillText(s.text, tx, s.y2);
-    g.lineWidth = 1;
-  }
-  g.globalAlpha = 1;
+  g.fillStyle = INK;
+  g.font = '500 ' + nameFit.size + 'px sans-serif';
+  g.fillText(nameFit.shown, b.x, b.y - nameFit.size * 0.58);
+  g.font = '500 ' + amtFit.size + 'px sans-serif';
+  g.fillText(amtFit.shown, b.x, b.y + amtFit.size * 0.72);
 }
 
-function mixHex(a, b, t) {
-  const A = rgb(a);
-  const B = rgb(b);
-  const c = A.map((v, i) => Math.round(v + (B[i] - v) * t));
-  return '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('');
-}
-
-function paintImpact(g, fly) {
-  const j = juiceAt(fly.t || 0);
-  if (j.ripple < 0.2) return;
-  g.save();
-  g.globalCompositeOperation = 'lighter';
-  g.beginPath();
-  g.arc(fly.x, fly.y, fly.r * (1.15 + j.ripple * 0.45), 0, Math.PI * 2);
-  g.strokeStyle = colorOf(fly.lane);
-  g.globalAlpha = j.ripple * 0.55;
-  g.lineWidth = 1.25;
-  g.stroke();
-  g.restore();
-}
-
-function paintGlow(g, b) {
-  const [R, G, B] = rgb(colorOf(b.lane));
-  const shade = g.createRadialGradient(b.x, b.y, b.r * 0.6, b.x, b.y, b.r * 1.45);
-  shade.addColorStop(0, 'rgba(' + R + ',' + G + ',' + B + ',0.22)');
-  shade.addColorStop(1, 'rgba(' + R + ',' + G + ',' + B + ',0)');
-  g.beginPath();
-  g.arc(b.x, b.y, b.r * 1.45, 0, Math.PI * 2);
-  g.fillStyle = shade;
-  g.fill();
+function partner(fly, which) {
+  if (which === 'src') return { x: fly.sx, y: fly.sy, r: fly.sr, id: fly.srcId, lane: fly.srcLane };
+  return { x: fly.dx, y: fly.dy, r: fly.dr, id: fly.dstId, lane: fly.dstLane };
 }
 
 /** 画一整帧。view = { scrollDay, ppd, width, height, reduced } */
@@ -192,20 +128,45 @@ export function drawBubbleStage(g, model, view) {
   g.clearRect(0, 0, w, h);
 
   const scene = assembleScene(model, view);
-  const reduced = !!view.reduced;
-  const juicy = reduced ? [] : scene.flies.filter((f) => f.r > 7).sort((a, b) => b.r - a.r).slice(0, 8);
   const bodies = [...scene.liab, ...scene.asset, ...scene.left, ...scene.right];
+  const hidden = new Set();
+  const unions = [];
+  const candidates = [];
+  for (const fly of scene.flies) {
+    let best = null;
+    let bestD = Infinity;
+    for (const which of ['src', 'dst']) {
+      const p = partner(fly, which);
+      if (!p.id || !(p.r > 8)) continue;
+      const d = Math.hypot(fly.x - p.x, fly.y - p.y);
+      if (d < bestD && bridgeOutline(fly, p)) { best = p; bestD = d; }
+    }
+    if (best) candidates.push({ fly, best, d: bestD });
+  }
+  candidates.sort((a, b) => a.d - b.d);
+  const taken = new Set();
+  for (const c of candidates) {
+    if (taken.has(c.fly.id) || taken.has(c.best.id)) continue;
+    unions.push([c.fly, c.best]);
+    taken.add(c.fly.id);
+    taken.add(c.best.id);
+    hidden.add(c.fly.id);
+    hidden.add(c.best.id);
+  }
   for (const b of bodies) {
-    if (!reduced && b.v > 4000) paintGlow(g, b);
-    orb(g, b.x, b.y, b.r, colorOf(b.lane), reduced);
+    if (hidden.has(b.id)) continue;
+    orb(g, b.x, b.y, b.r, colorOf(b.lane));
   }
   for (const fly of scene.flies) {
-    const hex = mixHex(colorOf(fly.lane), colorOf(fly.toLane), (fly.t || 0) * 0.55);
-    orb(g, fly.x, fly.y, fly.r, hex, reduced);
+    if (hidden.has(fly.id)) continue;
+    orb(g, fly.x, fly.y, fly.r, colorOf(fly.lane));
   }
-  for (const fly of scene.flies) neck(g, fly);
-  if (!reduced) for (const fly of juicy) paintImpact(g, fly);
-  drawCallouts(g, ink, w, bodies, scene.flies);
+  for (const [fly, end] of unions) paintUnion(g, fly, end, colorOf(fly.lane), colorOf(end.lane));
+  for (const b of bodies) paintLabel(g, b);
+  for (const fly of scene.flies) {
+    if (hidden.has(fly.id)) continue;
+    paintLabel(g, fly);
+  }
 
   g.fillStyle = ink.muted;
   g.font = '10px sans-serif';

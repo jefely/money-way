@@ -158,7 +158,7 @@ export function mountLifeVein(section, ctx) {
     }
     syncMonth(1);
     draw();
-    ctx.setFooter('脉络 · 上拖正放，下拖倒回 · ' + model.events.length + ' 笔');
+    ctx.setFooter('脉络 · 上拖正放，下拖倒回 · ' + (model.txCount || 0) + ' 笔');
   }
 
   return { render };

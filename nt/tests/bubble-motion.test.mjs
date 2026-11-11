@@ -190,7 +190,7 @@ test('不同日期的飞泡不挤在同一条水平中线', () => {
   };
   const m = buildLifeVein(state, '2026-08-10');
   const h = 700;
-  const view = { scrollDay: m.vspan / 2, ppd: pixelsPerDay(m.vspan, h, 1), width: 390, height: h };
+  const view = { scrollDay: m.events[0].vday, ppd: pixelsPerDay(m.vspan, h, 1), width: 390, height: h };
   const scene = assembleScene(m, view);
   if (scene.flies.length >= 2) {
     assert.ok(Math.abs(scene.flies[0].y - scene.flies[1].y) > 8);
@@ -239,7 +239,8 @@ test('静止泡迎向飞泡，飞走后回到锚点', () => {
   const h = 700;
   const ppd = pixelsPerDay(m.vspan, h, 1);
   const day = m.events[0].vday;
-  const scroll = day + (0.15 * h) / ppd;
+  const y = h * 0.75 - 0.55 * h * 0.5;
+  const scroll = day - (y - h / 2) / ppd;
   const view = { scrollDay: scroll, ppd, width: 390, height: h };
   const scene = assembleScene(m, view);
   const bank = scene.asset.find((a) => a.name === '储蓄卡');

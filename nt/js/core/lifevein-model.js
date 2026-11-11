@@ -173,6 +173,35 @@ export function buildLifeVein(state, todayIso) {
   }
   for (const e of events) e.vday = vmap.get(e.day) || 0;
 
+  // 右缘：同一天、同一费用/成本分类收成一颗。左缘：收入/权益同理。
+  // 同一天的多笔按流水顺序排队，飞的时候一笔接一笔，不并成一颗飞泡。
+  const catName = (a) => {
+    if (!a) return '';
+    const c = String(a.category || '').trim();
+    return c || String(a.name || '');
+  };
+  const queues = new Map();
+  for (const e of events) {
+    const from = byId.get(e.fromId);
+    const to = byId.get(e.toId);
+    const right = e.toType === ACCOUNT_TYPE.EXPENSE || e.toType === ACCOUNT_TYPE.COST;
+    const left = !right && (e.fromType === ACCOUNT_TYPE.INCOME || e.fromType === ACCOUNT_TYPE.EQUITY);
+    e.edge = right ? 'R' : (left ? 'L' : '');
+    e.cat = right ? (catName(to) || '费用') : (left ? (catName(from) || '收入') : '');
+    e.queue = 0;
+    e.queueN = 1;
+    if (!e.edge) continue;
+    const qk = e.edge + ':' + e.day;
+    if (!queues.has(qk)) queues.set(qk, []);
+    queues.get(qk).push(e);
+  }
+  for (const list of queues.values()) {
+    for (let i = 0; i < list.length; i += 1) {
+      list[i].queue = i;
+      list[i].queueN = list.length;
+    }
+  }
+
   return {
     days,
     vspan: Math.max(1, cursor),
