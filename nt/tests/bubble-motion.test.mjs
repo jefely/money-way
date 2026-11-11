@@ -188,6 +188,38 @@ test('不同日期的飞泡不挤在同一条水平中线', () => {
   }
 });
 
+test('静止泡迎向飞泡，飞走后回到锚点', () => {
+  const state = {
+    accounts: [
+      { id: 'salary', name: '工资', type: '收入类' },
+      { id: 'bank', name: '储蓄卡', type: '资产类' },
+    ],
+    transactions: [
+      { id: 'a', seq: 1, date: '2026-08-02', from_id: 'salary', to_id: 'bank', amount: 800 },
+    ],
+  };
+  const m = buildLifeVein(state, '2026-08-10');
+  const h = 700;
+  const ppd = pixelsPerDay(m.vspan, h, 1);
+  const day = m.events[0].vday;
+  const scroll = day + (0.15 * h) / ppd;
+  const view = { scrollDay: scroll, ppd, width: 390, height: h };
+  const scene = assembleScene(m, view);
+  const bank = scene.asset.find((a) => a.name === '储蓄卡');
+  assert.ok(bank && bank.ax != null);
+  if (scene.flies.length) {
+    const fly = scene.flies[0];
+    const toward = Math.hypot(bank.x - fly.x, bank.y - fly.y);
+    const anchor = Math.hypot(bank.ax - fly.x, bank.ay - fly.y);
+    assert.ok(toward < anchor - 0.4);
+  }
+  const later = assembleScene(m, { scrollDay: day + 4, ppd, width: 390, height: h });
+  const back = later.asset.find((a) => a.name === '储蓄卡');
+  assert.ok(back);
+  assert.ok(Math.hypot(back.x - back.ax, back.y - back.ay) < 0.5);
+  assert.deepEqual(scene, assembleScene(m, view));
+});
+
 test('同一滚动位置组出来的帧完全一样', () => {
   const state = {
     accounts: [

@@ -140,7 +140,10 @@ export function assembleScene(model, view) {
         name,
         sx: src.x, sy: src.y, sr: src.r,
         dx: dst.x, dy: dst.y, dr: dst.r,
-        stick: merge ? (t > 0.62 ? e.toId : '') : (t < 0.35 ? e.fromId : ''),
+        srcId: e.kind === 'inflow' ? '' : e.fromId,
+        dstId: (e.kind === 'spend' || e.kind === 'charge') ? '' : e.toId,
+        meet: (e.fromType === INCOME || e.fromType === EQUITY) && t < 0.5 ? ('L' + e.key) : '',
+        stick: merge ? (t > 0.55 ? e.toId : '') : (t < 0.4 ? e.fromId : ''),
       });
     }
   }
@@ -150,6 +153,49 @@ export function assembleScene(model, view) {
     right: packEdge(right, width - 6, -1, width),
     flies,
   };
+  for (const b of [...scene.liab, ...scene.asset, ...scene.left, ...scene.right]) {
+    b.ax = b.x;
+    b.ay = b.y;
+  }
+  leanToMeet(scene);
   separateBubbles(scene);
   return scene;
+}
+
+/**
+ * 静止泡迎向正在靠近的那一颗。偏移量只由这一帧的距离决定，
+ * 飞走之后加项是 0，泡回到锚点。倒放经过同一进度，迎的幅度相同。
+ */
+function leanToMeet(scene) {
+  const resting = [...scene.liab, ...scene.asset, ...scene.left, ...scene.right];
+  for (const s of resting) {
+    let ox = 0;
+    let oy = 0;
+    let n = 0;
+    for (const f of scene.flies) {
+      const mine = f.stick === s.id || f.meet === s.id;
+      if (!mine) continue;
+      const dx = f.x - s.ax;
+      const dy = f.y - s.ay;
+      const d = Math.hypot(dx, dy) || 1;
+      const reach = f.r + s.r + Math.min(f.r, s.r) * 1.15;
+      if (d >= reach) continue;
+      const k = 1 - d / reach;
+      const pull = Math.min(s.r * 0.55, d * 0.42 * k);
+      ox += (dx / d) * pull;
+      oy += (dy / d) * pull;
+      n += 1;
+    }
+    if (!n) continue;
+    s.x = s.ax + ox / n;
+    s.y = s.ay + oy / n;
+  }
+  const at = new Map();
+  for (const s of [...scene.liab, ...scene.asset]) at.set(s.id, s);
+  for (const f of scene.flies) {
+    const src = at.get(f.srcId);
+    const dst = at.get(f.dstId);
+    if (src) { f.sx = src.x; f.sy = src.y; f.sr = src.r; }
+    if (dst) { f.dx = dst.x; f.dy = dst.y; f.dr = dst.r; }
+  }
 }
