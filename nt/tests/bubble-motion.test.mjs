@@ -40,12 +40,15 @@ test('弹性曲线两端钉死，倒放经过同一进度得到同一值', () =>
   assert.ok(elastic(0.35) > 0 && elastic(0.35) < 1);
 });
 
-test('半径随金额增大，但超大金额被夹住', () => {
-  const a = bubbleRadius(20);
-  const b = bubbleRadius(8000);
-  const c = bubbleRadius(1e8);
-  assert.ok(a < b && b < c);
-  assert.ok(c <= 52);
+test('金额阶梯：1 元是小点，10 万大得多，中间每档都拉开', () => {
+  const amts = [1, 10, 100, 1000, 5000, 10000, 100000];
+  const rs = amts.map((n) => bubbleRadius(n));
+  for (let i = 1; i < rs.length; i += 1) {
+    assert.ok(rs[i] > rs[i - 1] * 1.35, rs.map((n) => n.toFixed(1)).join(' '));
+  }
+  assert.ok(rs[0] < 6, rs[0]);
+  assert.ok(rs[6] > 400, rs[6]);
+  assert.ok(rs[6] / rs[0] > 80);
   assert.equal(bubbleRadius(0), 2);
 });
 

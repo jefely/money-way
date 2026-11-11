@@ -185,16 +185,16 @@ export function flyScale(kind, localP) {
   return s;
 }
 
-/** 半径：金额的平方根，膝部之后不再线性涨，并夹在上下限里。面积大致跟金额走。 */
+/**
+ * 半径跟金额的平方根走，不夹上下限。
+ * 1 元是一个小点，10 万比它大两个数量级，整屏靠缩放去装。
+ */
 export function bubbleRadius(amount, opt) {
-  const o = opt || {};
-  const min = o.min == null ? 8 : o.min;
-  const max = o.max == null ? 52 : o.max;
-  const knee = o.knee == null ? 6000 : o.knee;
   const v = Math.abs(Number(amount) || 0);
   if (v < 0.5) return 2;
-  const t = Math.sqrt(v / (v + knee));
-  return min + (max - min) * t;
+  const exp = (opt && opt.exp) || 0.5;
+  const k = (opt && opt.k) || 2.6;
+  return k * Math.pow(v, exp);
 }
 
 /** 这笔钱在四列之间怎么走。 */

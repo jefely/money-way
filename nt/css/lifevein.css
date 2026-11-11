@@ -42,7 +42,8 @@
   cursor: pointer;
 }
 
-.nt-lv-zbtn:hover {
+.nt-lv-zbtn:hover,
+.nt-lv-zbtn.is-on {
   color: var(--nt-text);
   border-color: var(--nt-line-strong);
 }

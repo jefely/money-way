@@ -21,7 +21,10 @@ export function mountLifeVein(section, ctx) {
   if (!canvas) return { render() {} };
   const g = canvas.getContext('2d');
 
-  const view = { scrollDay: 0, zoom: 1, ready: false };
+  const view = { scrollDay: 0, ready: false };
+  const cam = { s: 1, x: 0, y: 0 };
+  let panMode = false;
+  let needFit = true;
   let model = null;
   let drag = null;
   let frame = 0;
@@ -31,7 +34,7 @@ export function mountLifeVein(section, ctx) {
 
   const W = () => canvas.clientWidth;
   const H = () => canvas.clientHeight;
-  const ppd = () => pixelsPerDay(model ? model.vspan : 1, H() || 700, view.zoom);
+  const ppd = () => pixelsPerDay(model ? model.vspan : 1, H() || 700, 1);
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -50,14 +53,33 @@ export function mountLifeVein(section, ctx) {
 
   function draw() {
     if (!model || !resize()) return;
-    drawBubbleStage(g, model, {
+    const shot = {
       scrollDay: view.scrollDay,
       ppd: ppd(),
       width: W(),
       height: H(),
       month: monthFrame(),
+      cam: needFit ? null : cam,
+      fit: needFit,
       reduced: typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches,
-    });
+    };
+    drawBubbleStage(g, model, shot);
+    if (needFit && shot.cam) {
+      cam.s = shot.cam.s;
+      cam.x = shot.cam.x;
+      cam.y = shot.cam.y;
+      needFit = false;
+    }
+  }
+
+  function zoomAt(px, py, factor) {
+    const next = Math.max(0.015, Math.min(8, cam.s * factor));
+    const wx = (px - W() / 2 - cam.x) / cam.s + W() / 2;
+    const wy = (py - H() / 2 - cam.y) / cam.s + H() / 2;
+    cam.s = next;
+    cam.x = px - W() / 2 - (wx - W() / 2) * next;
+    cam.y = py - H() / 2 - (wy - H() / 2) * next;
+    schedule();
   }
 
   function monthFrame() {
@@ -96,27 +118,80 @@ export function mountLifeVein(section, ctx) {
     schedule();
   }
 
+  const pts = new Map();
+  let pinch = null;
+  const local = (e) => {
+    const r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
   canvas.addEventListener('pointerdown', (e) => {
-    drag = { y: e.clientY, day: view.scrollDay };
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+    if (pts.size >= 2) {
+      drag = null;
+      const [a, b] = [...pts.values()];
+      pinch = {
+        d: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
+        mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2,
+        s: cam.s, x: cam.x, y: cam.y,
+      };
+      return;
+    }
+    if (panMode) drag = { pan: true, x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y };
+    else drag = { y: e.clientY, day: view.scrollDay };
   });
   canvas.addEventListener('pointermove', (e) => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size >= 2 && pinch) {
+      const [a, b] = [...pts.values()];
+      const d = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
+      const mx = (a.x + b.x) / 2;
+      const my = (a.y + b.y) / 2;
+      const p = local({ clientX: pinch.mx, clientY: pinch.my });
+      cam.s = pinch.s;
+      cam.x = pinch.x;
+      cam.y = pinch.y;
+      zoomAt(p.x, p.y, d / pinch.d);
+      cam.x += mx - pinch.mx;
+      cam.y += my - pinch.my;
+      return;
+    }
     if (!drag) return;
-    // 手指往上：内容跟着往上，更晚的日期进入视界，就是正放。
+    if (drag.pan) {
+      cam.x = drag.cx + (e.clientX - drag.x);
+      cam.y = drag.cy + (e.clientY - drag.y);
+      schedule();
+      return;
+    }
+    // 手指往上：更晚的日期进入，正放。
     setScroll(drag.day - (e.clientY - drag.y) / ppd());
   });
-  const end = () => { drag = null; };
+  const end = (e) => {
+    pts.delete(e.pointerId);
+    if (pts.size < 2) pinch = null;
+    if (!pts.size) drag = null;
+  };
   canvas.addEventListener('pointerup', end);
   canvas.addEventListener('pointercancel', end);
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
-    setScroll(view.scrollDay - e.deltaY / ppd());
+    const p = local(e);
+    zoomAt(p.x, p.y, Math.exp(-e.deltaY * 0.0014));
   }, { passive: false });
 
   for (const btn of section.querySelectorAll('[data-lv-zoom]')) {
     btn.addEventListener('click', () => {
-      view.zoom = Math.max(0.35, Math.min(2.6, view.zoom * Number(btn.getAttribute('data-lv-zoom') || 1)));
-      schedule();
+      const z = Number(btn.getAttribute('data-lv-zoom') || 1);
+      if (z === 1) { needFit = true; schedule(); return; }
+      zoomAt(W() / 2, H() / 2, z);
+    });
+  }
+  const panBtn = section.querySelector('[data-lv-pan]');
+  if (panBtn) {
+    panBtn.addEventListener('click', () => {
+      panMode = !panMode;
+      panBtn.classList.toggle('is-on', panMode);
     });
   }
 

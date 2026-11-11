@@ -6,7 +6,7 @@
 
 import { isDebitType } from './schema.js';
 import {
-  bagShare, bubbleRadius, clamp01, eventProgress, flyLocal, flyScale, formatAmount,
+  bagShare, bubbleRadius, clamp01, eventProgress, flyLocal, flyScale,
   packCluster, packEdge, shownBalance, yOfDay,
 } from './bubble-motion.js';
 
@@ -70,7 +70,7 @@ function separateBubbles(scene) {
   for (const b of scene.left) add(b, true);
   for (const b of scene.right) add(b, true);
   for (const b of scene.flies) add(b, false);
-  for (let n = 0; n < 22; n += 1) {
+  for (let n = 0; n < 36; n += 1) {
     for (let i = 0; i < body.length; i += 1) {
       for (let j = i + 1; j < body.length; j += 1) {
         const A = body[i];
@@ -92,7 +92,7 @@ function separateBubbles(scene) {
     }
   }
   for (const b of body) {
-    if (String(b.id || '').startsWith('L') && b.x - b.r < 56) b.x = b.r + 56;
+    if (String(b.id || '').startsWith('L') && b.r < 48 && b.x - b.r < 56) b.x = b.r + 56;
     b.ref.x = b.x;
     b.ref.y = b.y;
   }
@@ -106,21 +106,14 @@ export function assembleScene(model, view) {
   const height = view.height;
   const ppd = view.ppd;
   const scrollDay = view.scrollDay;
-  const cap = Math.max(36, Math.min(56, width * 0.16));
-  const fitR = (v, name, labeled) => {
-    const floor = labeled ? 22 : 8;
-    const base = bubbleRadius(Math.max(0.5, Math.abs(v) || 0), { min: floor, max: cap, knee: 900 });
-    if (!labeled) return base;
-    const glyphs = Math.max(String(name || '').length, String(formatAmount(v)).length * 0.62);
-    return Math.max(base, Math.min(glyphs * 11 / 1.45, width * 0.22));
-  };
+  const fitR = (v) => bubbleRadius(v);
   const byId = new Map((model.accounts || []).map((a) => [a.id, a]));
   const stocks = [];
   for (const a of model.accounts || []) {
     if (!a.stock) continue;
     const v = shownBalance(model.events, a.id, isDebitType(a.type), scrollDay, ppd, height);
     if (Math.abs(v) < 0.5) continue;
-    stocks.push({ id: a.id, name: a.name, r: fitR(v, a.name, true), v, lane: a.lane, kind: a.lane === 2 ? 'liab' : 'asset' });
+    stocks.push({ id: a.id, name: a.name, r: fitR(v), v, lane: a.lane, kind: a.lane === 2 ? 'liab' : 'asset' });
   }
   const limit = { top: height * 0.25, bottom: height * 0.75 };
   const liab = packCluster(stocks.filter((s) => s.kind === 'liab'), width * 0.30, height * 0.5, limit);
@@ -159,7 +152,7 @@ export function assembleScene(model, view) {
     if (!(bag.amount >= 0.5)) continue;
     const item = {
       id: bag.id, name: bag.name, lane: bag.lane, y: bag.y,
-      amount: bag.amount, r: fitR(bag.amount, bag.name, true),
+      amount: bag.amount, r: fitR(bag.amount),
     };
     if (bag.edge === 'L') left.push(item);
     else right.push(item);
@@ -183,12 +176,12 @@ export function assembleScene(model, view) {
     const name = (e.kind === 'spend' || e.kind === 'charge')
       ? ((to && to.name) || '')
       : ((from && from.name) || (to && to.name) || '');
-    const full = fitR(e.amount, name, true);
-    const flyR = scale > 0.92 ? full : Math.max(5, full * scale);
+    const full = fitR(e.amount);
+    const flyR = scale > 0.92 ? full : Math.max(3, full * scale);
     const bag = bagAt.get(e.edge + ':' + e.day + ':' + e.cat);
     const edgePt = bag || (e.edge === 'R'
-      ? { x: width - 36, y, r: 22, id: '', lane: e.toLane }
-      : { x: 96, y, r: 22, id: '', lane: e.fromLane });
+      ? { x: width - 28, y, r: 8, id: '', lane: e.toLane }
+      : { x: 84, y, r: 8, id: '', lane: e.fromLane });
     const toAsset = e.kind === 'spend' || e.kind === 'charge';
     const src = e.edge === 'L' ? edgePt : spot(e.fromId);
     const dst = toAsset ? edgePt : spot(e.toId);
@@ -244,13 +237,8 @@ function dropOffstage(scene, height) {
   scene.flies = scene.flies.filter((b) => b.y > 40 && b.y < height - 12);
 }
 
-function clampOnScreen(scene, width) {
-  const all = [...scene.liab, ...scene.asset, ...scene.left, ...scene.right, ...scene.flies];
-  for (const b of all) {
-    if (b.y - b.r < 46 && b.x + b.r > width - 122) b.x = Math.min(b.x, width - 122 - b.r);
-    const left = String(b.id || '').startsWith('L') ? b.r + 56 : b.r + 2;
-    b.x = Math.max(left, Math.min(width - b.r - 2, b.x));
-  }
+function clampOnScreen() {
+  // 大小差开之后，泡可以超出这一屏。缩放负责把它们装回来，这里不再往屏幕里挤。
 }
 
 /**
@@ -293,4 +281,26 @@ function pinEnds(scene) {
     if (src) { f.sx = src.x; f.sy = src.y; f.sr = src.r; f.srcLane = src.lane; }
     if (dst) { f.dx = dst.x; f.dy = dst.y; f.dr = dst.r; f.dstLane = dst.lane; }
   }
+}
+
+/** 把这一帧收进屏幕。不放大超过 1，内容超出时缩小，中心对齐。 */
+export function cameraFit(scene, width, height) {
+  const all = [...scene.liab, ...scene.asset, ...scene.left, ...scene.right, ...scene.flies];
+  if (!all.length || !(width > 0) || !(height > 0)) return { s: 1, x: 0, y: 0 };
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const b of all) {
+    x0 = Math.min(x0, b.x - b.r - 8);
+    y0 = Math.min(y0, b.y - b.r - 8);
+    x1 = Math.max(x1, b.x + b.r + 8);
+    y1 = Math.max(y1, b.y + b.r + 8);
+  }
+  const bw = Math.max(48, x1 - x0);
+  const bh = Math.max(48, y1 - y0);
+  const s = Math.max(0.015, Math.min(1, Math.min((width - 20) / bw, (height - 52) / bh)));
+  const midX = (x0 + x1) / 2;
+  const midY = (y0 + y1) / 2;
+  return { s, x: (width / 2 - midX) * s, y: (height / 2 - midY) * s };
 }
