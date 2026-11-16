@@ -380,6 +380,7 @@ function bindToolbar(section, ctx, h) {
         return a ? (a.name || '') : '';
       },
       shareBackup: () => (ctx.shareBackup ? ctx.shareBackup() : Promise.reject(new Error('不能备份'))), encryptedBackupText: () => (ctx.encryptedBackupText ? ctx.encryptedBackupText() : Promise.reject(new Error('不能备份'))),
+      txtveinCipherText: (mode) => (ctx.txtveinCipherText ? ctx.txtveinCipherText(mode) : Promise.reject(new Error('不能导出密文'))),
       onBackedUp: () => { if (ctx.markBackup) ctx.markBackup(); },
     }));
   }
@@ -395,6 +396,7 @@ function bindToolbar(section, ctx, h) {
         onImport: (res) => { if (o.onImport) o.onImport(res); },
         onImportTemplate: (state, stats) => { if (o.onImportTemplate) o.onImportTemplate(state, stats); },
         restoreBackup: (text, password) => (ctx.restoreBackup ? ctx.restoreBackup(text, password) : Promise.reject(new Error('不能恢复'))),
+        restoreTxtveinCipher: (text, password) => (ctx.restoreTxtveinCipher ? ctx.restoreTxtveinCipher(text, password) : Promise.reject(new Error('不能恢复'))),
         onRestore: (next) => { if (o.onRestore) o.onRestore(next); },
       });
       // 别名表是软件级的（跨账本），开窗口前取一次；读不到就按空表走

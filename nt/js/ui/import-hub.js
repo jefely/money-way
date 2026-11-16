@@ -22,6 +22,8 @@ import { planBillImport, collectNewAccounts } from '../core/bill-plan.js';
 import { myAccountPick } from './import-bill.js';
 import { money } from '../core/format.js';
 import { backupSummary } from './import-backup.js';
+import { pasteTo, refreshCipher, loadCipherFiles, doFileImport, doPasteImport } from './import-txtvein.js';
+import { importTable, importText, importBackup } from './import-actions.js';
 
 const PLACEHOLDER = [
   '账户：',
@@ -78,7 +80,12 @@ export function openImportHub(opts) {
 
   let dlg = null;
   let ta = null;
+  let cLedger = null;
+  let cDict = null;
+  let cipherStatus = null;
   let statusEl = null;
+  let fileCipher = null;
+  let fileGo = null;
   let need = null;
   let errEl = null;
   let fromEl = null;
@@ -93,13 +100,50 @@ export function openImportHub(opts) {
 
   const setErr = (msg) => { if (errEl) errEl.textContent = msg || ''; };
 
+  const ctx = {
+    get ta() { return ta; },
+    get cLedger() { return cLedger; },
+    get cDict() { return cDict; },
+    get pw() { return pwEl ? pwEl.value.trim() : ''; },
+    get cover() { return coverEl ? coverEl.value.trim() : ''; },
+    get fileCipher() { return fileCipher; },
+    set fileCipher(v) { fileCipher = v; },
+    get source() { return source; },
+    get fromEl() { return fromEl; },
+    get mySel() { return mySel; },
+    aliases,
+    set source(v) { source = v; },
+    get cipherStatus() { return cipherStatus; },
+    setErr,
+    setNeed,
+    applySource,
+    close() { if (dlg) dlg.close(); },
+    setStatus(t) { if (statusEl) statusEl.textContent = t || ''; },
+    setFileGo(disabled) { if (fileGo) fileGo.disabled = !!disabled; },
+    setCipherStatus(t, bad) {
+      if (!cipherStatus) return;
+      cipherStatus.className = 'nt-imp-status' + (bad ? ' is-bad' : '');
+      cipherStatus.textContent = t || '';
+    },
+    importText: (t) => importText(ctx, t),
+    importTable: (r) => importTable(ctx, r),
+    importBackup: (b) => importBackup(ctx, b),
+    mergeText: o.mergeText,
+    setFooter: o.setFooter,
+    restoreBackup: o.restoreBackup,
+    onImport: o.onImport,
+    onImportTemplate: o.onImportTemplate,
+    onRestore: o.onRestore,
+    restoreTxtveinCipher: o.restoreTxtveinCipher,
+  };
+
   /** 识别后要补的输入：'bill' = 起始日期 + 我的账户；'pw' = 密码；'cover' = 输入「覆盖」 */
   function setNeed(which) {
     if (billRow) billRow.hidden = which !== 'bill';
     if (myRow) myRow.hidden = which !== 'bill';
     if (pwRow) pwRow.hidden = which !== 'pw';
     if (coverWrap) coverWrap.hidden = which !== 'cover';
-    if (need) need.hidden = !which;
+    if (need) need.hidden = !(which === 'bill' || which === 'pw');
   }
 
   function billStatus(r) {
@@ -126,15 +170,18 @@ export function openImportHub(opts) {
     if (s.kind === 'bill') return billStatus(s.result);
     if (s.kind === 'table') return `${s.result.note}\n通用表格：直接点「导入」写入流水。`;
     if (s.kind === 'backup') return backupSummary(s.backup);
+    if (s.kind === 'txtvein') return 'TxtVein 单 TXT（明文）：导入会替换当前账本；输入「覆盖」后确认。';
+    if (s.kind === 'txtvein-cipher') return 'TxtVein 双文件密文 bundle：需要密码；导入会替换当前账本。';
     return '这是一段账本流水文本：点「导入」合并进当前账本。';
   }
 
   /** 把一个源挂到界面上：状态文字 + 需要补的输入 */
-  function applySource(s) {
+  function applySource(s, forFile) {
     source = s;
     setErr('');
     if (!s) {
-      if (statusEl) statusEl.textContent = '';
+      if (statusEl && forFile) statusEl.textContent = '';
+      if (fileGo && forFile) fileGo.disabled = true;
       setNeed('');
       return;
     }
@@ -144,8 +191,11 @@ export function openImportHub(opts) {
     }
     if (s.kind === 'bill') setNeed('bill');
     else if (s.kind === 'backup') setNeed(s.backup.kind === 'backup' ? 'pw' : 'cover');
+    else if (s.kind === 'txtvein') setNeed('cover');
+    else if (s.kind === 'txtvein-cipher') setNeed('pw');
     else setNeed('');
-    if (statusEl) statusEl.textContent = statusOf(s);
+    if (statusEl && forFile) statusEl.textContent = statusOf(s);
+    if (fileGo && forFile) fileGo.disabled = false;
   }
 
   function refreshStatus() {
@@ -166,129 +216,121 @@ export function openImportHub(opts) {
     input.click();
   }
 
+  function pickFiles(accept, onPick) {
+    const input = el('input');
+    input.type = 'file';
+    input.accept = accept;
+    input.multiple = true;
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    input.addEventListener('change', async () => {
+      const files = Array.from(input.files || []);
+      input.remove();
+      await onPick(files);
+    });
+    input.click();
+  }
+
   async function loadFile(file) {
     if (!file) return;
     const name = String(file.name || '');
-    applySource(null);
+    fileCipher = null;
+    applySource(null, true);
+    if (cLedger && cLedger !== ta) cLedger.value = '';
+    if (cDict) cDict.value = '';
+    refreshCipher(ctx);
     if (ta) {
       ta.value = '';
       ta.placeholder = `已读取：${name}\n这里也可以粘贴（账单内容 / 密文 / 流水文本）`;
     }
     if (statusEl) statusEl.textContent = `正在读取 ${name} …`;
     try {
-      applySource(await sourceFromFile(file));
+      applySource(await sourceFromFile(file), true);
+      if (fileGo) fileGo.disabled = false;
     } catch (e) {
-      applySource(null);
+      applySource(null, true);
+      if (fileGo) fileGo.disabled = true;
       setErr('读取失败：' + ((e && e.message) || e));
     }
   }
 
-  /** 粘贴：直接读剪贴板；读不到就让用户长按输入框自己粘（手机上的常规做法） */
-  async function pasteText() {
-    const clip = navigator.clipboard;
-    if (!clip || typeof clip.readText !== 'function') {
-      setErr('这个浏览器不能直接读剪贴板：长按上面的框，用系统的「粘贴」');
-      if (ta) ta.focus();
-      return;
-    }
-    let text = '';
-    try {
-      text = await clip.readText();
-    } catch (e) {
-      setErr('浏览器不让读剪贴板：长按上面的框，用系统的「粘贴」');
-      if (ta) ta.focus();
-      return;
-    }
-    if (!text || !text.trim()) { setErr('剪贴板里没有文字'); return; }
-    if (ta) ta.value = text;
-    applySource(sourceFromText(text));
-  }
 
-  function importTable(r) {
-    if (!r.items || !r.items.length) { setErr('这份内容里没有可导入的记录'); return; }
-    r.fromDate = fromEl ? fromEl.value || '' : '';
-    r.myAccountId = mySel ? mySel.value || '' : '';
-    // 资金流转（还款 / 提现 / 余额宝来回）按账户间转账导入，不再直接丢掉
-    r.includeNeutral = true;
-    // 别名表跟着这次导入走：命中过的说法直接归位（味丰源 → 早餐）
-    r.aliases = aliases;
-    if (dlg) dlg.close();
-    if (typeof o.onImport === 'function') o.onImport(r);
-  }
 
-  function importText(text) {
-    if (typeof o.mergeText !== 'function') { setErr('当前不能合并文本'); return; }
-    let n = 0;
-    try { n = o.mergeText(text); } catch (e) {
-      setErr('导入失败：' + ((e && e.message) || e));
-      return;
-    }
-    if (dlg) dlg.close();
-    if (typeof o.setFooter === 'function') {
-      o.setFooter(n ? `已导入 ${n} 笔流水` : '这段文本里没有新记录（可能都已经有了）');
-    }
-  }
-
-  async function importBackup(b) {
-    if (b.kind === 'backup') {
-      const pw = (pwEl && pwEl.value || '').trim();
-      if (!pw) { setErr('需要账本密码'); if (pwEl) pwEl.focus(); return; }
-      if (typeof o.restoreBackup !== 'function') { setErr('当前不能恢复加密备份'); return; }
-      try {
-        const state = await o.restoreBackup(b.text, pw);
-        if (dlg) dlg.close();
-        if (typeof o.onRestore === 'function') o.onRestore(state);
-      } catch (e) {
-        setErr('解不开：密码不对，或文件已损坏');
-      }
-      return;
-    }
-    if (!coverEl || coverEl.value.trim() !== '覆盖') {
-      setErr('要替换当前账本，请先输入「覆盖」两个字');
-      if (coverEl) coverEl.focus();
-      return;
-    }
-    if (dlg) dlg.close();
-    if (typeof o.onImportTemplate === 'function') o.onImportTemplate(b.state, b.stats);
-  }
-
-  function doImport() {
-    const s = source;
-    if (!s) { setErr('先「打开」一个文件，或把内容粘贴到上面的框'); return; }
-    if (s.kind === 'text') return importText(s.text);
-    if (s.kind === 'backup') return importBackup(s.backup);
-    return importTable(s.result);
-  }
 
   dlg = NtModal.open({
     title: '导入',
     autoFocus: false,
     build: (body) => {
-      const box = el('section', 'nt-imp-group');
+      const box = el('section', 'nt-imp-group nt-imp-plain');
+      const fileArea = el('section', 'nt-imp-area');
+      const pasteArea = el('section', 'nt-imp-area');
+
+      const fileTitle = el('div', 'nt-imp-section-title', '文件导入');
+      fileArea.appendChild(fileTitle);
 
       const bar = el('div', 'nt-imp-bar');
-      const openBtn = button('打开', 'nt-btn nt-btn-sm nt-exp-main');
-      openBtn.addEventListener('click', () => pickFile('.lz,.xlsx,.xls,.csv,.txt,.tsv,.json', loadFile));
-      const pasteBtn = button('粘贴', 'nt-btn nt-btn-sm');
-      pasteBtn.addEventListener('click', pasteText);
+      const openBtn = button('打开', 'nt-btn nt-btn-sm');
+      openBtn.addEventListener('click', () => pickFiles('.lz,.xlsx,.xls,.csv,.txt,.tsv,.json,.enc,.vault,.shadow', async (files) => {
+        if (!files.length) return;
+        const cipherLike = files.length > 1
+          || files.some((f) => /\.(enc|vault|shadow)$/i.test(f.name));
+        if (cipherLike) await loadCipherFiles(ctx, files);
+        else await loadFile(files[0]);
+      }));
       bar.appendChild(openBtn);
-      bar.appendChild(pasteBtn);
-      box.appendChild(bar);
+      fileArea.appendChild(bar);
+
+      statusEl = el('div', 'nt-imp-status', '还没有选择文件。');
+      fileArea.appendChild(statusEl);
+
+      fileGo = button('导入', 'nt-btn nt-btn-sm nt-imp-go');
+      fileGo.disabled = true;
+      fileGo.addEventListener('click', () => doFileImport(ctx));
+      const fileGoBar = el('div', 'nt-imp-bar nt-imp-go-bar');
+      fileGoBar.appendChild(fileGo);
+      fileArea.appendChild(fileGoBar);
+      box.appendChild(fileArea);
+
+      const pasteTitle = el('div', 'nt-imp-section-title', '粘贴导入');
+      pasteArea.appendChild(pasteTitle);
+
+      const topPaste = el('div', 'nt-imp-bar');
+      const pasteSingle = button('粘贴单文本', 'nt-btn nt-btn-sm');
+      pasteSingle.addEventListener('click', () => pasteTo(ctx, ta, 'single'));
+      const pasteLedger = button('粘贴流水密文', 'nt-btn nt-btn-sm');
+      pasteLedger.addEventListener('click', () => pasteTo(ctx, ta, 'ledger'));
+      topPaste.appendChild(pasteSingle);
+      topPaste.appendChild(pasteLedger);
+      pasteArea.appendChild(topPaste);
 
       ta = el('textarea', 'nt-imp-box');
-      ta.spellcheck = false;
-      ta.placeholder = PLACEHOLDER;
-      ta.addEventListener('input', () => applySource(sourceFromText(ta.value)));
-      box.appendChild(ta);
+      ta.spellcheck = false; ta.placeholder = PLACEHOLDER;
+      ta.addEventListener('input', () => {
+        if (fileGo) fileGo.disabled = true;
+        applySource(sourceFromText(ta.value), false);
+        refreshCipher(ctx);
+      });
+      cLedger = ta; pasteArea.appendChild(ta);
 
-      statusEl = el('div', 'nt-imp-status');
-      box.appendChild(statusEl);
+      const pasteDict = button('粘贴字典密文', 'nt-btn nt-btn-sm');
+      pasteDict.addEventListener('click', () => pasteTo(ctx, cDict, 'dict'));
+      const pasteGo = button('导入', 'nt-btn nt-btn-sm nt-imp-go');
+      pasteGo.addEventListener('click', () => doPasteImport(ctx));
+      const dictBar = el('div', 'nt-imp-bar nt-imp-dictbar');
+      dictBar.append(pasteDict, pasteGo); pasteArea.appendChild(dictBar);
 
-      need = el('div', 'nt-imp-need');
-      need.hidden = true;
+      cDict = el('textarea', 'nt-imp-box nt-imp-cipher');
+      cDict.spellcheck = false;
+      cDict.placeholder = '字典密文（dict.enc / dict.vault）；单文本导入时留空。';
+      cDict.addEventListener('input', () => refreshCipher(ctx));
+      pasteArea.appendChild(cDict);
+      cipherStatus = el('div', 'nt-imp-status', '密文是两份：上面流水、下面字典。单文本只填上面。');
+      pasteArea.appendChild(cipherStatus);
+      box.appendChild(pasteArea);
 
-      fromEl = el('input');
-      fromEl.type = 'date';
+      need = el('div', 'nt-imp-need'); need.hidden = true;
+
+      fromEl = el('input'); fromEl.type = 'date';
       billRow = field('起始日期', fromEl);
       need.appendChild(billRow);
 
@@ -301,34 +343,28 @@ export function openImportHub(opts) {
       myRow = field('我的账户', mySel);
       need.appendChild(myRow);
 
-      pwEl = el('input');
-      pwEl.type = 'password';
-      pwEl.placeholder = '账本密码';
+      pwEl = el('input'); pwEl.type = 'password'; pwEl.placeholder = '账本密码';
       pwRow = field('密码', pwEl);
       need.appendChild(pwRow);
 
-      coverWrap = el('div', 'nt-imp-cover');
+      coverWrap = el('div', 'nt-imp-cover'); coverWrap.hidden = true;
       coverWrap.appendChild(hint('要覆盖当前账本，请在下面输入「覆盖」两个字：', false));
       coverEl = el('input');
       coverEl.placeholder = '覆盖';
       coverWrap.appendChild(field('确认', coverEl));
-      need.appendChild(coverWrap);
 
       box.appendChild(need);
+      // 「覆盖」属于文件导入，放在文件区的导入按钮上方。
+      if (fileArea && fileGoBar) fileArea.insertBefore(coverWrap, fileGoBar);
+      else box.appendChild(coverWrap);
 
-      errEl = el('p', 'nt-sync-hint nt-imp-sub nt-import-map-err');
-      box.appendChild(errEl);
-
-      const foot = el('div', 'nt-imp-foot');
-      const go = button('导入', 'nt-btn nt-btn-primary');
-      go.addEventListener('click', doImport);
-      foot.appendChild(go);
-      box.appendChild(foot);
+      errEl = el('p', 'nt-sync-hint nt-imp-sub nt-import-map-err'); box.appendChild(errEl);
 
       body.appendChild(box);
 
       fromEl.addEventListener('change', refreshStatus);
       mySel.addEventListener('change', refreshStatus);
+      refreshCipher(ctx);
     },
   });
 

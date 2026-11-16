@@ -23,7 +23,7 @@
  * 鏂板鏂囦欢璁板緱鍔犺繘鏉ワ紙tools 閲屾湁鐢熸垚鑴氭湰锛夈€?
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.559';
+const CACHE_NAME = 'nt-v1.560';
 
 const ASSETS = [
   './css/base.css',
@@ -123,6 +123,7 @@ const ASSETS = [
   './js/core/sync-window.js',
   './js/core/table-cols.js',
   './js/core/table-fit.js',
+  './js/core/txtvein-bridge.js',
   './js/core/undo-stack.js',
   './js/core/validate.js',
   './js/core/validator.js',
@@ -143,12 +144,9 @@ const ASSETS = [
   './js/platform/device-profile.js',
   './js/text-app.js',
   './js/timeline/time-state.js',
-  './js/ui/account-actions.js',
-  './js/ui/account-config.js',
-  './js/ui/account-dialog.js',
-  './js/ui/account-new.js',
-  './js/ui/account-table.js',
-  './js/ui/add-dialog.js',
+  './js/ui/account-actions.js', './js/ui/account-config.js',
+  './js/ui/account-dialog.js', './js/ui/account-new.js',
+  './js/ui/account-table.js', './js/ui/add-dialog.js',
   './js/ui/alias-batch.js',
   './js/ui/apply-settings.js', './js/ui/batch-render.js',
   './js/ui/backup-guard.js', './js/ui/bubble-stage.js',
@@ -186,6 +184,7 @@ const ASSETS = [
   './js/ui/import-bill.js',
   './js/ui/import-dialog.js',
   './js/ui/import-hub.js',
+  './js/ui/import-actions.js', './js/ui/import-txtvein.js',
   './js/ui/import-map.js',
   './js/ui/import-source.js',
   './js/ui/inst-add.js',

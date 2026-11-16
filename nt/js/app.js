@@ -13,7 +13,7 @@ import { loadTemplates } from './ui/render-transactions.js';
 import { bindTabs } from './ui/tabs.js';
 import { showGate, hideGate } from './ui/gate.js';
 import { openAccountsWith } from './ui/account-actions.js';
-import { hasVault, createVault, unlockVault, saveState, destroyVault, changeVaultPassword, buildEncryptedBackup, restoreEncryptedBackup } from './browser/db.js';
+import { hasVault, createVault, unlockVault, saveState, destroyVault, changeVaultPassword, buildEncryptedBackup, restoreEncryptedBackup, buildTxtVeinCipher, restoreTxtVeinCipher } from './browser/db.js';
 import { loadAliases, saveAliases } from './browser/alias-store.js';
 import { createUndo } from './core/undo-stack.js';
 import { makeResetAccounts, makeResetBook } from './ui/reset-actions.js';
@@ -211,13 +211,12 @@ function mountViews() {
     resetBook: makeResetBook({
       setState, saveNow: flushSave, getState, render: renderActive, footer: setFooter,
     }),
-    shareBackup: async () => {
-      const text = await buildEncryptedBackup(getState());
-      return deliverTextFile(backupFileName(), text, 'text/plain');
-    },
+    shareBackup: async () => deliverTextFile(backupFileName(), await buildEncryptedBackup(getState()), 'text/plain'),
     encryptedBackupText: () => buildEncryptedBackup(getState()),
+    txtveinCipherText: (mode) => buildTxtVeinCipher(getState(), mode),
     markBackup: () => markBackupDone(Date.now()),
     restoreBackup: (text, password) => restoreEncryptedBackup(text, password),
+    restoreTxtveinCipher: (text, password) => restoreTxtVeinCipher(text, password),
     // 软件级别名表：跨账本共享，不进 state（见 browser/alias-store.js）
     loadAliases: () => loadAliases(),
     saveAliases: (items) => saveAliases(items),

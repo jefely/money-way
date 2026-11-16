@@ -27,6 +27,96 @@
   margin-top: 8px;
 }
 
+.nt-imp-cipher {
+  min-height: 96px;
+  max-height: 26vh;
+  margin-top: 6px;
+}
+.nt-imp-sub {
+  margin-top: 10px;
+  color: var(--nt-text-muted);
+  font-size: 12px;
+}
+.nt-imp-dictbar {
+  margin-top: 14px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+.nt-imp-dictbar .nt-imp-go {
+  margin-left: auto;
+}
+.nt-imp-section-title {
+  margin: 14px 0 6px;
+  color: var(--nt-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.nt-imp-area {
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  background: var(--nt-bg-soft);
+}
+.nt-io-frame {
+  margin-bottom: 12px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  background: var(--nt-bg-soft);
+  overflow: hidden;
+}
+.nt-io-section {
+  padding: 12px;
+}
+.nt-io-section + .nt-io-section {
+  border-top: 1px solid var(--nt-bg-line);
+}
+.nt-io-section .nt-imp-section-title,
+.nt-io-section .nt-exp-sec {
+  margin-top: 0;
+}
+/* 导出：两个独立圆角框，中间留空 */
+.nt-io-box {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--nt-bg-line);
+  border-radius: var(--nt-radius);
+  background: var(--nt-bg-soft);
+}
+.nt-io-box:last-child {
+  margin-bottom: 0;
+}
+.nt-io-box .nt-exp-sec:first-child {
+  margin-top: 0;
+}
+/* 导出按钮整体略窄：高度不变，只收左右内边距 */
+.nt-io-box .nt-exp-bar .nt-btn {
+  padding: 0 11px;
+}
+.nt-exp-copy-row {
+  flex-wrap: nowrap;
+}
+.nt-exp-copy-row .nt-btn {
+  flex: 0 0 auto;
+}
+.nt-exp-copy-row .nt-exp-copy {
+  margin-left: auto;
+  min-width: 42px;
+  width: auto;
+}
+.nt-io-box .nt-exp-bar .nt-exp-copy {
+  padding: 0 9px;
+}
+.nt-imp-area .nt-imp-section-title {
+  margin-top: 0;
+  color: var(--nt-text);
+}
+.nt-imp-go-bar {
+  justify-content: flex-end;
+  margin-bottom: 0;
+}
+
 .nt-btn-ghost {
   background: transparent;
   border-color: var(--nt-bg-line);
@@ -255,6 +345,15 @@
   background: var(--nt-bg-cell);
 }
 
+/* 导入：外层不再套圆角框，只保留「文件导入 / 粘贴导入」两个内层圆角区。 */
+.nt-imp-group.nt-imp-plain {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
 .nt-imp-group:last-child {
   margin-bottom: 0;
 }
@@ -310,6 +409,9 @@
 .nt-imp-need {
   margin-top: 8px;
 }
+.nt-imp-cover {
+  margin-top: 10px;
+}
 
 /* 字段行：[标签 + 控件][按钮…] —— 一行可以放两个按钮（打开 / 导入） */
 .nt-imp-field {
@@ -351,9 +453,9 @@
 .nt-imp-field .nt-btn,
 .nt-imp-bar .nt-btn {
   flex: 0 0 auto;
-  height: 28px;
-  padding: 0 12px;
-  font-size: 12px;
+  height: 32px;
+  padding: 0 11px;
+  font-size: inherit;
 }
 
 /* 错误提示空着的时候不要留一条 18px 的空白（框内会显得漏了东西） */

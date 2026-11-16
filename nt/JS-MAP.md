@@ -88,6 +88,7 @@
 | `core/sync-window.js` | （无界面）同步窗口自适应：一张码能装多少天就装多少天 |
 | `core/table-cols.js` | （无界面）每张表各自的列与默认列宽 |
 | `core/table-fit.js` | （无界面）列宽压缩与拖动上限的纯计算 |
+| `core/txtvein-bridge.js` | （未标注界面）TxtVein ↔ NT账本 文本桥 |
 | `core/undo-stack.js` | （无界面）有上限的撤销 / 重做栈 |
 | `core/validate.js` | （无界面）账本校验 V1–V7 |
 | `core/validator.js` | （无界面）校验工具 |
@@ -150,12 +151,14 @@
 | `ui/fly-in.js` | 流水 tab → 入账飞入 |
 | `ui/gate.js` | 锁屏 / 首次设密码 |
 | `ui/global-undo.js` | 全局撤销 / 重做的动作与快捷键 |
+| `ui/import-actions.js` | 导入动作（表格 / 文本 / 加密备份） |
 | `ui/import-backup.js` | 备份文件读取（.lz 快照 / 加密备份 / 整本 Excel 备份） |
 | `ui/import-bill.js` | 导入预览里的「账单」面板（起始日期 + 六元素统计） |
 | `ui/import-dialog.js` | 导入 Excel / CSV / 账单 |
 | `ui/import-hub.js` | 流水工具条「导入」→ 一个窗口、一个输入框 |
 | `ui/import-map.js` | 导入 → 手动指定列 |
 | `ui/import-source.js` | 导入源识别（文件 / 粘贴文本 → 账单 / 通用表 / 备份 / 流水文本） |
+| `ui/import-txtvein.js` | 导入里的 TxtVein 文本 / 双文件密文部分 |
 | `ui/inst-add.js` | 分期表上方的「新增」表单 |
 | `ui/inst-blanks.js` | 分期表后面的固定空行（纯占位） |
 | `ui/inst-layout.js` | 分期表的列宽记忆 / 新增定位 |

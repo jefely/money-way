@@ -15,6 +15,9 @@ import { rekeyVault } from '../core/vault-rekey.js';
 import { idbGet, idbPut, idbDel, idbCasPut } from './idb.js';
 import { SCHEMA_VERSION } from '../core/schema.js';
 import { packBackup, unpackBackup } from '../core/backup-file.js';
+import {
+  toTxtVein, fromTxtVein, packBundle, unpackBundle, packSecure, extractSecure,
+} from '../core/txtvein-bridge.js';
 
 export const VAULT_KEY = 'state';
 
@@ -156,4 +159,57 @@ export async function restoreEncryptedBackup(text, password) {
   const key = await deriveKey(password, base64ToBytes(env.salt));
   const plain = await decryptData(key, base64ToBytes(env.iv), base64ToBytes(env.ciphertext));
   return JSON.parse(plain);
+}
+
+/**
+ * 用当前内存钥匙生成 TxtVein 双文件密文。
+ * 加密格式完全按 TxtVein：PBKDF2-SHA256 150000 + AES-GCM-256 + [SECURE_START] 装甲。
+ * 返回一个可粘贴的 bundle 和两份独立文件。
+ */
+export async function buildTxtVeinCipher(stateObj, mode) {
+  if (!isUnlocked()) throw new Error('尚未解锁，不能导出密文');
+  const old = (await readVaultRecord()) || {};
+  if (!old.salt) throw new Error('还没有保险库');
+  const built = toTxtVein(stateObj || {});
+  const deep = mode !== 'shadow';
+  const parts = { vaultId: '', iterations: 150000, salt: old.salt };
+  const led = await encryptData(getKey(), built.ledgerText);
+  const dic = await encryptData(getKey(), built.dictText);
+  const ledgerText = deep
+    ? packSecure('ledger', { ...parts, iv: bytesToBase64(led.iv) }, bytesToBase64(led.ciphertext))
+    : built.ledgerText;
+  const dictText = packSecure('dict', { ...parts, iv: bytesToBase64(dic.iv) }, bytesToBase64(dic.ciphertext));
+  const files = [
+    { name: deep ? 'ledger.enc' : 'ledger.shadow', text: ledgerText },
+    { name: deep ? 'dict.enc' : 'dict.vault', text: dictText },
+  ];
+  return {
+    mode: deep ? 'deep' : 'shadow',
+    files,
+    bundle: packBundle(files, deep ? 'deep' : 'shadow'),
+  };
+}
+
+/** 解开 TxtVein 双文件密文 bundle，转成 NT state。 */
+export async function restoreTxtVeinCipher(text, password) {
+  const b = unpackBundle(text);
+  if (!b || !b.files || b.files.length < 2) throw new Error('不是 TxtVein 双文件 bundle');
+  const ledger = b.files.find((f) => /ledger/i.test(f.name));
+  const dict = b.files.find((f) => /dict|vault/i.test(f.name));
+  if (!ledger || !dict) throw new Error('bundle 缺流水或字典');
+
+  async function plainOf(file) {
+    if (!/\[SECURE_START/.test(file.text)) return file.text;
+    const env = extractSecure(file.text);
+    const key = await deriveKey(password, base64ToBytes(env.salt), env.iterations);
+    return decryptData(key, base64ToBytes(env.iv), base64ToBytes(env.ciphertext));
+  }
+
+  const ledgerText = await plainOf(ledger);
+  const dictText = await plainOf(dict);
+  const single = ['## 统计', '## 流水', ledgerText,
+    '## 行为', '## 备注', '## 字典', dictText].join('\n');
+  const r = fromTxtVein(single);
+  if (!r.ok) throw new Error((r.errors && r.errors[0] && r.errors[0].message) || 'TxtVein 密文解析失败');
+  return r.state;
 }

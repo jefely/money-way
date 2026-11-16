@@ -13,7 +13,8 @@
 import * as NtModal from './modal.js';
 import { downloadBlob, downloadText } from './file-io.js';
 import { encodeSyncCode } from '../core/sync-code.js';
-import { toTxtText, toCsvText, exportBaseName } from '../core/export-text.js';
+import { exportBaseName, toCsvText } from '../core/export-text.js';
+import { toTxtVein } from '../core/txtvein-bridge.js';
 import { buildXlsx } from './xlsx-write.js';
 import { buildTemplateSheets } from '../core/xlsx-template.js';
 
@@ -29,58 +30,84 @@ export function openExportDialog(h) {
     title: '导出',
     autoFocus: false,
     build: (body) => {
+      const fileSec = document.createElement('section');
+      fileSec.className = 'nt-io-box';
+      const copySec = document.createElement('section');
+      copySec.className = 'nt-io-box';
+
       /* ---------- 导出文件 ---------- */
-      body.appendChild(sectionTitle('导出文件'));
+      fileSec.appendChild(sectionTitle('导出文件'));
 
       const fileBar = document.createElement('div');
       fileBar.className = 'nt-exp-bar';
       fileBar.appendChild(btn('导出 .lz', () => doLz()));
       fileBar.appendChild(btn('导出 .xlsx', () => doXlsx()));
-      fileBar.appendChild(btn('导出加密备份', () => doShare()));
-      body.appendChild(fileBar);
+      fileSec.appendChild(fileBar);
+      const fileBar2 = document.createElement('div');
+      fileBar2.className = 'nt-exp-bar';
+      fileBar2.appendChild(btn('导出初级流水密文', () => doCipherFile('shadow', 'ledger')));
+      fileBar2.appendChild(btn('导出初级字典密文', () => doCipherFile('shadow', 'dict')));
+      fileSec.appendChild(fileBar2);
+      const fileBar3 = document.createElement('div');
+      fileBar3.className = 'nt-exp-bar';
+      fileBar3.appendChild(btn('导出深度流水密文', () => doCipherFile('deep', 'ledger')));
+      fileBar3.appendChild(btn('导出深度字典密文', () => doCipherFile('deep', 'dict')));
+      fileSec.appendChild(fileBar3);
 
       const fileHint = document.createElement('p');
       fileHint.className = 'nt-sync-hint';
-      fileHint.textContent = '「导出加密备份」用账本密码加密，存成纯文本（NT账本-加密备份-日期.txt）。'
-        + '安卓和 iPhone 主屏幕都会打开系统分享，可存到网盘或文件。'
+      fileHint.textContent = '初级/深度密文按 TxtVein 的双文件格式生成：流水 + 字典两个文件。'
+        + '手机不能存文件时，用下面的「生成初级密文 / 生成深度密文」复制整段 bundle。'
         + '.lz 只是压缩，不含密码，不要把它当备份传到别处。';
-      body.appendChild(fileHint);
+      fileSec.appendChild(fileHint);
 
       /* ---------- 复制内容 ---------- */
-      body.appendChild(sectionTitle('复制内容'));
+      copySec.appendChild(sectionTitle('复制内容'));
 
-      const copyBar = document.createElement('div');
-      copyBar.className = 'nt-exp-bar';
+      const copyBar1 = document.createElement('div');
+      copyBar1.className = 'nt-exp-bar';
       const csvBtn = btn('生成 .csv', () => {
         textCache.csv = toCsvText(state, { codeOf: h.codeOf });
         ta.value = textCache.csv;
         note.textContent = `已生成 CSV（制表符分隔，${(state.transactions || []).length} 笔流水）。点「复制」带走。`;
       });
       const txtBtn = btn('生成 .txt', () => {
-        textCache.txt = toTxtText(state, { codeOf: h.codeOf });
-        ta.value = textCache.txt;
-        note.textContent = `已生成 TXT 模板：账户 ${(state.accounts || []).length} 个、`
-          + `流水 ${(state.transactions || []).length} 笔。点「复制」带走。`;
+        const built = toTxtVein(state);
+        ta.value = built.singleText;
+        note.textContent = `已生成 TxtVein 单 TXT：账户 ${built.stats.accounts} 个、流水 ${built.stats.transactions} 笔。点「复制」带走。`;
       });
-      const encBtn = btn('生成密文', () => doEncText());
-      const copyBtn = btn('复制', () => copyTa());
+      copyBar1.appendChild(csvBtn);
+      copyBar1.appendChild(txtBtn);
+      copySec.appendChild(copyBar1);
 
-      copyBar.appendChild(csvBtn);
-      copyBar.appendChild(txtBtn);
-      copyBar.appendChild(encBtn);
-      copyBar.appendChild(copyBtn);
-      body.appendChild(copyBar);
+      const copyBar2 = document.createElement('div');
+      copyBar2.className = 'nt-exp-bar';
+      copyBar2.appendChild(btn('生成初级流水密文', () => doCipherText('shadow', 'ledger')));
+      copyBar2.appendChild(btn('生成初级字典密文', () => doCipherText('shadow', 'dict')));
+      copySec.appendChild(copyBar2);
+
+      const copyBar3 = document.createElement('div');
+      copyBar3.className = 'nt-exp-bar nt-exp-copy-row';
+      copyBar3.appendChild(btn('生成深度流水密文', () => doCipherText('deep', 'ledger')));
+      copyBar3.appendChild(btn('生成深度字典密文', () => doCipherText('deep', 'dict')));
+      const copyBtn = btn('复制', () => copyTa());
+      copyBtn.classList.add('nt-exp-copy');
+      copyBar3.appendChild(copyBtn);
+      copySec.appendChild(copyBar3);
 
       const ta = document.createElement('textarea');
       ta.className = 'nt-exp-out';
       ta.spellcheck = false;
-      ta.placeholder = '点「生成密文」得到可粘贴的密文，或生成 .csv / .txt。再点「复制」。';
-      body.appendChild(ta);
+      ta.placeholder = '点一个生成按钮，文本框就显示那个功能的文本；点「复制」带走。';
+      copySec.appendChild(ta);
 
       const note = document.createElement('p');
       note.className = 'nt-sync-hint';
       note.textContent = '说明：复制出来的是纯文本，粘到记事本存成对应后缀即可。';
-      body.appendChild(note);
+      copySec.appendChild(note);
+
+      body.appendChild(fileSec);
+      body.appendChild(copySec);
 
       /* ---------- 动作 ---------- */
 
@@ -102,6 +129,36 @@ export function openExportDialog(h) {
           } catch (e) { /* 忽略 */ }
         }
         note.textContent = ok ? `已复制 ${ta.value.length} 个字符` : '复制失败，请长按文本框全选复制';
+      }
+
+      async function doCipherText(mode, part) {
+        if (typeof h.txtveinCipherText !== 'function') {
+          note.textContent = '当前不能生成 TxtVein 密文';
+          return;
+        }
+        try {
+          const r = await h.txtveinCipherText(mode);
+          const f = part === 'dict' ? r.files[1] : r.files[0];
+          ta.value = f.text;
+          note.textContent = `已生成${mode === 'shadow' ? '初级' : '深度'}${part === 'dict' ? '字典' : '流水'}密文（${f.name}）。点「复制」带走。`;
+        } catch (e) {
+          note.textContent = '生成密文失败：' + ((e && e.message) || e);
+        }
+      }
+
+      async function doCipherFile(mode, part) {
+        if (typeof h.txtveinCipherText !== 'function') {
+          note.textContent = '当前不能生成 TxtVein 密文';
+          return;
+        }
+        try {
+          const r = await h.txtveinCipherText(mode);
+          const f = part === 'dict' ? r.files[1] : r.files[0];
+          downloadText(f.name, f.text, 'text/plain');
+          note.textContent = `已导出 ${f.name}`;
+        } catch (e) {
+          note.textContent = '导出密文失败：' + ((e && e.message) || e);
+        }
       }
 
       async function doEncText() {

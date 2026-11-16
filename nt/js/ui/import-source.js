@@ -23,6 +23,7 @@ import { parseCsv, tidyRows } from '../core/csv.js';
 
 /** 账本流水文本：有一行以「账户：」或「流水：」开头就按文本走，别再猜表头 */
 const LEDGER_RE = /(^|\n)[ \t]*(账户|流水)[ \t]*[:：]/;
+const TXTVEIN_RE = /(^|\n)\s*##\s*字典\s*(\n|$)/;
 
 /** 行数组 → bill / table（认不出返回 null） */
 function fromRows(rows) {
@@ -40,6 +41,8 @@ function fromRows(rows) {
 export function sourceFromText(text) {
   const t = String(text == null ? '' : text);
   if (!t.trim()) return null;
+  if (/\[TXTVEIN_BUNDLE:/.test(t)) return { kind: 'txtvein-cipher', text: t };
+  if (TXTVEIN_RE.test(t)) return { kind: 'txtvein', text: t };
   if (isBackupText(t)) return { kind: 'backup', backup: { kind: 'backup', text: t } };
   if (!LEDGER_RE.test(t)) {
     const table = fromRows(tidyRows(parseCsv(t)));
