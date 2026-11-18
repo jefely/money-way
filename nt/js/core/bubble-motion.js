@@ -350,7 +350,7 @@ export function packCluster(items, anchorX, anchorY, limit) {
     const ang = i * 2.399963;
     const rad = 4 + it.r * 0.15 * Math.sqrt(i);
     return {
-      id: it.id, name: it.name, r: it.r, v: it.v, lane: it.lane,
+      id: it.id, name: it.name, r: it.r, v: it.v, lane: it.lane, amount: it.amount, kind: it.kind,
       x: anchorX + Math.cos(ang) * rad,
       y: anchorY + Math.sin(ang) * rad,
     };

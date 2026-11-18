@@ -66,7 +66,7 @@ const ASSETS = [
   './js/core/bill-apply.js',
   './js/core/bill-match.js',
   './js/core/bill-parse.js',
-  './js/core/bill-plan.js', './js/core/bubble-callout.js', './js/core/bubble-columns.js', './js/core/bubble-home.js', './js/core/bubble-motion.js', './js/core/bubble-union.js', './js/core/bubble-scene.js',
+  './js/core/bill-plan.js', './js/core/bubble-callout.js', './js/core/bubble-columns.js', './js/core/bubble-home.js', './js/core/bubble-motion.js', './js/core/bubble-play.js', './js/core/bubble-union.js', './js/core/bubble-scene.js',
   './js/core/calc-engine.js',
   './js/core/category-query.js',
   './js/core/color.js',

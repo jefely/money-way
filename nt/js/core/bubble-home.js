@@ -7,8 +7,9 @@
 import { isDebitType } from './schema.js';
 import {
   bubbleRadius, clamp01, eventProgress, flyScale, textFade,
-  packCluster, packEdge, shownBalance, yOfDay,
+  packCluster, packEdge, yOfDay,
 } from './bubble-motion.js';
+import { dayLine, playLayout, stockBooks } from './bubble-play.js';
 
 function smooth(t) {
   const x = Math.min(1, Math.max(0, t));
@@ -81,13 +82,15 @@ function pushPairs(list, gap) {
   }
 }
 
-function stackLeft(items, edge, height, gap) {
+function stackLeft(items, edge, height, gap, sc) {
   const sorted = items.slice().sort((a, b) => (a.id < b.id ? -1 : 1));
-  const total = sorted.reduce((s, b) => s + b.r * 2, 0) + gap * Math.max(0, sorted.length - 1);
+  const rad = (b) => b.r * (sc || 1);
+  const total = sorted.reduce((s, b) => s + rad(b) * 2, 0) + gap * Math.max(0, sorted.length - 1);
   let y = height / 2 - total / 2;
   return sorted.map((b) => {
-    const node = { ...b, x: edge + b.r, y: y + b.r, ax: edge + b.r, ay: y + b.r };
-    y += b.r * 2 + gap;
+    const rr = rad(b);
+    const node = { ...b, sx: edge + rr, sy: y + rr, x: edge + rr, y: y + rr };
+    y += rr * 2 + gap;
     return node;
   });
 }
@@ -100,7 +103,6 @@ export function buildHome(model, view) {
   const scroll = view.scrollDay || 0;
   const zone = view.zone;
   const win = view.windowPx;
-  const gap = view.dayGap == null ? 0.65 : Number(view.dayGap);
   const sep = Math.max(0, view.gap == null ? 4 : view.gap);
   const fitR = (v) => bubbleRadius(Math.abs(v), {
     mults: view.mults, dMin: view.dMin, dMax: view.dMax, dMaxOn: view.dMaxOn,
@@ -110,29 +112,32 @@ export function buildHome(model, view) {
   const accounts = model.accounts || [];
   const events = model.events || [];
   const byId = new Map(accounts.map((a) => [a.id, a]));
-
-  const prog = (e) => {
-    const base = e.vday == null ? e.day : e.vday;
-    const shifted = base + (e.queue || 0) * gap;
-    return eventProgress(shifted, scroll, ppd, height, zone, win);
-  };
+  const play = playLayout(model, ppd, height, Number(win) > 0 ? Number(win) : height * 0.8);
+  const prog = (e) => eventProgress(play.slot.get(e.key), scroll, ppd, height, zone, win);
+  const books = stockBooks(events, accounts, prog);
+  const cam = view.cam || {};
+  const sc = cam.s > 0 ? cam.s : 1;
+  const wx = (sx) => width / 2 + (sx - width / 2 - (cam.x || 0)) / sc;
+  const wy = (sy) => height / 2 + (sy - height / 2 - (cam.y || 0)) / sc;
 
   const liab = [];
   const asset = [];
   for (const a of accounts) {
     if (!a.stock) continue;
+    const book = books.get(a.id);
+    if (!book || (Math.abs(book.label) < 0.5 && !book.live)) continue;
     const debit = isDebitType(a.type);
-    const v = shownBalance(events, a.id, debit, scroll, ppd, height, zone, gap, win);
-    if (Math.abs(v) < 0.5) continue;
     const node = {
-      id: a.id, name: a.name, lane: a.lane, r: fitR(v), amount: Math.abs(v), v,
-      kind: debit ? 'asset' : 'liab',
+      id: a.id, name: a.name, lane: a.lane, r: fitR(book.size), amount: Math.abs(book.label),
+      v: book.size, kind: debit ? 'asset' : 'liab',
     };
     (debit ? asset : liab).push(node);
   }
-  const placedL = stackLeft(liab, insetL, height, sep);
+  const placedL = stackLeft(liab, insetL, height, sep, sc);
+  const pinL = () => { for (const b of placedL) { b.x = wx(b.sx); b.y = wy(b.sy); } };
+  pinL();
   const placedA = packCluster(asset, width / 2, height / 2, { top: height * 0.12, bottom: height * 0.88 });
-  for (const b of placedA) { b.ax = width / 2; b.ay = height / 2; b.amount = Math.abs(b.v); }
+  for (const b of placedA) { b.ax = width / 2; b.ay = height / 2; }
   const stay = [...placedL, ...placedA];
   for (let n = 0; n < 20; n += 1) {
     pushPairs(stay, sep);
@@ -143,15 +148,25 @@ export function buildHome(model, view) {
     }
   }
   for (let n = 0; n < 10; n += 1) pushPairs(stay, sep);
+  pinL();
   const at = new Map(stay.map((b) => [b.id, b]));
 
+  const bagAt = (e) => {
+    let s = play.slot.get(e.key);
+    for (const o of events) {
+      if (o.edge !== 'R' || o.day !== e.day || o.cat !== e.cat) continue;
+      const n = play.slot.get(o.key);
+      if (n < s) s = n;
+    }
+    return s;
+  };
   const bags = new Map();
   for (const e of events) {
     if (e.edge !== 'R' || !(prog(e) >= 1)) continue;
     const id = 'R:' + e.day + ':' + e.cat;
     let bag = bags.get(id);
     if (!bag) {
-      const y = yOfDay(e.vday == null ? e.day : e.vday, scroll, ppd, height);
+      const y = yOfDay(bagAt(e), scroll, ppd, height);
       bag = { id, name: e.cat || '费用', lane: e.toLane < 0 ? 4 : e.toLane, y, dateY: y, amount: 0, edge: 'R' };
       bags.set(id, bag);
     }
@@ -162,16 +177,9 @@ export function buildHome(model, view) {
   }));
   const xRight = width - insetR;
   let right = packEdge(rightItems, xRight, -1, width);
-  for (const b of right) { b.dateY = b.y; b.band = Math.max(8, ppd * 0.42); b.edge = 'R'; }
   for (const b of right) {
-    let x = xRight - b.r;
-    for (const o of stay) {
-      const dy = b.y - o.y;
-      const min = b.r + o.r + sep;
-      if (Math.abs(dy) >= min) continue;
-      x = Math.max(x, o.x + Math.sqrt(Math.max(0, min * min - dy * dy)));
-    }
-    b.x = x;
+    b.dateY = b.y; b.band = Math.max(8, ppd * 0.42); b.edge = 'R';
+    b.x = wx(width - insetR - b.r * sc);
   }
   for (let n = 0; n < 8; n += 1) {
     pushPairs(right, sep);
@@ -191,7 +199,7 @@ export function buildHome(model, view) {
     if (!(scale > 0.04)) continue;
     const from = byId.get(e.fromId);
     const to = byId.get(e.toId);
-    const yDate = yOfDay(e.vday == null ? e.day : e.vday, scroll, ppd, height);
+    const yDate = yOfDay(e.edge === 'R' ? bagAt(e) : dayLine(play, e), scroll, ppd, height);
     const bag = right.find((b) => b.id === 'R:' + e.day + ':' + e.cat);
     const flyR = fitR(e.amount);
     const spotFor = (id) => at.get(id) || null;
@@ -206,21 +214,13 @@ export function buildHome(model, view) {
         : null;
     }
     if (!dst) {
-      let x = e.edge === 'R' ? xRight - 18 : width / 2;
+      const x = e.edge === 'R' ? wx(width - insetR - flyR * sc) : width / 2;
       const y = e.edge === 'R' ? yDate : height / 2;
-      if (e.edge === 'R') {
-        const min = flyR + sep;
-        for (const o of stay) {
-          const dy = y - o.y;
-          if (Math.abs(dy) >= o.r + min) continue;
-          x = Math.max(x, o.x + Math.sqrt(Math.max(0, (o.r + min) * (o.r + min) - dy * dy)));
-        }
-      }
       dst = { x, y, r: 10, id: e.toId || '' };
     }
     const incoming = e.kind === 'inflow' || (e.opening && e.toId !== '__OPENING__');
     if (!src && incoming) {
-      src = { x: Math.max(8, flyR * 0.35), y: height - Math.max(8, flyR * 0.25), r: 6, id: '' };
+      src = { x: wx(Math.max(8, flyR * sc * 0.35)), y: wy(height - Math.max(8, flyR * sc * 0.25)), r: 6, id: '' };
     }
     if (!src) {
       src = {

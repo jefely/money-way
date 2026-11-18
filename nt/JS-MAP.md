@@ -30,6 +30,7 @@
 | `core/bubble-columns.js` | 脉络四列各自守住自己的位置 |
 | `core/bubble-home.js` | 资产居中、负债在左、费用按日在右 |
 | `core/bubble-motion.js` | 脉络气泡的滚动进度、分组与形变 |
+| `core/bubble-play.js` | 同一账户的接触按顺序排开 |
 | `core/bubble-scene.js` | 脉络一帧里每颗泡的位置 |
 | `core/bubble-union.js` | 两颗脉络气泡的融合轮廓 |
 | `core/calc-engine.js` | （无界面）计算引擎：余额 / 双式恒等 / 实物成本台账 |

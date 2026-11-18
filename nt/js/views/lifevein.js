@@ -12,6 +12,7 @@
  */
 
 import { buildLifeVein, monthLabel } from '../core/lifevein-model.js';
+import { playDay, playLayout } from '../core/bubble-play.js';
 import { drawBubbleStage } from '../ui/bubble-stage.js';
 import { pixelsPerDay } from '../core/bubble-motion.js';
 import { readLvParams, onLvLayout } from '../ui/lv-params.js';
@@ -39,6 +40,7 @@ export function mountLifeVein(section, ctx) {
   const W = () => canvas.clientWidth;
   const H = () => canvas.clientHeight;
   const ppd = () => pixelsPerDay(model ? model.vspan : 1, H() || 700, 1, readLvParams().ppd);
+  const play = () => playLayout(model, ppd(), H() || 700, readLvParams().windowPx);
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -87,6 +89,7 @@ export function mountLifeVein(section, ctx) {
       xAsset: lv.xAsset,
       insetL: lv.insetL,
       insetR: lv.insetR,
+      playMarks: play().marks,
     };
     drawBubbleStage(g, model, shot);
     if (needFit && shot.cam) {
@@ -118,7 +121,8 @@ export function mountLifeVein(section, ctx) {
 
   function syncMonth(dir) {
     if (!model) return;
-    const label = monthLabel(model, view.scrollDay);
+    const lay = play();
+    const label = monthLabel(model, view.scrollDay, lay.marks.length ? playDay(lay.marks, view.scrollDay) : null);
     if (!label) return;
     if (!month.to) {
       month = { from: label, to: label, p: 1, dir: dir || 1, t0: 0 };
@@ -138,7 +142,7 @@ export function mountLifeVein(section, ctx) {
 
   function setScroll(day) {
     const prev = view.scrollDay;
-    const hi = model ? model.vspan + 40 : 0;
+    const hi = model ? play().playSpan + 2 : 0;
     view.scrollDay = Math.max(-2, Math.min(hi, day));
     syncMonth(view.scrollDay >= prev ? 1 : -1);
     schedule();

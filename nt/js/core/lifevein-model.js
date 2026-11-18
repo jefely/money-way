@@ -305,8 +305,8 @@ export function calendarDayAt(model, vday) {
 }
 
 /** 正中那一天所在的年月，形如 26年 1月 */
-export function monthLabel(model, vday) {
-  const cal = calendarDayAt(model, vday);
+export function monthLabel(model, vday, dayOverride) {
+  const cal = dayOverride == null ? calendarDayAt(model, vday) : dayOverride;
   const dt = new Date(Date.parse(model.startIso + 'T00:00:00') + Math.round(cal) * 86400000);
   if (Number.isNaN(dt.getTime())) return '';
   return String(dt.getFullYear()).slice(2) + '年 ' + (dt.getMonth() + 1) + '月';

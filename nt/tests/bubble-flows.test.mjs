@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildLifeVein } from '../js/core/lifevein-model.js';
 import { assembleScene } from '../js/core/bubble-scene.js';
+import { playLayout } from '../js/core/bubble-play.js';
 import { shownBalance, pixelsPerDay } from '../js/core/bubble-motion.js';
 import { isDebitType } from '../js/core/schema.js';
 
@@ -69,22 +70,28 @@ test('期末余额：工资进储蓄，刷卡欠款增加，还款和借款方�
   assert.ok(Math.abs(sum - (80 + 20 + 50 + 100)) < 1);
 });
 
-test('刷卡在途时欠款已增加，分类合计先不含这笔', () => {
+test('刷卡在途时欠款标签不变，飞完才跳，分类合计先不含这笔', () => {
   const m = model();
   const cardEv = m.events.find((e) => e.fromId === 'card' && e.amount === 50);
-  let hit = null;
-  for (let s = cardEv.vday - 1; s < cardEv.vday + 4; s += 0.05) {
-    const scene = assembleScene(m, view(m, s));
-    const fly = scene.flies.find((f) => f.amount === 50 && f.kind === 'charge');
-    if (!fly) continue;
-    const debt = raw(m, 'card', s);
-    const bag = scene.right.find((b) => b.id === 'R:' + cardEv.day + ':' + cardEv.cat);
-    hit = { debt, bag: bag ? bag.amount : 0, fly };
-    if (debt > 400 && (!bag || bag.amount < 50)) break;
-  }
-  assert.ok(hit, '应能看到 50 的刷卡飞泡');
-  assert.ok(hit.debt > 400, '飞出时欠款增加 ' + hit.debt);
-  assert.ok(hit.bag < 50, '在途不并进合计 ' + hit.bag);
+  const sample = view(m, 0);
+  const lay = playLayout(m, sample.ppd, sample.height, sample.windowPx);
+  const slot = lay.slot.get(cardEv.key);
+  const at = (p) => {
+    const y = sample.height * 0.9 - p * sample.windowPx;
+    return slot - (y - sample.height / 2) / sample.ppd;
+  };
+  const mid = assembleScene(m, view(m, at(0.4)));
+  const done = assembleScene(m, view(m, at(1.05)));
+  const debt = (scene) => {
+    const b = scene.liab.find((x) => x.id === 'card');
+    return b ? b.amount : 0;
+  };
+  assert.ok(mid.flies.some((f) => f.amount === 50 && f.kind === 'charge'), '应能看到 50 的刷卡飞泡');
+  assert.ok(Math.abs(debt(mid) - 400) < 1, '在途欠款停在期初 ' + debt(mid));
+  const bag = mid.right.find((b) => b.id === 'R:' + cardEv.day + ':' + cardEv.cat);
+  assert.ok(!bag || bag.amount < 50, '在途不并进合计');
+  assert.ok(debt(done) > 400, '飞完欠款跳上去 ' + debt(done));
+  assert.ok(Math.abs(debt(assembleScene(m, view(m, at(0.4)))) - 400) < 1);
 });
 
 test('工资从左下沿抛物线飞向储蓄，倒放是同一条弧', () => {
@@ -126,7 +133,9 @@ test('借款连着负债和资产，还款后两边都变小', () => {
   assert.ok(afterRepay < 400 + 50 + 10);
   let linked = false;
   const bev = m.events.find((e) => e.kind === 'borrow');
-  for (let s = bev.vday; s < bev.vday + 3; s += 0.08) {
+  const sample = view(m, 0, 360, 780);
+  const slot = playLayout(m, sample.ppd, sample.height, sample.windowPx).slot.get(bev.key);
+  for (let s = slot - 2; s < slot + 6; s += 0.08) {
     const scene = assembleScene(m, view(m, s, 360, 780));
     const fly = scene.flies.find((f) => f.kind === 'borrow');
     const loan = scene.liab.find((b) => b.id === 'loan');

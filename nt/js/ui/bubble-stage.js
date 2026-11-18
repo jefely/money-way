@@ -9,6 +9,7 @@ import { unionOutline } from '../core/bubble-union.js';
 import { assembleScene, cameraFit } from '../core/bubble-scene.js';
 import { grainCanvas, readLvParams } from './lv-params.js';
 import { rulerMarks } from '../core/lifevein-model.js';
+import { rulerFromPlay } from '../core/bubble-play.js';
 import {
   circleAdd, labelLayout, paintInnerGlow, paintOuterGlow, unionAdd,
 } from './bubble-ink.js';
@@ -217,9 +218,13 @@ export function drawBubbleStage(g, model, view) {
   paintField(g, w * dpr, h * dpr, dpr, lv, light);
   g.restore();
 
-  const scene = assembleScene(model, view);
-  if (view.fit && !view.cam) view.cam = cameraFit(scene, w, h);
-  const use = view.cam || cam;
+  let use = view.cam || cam;
+  if (view.fit && !view.cam) {
+    const preview = assembleScene(model, { ...view, cam: { s: 1, x: 0, y: 0 } });
+    use = cameraFit(preview, w, h);
+    view.cam = use;
+  }
+  const scene = assembleScene(model, { ...view, cam: use });
   g.save();
   g.translate(w / 2 + (use.x || 0), h / 2 + (use.y || 0));
   g.scale(use.s || 1, use.s || 1);
@@ -277,7 +282,10 @@ function paintRuler(g, model, view, ink, cam) {
   const s = cam && cam.s > 0 ? cam.s : 1;
   const py = (cam && cam.y) || 0;
   const vAt = (y) => view.scrollDay + (y - h / 2 - py) / (view.ppd * s);
-  const marks = rulerMarks(model, vAt(0), vAt(h), view.ppd * s);
+  const px = view.ppd * s;
+  const marks = (view.playMarks && view.playMarks.length)
+    ? rulerFromPlay(model, view.playMarks, vAt(0), vAt(h), px)
+    : rulerMarks(model, vAt(0), vAt(h), px);
   g.strokeStyle = ink.muted;
   g.fillStyle = ink.muted;
   g.lineWidth = 1;

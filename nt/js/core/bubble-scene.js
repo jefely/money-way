@@ -45,23 +45,21 @@ export function assembleScene(model, view) {
   return buildHome(model, view || {});
 }
 
-/** 把这一帧收进屏幕。不放大超过 1。滚出屏幕的费用不参与缩放，资产才不会被拉走。 */
+/** 只按中间的资产缩放，并且把它们收进中带。左右缘是屏幕坐标，不参与这次缩放。 */
 export function cameraFit(scene, width, height) {
-  const all = [...scene.liab, ...scene.asset, ...scene.left, ...scene.right, ...scene.flies]
-    .filter((b) => b && b.y + b.r > -24 && b.y - b.r < height + 24);
+  const all = (scene.asset || []).filter((b) => b && b.r > 0);
   if (!all.length || !(width > 0) || !(height > 0)) return { s: 1, x: 0, y: 0 };
-  const padX = 16;
-  const padY = 28;
+  const roomL = width / 2 - width * 0.22;
+  const roomR = width * 0.78 - width / 2;
+  const halfH = height / 2 - 28;
   let fit = 1;
-  const halfW = width / 2 - padX;
-  const halfH = height / 2 - padY;
   for (const b of all) {
     const right = b.x + b.r - width / 2;
     const left = width / 2 - (b.x - b.r);
     const bot = b.y + b.r - height / 2;
     const top = height / 2 - (b.y - b.r);
-    if (right > 1 && halfW > 0) fit = Math.min(fit, halfW / right);
-    if (left > 1 && halfW > 0) fit = Math.min(fit, halfW / left);
+    if (right > 1 && roomR > 0) fit = Math.min(fit, roomR / right);
+    if (left > 1 && roomL > 0) fit = Math.min(fit, roomL / left);
     if (bot > 1 && halfH > 0) fit = Math.min(fit, halfH / bot);
     if (top > 1 && halfH > 0) fit = Math.min(fit, halfH / top);
   }

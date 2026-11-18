@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 
 import { flyLocal, bagShare, bridgeOutline, pixelsPerDay } from '../js/core/bubble-motion.js';
 import { assembleScene } from '../js/core/bubble-scene.js';
+import { playLayout } from '../js/core/bubble-play.js';
 import { buildLifeVein } from '../js/core/lifevein-model.js';
 
 test('公切轮廓：靠近有四段弧，拉开就没有', () => {
@@ -45,7 +46,8 @@ test('同一天同一分类并成一颗，每笔仍各自飞', () => {
   const h = 700;
   const ppd = pixelsPerDay(m.vspan, h, 1);
   const day = m.events[0].vday;
-  const done = assembleScene(m, { scrollDay: day + 12, ppd, width: 390, height: h, dayGap: 0.65, windowPx: 880 });
+  const lay = playLayout(m, ppd, h, 880);
+  const done = assembleScene(m, { scrollDay: lay.playSpan + 1, ppd, width: 390, height: h, dayGap: 0.65, windowPx: 880 });
   assert.equal(done.flies.length, 0);
   const daily = done.right.find((b) => b.name === '日常');
   const commute = done.right.find((b) => b.name === '通勤');
