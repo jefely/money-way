@@ -4,9 +4,9 @@
 > 新功能一律写在这里；旧版只修致命 bug（公约 1.4）。
 > 建设规则见仓库根目录 [`CODE-RULES.md`](../CODE-RULES.md)。
 
-- **当前版本**：`nt-v1.566`（以 `js/core/version.js` 的 `APP_VER` 为准；须与 `sw.js` 的 `CACHE_NAME` 相同）
+- **当前版本**：`nt-v1.567`（以 `js/core/version.js` 的 `APP_VER` 为准；须与 `sw.js` 的 `CACHE_NAME` 相同）
 - **数据版本**：`SCHEMA_VERSION = 2`
-- **规模**：下面目录树里的个数是更早一次重写时的快照，不要当成今天的文件数。提交前以 `node nt/tools/check-rules.mjs` 和 `node --test nt/tests/*.test.mjs` 的输出为准。写本段时门禁报过 357 个文件、测试 795 项通过（nt-v1.566）
+- **规模**：下面目录树里的个数是更早一次重写时的快照，不要当成今天的文件数。提交前以 `node nt/tools/check-rules.mjs` 和 `node --test nt/tests/*.test.mjs` 的输出为准。写本段时门禁报过 357 个文件、测试 796 项通过（nt-v1.567）
 - **这一版是什么**：单文件版的**重写**。功能从 `personal/index.html` 搬，但每一块都重新分层 ——
   算钱的进 `core/`（纯函数、Node 可跑），碰 DOM 的进 `ui/`，页面只做装配。
 

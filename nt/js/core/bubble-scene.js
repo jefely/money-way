@@ -65,23 +65,7 @@ export function assembleScene(model, view) {
   return buildHome(model, view || {});
 }
 
-/** 只按中间的资产缩放，并且把它们收进中带。左右缘是屏幕坐标，不参与这次缩放。 */
-export function cameraFit(scene, width, height) {
-  const all = (scene.asset || []).filter((b) => b && b.r > 0);
-  if (!all.length || !(width > 0) || !(height > 0)) return { s: 1, x: 0, y: 0 };
-  const roomL = width / 2 - width * 0.34;
-  const roomR = width * 0.66 - width / 2;
-  const halfH = height / 2 - 28;
-  let fit = 1;
-  for (const b of all) {
-    const right = b.x + b.r - width / 2;
-    const left = width / 2 - (b.x - b.r);
-    const bot = b.y + b.r - height / 2;
-    const top = height / 2 - (b.y - b.r);
-    if (right > 1 && roomR > 0) fit = Math.min(fit, roomR / right);
-    if (left > 1 && roomL > 0) fit = Math.min(fit, roomL / left);
-    if (bot > 1 && halfH > 0) fit = Math.min(fit, halfH / bot);
-    if (top > 1 && halfH > 0) fit = Math.min(fit, halfH / top);
-  }
-  return { s: Math.max(0.02, Math.min(1, fit)), x: 0, y: 0 };
+/** 窗口三带自己装下圆。不再把整帧绕中心缩小，否则左右缘会被收进中间。 */
+export function cameraFit() {
+  return { s: 1, x: 0, y: 0 };
 }

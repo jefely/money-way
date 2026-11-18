@@ -2,7 +2,7 @@
 
 > **这篇的「当前状态」冻结在 nt-v1.540，不是现在的线上版本。**
 > 脉络页的现行设计、参数和 v1.561–v1.565 技术交底见 [`VEIN-HANDOFF.md`](VEIN-HANDOFF.md)。口径见 [`LIFEVEIN-PAGE.md`](LIFEVEIN-PAGE.md)。
-> 线上版本以 `js/core/version.js` 的 `APP_VER` 为准（写这篇更新时是 `nt-v1.566`）。
+> 线上版本以 `js/core/version.js` 的 `APP_VER` 为准（写这篇更新时是 `nt-v1.567`）。
 
 ## 一、当前状态（冻结于 2026-11-09，仅供当时的备注表任务）
 

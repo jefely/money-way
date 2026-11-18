@@ -94,6 +94,68 @@ test('一屏天数按日历日铺满画面高度，镜头缩放不改这个比�
   }
 });
 
+test('用户这种多张卡在 1024 窗口上仍是左二中三右二，旧镜头和旧内边挤不回中间', () => {
+  const accounts = [
+    { id: 'jh', name: '交行信5776', type: '负债类' },
+    { id: 'zx', name: '中信信5607', type: '负债类' },
+    { id: 'zh', name: '招行信1007', type: '负债类' },
+    { id: 'gf', name: '广发信', type: '负债类' },
+    { id: 'yf', name: '其它应付', type: '负债类' },
+    { id: 'd58', name: '58贷', type: '负债类' },
+    { id: 'tl', name: '铜联贷', type: '负债类' },
+    { id: 'bank', name: '储蓄卡', type: '资产类' },
+    { id: 'cash', name: '零钱', type: '资产类' },
+    { id: 'fund', name: '理财', type: '资产类' },
+    { id: 'food', name: '餐饮', type: '费用类', category: '日常' },
+    { id: 'ride', name: '交通', type: '费用类', category: '交通' },
+  ];
+  const tx = [
+    { id: 'a', seq: 1, date: '2026-11-01', from_id: 'bank', to_id: 'cash', amount: 5000 },
+    { id: 'b', seq: 2, date: '2026-11-19', from_id: 'jh', to_id: 'food', amount: 48158 },
+    { id: 'c', seq: 3, date: '2026-11-19', from_id: 'zx', to_id: 'food', amount: 36855 },
+    { id: 'd', seq: 4, date: '2026-11-19', from_id: 'zh', to_id: 'food', amount: 74884 },
+    { id: 'e', seq: 5, date: '2026-11-19', from_id: 'gf', to_id: 'ride', amount: 16865 },
+    { id: 'f', seq: 6, date: '2026-11-19', from_id: 'yf', to_id: 'food', amount: 27100 },
+    { id: 'g', seq: 7, date: '2026-11-19', from_id: 'd58', to_id: 'ride', amount: 7297 },
+    { id: 'h', seq: 8, date: '2026-11-19', from_id: 'tl', to_id: 'food', amount: 16759 },
+    { id: 'i', seq: 9, date: '2026-11-01', from_id: 'cash', to_id: 'fund', amount: 2000 },
+  ];
+  const m = buildLifeVein({ accounts, transactions: tx }, '2026-11-20');
+  for (const [w, h] of [[1024, 727], [1920, 1080], [360, 780]]) {
+    const base = {
+      scrollDay: 19, ppd: h / 3, width: w, height: h, windowPx: 880, zone: 0.8,
+      daysPer: 3, insetL: 6, insetR: 6, gap: 4, cam: { s: 0.2, x: 0, y: 0 },
+    };
+    const preview = assembleScene(m, { ...base, cam: { s: 1, x: 0, y: 0 } });
+    const fitted = cameraFit(preview, w, h);
+    const scene = assembleScene(m, { ...base, cam: fitted });
+    const sx = (x) => w / 2 + (x - w / 2) * fitted.s;
+    const cols = (list) => {
+      const xs = list.map((b) => sx(b.x)).sort((a, b) => a - b);
+      return xs.filter((x, i) => !i || x - xs[i - 1] > Math.max(8, w * 0.015));
+    };
+    assert.equal(fitted.s, 1, '适配镜头不能再缩小整帧');
+    assert.ok(scene.liab.length >= 4, '多张负债都要在');
+    const liabCols = cols(scene.liab);
+    assert.ok(liabCols.length >= 2, w + ' 负债应是两列 ' + liabCols.join(','));
+    const leftEdges = scene.liab.map((b) => sx(b.x) - b.r * fitted.s);
+    assert.ok(Math.min(...leftEdges) <= w * 0.045, w + ' 第一列应贴左缘 ' + Math.min(...leftEdges));
+    for (const b of scene.liab) assert.ok(sx(b.x) < w * 0.32, b.name + ' 不应进中带 ' + sx(b.x));
+    const assetCols = cols(scene.asset);
+    assert.ok(assetCols.length >= 3, w + ' 资产应是三列 ' + assetCols.join(','));
+    for (const b of scene.asset) {
+      const x = sx(b.x);
+      assert.ok(x > w * 0.32 && x < w * 0.68, b.name + ' 应在中带 ' + x);
+    }
+    const right = scene.right.filter((b) => b.amount > 0);
+    assert.ok(right.some((b) => b.name === '日常') && right.some((b) => b.name === '交通'));
+    const rightCols = cols(right);
+    assert.ok(rightCols.length >= 2, w + ' 右缘应是两列 ' + rightCols.join(','));
+    assert.ok(Math.max(...right.map((b) => sx(b.x + b.r))) >= w * 0.95, w + ' 右缘第一列应贴边');
+    for (const b of right) assert.ok(sx(b.x) > w * 0.68, b.name + ' 不应进中带 ' + sx(b.x));
+  }
+});
+
 test('布局里有一屏天数，轴线参数已撤下', () => {
   const days = LV_SCHEMA.find((s) => s.key === '脉络一屏天数');
   assert.ok(days);

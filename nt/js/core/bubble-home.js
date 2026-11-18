@@ -61,33 +61,51 @@ function flyArc(src, dst, blocks, t, flyR, preferUp) {
 }
 
 /** 错层列。列号来自稳定的 slot，不随当前可见集合重排。side>0 贴左缘，side<0 贴右缘，0 以中线为轴。 */
-function dockColumns(items, edge, height, gap, sc, side, nCols) {
+/** 错层列，装进窗口上的一条带。太大就整组缩小，列号不换，也不靠镜头往中心收。 */
+function dockColumns(items, edge, height, gap, side, nCols, band) {
   if (!items.length) return [];
   const n = nCols || 2;
-  const rad = (b) => b.r * (sc || 1);
   const cols = Array.from({ length: n }, () => []);
   for (const b of items) cols[(b.slot || 0) % n].push(b);
   for (const list of cols) list.sort((a, c) => (a.id < c.id ? -1 : 1));
-  const maxR = cols.map((list) => (list.length ? Math.max(...list.map(rad)) : 0));
-  const live = maxR.map((m, i) => (m > 0 ? i : -1)).filter((i) => i >= 0);
-  const x0 = [];
+  const live = cols.map((list, i) => (list.length ? i : -1)).filter((i) => i >= 0);
+  const measure = () => {
+    const maxR = cols.map((list) => (list.length ? Math.max(...list.map((b) => b.r)) : 0));
+    let span = 0;
+    let tall = 0;
+    live.forEach((col, i) => {
+      span += maxR[col] * 2 + (i ? gap : 0);
+      const total = cols[col].reduce((s, b) => s + b.r * 2, 0) + gap * Math.max(0, cols[col].length - 1);
+      const extra = col % 2 ? maxR[col] * 0.62 : 0;
+      if (total + extra > tall) tall = total + extra;
+    });
+    return { maxR, span, tall };
+  };
+  let box = measure();
+  const limW = band > 0 ? band : box.span || 1;
+  const limH = Math.max(48, height - 36);
+  const k = Math.min(1, limW / Math.max(box.span, 1), limH / Math.max(box.tall, 1));
+  if (k < 1) {
+    for (const b of items) b.r *= k;
+    box = measure();
+  }
+  const shift = side > 0 ? edge : side < 0 ? edge - box.span : edge + ((band || box.span) - box.span) / 2;
+  const laid = [];
   let cursor = 0;
+  const x0 = [];
   live.forEach((col, i) => {
     x0[col] = cursor;
-    cursor += maxR[col] * 2 + (i < live.length - 1 ? gap : 0);
+    cursor += box.maxR[col] * 2 + (i < live.length - 1 ? gap : 0);
   });
-  const shift = side > 0 ? edge : side < 0 ? edge - cursor : edge - cursor / 2;
-  const laid = [];
   for (const col of live) {
     const list = cols[col];
-    const total = list.reduce((s, b) => s + rad(b) * 2, 0) + gap * Math.max(0, list.length - 1);
-    let y = height / 2 - total / 2 + (col % 2 ? maxR[col] * 0.62 : 0);
+    const total = list.reduce((s, b) => s + b.r * 2, 0) + gap * Math.max(0, list.length - 1);
+    let y = height / 2 - total / 2 + (col % 2 ? box.maxR[col] * 0.62 : 0);
     const flush = side < 0 && col === live[live.length - 1];
     for (const b of list) {
-      const rr = rad(b);
-      const inset = flush ? (maxR[col] - rr) * 2 : side ? 0 : maxR[col] - rr;
-      laid.push({ ...b, sx: shift + x0[col] + inset + rr, sy: y + rr });
-      y += rr * 2 + gap;
+      const inset = flush ? (box.maxR[col] - b.r) * 2 : side ? 0 : box.maxR[col] - b.r;
+      laid.push({ ...b, sx: shift + x0[col] + inset + b.r, sy: y + b.r });
+      y += b.r * 2 + gap;
     }
   }
   return laid;
@@ -116,10 +134,11 @@ export function buildHome(model, view) {
   const play = playLayout(model, ppd, height, anim, { lockDay: daysPer > 0 });
   const prog = (e) => eventProgress(play.slot.get(e.key), scroll, ppd, height, zone, (play.dur && play.dur.get(e.key)) || anim);
   const books = stockBooks(events, accounts, prog);
-  const cam = view.cam || {};
-  const sc = cam.s > 0 ? cam.s : 1;
-  const wx = (sx) => width / 2 + (sx - width / 2 - (cam.x || 0)) / sc;
-  const wy = (sy) => height / 2 + (sy - height / 2 - (cam.y || 0)) / sc;
+  const wx = (sx) => sx;
+  const wy = (sy) => sy;
+  const leftBand = Math.max(80, width * 0.3);
+  const midBand = Math.max(96, width * 0.34);
+  const rightBand = Math.max(80, width * 0.28);
 
   const slotMap = (pred) => {
     const ids = accounts.filter((a) => a.id !== '__OPENING__' && pred(a)).map((a) => a.id).sort();
@@ -144,9 +163,10 @@ export function buildHome(model, view) {
     };
     (kind === 'asset' ? asset : left).push(node);
   }
-  const padL = Math.max(2, insetL);
-  const placedL = dockColumns(left, padL, height, sep, sc, 1, 2);
-  const placedA = dockColumns(asset, width / 2, height, sep, sc, 0, 3);
+  const padL = Math.min(Math.max(2, insetL), width * 0.04);
+  const padR = Math.min(Math.max(2, insetR), width * 0.04);
+  const placedL = dockColumns(left, padL, height, sep, 1, 2, leftBand - padL);
+  const placedA = dockColumns(asset, (width - midBand) / 2, height, sep, 0, 3, midBand);
   const pin = (list) => { for (const b of list) { b.x = wx(b.sx); b.y = wy(b.sy); } };
   pin(placedL);
   pin(placedA);
@@ -181,7 +201,6 @@ export function buildHome(model, view) {
   const rightItems = [...bags.values()].filter((b) => b.size >= 0.5).map((b) => ({
     ...b, r: fitR(b.size),
   }));
-  const padR = Math.max(2, insetR);
   const groups = new Map();
   for (const b of rightItems) {
     const k = b.id.split(':')[1];
@@ -191,7 +210,7 @@ export function buildHome(model, view) {
   let right = [];
   for (const list of groups.values()) {
     const cy = list[0].screenY == null ? list[0].y : list[0].screenY;
-    for (const b of dockColumns(list, width - padR, cy * 2 || 1, sep, sc, -1, 2)) {
+    for (const b of dockColumns(list, width - padR, cy * 2 || 1, sep, -1, 2, rightBand - padR)) {
       b.edge = 'R';
       b.x = wx(b.sx);
       b.y = daysPer ? wy(b.sy) : b.sy;
@@ -236,7 +255,7 @@ export function buildHome(model, view) {
         : null;
     }
     if (!dst) {
-      const x = e.edge === 'R' ? wx(width - insetR - flyR * sc) : width / 2;
+      const x = e.edge === 'R' ? width - padR - flyR : width / 2;
       const y = e.edge === 'R' ? (daysPer ? wy(yDate) : yDate) : height / 2;
       dst = { x, y, r: 10, id: e.toId || '' };
     }
