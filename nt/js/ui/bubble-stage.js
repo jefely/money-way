@@ -9,7 +9,7 @@ import { unionOutline } from '../core/bubble-union.js';
 import { assembleScene, cameraFit } from '../core/bubble-scene.js';
 import { grainCanvas, readLvParams } from './lv-params.js';
 import { rulerMarks } from '../core/lifevein-model.js';
-import { rulerFromPlay } from '../core/bubble-play.js';
+import { rulerFromPlay, screenDayMarks } from '../core/bubble-play.js';
 import {
   bodyDiscs, circleAdd, labelLayout, paintInnerGlow, paintOuterGlow, unionAdd,
 } from './bubble-ink.js';
@@ -178,7 +178,7 @@ function paintLabel(g, b, cam, fill, p) {
   if (!name && !amt) return;
   const fade = b.fade == null ? 1 : b.fade;
   if (fade <= 0.01) return;
-  const lay = labelLayout(b.r, cam || 1, p, name, amt, (text, px) => {
+  const lay = labelLayout(b.labelR || b.r, cam || 1, p, name, amt, (text, px) => {
     g.font = '500 ' + px + 'px sans-serif';
     return g.measureText(text).width;
   });
@@ -223,21 +223,15 @@ export function drawBubbleStage(g, model, view) {
     view.cam = use;
   }
   const scene = assembleScene(model, { ...view, cam: use });
+  const user = view.viewZoom || { s: 1, x: 0, y: 0 };
   g.save();
+  g.translate(w / 2 + (user.x || 0), h / 2 + (user.y || 0));
+  g.scale(user.s || 1, user.s || 1);
+  g.translate(-w / 2, -h / 2);
   g.translate(w / 2 + (use.x || 0), h / 2 + (use.y || 0));
   g.scale(use.s || 1, use.s || 1);
   g.translate(-w / 2, -h / 2);
-  if (lv.guides === '1' || lv.guides === 1) {
-    g.strokeStyle = light ? 'rgba(40,30,50,0.18)' : 'rgba(255,255,255,0.16)';
-    g.lineWidth = 1 / (use.s || 1);
-    for (const x of scene.axes || []) {
-      g.beginPath();
-      g.moveTo(x, 0);
-      g.lineTo(x, h);
-      g.stroke();
-    }
-  }
-  const bodies = [...scene.liab, ...scene.asset, ...scene.left, ...scene.right];
+  const bodies = [...scene.liab, ...(scene.equity || []), ...scene.asset, ...scene.left, ...scene.right];
   const byId = new Map(bodies.map((b) => [b.id, b]));
   const covered = new Set();
   const joins = [];
@@ -248,10 +242,12 @@ export function drawBubbleStage(g, model, view) {
     const foreign = bodies.some((b) => b.id !== fly.srcId && b.id !== fly.dstId && gapOf(fly, b) < 2);
     const gs = src ? gapOf(fly, src) : 99;
     const gd = dst ? gapOf(fly, dst) : 99;
+    const reach = (node) => node ? Math.min(fly.r, node.r) * 0.85 : 0;
     const both = gs < 0 && gd < 0;
-    const end = foreign || both ? null
-      : (fly.t < 0.5 && src && gs < 8 && gs <= gd) ? src
-        : (fly.t >= 0.5 && dst && gd < 8 && gd <= gs) ? dst : null;
+    const end = fly.melt > 0 && dst ? dst
+      : foreign || both ? null
+        : (fly.t < 0.5 && src && gs < reach(src) && gs <= gd) ? src
+          : (fly.t >= 0.5 && dst && gd < reach(dst) && gd <= gs) ? dst : null;
     if (!end) continue;
     const parts = unionOutline(fly, end);
     if (!parts) continue;
@@ -260,7 +256,7 @@ export function drawBubbleStage(g, model, view) {
   }
   const camS = use.s || 1;
   for (const b of bodies) if (!covered.has(b.id)) orb(g, b.x, b.y, b.r, colorOf(b.lane), style, camS);
-  for (const fly of scene.flies) if (!covered.has(fly.id)) orb(g, fly.x, fly.y, fly.r, colorOf(fly.lane), style, camS);
+  for (const fly of scene.flies) if (!covered.has(fly.id) && fly.r > 1) orb(g, fly.x, fly.y, fly.r, colorOf(fly.lane), style, camS);
   const cored = new Set();
   for (const j of joins) {
     paintUnion(g, j.parts, colorOf(j.dst.lane), style, camS, Math.min(j.fly.r, j.dst.r), [j.fly, j.dst]);
@@ -275,7 +271,7 @@ export function drawBubbleStage(g, model, view) {
   g.font = '10px sans-serif';
   g.textAlign = 'center';
   g.textBaseline = 'alphabetic';
-  g.fillText('负债', w * 0.12, h - 10); g.fillText('资产', w * 0.5, h - 10); g.fillText('费用', w * 0.88, h - 10);
+  g.fillText('负债/权益', w * 0.14, h - 10); g.fillText('资产', w * 0.5, h - 10); g.fillText('费用/成本', w * 0.86, h - 10);
   paintRuler(g, model, view, ink, use);
   paintMonth(g, ink, view.month);
   return scene;
@@ -284,13 +280,16 @@ export function drawBubbleStage(g, model, view) {
 function paintRuler(g, model, view, ink, cam) {
   if (!model || !model.startIso || !(view.ppd > 0)) return;
   const h = view.height;
-  const s = cam && cam.s > 0 ? cam.s : 1;
-  const py = (cam && cam.y) || 0;
+  const lock = Number(view.daysPer) > 0;
+  const s = lock ? 1 : (cam && cam.s > 0 ? cam.s : 1);
+  const py = lock ? 0 : ((cam && cam.y) || 0);
   const vAt = (y) => view.scrollDay + (y - h / 2 - py) / (view.ppd * s);
   const px = view.ppd * s;
-  const marks = (view.playMarks && view.playMarks.length)
-    ? rulerFromPlay(model, view.playMarks, vAt(0), vAt(h), px)
-    : rulerMarks(model, vAt(0), vAt(h), px);
+  const marks = lock
+    ? screenDayMarks(model, view.scrollDay, view.daysPer, view.ppd)
+    : (view.playMarks && view.playMarks.length)
+      ? rulerFromPlay(model, view.playMarks, vAt(0), vAt(h), px)
+      : rulerMarks(model, vAt(0), vAt(h), px);
   g.strokeStyle = ink.muted;
   g.fillStyle = ink.muted;
   g.lineWidth = 1;

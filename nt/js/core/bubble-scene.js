@@ -3,7 +3,7 @@
  * 把滚动进度铺成一帧气泡。纯函数，不碰 DOM。
  * 层：第一层 · core
  *
- * 布局：资产驻留在画面中央，负债驻留在左缘，当天费用分类在右缘随日期滚走。
+ * 布局：负债和权益贴窗口左缘，资产在正中，费用和成本贴窗口右缘并随日期滚走。
  */
 
 import { buildHome } from './bubble-home.js';
@@ -69,8 +69,8 @@ export function assembleScene(model, view) {
 export function cameraFit(scene, width, height) {
   const all = (scene.asset || []).filter((b) => b && b.r > 0);
   if (!all.length || !(width > 0) || !(height > 0)) return { s: 1, x: 0, y: 0 };
-  const roomL = width / 2 - width * 0.22;
-  const roomR = width * 0.78 - width / 2;
+  const roomL = width / 2 - width * 0.34;
+  const roomR = width * 0.66 - width / 2;
   const halfH = height / 2 - 28;
   let fit = 1;
   for (const b of all) {

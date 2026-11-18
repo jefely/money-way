@@ -68,7 +68,7 @@ test('靠近时是四段相接的圆弧，桥向内凹而不是切线', () => {
 
 test('斜向和不等半径同样闭合', () => {
   const a = { x: 12, y: -8, r: 36 };
-  const b = { x: 70, y: 24, r: 22 };
+  const b = { x: 52, y: 18, r: 22 };
   const parts = unionOutline(a, b);
   assert.equal(parts.length, 4);
   assertClosedArcs(a, b, parts);

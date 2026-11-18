@@ -17,7 +17,7 @@
 import { ACCOUNT_TYPE, isDebitType, isPosted } from './schema.js';
 import { classifyFlow } from './bubble-motion.js';
 
-/** 三根轴线：每根一个固定基准位置，左右两侧各吸附一种类型（3 轴 × 2 侧 = 6 类） */
+/** 泳道编号仍按这六类。x 不再决定停靠：停靠看窗口左右缘和正中，见 bubble-home。 */
 export const AXES = [
   { key: 'left', name: '收入 / 权益', x: 0.22 },
   { key: 'mid', name: '负债 / 资产', x: 0.50 },

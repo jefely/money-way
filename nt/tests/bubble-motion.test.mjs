@@ -28,12 +28,13 @@ test('进度：下沿是 0，上沿是 1，正中是 0.5', () => {
   assert.ok(Math.abs(wide - 0.2) < 1e-9);
 });
 
-test('并入末段文字才渐隐，倒放回到同一透明度', () => {
+test('并入过程文字保持，完成后才渐隐，倒放回到同一透明度', () => {
   assert.equal(textFade(0.4, 0.18), 1);
-  assert.equal(textFade(1, 0.18), 0);
-  const mid = textFade(0.91, 0.18);
-  assert.ok(mid > 0.4 && mid < 0.7, mid);
-  assert.equal(mid, textFade(0.91, 0.18));
+  assert.equal(textFade(0.99, 0.18), 1);
+  assert.equal(textFade(1, 0.18), 1);
+  assert.ok(Math.abs(textFade(1.09, 0.18) - 0.5) < 1e-9);
+  assert.equal(textFade(1.18, 0.18), 0);
+  assert.equal(textFade(1.09, 0.18), textFade(1.09, 0.18));
 });
 
 test('上拖（scrollDay 变大）进度增加，下拖则倒回', () => {
@@ -183,8 +184,8 @@ test('挤压和冲击只由进度决定，两端收回', () => {
 
 test('公切弧：靠近才有，越近弧越大', () => {
   assert.equal(tangentBridge({ x: 0, y: 0, r: 30 }, { x: 400, y: 0, r: 30 }), null);
-  const near = tangentBridge({ x: 0, y: 0, r: 30 }, { x: 50, y: 0, r: 28 });
-  const far = tangentBridge({ x: 0, y: 0, r: 30 }, { x: 70, y: 0, r: 28 });
+  const near = tangentBridge({ x: 0, y: 0, r: 30 }, { x: 46, y: 0, r: 28 });
+  const far = tangentBridge({ x: 0, y: 0, r: 30 }, { x: 57, y: 0, r: 28 });
   assert.ok(near && far && near.arcs.length === 2);
   assert.ok(near.rho > far.rho);
 });
@@ -256,7 +257,7 @@ test('工资飞进中间的储蓄，倒放回到同一帧', () => {
   const scene = assembleScene(m, view);
   const fly = scene.flies.find((f) => f.amount === 800);
   assert.ok(fly, '在途要能看见这笔 800');
-  assert.ok(fly.x > 390 * 0.2, '收入不该压在左缘');
+  assert.ok(fly.x < 390 * 0.35, '收入从窗口左缘出现 ' + fly.x);
   const later = assembleScene(m, { ...view, scrollDay: day + 8 });
   const back = later.asset.find((a) => a.name === '储蓄卡');
   assert.ok(back && Math.abs(back.amount - 800) < 1);

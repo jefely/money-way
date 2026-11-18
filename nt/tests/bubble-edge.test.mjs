@@ -9,10 +9,10 @@ import { buildLifeVein } from '../js/core/lifevein-model.js';
 
 test('公切轮廓：靠近有四段弧，拉开就没有', () => {
   assert.equal(bridgeOutline({ x: 0, y: 0, r: 30 }, { x: 400, y: 0, r: 30 }), null);
-  const outline = bridgeOutline({ x: 0, y: 0, r: 40 }, { x: 70, y: 0, r: 28 });
+  const outline = bridgeOutline({ x: 0, y: 0, r: 40 }, { x: 52, y: 0, r: 28 });
   assert.equal(outline.length, 4);
   assert.ok(outline[1].r > 4 && outline[1].r < 40);
-  assert.deepEqual(outline, bridgeOutline({ x: 0, y: 0, r: 40 }, { x: 70, y: 0, r: 28 }));
+  assert.deepEqual(outline, bridgeOutline({ x: 0, y: 0, r: 40 }, { x: 52, y: 0, r: 28 }));
 });
 
 test('同一天多笔错开，后一笔还没开始飞', () => {

@@ -107,7 +107,7 @@ test('工资从左下沿抛物线飞向储蓄，倒放是同一条弧', () => {
     if (!mid && fly.t > 0.35 && fly.t < 0.7) mid = { fly, scene, s };
   }
   assert.ok(early && mid);
-  assert.ok(early.x < 140 && early.y > 680, '从左下出现 ' + early.x + ',' + early.y);
+  assert.ok(early.x < 40 && early.y > 600, '从左缘偏下出现 ' + early.x + ',' + early.y);
   const chord = (early.y + mid.scene.asset.find((b) => b.id === 'bank').y) / 2;
   assert.ok(Math.abs(mid.fly.y - chord) > 8, '中段离开直线');
   const again = assembleScene(m, view(m, mid.s, 360, 780));

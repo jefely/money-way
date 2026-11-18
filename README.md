@@ -3,7 +3,7 @@
 > 看见每一笔钱的来路与去向。
 
 > **NT账本** 是软件，**Money Way** 是其中的环网图引擎，**LifeVein** 是那个上下滑动的统计展示页。
-> 脉络的现行口径见 [`nt/LIFEVEIN-PAGE.md`](nt/LIFEVEIN-PAGE.md)，技术交底（含 v1.561–v1.565）见 [`nt/VEIN-HANDOFF.md`](nt/VEIN-HANDOFF.md)。
+> 脉络的现行口径见 [`nt/LIFEVEIN-PAGE.md`](nt/LIFEVEIN-PAGE.md)，技术交底（含 v1.561–v1.566）见 [`nt/VEIN-HANDOFF.md`](nt/VEIN-HANDOFF.md)。
 > 首次公开 2026-10-24；名字与权属时间线（含域名核查）见 [BRAND.md](BRAND.md)。
 
 ## 子项目

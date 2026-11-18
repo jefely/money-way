@@ -89,11 +89,10 @@ export function tangentBridge(a, b) {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const d = Math.hypot(dx, dy);
-  const reach = a.r + b.r + Math.min(a.r, b.r) * 0.85;
-  if (!(d > 1) || d >= reach || d <= Math.abs(a.r - b.r) + 0.4) return null;
-  const span = reach - Math.abs(a.r - b.r);
-  const closeness = span > 0 ? 1 - (d - Math.abs(a.r - b.r)) / span : 0;
-  const rho = Math.min(a.r, b.r) * (0.2 + 1.2 * closeness);
+  const gap = d - a.r - b.r;
+  if (!(d > 1) || gap > 1.5 || d <= Math.abs(a.r - b.r) + 0.4) return null;
+  const overlap = Math.max(0, -gap);
+  const rho = Math.max(gap, 0) / 2 + 0.45 + Math.min(a.r, b.r) * Math.min(0.9, overlap / Math.min(a.r, b.r)) * 1.55;
   const R1 = a.r + rho;
   const R2 = b.r + rho;
   const along = (d * d - R2 * R2 + R1 * R1) / (2 * d);
@@ -111,7 +110,6 @@ export function tangentBridge(a, b) {
   const touch = (c, circle) => Math.atan2(circle.y - c.y, circle.x - c.x);
   return {
     rho,
-    closeness,
     arcs: centers.map((c) => ({ x: c.x, y: c.y, r: rho, a0: touch(c, a), a1: touch(c, b) })),
   };
 }
@@ -180,11 +178,12 @@ export function flyScale(kind, localP) {
   return (kind === 'borrow' || kind === 'charge') ? smooth(Math.min(1, localP / 0.3)) : 1;
 }
 
-/** 飞泡文字在并完前保持 1，最后一段按进度渐隐。倒放是同一条曲线。 */
+/** 飞泡文字在并入过程中保持 1，完成后才按进度渐隐。倒放是同一条曲线。 */
 export function textFade(localP, span) {
   const w = Math.max(0, Number(span) || 0);
-  if (!(localP < 1)) return 0;
-  return (!(w > 0) || localP <= 1 - w) ? 1 : (1 - localP) / w;
+  if (!(localP > 0) || (w > 0 && localP >= 1 + w - 1e-6)) return 0;
+  if (!(w > 0) || localP <= 1) return 1;
+  return 1 - (localP - 1) / w;
 }
 
 /**
@@ -251,7 +250,7 @@ export function flowFractions(kind, p) {
   const done = p >= 1;
   if (kind === 'inflow') {
     const absorb = done ? 1 : smooth((p - 0.5) / 0.5);
-    return { fly: done ? 0 : 1 - absorb, flyT: elastic(p), src: 0, dst: done ? 1 : absorb, marker: done ? 1 : smooth(p) };
+    return { fly: done ? 0 : 1 - absorb, flyT: elastic(p), src: done ? 1 : absorb, dst: done ? 1 : absorb, marker: done ? 1 : smooth(p) };
   }
   if (kind === 'borrow') {
     const grow = done ? 1 : smooth(p / 0.42);

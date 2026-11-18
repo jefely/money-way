@@ -7,8 +7,8 @@
  * 日期线从下中带下沿走到上中带上沿，这笔的气泡就从开始演到结束。
  * 上拖时间轴是正放，下拖是倒回。进度只看滚动，不看时钟。
  *
- * 四列：左缘收入/权益，中左借贷簇，中右资产簇，右缘成本/费用。
- * 不算钱：余额和事件在 core/lifevein-model.js，形变在 core/bubble-motion.js。
+ * 窗口左缘停负债和权益，收入从左缘出现；中间只停资产；右缘是费用和成本。
+ * 一屏天数把画布高度锁成日历日。不算钱：余额在 core/lifevein-model.js。
  */
 
 import { buildLifeVein, monthLabel } from '../core/lifevein-model.js';
@@ -26,6 +26,7 @@ export function mountLifeVein(section, ctx) {
 
   const view = { scrollDay: 0, ready: false };
   const cam = { s: 1, x: 0, y: 0 };
+  const user = { s: 1, x: 0, y: 0 };
   let panMode = false;
   let needFit = true;
   let zoomed = false;
@@ -39,7 +40,13 @@ export function mountLifeVein(section, ctx) {
 
   const W = () => canvas.clientWidth;
   const H = () => canvas.clientHeight;
-  const ppd = () => pixelsPerDay(model ? model.vspan : 1, H() || 700, 1, readLvParams().ppd);
+  const ppd = () => {
+    const lv = readLvParams();
+    const h = H() || 700;
+    const d = Number(lv.daysPer);
+    if (d > 0) return h / d;
+    return pixelsPerDay(model ? model.vspan : 1, h, 1, lv.ppd);
+  };
   const play = () => playLayout(model, ppd(), H() || 700, readLvParams().windowPx);
 
   function resize() {
@@ -89,7 +96,9 @@ export function mountLifeVein(section, ctx) {
       xAsset: lv.xAsset,
       insetL: lv.insetL,
       insetR: lv.insetR,
-      playMarks: play().marks,
+      daysPer: lv.daysPer,
+      playMarks: Number(lv.daysPer) > 0 ? [] : play().marks,
+      viewZoom: { s: user.s, x: user.x, y: user.y },
     };
     drawBubbleStage(g, model, shot);
     if (needFit && shot.cam) {
@@ -101,13 +110,13 @@ export function mountLifeVein(section, ctx) {
   }
 
   function zoomAt(px, py, factor) {
-    const next = Math.max(0.015, Math.min(8, cam.s * factor));
-    const wx = (px - W() / 2 - cam.x) / cam.s + W() / 2;
-    const wy = (py - H() / 2 - cam.y) / cam.s + H() / 2;
+    const next = Math.max(0.015, Math.min(8, user.s * factor));
+    const wx = (px - W() / 2 - user.x) / user.s + W() / 2;
+    const wy = (py - H() / 2 - user.y) / user.s + H() / 2;
     zoomed = true;
-    cam.s = next;
-    cam.x = px - W() / 2 - (wx - W() / 2) * next;
-    cam.y = py - H() / 2 - (wy - H() / 2) * next;
+    user.s = next;
+    user.x = px - W() / 2 - (wx - W() / 2) * next;
+    user.y = py - H() / 2 - (wy - H() / 2) * next;
     schedule();
   }
 
@@ -121,8 +130,11 @@ export function mountLifeVein(section, ctx) {
 
   function syncMonth(dir) {
     if (!model) return;
+    const d = Number(readLvParams().daysPer);
     const lay = play();
-    const label = monthLabel(model, view.scrollDay, lay.marks.length ? playDay(lay.marks, view.scrollDay) : null);
+    const label = d > 0
+      ? monthLabel(model, view.scrollDay, view.scrollDay)
+      : monthLabel(model, view.scrollDay, lay.marks.length ? playDay(lay.marks, view.scrollDay) : null);
     if (!label) return;
     if (!month.to) {
       month = { from: label, to: label, p: 1, dir: dir || 1, t0: 0 };
@@ -142,7 +154,8 @@ export function mountLifeVein(section, ctx) {
 
   function setScroll(day) {
     const prev = view.scrollDay;
-    const hi = model ? play().playSpan + 2 : 0;
+    const d = model ? Number(readLvParams().daysPer) : 0;
+    const hi = model ? (d > 0 ? model.days + 1 : play().playSpan + 2) : 0;
     view.scrollDay = Math.max(-2, Math.min(hi, day));
     syncMonth(view.scrollDay >= prev ? 1 : -1);
     schedule();
@@ -163,11 +176,11 @@ export function mountLifeVein(section, ctx) {
       pinch = {
         d: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
         mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2,
-        s: cam.s, x: cam.x, y: cam.y,
+        s: user.s, x: user.x, y: user.y,
       };
       return;
     }
-    if (panMode) drag = { pan: true, x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y };
+    if (panMode) drag = { pan: true, x: e.clientX, y: e.clientY, cx: user.x, cy: user.y };
     else drag = { y: e.clientY, day: view.scrollDay };
   });
   canvas.addEventListener('pointermove', (e) => {
@@ -179,18 +192,18 @@ export function mountLifeVein(section, ctx) {
       const mx = (a.x + b.x) / 2;
       const my = (a.y + b.y) / 2;
       const p = local({ clientX: pinch.mx, clientY: pinch.my });
-      cam.s = pinch.s;
-      cam.x = pinch.x;
-      cam.y = pinch.y;
+      user.s = pinch.s;
+      user.x = pinch.x;
+      user.y = pinch.y;
       zoomAt(p.x, p.y, d / pinch.d);
-      cam.x += mx - pinch.mx;
-      cam.y += my - pinch.my;
+      user.x += mx - pinch.mx;
+      user.y += my - pinch.my;
       return;
     }
     if (!drag) return;
     if (drag.pan) {
-      cam.x = drag.cx + (e.clientX - drag.x);
-      cam.y = drag.cy + (e.clientY - drag.y);
+      user.x = drag.cx + (e.clientX - drag.x);
+      user.y = drag.cy + (e.clientY - drag.y);
       schedule();
       return;
     }
@@ -214,7 +227,9 @@ export function mountLifeVein(section, ctx) {
   for (const btn of section.querySelectorAll('[data-lv-zoom]')) {
     btn.addEventListener('click', () => {
       const z = Number(btn.getAttribute('data-lv-zoom') || 1);
-      if (z === 1) { zoomed = false; needFit = true; schedule(); return; }
+      if (z === 1) {
+        zoomed = false; user.s = 1; user.x = 0; user.y = 0; needFit = true; schedule(); return;
+      }
       zoomAt(W() / 2, H() / 2, z);
     });
   }
@@ -258,7 +273,8 @@ export function mountLifeVein(section, ctx) {
     const picked = visibleIdx(txs, filter, byId, accounts).map((i) => txs[i]);
     model = buildLifeVein({ accounts, transactions: picked });
     if ((!view.ready || refit) && H() > 0) {
-      view.scrollDay = model.vspan / 2;
+      const d = Number(readLvParams().daysPer);
+      view.scrollDay = d > 0 ? (model.todayDay || 0) : model.vspan / 2;
       view.ready = true;
       refit = false;
     }

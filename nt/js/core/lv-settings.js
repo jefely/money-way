@@ -49,15 +49,15 @@ export const LV_SCHEMA = [
   g('文字', { key: '脉络金额透明', def: 1, min: 0, max: 1, type: 'num', cssVar: '--nt-lv-amt-a', field: 'amtA' }),
   g('文字', { key: '脉络字渐隐', def: 18, min: 0, max: 80, type: 'num', cssVar: '--nt-lv-fade', field: 'fadePct' }),
   g('动画/时间轴', { key: '脉络动画区', def: 80, min: 40, max: 100, type: 'num', cssVar: '--nt-lv-zone', field: 'zone' }),
-  g('动画/时间轴', { key: '脉络每天像素', def: 0, min: 0, max: 480, type: 'num', cssVar: '--nt-lv-ppd', field: 'ppd' }),
-  g('动画/时间轴', { key: '脉络窗口像素', def: 880, min: 240, max: 2800, type: 'num', cssVar: '--nt-lv-window', field: 'windowPx' }),
+  g('动画/时间轴', { key: '脉络一屏天数', def: 3, min: 0.5, max: 31, type: 'num', cssVar: '--nt-lv-days', field: 'daysPer', hint: '整段画面高度对应的日历天数。常用 0.5、1、2、3、7。标尺按这个比例排，不被镜头缩放或空档压缩改写。同一账户排开若装不进这一天，只在当天内错开，不把日期拉长。' }),
+  g('动画/时间轴', { key: '脉络每天像素', def: 0, min: 0, max: 480, type: 'num', cssVar: '--nt-lv-ppd', field: 'ppd', hint: '一屏天数大于 0 时，标尺不用这项，改由画面高度÷一屏天数决定。' }),
+  g('动画/时间轴', { key: '脉络窗口像素', def: 880, min: 240, max: 2800, type: 'num', cssVar: '--nt-lv-window', field: 'windowPx', hint: '一笔动画希望占用的像素。一屏天数开启时，标尺仍按日历日；若这段比一天更长，动画收到当天内结束。同一账户当天排不开时，每笔再缩短，仍不把日期拉长。' }),
   g('动画/时间轴', { key: '脉络拖动灵敏', def: 0.6, min: 0.15, max: 1.5, type: 'num', cssVar: '--nt-lv-scrub', field: 'scrub' }),
   g('动画/时间轴', { key: '脉络同日间隔', def: 0.65, min: 0, max: 4, type: 'num', cssVar: '--nt-lv-day-gap', field: 'dayGap' }),
   g('物理', { key: '脉络相斥', def: 1, min: 0, max: 4, type: 'num', cssVar: '--nt-lv-repel', field: 'repel' }),
   g('物理', { key: '脉络间隙', def: 4, min: 0, max: 48, type: 'num', cssVar: '--nt-lv-gap', field: 'gap' }),
-  g('物理', { key: '左缘内边', def: 6, min: 0, max: 24, type: 'num', cssVar: '--nt-lv-inset-l', field: 'insetL' }),
-  g('物理', { key: '右缘内边', def: 6, min: 0, max: 24, type: 'num', cssVar: '--nt-lv-inset-r', field: 'insetR' }),
-  g('物理', { key: '脉络轴线', type: 'enum', options: ['关', '开'], values: ['0', '1'], def: '关', cssVar: '--nt-lv-guides', field: 'guides' }),
+  g('物理', { key: '左缘内边', def: 0, min: 0, max: 24, type: 'num', cssVar: '--nt-lv-inset-l', field: 'insetL', hint: '占画面宽度的百分数。0 表示负债和权益贴着窗口左缘。' }),
+  g('物理', { key: '右缘内边', def: 0, min: 0, max: 24, type: 'num', cssVar: '--nt-lv-inset-r', field: 'insetR', hint: '占画面宽度的百分数。0 表示费用和成本贴着窗口右缘。' }),
 ];
 
 export const LV_DEFAULTS = LV_SCHEMA.reduce((acc, s) => {
