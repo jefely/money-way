@@ -133,8 +133,19 @@ function strokeOf(g, r, p, cam) {
   g.stroke();
 }
 
-/** 单独一颗泡：整圆填充、中心色晕、一圈细边。 */
+function paintGlow(g, x, y, r, hex, p) {
+  const glow = p.glow == null ? 0.1 : p.glow;
+  if (!(glow > 0.004) || r < 3) return;
+  const rad = r * 1.5;
+  const grd = g.createRadialGradient(x, y, r * 0.9, x, y, rad);
+  grd.addColorStop(0, rgba(hex, Math.min(0.28, glow)));
+  grd.addColorStop(1, rgba(hex, 0));
+  g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2); g.fillStyle = grd; g.fill();
+}
+
+/** 单独一颗泡：外圈一层很弱的自发光，细描边，中心没有亮点。 */
 function orb(g, x, y, r, hex, p, cam) {
+  paintGlow(g, x, y, r, hex, p);
   const fillA = p.fillA == null ? 0.05 : p.fillA;
   if (fillA > 0.004) {
     g.beginPath();
@@ -241,12 +252,13 @@ export function drawBubbleStage(g, model, view) {
   const joins = [];
   for (const fly of scene.flies) {
     const dst = byId.get(fly.dstId);
-    if (!dst) continue;
-    const parts = unionOutline(fly, dst);
+    const src = byId.get(fly.srcId);
+    const end = fly.t < 0.42 ? (src || dst) : dst;
+    if (!end) continue;
+    const parts = unionOutline(fly, end);
     if (!parts) continue;
-    joins.push({ fly, dst, parts });
-    covered.add(fly.id);
-    covered.add(dst.id);
+    joins.push({ fly, dst: end, parts });
+    covered.add(fly.id); covered.add(end.id);
   }
   const camS = use.s || 1;
   for (const b of bodies) if (!covered.has(b.id)) orb(g, b.x, b.y, b.r, colorOf(b.lane), style, camS);
@@ -254,10 +266,7 @@ export function drawBubbleStage(g, model, view) {
   const cored = new Set();
   for (const j of joins) {
     paintUnion(g, j.parts, colorOf(j.dst.lane), style, camS, Math.min(j.fly.r, j.dst.r));
-    if (!cored.has(j.dst.id)) {
-      paintCore(g, j.dst.x, j.dst.y, j.dst.r, colorOf(j.dst.lane), style);
-      cored.add(j.dst.id);
-    }
+    if (!cored.has(j.dst.id)) { paintCore(g, j.dst.x, j.dst.y, j.dst.r, colorOf(j.dst.lane), style); cored.add(j.dst.id); }
     paintCore(g, j.fly.x, j.fly.y, j.fly.r, colorOf(j.fly.lane), style);
   }
   for (const b of bodies) paintLabel(g, b, use.s || 1, look.text, style);
@@ -268,8 +277,7 @@ export function drawBubbleStage(g, model, view) {
   g.font = '10px sans-serif';
   g.textAlign = 'center';
   g.textBaseline = 'alphabetic';
-  g.fillText('借贷', w * 0.30, h - 10);
-  g.fillText('资产', w * 0.68, h - 10);
+  g.fillText('负债', w * 0.12, h - 10); g.fillText('资产', w * 0.5, h - 10); g.fillText('费用', w * 0.88, h - 10);
   paintRuler(g, model, view, ink, use);
   paintMonth(g, ink, view.month);
   return scene;

@@ -20,6 +20,7 @@ export const LV_SCHEMA = [
   g('泡泡外观', { key: '脉络线透明', def: 0.9, min: 0, max: 1, type: 'num', cssVar: '--nt-lv-stroke-a', field: 'strokeA' }),
   g('泡泡外观', { key: '脉络填充透明', def: 0.05, min: 0, max: 1, type: 'num', cssVar: '--nt-lv-fill-a', field: 'fillA' }),
   g('泡泡外观', { key: '脉络填充色', type: 'enum', options: ['白色', '分类色', '线颜色'], values: ['white', 'lane', 'stroke'], def: '白色', cssVar: '--nt-lv-fill', field: 'fillMode' }),
+  g('泡泡外观', { key: '脉络自发光', def: 0.1, min: 0, max: 0.45, type: 'num', cssVar: '--nt-lv-glow', field: 'glow' }),
   g('中心渐变', { key: '脉络核大小', def: 0.32, min: 0.05, max: 0.95, type: 'num', cssVar: '--nt-lv-core-r', field: 'coreR' }),
   g('中心渐变', { key: '脉络核透明', def: 0.42, min: 0, max: 1, type: 'num', cssVar: '--nt-lv-core-a', field: 'coreA' }),
   g('中心渐变', { key: '脉络核柔和', def: 0.55, min: 0.05, max: 1, type: 'num', cssVar: '--nt-lv-core-soft', field: 'coreSoft' }),
@@ -44,10 +45,8 @@ export const LV_SCHEMA = [
   g('动画/时间轴', { key: '脉络同日间隔', def: 0.65, min: 0, max: 4, type: 'num', cssVar: '--nt-lv-day-gap', field: 'dayGap' }),
   g('物理', { key: '脉络相斥', def: 1, min: 0, max: 4, type: 'num', cssVar: '--nt-lv-repel', field: 'repel' }),
   g('物理', { key: '脉络间隙', def: 4, min: 0, max: 48, type: 'num', cssVar: '--nt-lv-gap', field: 'gap' }),
-  g('物理', { key: '负债轴位置', def: 35, min: 15, max: 48, type: 'num', cssVar: '--nt-lv-x-liab', field: 'xLiab' }),
-  g('物理', { key: '资产轴位置', def: 65, min: 52, max: 85, type: 'num', cssVar: '--nt-lv-x-asset', field: 'xAsset' }),
-  g('物理', { key: '左缘内边', def: 8, min: 2, max: 30, type: 'num', cssVar: '--nt-lv-inset-l', field: 'insetL' }),
-  g('物理', { key: '右缘内边', def: 8, min: 2, max: 30, type: 'num', cssVar: '--nt-lv-inset-r', field: 'insetR' }),
+  g('物理', { key: '左缘内边', def: 6, min: 0, max: 24, type: 'num', cssVar: '--nt-lv-inset-l', field: 'insetL' }),
+  g('物理', { key: '右缘内边', def: 6, min: 0, max: 24, type: 'num', cssVar: '--nt-lv-inset-r', field: 'insetR' }),
   g('物理', { key: '脉络轴线', type: 'enum', options: ['关', '开'], values: ['0', '1'], def: '关', cssVar: '--nt-lv-guides', field: 'guides' }),
 ];
 

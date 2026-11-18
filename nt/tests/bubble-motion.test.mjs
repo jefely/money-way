@@ -238,7 +238,7 @@ test('引出线默认朝右上，贴右缘翻到左上', () => {
   assert.ok(rightish.box.x + rightish.box.w <= 390);
 });
 
-test('收入并进左缘的一颗分类泡，演完后资产停在自己的轴上', () => {
+test('工资飞进中间的储蓄，倒放回到同一帧', () => {
   const state = {
     accounts: [
       { id: 'salary', name: '工资', type: '收入类' },
@@ -252,18 +252,15 @@ test('收入并进左缘的一颗分类泡，演完后资产停在自己的轴�
   const h = 700;
   const ppd = pixelsPerDay(m.vspan, h, 1);
   const day = m.events[0].vday;
-  const y = h * 0.75 - 0.55 * h * 0.5;
-  const scroll = day - (y - h / 2) / ppd;
-  const view = { scrollDay: scroll, ppd, width: 390, height: h };
+  const view = { scrollDay: day, ppd, width: 390, height: h, dayGap: 0.65, windowPx: 880 };
   const scene = assembleScene(m, view);
-  const bank = scene.asset.find((a) => a.name === '储蓄卡');
-  assert.ok(bank && bank.ax != null);
-  assert.equal(scene.flies.length, 0);
-  assert.ok(scene.left.some((b) => b.name === '工资' && b.x < 390 * 0.45));
-  const later = assembleScene(m, { scrollDay: day + 4, ppd, width: 390, height: h });
+  const fly = scene.flies.find((f) => f.amount === 800);
+  assert.ok(fly, '在途要能看见这笔 800');
+  assert.ok(fly.x > 390 * 0.2, '收入不该压在左缘');
+  const later = assembleScene(m, { ...view, scrollDay: day + 8 });
   const back = later.asset.find((a) => a.name === '储蓄卡');
-  assert.ok(back);
-  assert.ok(Math.hypot(back.x - back.ax, back.y - back.ay) < 0.5);
+  assert.ok(back && Math.abs(back.amount - 800) < 1);
+  assert.equal(later.flies.length, 0);
   assert.deepEqual(scene, assembleScene(m, view));
 });
 

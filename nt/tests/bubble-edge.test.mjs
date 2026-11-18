@@ -45,25 +45,18 @@ test('同一天同一分类并成一颗，每笔仍各自飞', () => {
   const h = 700;
   const ppd = pixelsPerDay(m.vspan, h, 1);
   const day = m.events[0].vday;
-  const yDone = h * 0.08;
-  const done = assembleScene(m, { scrollDay: day - (yDone - h / 2) / ppd, ppd, width: 390, height: h });
+  const done = assembleScene(m, { scrollDay: day + 12, ppd, width: 390, height: h, dayGap: 0.65, windowPx: 880 });
   assert.equal(done.flies.length, 0);
   const daily = done.right.find((b) => b.name === '日常');
   const commute = done.right.find((b) => b.name === '通勤');
   assert.ok(daily && Math.round(daily.amount) === 35);
   assert.ok(commute && Math.round(commute.amount) === 6);
   assert.equal(done.right.filter((b) => b.name === '日常').length, 1);
-  const pay = done.left.find((b) => b.name === '工资');
-  assert.ok(pay && Math.round(pay.amount) === 800);
-  const y = h * 0.48;
-  const mid = assembleScene(m, { scrollDay: day - (y - h / 2) / ppd, ppd, width: 390, height: h });
-  assert.equal(mid.right.filter((b) => b.name === '日常').length, 1);
-  assert.equal(mid.flies.length, 0);
-  if (mid.right.length >= 2) {
-    const d = Math.hypot(mid.right[0].x - mid.right[1].x, mid.right[0].y - mid.right[1].y);
-    assert.ok(d + 0.5 >= mid.right[0].r + mid.right[1].r);
-  }
-  assert.ok(mid.flies.every((f) => f.amount <= 800));
-  const names = mid.flies.map((f) => f.name);
-  assert.equal(new Set(names).size, names.length);
+  const bank = done.asset.find((b) => b.name === '储蓄卡');
+  assert.ok(bank && Math.round(bank.amount) === 800 - 20 - 15 - 6);
+  const mid = assembleScene(m, { scrollDay: day + 0.2, ppd, width: 390, height: h, dayGap: 0.65, windowPx: 880 });
+  assert.ok(mid.flies.some((f) => f.amount === 20 || f.amount === 15 || f.amount === 6 || f.amount === 800));
+  const parked = mid.right.reduce((s, b) => s + b.amount, 0);
+  const flyingExpense = mid.flies.filter((f) => f.kind === 'spend' || f.kind === 'charge').reduce((s, f) => s + f.amount, 0);
+  assert.ok(parked + flyingExpense <= 20 + 15 + 6 + 0.1);
 });

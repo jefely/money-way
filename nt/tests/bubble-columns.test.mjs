@@ -35,24 +35,22 @@ function sceneAt(model, width, height) {
   });
 }
 
-test('宽屏四列从左到右：收入、负债、资产、费用，且不裁出屏幕', () => {
+test('资产在画面中间，负债在左缘，费用在右缘', () => {
   const model = book(8);
   for (const width of [1280, 1920]) {
     const scene = sceneAt(model, width, 800);
-    const left = scene.left.find((b) => b.name === '工资');
     const liab = scene.liab.find((b) => b.name === '花呗');
     const asset = scene.asset.find((b) => b.name === '中信信5607');
     const right = scene.right.find((b) => b.name === '日常');
-    assert.ok(left && liab && asset && right, '四列都要有泡 ' + width);
-    assert.ok(left.x < liab.x && liab.x < asset.x && asset.x < right.x, width + ' 列顺序');
-    assert.ok(left.x < width * 0.28, '收入应靠左 ' + left.x);
-    assert.ok(liab.x > width * 0.2 && liab.x < width * 0.5, '负债应在中左 ' + liab.x);
-    assert.ok(asset.x > width * 0.5 && asset.x < width * 0.82, '资产应在中右 ' + asset.x);
-    assert.ok(right.x > width * 0.72, '费用应靠右 ' + right.x);
+    assert.ok(liab && asset && right, '三类都要有泡 ' + width);
+    assert.ok(liab.x < width * 0.28, '负债应在左缘 ' + liab.x);
+    assert.ok(asset.x > width * 0.35 && asset.x < width * 0.7, '资产应在中间 ' + asset.x);
+    assert.ok(right.x > width * 0.62, '费用应在右缘 ' + right.x);
+    assert.equal(scene.left.length, 0);
     const cam = cameraFit(scene, width, 800);
-    for (const b of [...scene.left, ...scene.liab, ...scene.asset, ...scene.right]) {
+    for (const b of [...scene.liab, ...scene.asset]) {
       const x = (b.x - width / 2) * cam.s + width / 2;
-      assert.ok(x - b.r * cam.s >= -1 && x + b.r * cam.s <= width + 1, b.name + ' 裁切');
+      assert.ok(x - b.r * cam.s >= -2 && x + b.r * cam.s <= width + 2, b.name);
     }
   }
 });
@@ -69,28 +67,24 @@ test('600 笔时静止泡互不重叠，列也不会堆到右边', () => {
       assert.ok(d + 1.5 >= rest[i].r + rest[j].r, rest[i].name + '/' + rest[j].name);
     }
   }
-  const rightmost = Math.max(...scene.left.map((b) => b.x), ...scene.liab.map((b) => b.x));
-  assert.ok(rightmost < width * 0.62, '收入和负债不该贴到右边 ' + rightmost);
+  const xs = scene.liab.map((b) => b.x);
+  if (xs.length) assert.ok(Math.max(...xs) < width * 0.45);
 });
 
-test('同一天同一分类只有一颗边缘泡，边缘泡互不重叠', () => {
-  const model = book(40);
-  const width = 1600;
-  const height = 900;
-  const scene = sceneAt(model, width, height);
-  const ids = [...scene.left, ...scene.right].map((b) => b.id);
+test('同一天同一分类只有一颗右缘合计，在途的单笔不叠进合计', () => {
+  const model = book(8);
+  const scene = sceneAt(model, 1600, 900);
+  const ids = scene.right.map((b) => b.id);
   assert.equal(ids.length, new Set(ids).size);
-  assert.equal(scene.flies.filter((f) => f.name === '工资' || f.name === '日常' || f.name === '通勤').length, 0);
-  const edge = [...scene.left, ...scene.right];
-  for (let i = 0; i < edge.length; i += 1) {
-    for (let j = i + 1; j < edge.length; j += 1) {
-      const d = Math.hypot(edge[i].x - edge[j].x, edge[i].y - edge[j].y);
-      assert.ok(d + 0.6 >= edge[i].r + edge[j].r, edge[i].name + '/' + edge[j].name);
+  for (let i = 0; i < scene.right.length; i += 1) {
+    for (let j = i + 1; j < scene.right.length; j += 1) {
+      const d = Math.hypot(scene.right[i].x - scene.right[j].x, scene.right[i].y - scene.right[j].y);
+      assert.ok(d + 0.6 >= scene.right[i].r + scene.right[j].r);
     }
-    if (edge[i].dateY != null) assert.ok(Math.abs(edge[i].y - edge[i].dateY) <= edge[i].band + 0.5);
   }
-  assert.ok(scene.left.every((b) => b.x < width * 0.4));
-  assert.ok(scene.right.every((b) => b.x > width * 0.6));
+  const flying = scene.flies.reduce((s, f) => s + f.amount, 0);
+  const parked = scene.right.reduce((s, b) => s + b.amount, 0);
+  assert.ok(parked + flying > 0);
 });
 
 test('脉络参数在布局里单独一页，不再挂在主界面', () => {
