@@ -4,9 +4,9 @@
 > 新功能一律写在这里；旧版只修致命 bug（公约 1.4）。
 > 建设规则见仓库根目录 [`CODE-RULES.md`](../CODE-RULES.md)。
 
-- **当前版本**：`nt-v1.560`
+- **当前版本**：`nt-v1.565`（以 `js/core/version.js` 的 `APP_VER` 为准；须与 `sw.js` 的 `CACHE_NAME` 相同）
 - **数据版本**：`SCHEMA_VERSION = 2`
-- **规模**：186 个文件 / 115 个 JS / 383 条测试
+- **规模**：下面目录树里的个数是更早一次重写时的快照，不要当成今天的文件数。提交前以 `node nt/tools/check-rules.mjs` 和 `node --test nt/tests/*.test.mjs` 的输出为准。写本段时门禁报过 355 个文件、测试 789 项通过（nt-v1.565）
 - **这一版是什么**：单文件版的**重写**。功能从 `personal/index.html` 搬，但每一块都重新分层 ——
   算钱的进 `core/`（纯函数、Node 可跑），碰 DOM 的进 `ui/`，页面只做装配。
 
@@ -119,6 +119,9 @@ node nt/tools/probe.mjs http://127.0.0.1:8080/nt/index.html "document.querySelec
 | [TABLE-INTERACTION.md](TABLE-INTERACTION.md) | **表格交互的坑**：拖动、冻结、列宽、`max-width` 钳制、`pointercancel` |
 | [MONEYWAY-SPEC.md](MONEYWAY-SPEC.md) | **路径图设计**：线宽权重、颜色绑定、单位角公式、反序溯源 |
 | [EVENT-MODEL.md](EVENT-MODEL.md) | **事件模型（v4.1 落地）**：多对多连线、成本类=实物池、双式恒等、与 v4.1 的三处冲突裁决 |
+| [LIFEVEIN-PAGE.md](LIFEVEIN-PAGE.md) | **脉络现行口径**（资产居中 / 负债左缘 / 费用按日在右）。旧六泳道、四列不要再当要求 |
+| [VEIN-HANDOFF.md](VEIN-HANDOFF.md) | **脉络技术交底**：代码实际行为、布局参数、v1.561–v1.565 事故、验收清单 |
+| [BUBBLE-FEASIBILITY.md](BUBBLE-FEASIBILITY.md) | 脉络可行性 **历史记录**（2026-11-11，四列时代）。不是现行规格 |
 | [JS-MAP.md](JS-MAP.md) | **JS 文件 → 界面位置**（由 `tools/js-map.mjs` 生成，门禁校验，不要手改） |
 | [TESTING-NOTES.md](TESTING-NOTES.md) | **探针的坑**：transition / blob import / hidden 三处误判 |
 | [REFACTOR-CHECKLIST.md](../REFACTOR-CHECKLIST.md) | 16 个模块的进度与验收标准 |

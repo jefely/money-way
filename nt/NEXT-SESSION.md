@@ -1,7 +1,9 @@
 # NT 账本 · 新窗口快速启动 / 交接
 
+> **脉络不要从本文继续。** 本文冻结在 2026-11-09 / `nt-v1.492`。脉络现行口径见 [`LIFEVEIN-PAGE.md`](LIFEVEIN-PAGE.md)，技术交底见 [`VEIN-HANDOFF.md`](VEIN-HANDOFF.md)。线上版本看 `js/core/version.js`。
+>
 > 最后更新：2026-11-09 · `nt-v1.492` · 最新提交见 `git log -1`
-> 用途：在新会话 / 新窗口里，让另一个 agent 或未来的你快速接手 `D:\myproject\money-way`。
+> 用途：在新会话 / 新窗口里，让另一个 agent 或未来的你快速接手当时的 `D:\myproject\money-way`。下面各节是当时的笔记，不是 v1.565 的画面要求。
 
 ---
 
