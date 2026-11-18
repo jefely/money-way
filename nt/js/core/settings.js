@@ -133,6 +133,13 @@ export function normalize(raw, theme) {
     }
 
     if (v == null || v === '') continue;
+    if (s.key.indexOf('脉络倍率') === 0 && s.type === 'num') {
+      const n0 = toNum(v);
+      if (n0 == null) continue;
+      const n = n0 <= 8 ? Math.round(n0 * 1000) / 10 : n0;
+      out[s.key] = clampNum(n, s.min, s.max);
+      continue;
+    }
     if (s.unit === 'px' || s.type === 'num') {
       // 'abc' 剥掉非数字字符后是空串，而 Number('') === 0 ——
       // 直接转换会把「填错了」变成「填了 0」，环图上线宽会突然消失。
@@ -159,6 +166,31 @@ export function normalize(raw, theme) {
       out[s.key] = String(v).trim();
     }
   }
+  const tiers = ['脉络倍率1', '脉络倍率10', '脉络倍率100', '脉络倍率1000', '脉络倍率5000', '脉络倍率1万', '脉络倍率10万'];
+  let prevTier = 0;
+  for (const k of tiers) {
+    if (typeof out[k] !== 'number') continue;
+    if (out[k] < prevTier) out[k] = prevTier;
+    prevTier = out[k];
+  }
+  if (out['脉络限制最大直径'] === '开' && out['脉络最大直径'] < out['脉络最小直径']) {
+    out['脉络最大直径'] = out['脉络最小直径'];
+  }
+  const legacyNum = (key) => toNum(raw ? raw[key] : undefined);
+  const keepOr = (key, legacy, lo, hi) => {
+    if (raw && raw[key] != null && raw[key] !== '') return;
+    const n = legacyNum(legacy);
+    if (n == null) return;
+    out[key] = clampNum(n, lo, hi);
+  };
+  keepOr('脉络名称占比', '脉络字占比', 0.08, 0.8);
+  keepOr('脉络金额占比', '脉络字占比', 0.08, 0.8);
+  keepOr('脉络名称最小字号', '脉络最小字号', 0, 48);
+  keepOr('脉络金额最小字号', '脉络最小字号', 0, 48);
+  keepOr('脉络名称最大字号', '脉络最大字号', 6, 72);
+  keepOr('脉络金额最大字号', '脉络最大字号', 6, 72);
+  keepOr('脉络内发光', '脉络自发光', 0, 1);
+  keepOr('脉络外晕', '脉络自发光', 0, 0.45);
   return out;
 }
 

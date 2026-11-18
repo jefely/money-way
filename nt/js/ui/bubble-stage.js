@@ -8,7 +8,10 @@ import { formatAmount } from '../core/bubble-motion.js';
 import { unionOutline } from '../core/bubble-union.js';
 import { assembleScene, cameraFit } from '../core/bubble-scene.js';
 import { grainCanvas, readLvParams } from './lv-params.js';
-import { calendarDayAt } from '../core/lifevein-model.js';
+import { rulerMarks } from '../core/lifevein-model.js';
+import {
+  circleAdd, labelLayout, paintInnerGlow, paintOuterGlow, unionAdd,
+} from './bubble-ink.js';
 
 const LANE = ['#2fbfa8', '#3a9e88', '#e25d86', '#4d86e0', '#e15b4a', '#d4893c'];
 
@@ -133,46 +136,40 @@ function strokeOf(g, r, p, cam) {
   g.stroke();
 }
 
-function paintGlow(g, x, y, r, hex, p) {
-  const glow = p.glow == null ? 0.1 : p.glow;
-  if (!(glow > 0.004) || r < 3) return;
-  const rad = r * 1.5;
-  const grd = g.createRadialGradient(x, y, r * 0.9, x, y, rad);
-  grd.addColorStop(0, rgba(hex, Math.min(0.28, glow)));
-  grd.addColorStop(1, rgba(hex, 0));
-  g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2); g.fillStyle = grd; g.fill();
-}
-
-/** 单独一颗泡：外圈一层很弱的自发光，细描边，中心没有亮点。 */
+/** 单独一颗泡。外晕在轮廓外，内发光被圆裁住，中心渐变仍是另一层。 */
 function orb(g, x, y, r, hex, p, cam) {
-  paintGlow(g, x, y, r, hex, p);
+  const add = circleAdd(x, y, r);
+  const disc = [{ x, y, r }];
+  paintOuterGlow(g, add, disc, hex, p);
   const fillA = p.fillA == null ? 0.05 : p.fillA;
   if (fillA > 0.004) {
     g.beginPath();
-    g.arc(x, y, r, 0, Math.PI * 2);
+    add(g);
     g.fillStyle = rgba(fillHexOf(hex, p), fillA);
     g.fill();
   }
+  paintInnerGlow(g, add, disc, hex, p);
   paintCore(g, x, y, r, hex, p);
   g.beginPath();
-  g.arc(x, y, r, 0, Math.PI * 2);
+  add(g);
   strokeOf(g, r, p, cam);
 }
 
-/** 合并轮廓：只描外圈，不补圆心之间的直线。 */
+/** 合并轮廓：发光跟着真实外轮廓裁，不使用外接矩形。 */
 export function paintUnion(g, parts, hex, p, cam, capR) {
   if (!parts || !parts.length) return;
+  const add = unionAdd(parts);
+  const ref = capR || parts[0].r;
+  paintOuterGlow(g, add, parts, hex, p);
   g.beginPath();
-  const s0 = parts[0];
-  g.moveTo(s0.x + Math.cos(s0.a0) * s0.r, s0.y + Math.sin(s0.a0) * s0.r);
-  for (const seg of parts) g.arc(seg.x, seg.y, seg.r, seg.a0, seg.a1, !!seg.ccw);
-  g.closePath();
+  add(g);
   const fillA = p.fillA == null ? 0.05 : p.fillA;
   if (fillA > 0.004) {
     g.fillStyle = rgba(fillHexOf(hex, p), fillA);
     g.fill();
   }
-  strokeOf(g, capR || s0.r, p, cam);
+  paintInnerGlow(g, add, parts, hex, p);
+  strokeOf(g, ref, p, cam);
 }
 
 function paintLabel(g, b, cam, fill, p) {
@@ -180,35 +177,26 @@ function paintLabel(g, b, cam, fill, p) {
   const name = b.name || '';
   const amt = b.amount != null ? formatAmount(b.amount) : (b.v != null ? formatAmount(b.v) : '');
   if (!name && !amt) return;
-  const k = p.fontK == null ? 0.32 : p.fontK;
-  const minPx = p.fontMin == null ? 8 : p.fontMin;
-  const maxPx = p.fontMax == null ? 18 : p.fontMax;
-  let screenPx = b.r * (cam || 1) * k;
-  if (screenPx < minPx) return;
-  screenPx = Math.min(maxPx, screenPx);
-  let namePx = screenPx / (cam || 1);
-  const maxW = b.r * 1.55;
-  g.font = '500 ' + namePx + 'px sans-serif';
-  while (namePx > minPx / (cam || 1) && g.measureText(name).width > maxW) {
-    namePx -= 0.5;
-    g.font = '500 ' + namePx + 'px sans-serif';
-  }
   const fade = b.fade == null ? 1 : b.fade;
   if (fade <= 0.01) return;
-  if (namePx * (cam || 1) < minPx) return;
-  let shown = name;
-  while (shown.length > 1 && g.measureText(shown).width > maxW) shown = shown.slice(0, -1);
-  if (shown !== name && shown.length > 1) shown = shown.slice(0, -1) + '…';
-  const amtPx = Math.max(6, namePx * 0.82);
+  const lay = labelLayout(b.r, cam || 1, p, name, amt, (text, px) => {
+    g.font = '500 ' + px + 'px sans-serif';
+    return g.measureText(text).width;
+  });
+  if (!(lay.namePx > 0) && !(lay.amtPx > 0)) return;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   g.fillStyle = fill;
-  g.font = '500 ' + namePx + 'px sans-serif';
-  g.globalAlpha = (p.nameA == null ? 1 : p.nameA) * fade;
-  if (shown) g.fillText(shown, b.x, b.y - namePx * 0.52);
-  g.font = '500 ' + amtPx + 'px sans-serif';
-  g.globalAlpha = (p.amtA == null ? 1 : p.amtA) * fade;
-  if (amt) g.fillText(amt, b.x, b.y + amtPx * 0.62);
+  if (lay.name && lay.namePx > 0) {
+    g.font = '500 ' + lay.namePx + 'px sans-serif';
+    g.globalAlpha = (p.nameA == null ? 1 : p.nameA) * fade;
+    g.fillText(lay.name, b.x, b.y - lay.namePx * 0.55);
+  }
+  if (amt && lay.amtPx > 0) {
+    g.font = '500 ' + lay.amtPx + 'px sans-serif';
+    g.globalAlpha = (p.amtA == null ? 1 : p.amtA) * fade;
+    g.fillText(amt, b.x, b.y + lay.amtPx * 0.62);
+  }
   g.globalAlpha = 1;
 }
 
@@ -284,29 +272,26 @@ export function drawBubbleStage(g, model, view) {
 }
 
 function paintRuler(g, model, view, ink, cam) {
-  if (!model || !model.startIso) return;
+  if (!model || !model.startIso || !(view.ppd > 0)) return;
   const h = view.height;
-  const top = view.scrollDay - (h * 0.5) / view.ppd;
-  const bot = view.scrollDay + (h * 0.5) / view.ppd;
-  const step = view.ppd > 26 ? 1 : 2;
+  const s = cam && cam.s > 0 ? cam.s : 1;
+  const py = (cam && cam.y) || 0;
+  const vAt = (y) => view.scrollDay + (y - h / 2 - py) / (view.ppd * s);
+  const marks = rulerMarks(model, vAt(0), vAt(h), view.ppd * s);
   g.strokeStyle = ink.muted;
   g.fillStyle = ink.muted;
   g.lineWidth = 1;
   g.font = '10px sans-serif';
   g.textAlign = 'left';
   g.textBaseline = 'middle';
-  for (let v = Math.ceil(top); v <= bot; v += step) {
-    const worldY = h * 0.5 + (v - view.scrollDay) * view.ppd;
-    const y = (worldY - h / 2) * (cam.s || 1) + h / 2 + (cam.y || 0);
-    if (y < 40 || y > h - 8) continue;
-    const cal = calendarDayAt(model, v);
-    const dt = new Date(Date.parse(model.startIso + 'T00:00:00') + Math.round(cal) * 86400000);
-    if (Number.isNaN(dt.getTime())) continue;
+  for (const m of marks) {
+    const y = h / 2 + (m.vday - view.scrollDay) * view.ppd * s + py;
+    if (y < 4 || y > h - 4) continue;
     g.beginPath();
-    g.moveTo(32, y);
-    g.lineTo(42, y);
+    g.moveTo(28, y);
+    g.lineTo(m.span ? 38 : 42, y);
     g.stroke();
-    g.fillText(String(dt.getDate()), 46, y);
+    g.fillText(m.label, 46, y);
   }
 }
 

@@ -239,9 +239,15 @@ export function mountDebugPanel(opts) {
     key.className = 'nt-debug-key';
     // 分组标题已经写了「标签栏」「按钮区」，键名不再重复前缀
     key.textContent = item.key.startsWith(item.group) ? item.key.slice(item.group.length) : item.key;
-    key.title = item.key;
+    key.title = item.hint || item.key;
 
     row.appendChild(key);
+    if (item.hint) {
+      const note = document.createElement('span');
+      note.className = 'nt-debug-hint';
+      note.textContent = item.hint;
+      row.appendChild(note);
+    }
 
     if (item.type === 'enum') {
       const sel = document.createElement('select');

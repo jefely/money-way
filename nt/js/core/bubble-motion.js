@@ -34,13 +34,11 @@ function smooth(t) {
  */
 export function juiceAt(t) {
   const x = Math.min(1, Math.max(0, t));
-  const stretch = 1 + 0.16 * Math.sin(x * Math.PI);
-  return { sx: stretch, sy: 1 / Math.sqrt(stretch), ripple: Math.exp(-((x - 0.84) ** 2) / 0.004), droplets: Math.exp(-((x - 0.16) ** 2) / 0.004) };
+  const stretch = 1 + 0.16 * Math.sin(x * Math.PI); return { sx: stretch, sy: 1 / Math.sqrt(stretch), ripple: Math.exp(-((x - 0.84) ** 2) / 0.004), droplets: Math.exp(-((x - 0.16) ** 2) / 0.004) };
 }
 
 export function elastic(p) {
-  const x = clamp01(p);
-  return x * x * (3 - 2 * x) + Math.sin(x * Math.PI) * Math.sin(x * Math.PI * 2) * 0.08;
+  const x = clamp01(p); return x * x * (3 - 2 * x) + Math.sin(x * Math.PI) * Math.sin(x * Math.PI * 2) * 0.08;
 }
 
 /** 事件日期线在屏幕上的 y。过去在上，未来在下，scrollDay 对准屏幕正中。 */
@@ -205,22 +203,26 @@ export function tierMult(amount, mults) {
   const last = xs.length - 1;
   if (x >= xs[last]) return ms[Math.min(last, ms.length - 1)];
   for (let i = 1; i < xs.length; i += 1) {
-    if (x <= xs[i]) {
-      const t = (x - xs[i - 1]) / (xs[i] - xs[i - 1]);
-      const a = ms[i - 1] == null ? 1 : ms[i - 1];
-      return a + ((ms[i] == null ? 1 : ms[i]) - a) * t;
-    }
+    if (x > xs[i]) continue;
+    const t = (x - xs[i - 1]) / (xs[i] - xs[i - 1]);
+    const a = ms[i - 1] == null ? 1 : ms[i - 1];
+    return a + ((ms[i] == null ? 1 : ms[i]) - a) * t;
   }
   return 1;
 }
 
 export function bubbleRadius(amount, opt) {
   const v = Math.abs(Number(amount) || 0);
-  if (v < 0.5) return 2;
-  const exp = (opt && opt.exp) || 0.5;
-  const k = (opt && opt.k) || 2.6;
-  const m = tierMult(v, opt && opt.mults);
-  return k * Math.pow(v, exp) * m;
+  if (!(v >= 0.5)) return 2;
+  const o = opt || {};
+  const m = tierMult(v, o.mults);
+  let d = 2 * (o.k || 2.6) * Math.pow(v, o.exp || 0.5) * m;
+  const lo = Number(o.dMin) > 0 ? Number(o.dMin) : 0;
+  let hi = (o.dMaxOn === '1' || o.dMaxOn === 1 || o.dMaxOn === '开') ? Number(o.dMax) : 0;
+  if (hi > 0 && lo > hi) hi = lo;
+  if (lo > 0) d = Math.max(d, lo);
+  if (hi > 0) d = Math.min(d, hi);
+  return d / 2;
 }
 
 /** 这笔钱在四列之间怎么走。 */

@@ -23,7 +23,7 @@
  * 鏂板鏂囦欢璁板緱鍔犺繘鏉ワ紙tools 閲屾湁鐢熸垚鑴氭湰锛夈€?
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.561';
+const CACHE_NAME = 'nt-v1.562';
 
 const ASSETS = [
   './css/base.css',
@@ -149,7 +149,7 @@ const ASSETS = [
   './js/ui/account-table.js', './js/ui/add-dialog.js',
   './js/ui/alias-batch.js',
   './js/ui/apply-settings.js', './js/ui/batch-render.js',
-  './js/ui/backup-guard.js', './js/ui/bubble-stage.js',
+  './js/ui/backup-guard.js', './js/ui/bubble-stage.js', './js/ui/bubble-ink.js',
   './js/ui/cat-suggest.js',
   './js/ui/cell-caret.js',
   './js/ui/cell-clip.js',

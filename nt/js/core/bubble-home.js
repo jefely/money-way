@@ -102,7 +102,9 @@ export function buildHome(model, view) {
   const win = view.windowPx;
   const gap = view.dayGap == null ? 0.65 : Number(view.dayGap);
   const sep = Math.max(0, view.gap == null ? 4 : view.gap);
-  const fitR = (v) => bubbleRadius(Math.abs(v), { mults: view.mults });
+  const fitR = (v) => bubbleRadius(Math.abs(v), {
+    mults: view.mults, dMin: view.dMin, dMax: view.dMax, dMaxOn: view.dMaxOn,
+  });
   const insetL = width * ((view.insetL == null ? 6 : view.insetL) / 100);
   const insetR = width * ((view.insetR == null ? 6 : view.insetR) / 100);
   const accounts = model.accounts || [];

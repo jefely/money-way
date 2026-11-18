@@ -234,6 +234,60 @@ export function dayOfIso(model, iso) {
   return Math.round((msOf(iso) - msOf(model.startIso)) / DAY_MS);
 }
 
+/** 日历日 → 视觉日。和 calendarDayAt 互为反函数，空档压短后中间的天挤在短区间里。 */
+export function vdayAt(model, day) {
+  const marks = (model && model.vmarks) || [];
+  if (!marks.length) return 0;
+  if (day <= marks[0].day) return marks[0].vday;
+  for (let i = 1; i < marks.length; i += 1) {
+    const a = marks[i - 1];
+    const b = marks[i];
+    if (day <= b.day) {
+      const t = b.day === a.day ? 0 : (day - a.day) / (b.day - a.day);
+      return a.vday + (b.vday - a.vday) * t;
+    }
+  }
+  return marks[marks.length - 1].vday;
+}
+
+/**
+ * 标尺刻度。按日历日走，不按视觉日四舍五入。
+ * 屏幕上相邻两天至少约 14px 才各标一天；再密就把一段空档写成「14–22」，不假装天天连续。
+ * pxPerVday 用滚动比例乘上镜头缩放，所以放大后能看清每一天，缩小后改标区间。
+ */
+export function rulerMarks(model, vTop, vBot, pxPerVday) {
+  const px = Math.max(0.01, Number(pxPerVday) || 1);
+  const minPx = 14;
+  if (!model || !model.startIso) return [];
+  const c0 = Math.floor(calendarDayAt(model, vTop));
+  const c1 = Math.ceil(calendarDayAt(model, vBot));
+  const days = [];
+  for (let d = c0; d <= c1; d += 1) {
+    const v = vdayAt(model, d);
+    if (v < vTop - 0.05 || v > vBot + 0.05) continue;
+    days.push({ d, v });
+  }
+  const num = (d) => {
+    const dt = new Date(Date.parse(model.startIso + 'T00:00:00') + d * 86400000);
+    return Number.isNaN(dt.getTime()) ? '' : String(dt.getDate());
+  };
+  const out = [];
+  let i = 0;
+  while (i < days.length) {
+    let j = i;
+    while (j + 1 < days.length && (days[j + 1].v - days[j].v) * px < minPx) j += 1;
+    const a = num(days[i].d);
+    const b = num(days[j].d);
+    if (a) {
+      out.push(j === i || a === b
+        ? { vday: days[i].v, label: a, span: false }
+        : { vday: (days[i].v + days[j].v) / 2, label: a + '–' + b, span: true });
+    }
+    i = j + 1;
+  }
+  return out;
+}
+
 /** 视觉日 → 日历日（空月被压短之后，用两端的刻度插值） */
 export function calendarDayAt(model, vday) {
   const marks = (model && model.vmarks) || [];

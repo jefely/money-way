@@ -16,12 +16,12 @@ export function readLvParams() {
   if (cache) return cache;
   const out = { ...LV_DEFAULTS };
   const root = typeof document !== 'undefined' ? document.documentElement : null;
-  if (root) {
-    const cs = getComputedStyle(root);
+  const cs = root ? getComputedStyle(root) : null;
+  if (cs) {
     for (const s of LV_SCHEMA) {
       const raw = cs.getPropertyValue(s.cssVar).trim();
       if (!raw) continue;
-      if (s.field === 'stroke' || s.field === 'preset' || s.field === 'grainTint' || s.field === 'guides' || s.field === 'fillMode') out[s.field] = raw;
+      if (s.field === 'stroke' || s.field === 'preset' || s.field === 'grainTint' || s.field === 'guides' || s.field === 'fillMode' || s.field === 'fontLock') out[s.field] = raw;
       else {
         const n = parseFloat(raw);
         if (Number.isFinite(n)) out[s.field] = n;
@@ -35,7 +35,40 @@ export function readLvParams() {
   out.guides = (out.guides === '开' || out.guides === '1') ? '1' : '0';
   const fillId = { 白色: 'white', 分类色: 'lane', 线颜色: 'stroke' };
   out.fillMode = fillId[out.fillMode] || out.fillMode || 'white';
-  out.mults = [out.m1, out.m10, out.m100, out.m1000, out.m5000, out.m10000, out.m100000];
+  const asMult = (v) => {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n <= 0) return 1;
+    return n > 8 ? n / 100 : n;
+  };
+  out.mults = [out.m1, out.m10, out.m100, out.m1000, out.m5000, out.m10000, out.m100000].map(asMult);
+  out.dMaxOn = (out.dMaxOn === '开' || out.dMaxOn === '1') ? '1' : '0';
+  out.fontLock = (out.fontLock === '关' || out.fontLock === '0') ? '0' : '1';
+  if (cs) {
+    const leg = (name) => {
+      const n = parseFloat(cs.getPropertyValue(name));
+      return Number.isFinite(n) ? n : null;
+    };
+    const empty = (css) => !cs.getPropertyValue(css).trim();
+    if (empty('--nt-lv-name-k')) {
+      const k = leg('--nt-lv-font-k');
+      if (k != null) { out.nameK = k; out.amtK = k; }
+    }
+    if (empty('--nt-lv-name-min')) {
+      const n = leg('--nt-lv-font-min');
+      if (n != null) { out.nameMin = n; out.amtMin = n; }
+    }
+    if (empty('--nt-lv-name-max')) {
+      const n = leg('--nt-lv-font-max');
+      if (n != null) { out.nameMax = n; out.amtMax = n; }
+    }
+    if (empty('--nt-lv-out-glow')) {
+      const n = leg('--nt-lv-glow');
+      if (n != null) {
+        out.outGlow = Math.min(0.45, Math.max(0, n));
+        if (empty('--nt-lv-in-glow')) out.inGlow = Math.min(1, Math.max(0, n));
+      }
+    }
+  }
   out.zone01 = Math.min(1, Math.max(0.4, out.zone / 100));
   out.fade = Math.min(0.8, Math.max(0, (out.fadePct == null ? 18 : out.fadePct) / 100));
   cache = out;

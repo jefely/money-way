@@ -214,8 +214,17 @@
 .nt-debug-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 3px;
+}
+
+.nt-debug-hint {
+  flex: 1 0 100%;
+  padding-left: 1em;
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--nt-text-muted);
 }
 
 .nt-debug-key {

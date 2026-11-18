@@ -120,6 +120,7 @@
 | `ui/apply-settings.js` | 全局：把界面参数写成 CSS 变量（主题/列宽） |
 | `ui/backup-guard.js` | 主屏幕备份提醒 |
 | `ui/batch-render.js` | 批量粘贴期间挂起重绘 |
+| `ui/bubble-ink.js` | 脉络泡的内发光、外晕和字号 |
 | `ui/bubble-stage.js` | 脉络 tab → 气泡画布 |
 | `ui/cat-suggest.js` | 统计 → 分类查询的候选气泡（输入首字母弹出分类） |
 | `ui/cell-caret.js` | 点击坐标 → 输入框里的字符下标（双击定位光标） |
