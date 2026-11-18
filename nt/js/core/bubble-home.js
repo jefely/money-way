@@ -4,6 +4,7 @@
  * 飞泡是单笔金额，在途不并进分类合计。倒放和正放用同一套进度。
  */
 
+import { rimClear } from './bubble-scene.js';
 import { isDebitType } from './schema.js';
 import {
   bubbleRadius, clamp01, eventProgress, flyScale, textFade,
@@ -231,23 +232,14 @@ export function buildHome(model, view) {
     }
     const t = smooth(clamp01(p));
     const preferUp = e.kind === 'spend' || e.kind === 'charge';
-    const dx0 = dst.x - src.x;
-    const dy0 = dst.y - src.y;
-    const len0 = Math.hypot(dx0, dy0) || 1;
-    const launch = src.id ? {
-      x: src.x + (dx0 / len0) * (src.r || 0),
-      y: src.y + (dy0 / len0) * (src.r || 0),
-      id: src.id,
-    } : src;
-    const land = dst.id ? {
-      x: dst.x - (dx0 / len0) * (dst.r || 0),
-      y: dst.y - (dy0 / len0) * (dst.r || 0),
-      id: dst.id,
-    } : dst;
-    const blocks = blockers.filter((o) => o.id !== src.id && o.id !== dst.id);
+    const others = blockers.filter((o) => o.id !== src.id && o.id !== dst.id);
+    const launch = src.id ? rimClear(src, dst, [...others, dst], flyR) : src;
+    const land = dst.id ? rimClear(dst, src, [...others, src], flyR) : dst;
+    const blocks = others;
     let pos = flyArc(launch, land, blocks, t, flyR, preferUp);
-    if (t > 0.22 && t < 0.78) {
-      for (const o of blocks) {
+    const shove = (list) => {
+      for (const o of list) {
+        if (!o) continue;
         const dx = pos.x - o.x;
         const dy = pos.y - o.y;
         const dist = Math.hypot(dx, dy) || 0.01;
@@ -255,12 +247,15 @@ export function buildHome(model, view) {
         if (dist >= min) continue;
         pos = { x: pos.x + (dx / dist) * (min - dist), y: pos.y + (dy / dist) * (min - dist) };
       }
-    }
+    };
+    const ends = t > 0.2 && t < 0.8 ? [src.id ? src : null, dst.id ? dst : null] : [];
+    shove([...blocks, ...ends]);
     const x = pos.x;
     const y = pos.y;
     const name = (e.kind === 'repay') ? '还款'
       : (e.kind === 'borrow') ? '借入'
-        : (e.cat || (from && from.name) || (to && to.name) || '');
+        : (e.kind === 'transfer') ? '转账'
+          : (e.cat || (from && from.name) || (to && to.name) || '');
     flies.push({
       id: 'F' + e.key, x, y, homeX: x, homeY: y, r: flyR * (scale > 0.92 ? 1 : Math.max(0.35, scale)),
       lane: to ? to.lane : (from ? from.lane : 0),

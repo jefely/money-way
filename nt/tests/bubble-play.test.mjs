@@ -144,6 +144,46 @@ test('宽屏镜头不把左右缘挤到中间', () => {
   }
 });
 
+test('转账只贴真正的一端，不会同时陷进储蓄和零钱', () => {
+  const accounts = [
+    { id: 'salary', name: '工资', type: '收入类' },
+    { id: 'bank', name: '储蓄卡', type: '资产类' },
+    { id: 'bank2', name: '零钱', type: '资产类' },
+    { id: 'food', name: '餐饮', type: '费用类', category: '日常' },
+    { id: 'card', name: '信用卡', type: '负债类' },
+  ];
+  const model = buildLifeVein({
+    accounts,
+    transactions: [
+      { id: 'a', seq: 1, date: '2026-08-01', from_id: 'salary', to_id: 'bank', amount: 2000 },
+      { id: 'b', seq: 2, date: '2026-08-03', from_id: 'bank', to_id: 'bank2', amount: 300 },
+    ],
+  }, '2026-08-08');
+  const v = view(model, 0);
+  const lay = playLayout(model, v.ppd, v.height, v.windowPx);
+  const ev = model.events.find((e) => e.amount === 300);
+  const at = (p) => {
+    const y = v.height * 0.9 - p * v.windowPx;
+    return lay.slot.get(ev.key) - (y - v.height / 2) / v.ppd;
+  };
+  let buried = 0;
+  for (const p of [0.05, 0.2, 0.45, 0.75, 0.95]) {
+    const scene = assembleScene(model, view(model, at(p)));
+    const fly = scene.flies.find((f) => f.amount === 300);
+    const bank = scene.asset.find((b) => b.id === 'bank');
+    const cash = scene.asset.find((b) => b.id === 'bank2');
+    if (!fly || !bank) continue;
+    const g = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) - a.r - b.r;
+    if (g(fly, bank) < 0 && cash && g(fly, cash) < 0) buried += 1;
+    assert.equal(fly.name, '转账');
+    if (p < 0.25) assert.ok(g(fly, bank) < 8, '离开时贴着储蓄');
+    if (p > 0.85 && cash && cash.r > 8) assert.ok(g(fly, cash) < 8, '到达时贴着零钱');
+  }
+  assert.ok(buried <= 1, '不应整段同时陷在两端 ' + buried);
+  const again = assembleScene(model, view(model, at(0.45)));
+  assert.deepEqual(again, assembleScene(model, view(model, at(0.45))));
+});
+
 test('同一天被拉长时标尺仍标这一天，不编出下一天', () => {
   const m = burst;
   const v = view(m, 0, 390, 780);

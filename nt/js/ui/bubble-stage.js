@@ -243,10 +243,17 @@ export function drawBubbleStage(g, model, view) {
   const byId = new Map(bodies.map((b) => [b.id, b]));
   const covered = new Set();
   const joins = [];
+  const gapOf = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) - a.r - b.r;
   for (const fly of scene.flies) {
     const dst = byId.get(fly.dstId);
     const src = byId.get(fly.srcId);
-    const end = fly.t < 0.42 ? (src || dst) : dst;
+    const foreign = bodies.some((b) => b.id !== fly.srcId && b.id !== fly.dstId && gapOf(fly, b) < 2);
+    const gs = src ? gapOf(fly, src) : 99;
+    const gd = dst ? gapOf(fly, dst) : 99;
+    const both = gs < 0 && gd < 0;
+    const end = foreign || both ? null
+      : (fly.t < 0.5 && src && gs < 8 && gs <= gd) ? src
+        : (fly.t >= 0.5 && dst && gd < 8 && gd <= gs) ? dst : null;
     if (!end) continue;
     const parts = unionOutline(fly, end);
     if (!parts) continue;

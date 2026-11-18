@@ -40,6 +40,26 @@ export function arcPoint(src, dst, obstacles, t) {
   };
 }
 
+/** 在圆边上取一点。优先朝向对方，但飞泡不能因此压进别的圆。 */
+export function rimClear(node, toward, blocks, flyR) {
+  const base = Math.atan2(toward.y - node.y, toward.x - node.x);
+  let best = null;
+  for (let i = 0; i < 24; i += 1) {
+    const delta = (i % 2 ? 1 : -1) * Math.ceil(i / 2) * (Math.PI / 12);
+    const a = base + delta;
+    const x = node.x + Math.cos(a) * node.r;
+    const y = node.y + Math.sin(a) * node.r;
+    let clear = 1e9;
+    for (const o of blocks) {
+      if (!o || o.id === node.id) continue;
+      clear = Math.min(clear, Math.hypot(x - o.x, y - o.y) - o.r - flyR);
+    }
+    const score = (clear >= 1 ? 1000 : clear) - Math.abs(delta);
+    if (!best || score > best.score) best = { x, y, id: node.id, clear, score };
+  }
+  return best || { x: node.x, y: node.y, id: node.id };
+}
+
 /** 整帧。位置只由滚动进度决定，倒放回到同一帧。 */
 export function assembleScene(model, view) {
   return buildHome(model, view || {});
