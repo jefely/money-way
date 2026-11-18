@@ -11,7 +11,7 @@ import { grainCanvas, readLvParams } from './lv-params.js';
 import { rulerMarks } from '../core/lifevein-model.js';
 import { rulerFromPlay } from '../core/bubble-play.js';
 import {
-  circleAdd, labelLayout, paintInnerGlow, paintOuterGlow, unionAdd,
+  bodyDiscs, circleAdd, labelLayout, paintInnerGlow, paintOuterGlow, unionAdd,
 } from './bubble-ink.js';
 
 const LANE = ['#2fbfa8', '#3a9e88', '#e25d86', '#4d86e0', '#e15b4a', '#d4893c'];
@@ -140,8 +140,7 @@ function strokeOf(g, r, p, cam) {
 /** 单独一颗泡。外晕在轮廓外，内发光被圆裁住，中心渐变仍是另一层。 */
 function orb(g, x, y, r, hex, p, cam) {
   const add = circleAdd(x, y, r);
-  const disc = [{ x, y, r }];
-  paintOuterGlow(g, add, disc, hex, p);
+  paintOuterGlow(g, add, [{ x, y, r }], hex, p);
   const fillA = p.fillA == null ? 0.05 : p.fillA;
   if (fillA > 0.004) {
     g.beginPath();
@@ -149,19 +148,18 @@ function orb(g, x, y, r, hex, p, cam) {
     g.fillStyle = rgba(fillHexOf(hex, p), fillA);
     g.fill();
   }
-  paintInnerGlow(g, add, disc, hex, p);
+  paintInnerGlow(g, add, [{ x, y, r }], hex, p);
   paintCore(g, x, y, r, hex, p);
-  g.beginPath();
-  add(g);
-  strokeOf(g, r, p, cam);
+  g.beginPath(); add(g); strokeOf(g, r, p, cam);
 }
 
 /** 合并轮廓：发光跟着真实外轮廓裁，不使用外接矩形。 */
-export function paintUnion(g, parts, hex, p, cam, capR) {
+export function paintUnion(g, parts, hex, p, cam, capR, bodies) {
   if (!parts || !parts.length) return;
   const add = unionAdd(parts);
   const ref = capR || parts[0].r;
-  paintOuterGlow(g, add, parts, hex, p);
+  const discs = bodyDiscs(parts, bodies);
+  paintOuterGlow(g, add, discs, hex, p);
   g.beginPath();
   add(g);
   const fillA = p.fillA == null ? 0.05 : p.fillA;
@@ -169,8 +167,8 @@ export function paintUnion(g, parts, hex, p, cam, capR) {
     g.fillStyle = rgba(fillHexOf(hex, p), fillA);
     g.fill();
   }
-  paintInnerGlow(g, add, parts, hex, p);
-  strokeOf(g, ref, p, cam);
+  paintInnerGlow(g, add, discs, hex, p);
+  g.beginPath(); add(g); strokeOf(g, ref, p, cam);
 }
 
 function paintLabel(g, b, cam, fill, p) {
@@ -265,7 +263,7 @@ export function drawBubbleStage(g, model, view) {
   for (const fly of scene.flies) if (!covered.has(fly.id)) orb(g, fly.x, fly.y, fly.r, colorOf(fly.lane), style, camS);
   const cored = new Set();
   for (const j of joins) {
-    paintUnion(g, j.parts, colorOf(j.dst.lane), style, camS, Math.min(j.fly.r, j.dst.r));
+    paintUnion(g, j.parts, colorOf(j.dst.lane), style, camS, Math.min(j.fly.r, j.dst.r), [j.fly, j.dst]);
     if (!cored.has(j.dst.id)) { paintCore(g, j.dst.x, j.dst.y, j.dst.r, colorOf(j.dst.lane), style); cored.add(j.dst.id); }
     paintCore(g, j.fly.x, j.fly.y, j.fly.r, colorOf(j.fly.lane), style);
   }

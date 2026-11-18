@@ -68,7 +68,11 @@ export function labelLayout(r, cam, p, name, amount, measure) {
   return { namePx, amtPx, name: shown };
 }
 
-function discsOf(parts) {
+/** 发光只绕真正的两颗泡。桥弧的圆心在轮廓外面，不能拿来当发光中心。 */
+export function bodyDiscs(parts, bodies) {
+  if (bodies && bodies.length) {
+    return bodies.filter((b) => b && b.r > 1).map((b) => ({ x: b.x, y: b.y, r: b.r }));
+  }
   const seen = new Set();
   const out = [];
   for (const s of parts || []) {
@@ -80,61 +84,68 @@ function discsOf(parts) {
   return out;
 }
 
-/** 轮廓外的淡晕。先按真实轮廓挖空，光不会涂进泡泡里面。 */
-export function paintOuterGlow(g, addPath, discs, hex, p) {
-  const a = num(p && p.outGlow, 0.1);
-  const ext = num(p && p.outGlowExt, 50) / 100;
-  const list = discsOf(discs);
-  if (!(a > 0.004) || !(ext > 0.002) || !list.length) return;
-  const peak = Math.min(0.28, a);
+function glowReach(list, ext) {
+  let ref = 0;
+  for (const d of list) if (d.r > ref) ref = d.r;
+  return ref * ext;
+}
+
+function glowBox(list, pad) {
   let x0 = Infinity;
   let y0 = Infinity;
   let x1 = -Infinity;
   let y1 = -Infinity;
   for (const d of list) {
-    const reach = d.r * (1 + ext);
-    x0 = Math.min(x0, d.x - reach);
-    y0 = Math.min(y0, d.y - reach);
-    x1 = Math.max(x1, d.x + reach);
-    y1 = Math.max(y1, d.y + reach);
+    x0 = Math.min(x0, d.x - d.r - pad);
+    y0 = Math.min(y0, d.y - d.r - pad);
+    x1 = Math.max(x1, d.x + d.r + pad);
+    y1 = Math.max(y1, d.y + d.r + pad);
   }
+  return [x0, y0, x1 - x0, y1 - y0];
+}
+
+/** 沿同一条轮廓往外描。裁切在轮廓外面，和填充、白线是同一条路径。 */
+export function paintOuterGlow(g, addPath, discs, hex, p) {
+  const a = num(p && p.outGlow, 0.1);
+  const ext = num(p && p.outGlowExt, 50) / 100;
+  const list = bodyDiscs(null, discs);
+  const reach = glowReach(list, ext);
+  if (!(a > 0.004) || !(reach > 0.5)) return;
+  const peak = Math.min(0.28, a);
+  const [x, y, w, h] = glowBox(list, reach + 2);
   g.save();
   g.beginPath();
-  g.rect(x0 - 2, y0 - 2, x1 - x0 + 4, y1 - y0 + 4);
+  g.rect(x, y, w, h);
   addPath(g);
   g.clip('evenodd');
-  for (const d of list) {
-    const grd = g.createRadialGradient(d.x, d.y, d.r, d.x, d.y, d.r * (1 + ext));
-    grd.addColorStop(0, rgba(hex, peak));
-    grd.addColorStop(1, rgba(hex, 0));
-    g.fillStyle = grd;
+  for (let i = 3; i >= 1; i -= 1) {
     g.beginPath();
-    g.arc(d.x, d.y, d.r * (1 + ext), 0, Math.PI * 2);
-    g.fill();
+    addPath(g);
+    g.lineWidth = reach * 2 * (i / 3);
+    g.strokeStyle = rgba(hex, peak * (4 - i) / 6);
+    g.stroke();
   }
   g.restore();
 }
 
-/** 轮廓内的光。裁切用真实轮廓，不用外接矩形，也不使用阴影模糊。 */
+/** 沿同一条轮廓往里描。裁切在轮廓里面，不会冒到白线外面。 */
 export function paintInnerGlow(g, addPath, discs, hex, p) {
   const a = num(p && p.inGlow, 0.1);
   const ext = num(p && p.inGlowExt, 18) / 100;
-  const list = discsOf(discs);
-  if (!(a > 0.004) || !(ext > 0.002) || !list.length) return;
+  const list = bodyDiscs(null, discs);
+  const reach = glowReach(list, ext);
+  if (!(a > 0.004) || !(reach > 0.5)) return;
   const peak = Math.min(0.45, a);
   g.save();
   g.beginPath();
   addPath(g);
   g.clip();
-  for (const d of list) {
-    const inner = Math.max(0, d.r * (1 - ext));
-    const grd = g.createRadialGradient(d.x, d.y, inner, d.x, d.y, Math.max(inner + 0.5, d.r));
-    grd.addColorStop(0, rgba(hex, 0));
-    grd.addColorStop(1, rgba(hex, peak));
-    g.fillStyle = grd;
+  for (let i = 3; i >= 1; i -= 1) {
     g.beginPath();
-    g.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-    g.fill();
+    addPath(g);
+    g.lineWidth = reach * 2 * (i / 3);
+    g.strokeStyle = rgba(hex, peak * (4 - i) / 6);
+    g.stroke();
   }
   g.restore();
 }
