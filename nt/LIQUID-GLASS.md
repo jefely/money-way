@@ -1,8 +1,9 @@
-# NT 账本液态玻璃折射设计
+﻿# NT 账本液态玻璃折射设计
 
-> 版本：nt-v1.568
-> 参考：用户 2026-11 提供的液态玻璃教程视频
-> 实现位置：[`js/ui/liquid-glass.js`](js/ui/liquid-glass.js) · [`css/flow.css`](css/flow.css) · [`js/views/flow.js`](js/views/flow.js)
+> 版本：nt-v1.569（2026-11-21）
+> 参考：用户 2026-11 提供的液态玻璃教程视频（4:14）
+> 实现：[`js/ui/liquid-glass.js`](js/ui/liquid-glass.js) · [`css/flow.css`](css/flow.css)
+> 姊妹实现：[`TxtVein/js/ui/glass.js`](../../TxtVein/js/ui/glass.js)（**同一套内核，逐行同算法**）
 
 ## 1. 范围
 
@@ -10,43 +11,51 @@
 
 - 收起：54×54 圆钮；
 - 展开：360×54 胶囊；
-- 两个状态都用位移贴图折射背后的流水表格；
-- 玻璃模块是增强项：加载失败/浏览器不支持时，原悬浮窗照常工作。
+- 两个状态共用一张「胶囊」玻璃的两种贴图，不是两个控件；
+- 玻璃是增强项：模块加载失败 / 浏览器不支持时，原悬浮窗照常工作。
 
-## 2. 算法
+## 2. 四层
 
-和视频一致，用屏幕空间位移贴图：
+与视频完全一致，也和 TxtVein 对齐：
 
-1. 圆角 SDF 求法线；
-2. R/G 通道编码横/纵偏移，128 = 不偏移；
-3. `feImage` 载入贴图；
-4. `feDisplacementMap` 采样背景；
-5. 元素用 `backdrop-filter: url(#nt-lg-composer)` 取结果。
+| 层 | 做法 |
+|---|---|
+| ① 透明 | `rgba(255,255,255, var(--lg-a))`，深色主题乘 0.40 |
+| ② 折射 | 高度场 → 法线 → Snell(n=1.5) → 归一化位移贴图 → `feDisplacementMap` |
+| ③ 高光 | CSS 一整圈 conic 白环（`::after` + `mask`），最暗处保留 70%；光源角度可调 |
+| ④ 阴影 | 外投影 `0 10px 24px` |
 
-贴图 96px，按「54×54 / 360×54」分别生成并缓存。展开态单独一张宽条贴图，避免把圆形贴图拉成椭圆。
+## 3. 算法（与 TxtVein 相同，改动理由见其文档 §2）
 
-## 3. 代码
+1. 高度场 `h(t) = sin(π/2·t)`，`t = 离边缘距离 / bevel`，**边缘最陡、中心为 0**；
+2. 斜率 `h'(t)/bevel` → 入射角 `θ1 = atan(...)`；
+3. Snell：`sinθ2 = sinθ1 / 1.5`，横向位移 `tan(θ1−θ2)`；
+4. 整场除以最大值归一化 → `R/G = 128 ± 127·(v/max)`；
+5. 贴图按元素尺寸 2× 超采样（长边上限 512），`bevel = 32% 短边`（可调 8–45%）。
 
-### 贴图
-
-[`js/ui/liquid-glass.js`](js/ui/liquid-glass.js)：
-
-- `sdfRoundRect()`：圆角矩形距离场；
-- `buildMap()`：生成法线贴图，边缘做 `4t(1-t)` 折射，中心保持 128；
-- `MAP_CACHE`：按宽高圆角缓存 DataURL。
+> 旧版用 `4t(1-t)`，`t=0`（最外沿）为 0——最外圈不折射，留一圈硬边。
+> 这是白边和阶梯感的来源，已替换。
 
 ### 滤镜
 
-`makeFilter(id, map, scale)`：
-
 ```text
-feImage → feDisplacementMap(R/G, scale) → 输出
+feImage(位移贴图) → feDisplacementMap(scale, R→x, G→y) → feGaussianBlur(0.35)
 ```
 
-- 圆钮：`nt-lg-composer`，`scale=18`；
-- 展开：`nt-lg-composer-open`，`scale=18`。
+高光不放滤镜里：对 `SourceGraphic` 做 specular 会把**背后的内容**一起点亮，
+而参考效果的亮边是几何关系的边，交给 CSS 环更准。
 
-### 挂载
+### scale
+
+`scale` 是用户空间像素，按元素短边换算：
+
+```text
+实际 scale = scale × min(宽,高) / 40      默认 scale = 8
+```
+
+54px 圆钮 → 10.8px；360×54 胶囊 → 10.8px（短边同为 54）。
+
+## 4. 挂载
 
 [`js/views/flow.js`](js/views/flow.js)：
 
@@ -56,71 +65,51 @@ import('../ui/liquid-glass.js')
   .catch(() => {});
 ```
 
-使用**动态 import + catch**：模块取不到时只跳过玻璃，绝不让整个 `flow.js` 模块图加载失败。
-
-## 4. 视觉层
-
-`css/flow.css` 的 `.nt-composer.liquid-glass`：
-
-- 白色 12% 透明底；
-- 左上径向高光 + 135° 线性高光；
-- 1px 白色边框；
-- 内侧顶部高光 + 底部暗影；
-- 外侧 22px 柔和投影；
-- 展开态底色略提高（+4%），边框略降。
-
-按钮：
-
-- 收起时 `NT` 字透明底；
-- 展开时发送按钮用主题主色。
+动态 import + catch：模块取不到时只跳过玻璃，不让整条模块图加载失败。
 
 ## 5. 参数
 
-NT 的调试面板：**设置 → 布局 → 液态玻璃**（仅 `?debug=1` 布局页）。
+**设置 → 布局 → 液态玻璃**（`?debug=1`）。
 
 | 参数 | 默认 | 作用 |
 |---|---|---|
-| 不透明度 | 12% | 玻璃底白色浓度 |
-| scale | 18 | 位移贴图折射强度 |
-| 高光亮度 | 55% | 左上/线性高光 |
-| 阴影范围 | 38% | 外阴影浓度 |
-| 背景模糊 | 0px | `backdrop-filter` 附加 blur |
+| 不透明度 | 34% | 白色填充；深色主题再乘 0.40 |
+| 折射强度 | 8 | 40px 元素上的最大位移像素 |
+| 折射环宽度 | 32% | 边缘弯曲带占短边比例；改了重建贴图 |
+| 高光 | 60% | 环的整体亮度 |
+| 高光环宽度 | 1.2px | 0 = 只剩折射，没有边 |
+| 高光环模糊 | 0.4px | 抗锯齿用；0 = 完全锐利但有台阶 |
+| 光源角度 | 0° | 环最亮处的方位（0° 正上、顺时针） |
+| 阴影 | 34% | 外投影浓度 |
+| 背景模糊 | 1.5px | `backdrop-filter` 附加 blur，0 = 视频的纯透明折射 |
 
-参数保存在 `localStorage` 的 `nt_glass_params`。滑块直接写 localStorage 并派发 `nt-glass-params` 事件，`liquid-glass.js` 监听后更新 CSS 变量和两个 `feDisplacementMap` 的 scale；调试面板不需要静态 import 玻璃模块。
+存 `localStorage.nt_glass_params`；滑块写 localStorage 并派发 `nt-glass-params`，
+`liquid-glass.js` 监听后更新 CSS 变量与两张 `feDisplacementMap` 的 scale。
 
-「视频参考值」按钮：
+「视频参考值」：不透明度 35 / 折射 8 / 高光 60 / 阴影 30 / 模糊 1.5。
 
-```text
-不透明度 20 / scale 12 / 高光 55 / 阴影 75 / 模糊 0
-```
+## 6. 视觉层
 
-## 6. 节点设置表：五列与「名称列吃剩余」
+[`css/flow.css`](css/flow.css) `.nt-composer.liquid-glass`：
 
-删除期初余额/上移/删除三列后，账户表恢复原来的列宽策略：
+- 底色 `rgba(255,255,255,var(--lg-a))`，`--lg-a = alpha × 主题系数`；
+- 环分两层：`box-shadow: inset 0 0 0 <ringWidth>` 给**形状**（合成器绘制，抗锯齿好），
+  `::after` 的 conic 环给**方向性亮度**（opacity .55），`mask-composite: exclude`；
+- 外投影两条；`border: 0`（玻璃自己就是边）。
 
-- `简码 / 序 / 类型 / 分类` 保持参数宽度，可拖；
-- **节点名称列 `width:auto`** 吸收剩余宽度；
-- 表格 `width:100%`；
-- 备注区也必须只有 5 列，否则 `table-layout:fixed` 会按隐藏的 8 列分宽，名称列右边框到不了区域右边界；
-- 备注区的上移/删除收进「内容」格右侧。
-
-区域宽度以**上下滚动条左边界**为准；最后一列右边框应落在该边界上：
-
-```text
-表格宽 = 左区内容宽（滚动条轨道之外）
-最后列 right = 表格 right
-```
+输入框展开态仍有 1px 主题色内圈线（`.nt-composer-input`），那是输入框的焦点指示，
+不是玻璃边——玻璃环在它外侧，两者相差 8px 内边距，视觉上分层。
 
 ## 7. 限制
 
-- 这是 `backdrop-filter` 的 2D 折射，不是 3D 厚玻璃；
-- 没有折射率/厚度/菲涅耳；
-- 96px 贴图在 54px 圆上足够，但不会产生视频里厚透镜的中央暗部；
-- 需要更真实的效果要改用 WebGL 渲染。
+- 这是 `backdrop-filter` 的屏幕空间折射，不是 3D 厚玻璃；
+- 没有真实厚度/反射环境贴图；Snell 只用来定**位移的形状**，不追求物理一致；
+- 环宽会吸附到整数物理像素（`round(ring × dpr) / dpr`），元素位置也会用 `translate` 吸附半格；
+  否则 125% 缩放下 1.2 CSS px = 1.5 物理像素，线会被抗锯齿劈成两条灰线。
 
 ## 8. 验收
 
-- 收起/展开都是同一 `.nt-composer`，没有第二个玻璃元素；
+- 收起/展开都是同一 `.nt-composer`；
 - 滑块拖动即时生效，刷新后保留；
 - 模块缺失时应用仍能正常启动；
-- `node --test tests/*.test.mjs` 798 项通过。
+- `node --test tests/` 798 项通过。

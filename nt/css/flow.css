@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    NT账本 · 流水页组件（表单 / 表格 / 校验）
    公约 3.4：类名统一 nt- 前缀；不用 DOM 层级选择器。
    ============================================================ */
@@ -1052,6 +1052,11 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 /* 一个圆钮：收起时是 54px 渐变气泡（铅笔），点开时容器横向长成胶囊，
    输入框从左边滑出、圆钮留在右边变成发送键 —— 形状连续，不是「泡泡消失」。 */
 .nt-composer {
+  /* ::before 的 inset 以 padding-box 为基准，展开态 padding 8px 要补偿 */
+  --lg-pad-t: 0px;
+  --lg-pad-r: 0px;
+  --lg-pad-b: 0px;
+  --lg-pad-l: 0px;
   position: fixed;
   right: 16px;
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
@@ -1534,35 +1539,123 @@ body.nt-col-resizing .nt-th.nt-col-dragging > .nt-col-handle::after {
 .nt-phrase-chip[data-slot="note"] .nt-phrase-val { color: #d97706; }
 .nt-phrase-chip[data-slot="kw"] .nt-phrase-val { color: #db2777; }
 
-/* ===== 视频第一版：液态折射 ===== */
+/* ===== 视频四层：透明 / 折射 / 方向性环 / 投影 =====
+ * 环是**一整圈都在受光**：光源在空间里（玻璃前方朝屏幕照），边缘是凸起斜面，
+ * 所以整圈边缘都会反光，只是强弱随法线方向变；不是"平面内从一侧打到另一侧"。 */
 .nt-composer.liquid-glass {
-  background-color: rgba(255, 255, 255, var(--lg-alpha, 0.12)) !important;
-  background-image:
-    radial-gradient(120% 100% at 28% 14%, rgba(255, 255, 255, var(--lg-highlight, 0.55)), rgba(255, 255, 255, 0) 46%),
-    linear-gradient(135deg, rgba(255, 255, 255, calc(var(--lg-highlight, 0.55) * 0.4)), rgba(255, 255, 255, 0) 42%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.45) !important;
-  -webkit-backdrop-filter: var(--lg-filter) blur(var(--lg-blur, 0px)) saturate(1.3) brightness(1.04) !important;
-  backdrop-filter: var(--lg-filter) blur(var(--lg-blur, 0px)) saturate(1.3) brightness(1.04) !important;
+  --lg-a: calc(var(--lg-alpha, 0.34) * var(--lg-tint, 1));
+  --lg-b: calc(1 + var(--lg-bright, 0.20));
+  /* 高光线就是 ::after 那一圈；亮度由「高光亮度」控制 */
+  --lg-rl: var(--lg-highlight, 0.6);
+  /* 双层外框：最外一道「比玻璃暗、比背景亮」的接触边 */
+  --lg-rim-rgb: 255, 255, 255;
+  --lg-rim-alpha: 0.10;
+  /* 光源方位：0deg = 正上方，顺时针；整圈都亮，只强弱随角度变 */
+  --lg-ring-angle: 0deg;
+  --lg-ring-min: 0.70;
+  background-color: rgba(255, 255, 255, var(--lg-a)) !important;
+  background-image: none !important;
+  border: 0 !important;
+  -webkit-backdrop-filter: var(--lg-filter) blur(var(--lg-blur, 3px)) saturate(1.3) brightness(var(--lg-b)) !important;
+  backdrop-filter: var(--lg-filter) blur(var(--lg-blur, 3px)) saturate(1.3) brightness(var(--lg-b)) !important;
+  /* ④ 阴影：外投影 + 最外一道接触边（双层外框的外圈） */
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.65),
-    inset 0 -8px 18px rgba(0, 0, 0, 0.16),
-    0 8px 22px rgba(0, 0, 0, var(--lg-shadow, 0.38)) !important;
+    inset 0 1px 0 rgba(255, 255, 255, calc(var(--lg-a) * 0.9)),
+   0 0 0 1px rgba(var(--lg-rim-rgb), var(--lg-rim-alpha)),
+
+    0 10px 24px rgba(0, 0, 0, var(--lg-shadow, 0.34)),
+    0 2px 6px rgba(0, 0, 0, calc(var(--lg-shadow, 0.34) * 0.6)) !important;
 }
-.nt-composer.liquid-glass::before { display: none !important; }
+
+/* 投影跟着光源走：影子落在 (-sinθ, cosθ)，θ = --lg-ring-angle */
+@supports (top: calc(sin(1deg) * 1px)) {
+  .nt-composer.liquid-glass,
+  .nt-composer.liquid-glass.open {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, calc(var(--lg-a) * 0.9)),
+     0 0 0 1px rgba(var(--lg-rim-rgb), var(--lg-rim-alpha)),
+  
+      calc(sin(var(--lg-ring-angle, 0deg)) * -10px)
+      calc(cos(var(--lg-ring-angle, 0deg)) * 10px) 24px rgba(0, 0, 0, var(--lg-shadow, 0.34)),
+      calc(sin(var(--lg-ring-angle, 0deg)) * -6px)
+      calc(cos(var(--lg-ring-angle, 0deg)) * 6px) 6px rgba(0, 0, 0, calc(var(--lg-shadow, 0.34) * 0.6)) !important;
+  }
+}
+/* 厚度阴影在环的内侧：底部压暗，让边缘看起来是往下弯的立体边 */
+.nt-composer.liquid-glass::before {
+  content: '';
+  position: absolute;
+  /* NT 保持原有的两层效果（inset 环），不做遮罩内缩 */
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(calc(var(--lg-ring-angle, 0deg) + 180deg),
+      rgba(255, 255, 255, calc(var(--lg-highlight, 0.6) * 0.09)) 0%,
+      rgba(255, 255, 255, calc(var(--lg-highlight, 0.6) * 0.02)) 26%,
+      rgba(255, 255, 255, 0) 48%);
+  /* 内阴影强度跟遮罩浓度走，透明时不显形 */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, calc(var(--lg-a) * 0.47)),
+    inset 0 12px 18px -14px rgba(255, 255, 255, calc(var(--lg-a) * 0.65)),
+    inset 0 -6px 10px -8px rgba(0, 0, 0, calc(var(--lg-a) * 1.2)),
+    inset 0 -1px 0 rgba(0, 0, 0, calc(var(--lg-a) * 0.35));
+}
+/* ③ 高光：一整圈白边，强度随光源方位变化（conic） */
+.nt-composer.liquid-glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--lg-ring-width, 1.2px);
+  pointer-events: none;
+  /* mask 抠的环在圆角处硬切，DPR 1.0/1.25 有台阶；模糊把台阶融掉。
+     环宽与模糊都在设置面板可调。 */
+  filter: blur(var(--lg-ring-blur, 0.4px));
+
+  background: conic-gradient(from var(--lg-ring-angle, 0deg),
+    rgba(255, 255, 255, var(--lg-rl)) 0deg,
+    rgba(255, 255, 255, calc(var(--lg-rl) * (1 + var(--lg-ring-min)) / 2)) 80deg,
+    rgba(255, 255, 255, calc(var(--lg-rl) * var(--lg-ring-min))) 165deg,
+    rgba(255, 255, 255, calc(var(--lg-rl) * (1 + var(--lg-ring-min)) / 2)) 250deg,
+    rgba(255, 255, 255, var(--lg-rl)) 320deg,
+    rgba(255, 255, 255, var(--lg-rl)) 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+/* 深色主题：暗玻璃 + 亮边（靠背景提亮，不靠白填充） */
+.nt-composer.liquid-glass,
+[data-theme="dark"] .nt-composer.liquid-glass,
+[data-theme="alt2"] .nt-composer.liquid-glass {
+  --lg-tint: 1;
+  --lg-bright: 0.20;
+}
+/* 浅色主题：乳白玻璃 */
+[data-theme="light"] .nt-composer.liquid-glass,
+[data-theme="alt1"] .nt-composer.liquid-glass {
+  --lg-tint: 1;
+  --lg-bright: 0.04;
+  --lg-rim-rgb: 96, 86, 66;
+  --lg-rim-alpha: 0.24;
+}
+.nt-composer.liquid-glass.open {
+  border: 0 !important;
+  background-color: rgba(255, 255, 255, calc(var(--lg-a) + 0.03)) !important;
+  -webkit-backdrop-filter: var(--lg-filter-open, var(--lg-filter)) blur(var(--lg-blur, 3px)) saturate(1.3) brightness(var(--lg-b)) !important;
+  backdrop-filter: var(--lg-filter-open, var(--lg-filter)) blur(var(--lg-blur, 3px)) saturate(1.3) brightness(var(--lg-b)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, calc(var(--lg-a) * 0.9)),
+   0 0 0 1px rgba(var(--lg-rim-rgb), var(--lg-rim-alpha)),
+
+    0 10px 24px rgba(0, 0, 0, var(--lg-shadow, 0.34)),
+    0 2px 6px rgba(0, 0, 0, calc(var(--lg-shadow, 0.34) * 0.6)) !important;
+}
 .nt-composer.liquid-glass .nt-composer-btn {
   background: transparent !important;
   color: var(--nt-text) !important;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
-}
-.nt-composer.liquid-glass.open {
-  background-color: rgba(255, 255, 255, calc(var(--lg-alpha, 0.12) + 0.04)) !important;
-  border-color: rgba(255, 255, 255, 0.42) !important;
-  -webkit-backdrop-filter: var(--lg-filter-open, var(--lg-filter)) blur(var(--lg-blur, 0px)) saturate(1.3) brightness(1.04) !important;
-  backdrop-filter: var(--lg-filter-open, var(--lg-filter)) blur(var(--lg-blur, 0px)) saturate(1.3) brightness(1.04) !important;
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.55),
-    inset 0 -8px 18px rgba(0, 0, 0, 0.14),
-    0 10px 28px rgba(0, 0, 0, var(--lg-shadow, 0.35)) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 .nt-composer.liquid-glass.open .nt-composer-btn {
   background: var(--nt-primary) !important;

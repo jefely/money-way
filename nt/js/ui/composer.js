@@ -122,6 +122,21 @@ export function mountComposer(section, ctx, rowHost, refresh) {
     // 值没变就不写 style —— 重复写会重启 CSS transition，看起来就是「抖一下」
     if (bar.style.right !== r + 'px') bar.style.right = r + 'px';
     if (bar.style.bottom !== b + 'px') bar.style.bottom = b + 'px';
+    snapToDevicePixel();
+  }
+
+  /* 把胶囊吸附到物理像素格：125% 缩放下 bottom 会落在半格（如 1037.5），
+   * 1px 的玻璃边线卡在半格上会被抗锯齿劈成两条灰线，看着就是毛刺。
+   * 用 translate 做视觉补偿，不动 right/bottom 的布局语义。拖动中跳过，避免跟手时抖。 */
+  function snapToDevicePixel() {
+    if (bar.classList.contains('dragging')) return;
+    const dpr = (window.devicePixelRatio) || 1;
+    bar.style.transform = '';
+    const r = bar.getBoundingClientRect();
+    const dx = Math.round(r.x * dpr) / dpr - r.x;
+    const dy = Math.round(r.y * dpr) / dpr - r.y;
+    bar.style.transform = (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01)
+      ? '' : 'translate(' + dx + 'px, ' + dy + 'px)';
   }
 
   /** 用 rAF 合并同一帧内的多次定位请求（visualViewport 的 resize/scroll 会连发） */

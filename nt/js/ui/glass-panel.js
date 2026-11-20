@@ -1,9 +1,9 @@
-// 界面：液态玻璃参数字段（设置 → 布局底部）
+﻿// 界面：液态玻璃参数字段（设置 → 布局底部）
 /** 独立成文件，避免 debug-panel.js 超过 300 行。 */
 export function appendGlassSection(body, renderBody) {
 /* 液态玻璃：直接改 localStorage，由 ui/liquid-glass.js 监听应用 */
 const GLASS_KEY = 'nt_glass_params';
-const GDEF = { opacity: 12, scale: 18, highlight: 55, shadow: 38, blur: 0 };
+const GDEF = { opacity: 34, scale: 8, bevel: 32, highlight: 60, ring: 1.2, ringBlur: 0.4, angle: 0, distance: 55, shadow: 34, blur: 1.5 };
 const gv = Object.assign({}, GDEF);
 try {
   const raw = JSON.parse(localStorage.getItem(GLASS_KEY) || 'null');
@@ -23,11 +23,16 @@ gb.textContent = 'js/ui/liquid-glass.js';
 gh.appendChild(gb);
 gsec.appendChild(gh);
 const gdefs = [
-  ['不透明度', 'opacity', 0, 40, 1, '%'],
-  ['scale', 'scale', 0, 40, 1, ''],
+  ['不透明度', 'opacity', 0, 60, 1, '%'],
+  ['折射强度', 'scale', 0, 24, 1, 'px'],
+  ['折射环宽度', 'bevel', 8, 45, 1, '%'],
   ['高光亮度', 'highlight', 0, 100, 1, '%'],
+  ['高光环宽度', 'ring', 0, 3, 0.1, 'px'],
+  ['高光环模糊', 'ringBlur', 0, 1.5, 0.05, 'px'],
+    ['光源角度', 'angle', 0, 360, 5, '°'],
+  ['光源远近', 'distance', 0, 100, 1, '%'],
   ['阴影范围', 'shadow', 0, 100, 1, '%'],
-  ['背景模糊', 'blur', 0, 20, 1, 'px'],
+  ['背景模糊', 'blur', 0, 12, 1, 'px'],
 ];
 const gwrite = (patch) => {
   const next = Object.assign({}, gv, patch);
@@ -68,7 +73,7 @@ presetBtn.type = 'button';
 presetBtn.className = 'nt-btn nt-btn-sm';
 presetBtn.textContent = '视频参考值';
 presetBtn.addEventListener('click', () => {
-  gwrite({ opacity: 20, scale: 12, highlight: 55, shadow: 75, blur: 0 });
+  gwrite({ opacity: 35, scale: 8, bevel: 32, highlight: 60, ring: 1.2, ringBlur: 0.4, angle: 0, distance: 55, shadow: 30, blur: 1.5 });
   renderBody();
 });
 presetRow.appendChild(presetBtn);

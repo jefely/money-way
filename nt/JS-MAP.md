@@ -170,7 +170,7 @@
 | `ui/inst-table.js` | 分期表（表格内直接交互） |
 | `ui/layout-text.js` | 布局文本导出/导入 |
 | `ui/leave-hooks.js` | 切页时的后台收尾 |
-| `ui/liquid-glass.js` | NT 悬浮输入窗的液态折射（第一版视频做法） |
+| `ui/liquid-glass.js` | NT 悬浮输入窗的液态折射（视频四层做法） |
 | `ui/locate-tx.js` | 从校验跳到出问题的那一笔 |
 | `ui/lv-params.js` | 脉络参数（CSS 变量 → 数字） |
 | `ui/modal.js` | 全局 → 统一弹窗（<dialog>） |
