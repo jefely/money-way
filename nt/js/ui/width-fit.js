@@ -83,21 +83,10 @@ function btnPx(tableEl) {
  */
 export function fitAccounts(tableEl) {
   if (!tableEl) return;
-  const wrap = tableEl.closest('.nt-tablewrap');
-  const avail = wrap ? wrap.clientWidth : 0;
-  // 视图还没展开（宽度 0）—— 等 ResizeObserver 再叫一次
-  if (!avail) return;
-
-  const cols = TABLE_COLS.accounts.cols;
-  const widths = paramWidths(tableEl, 'accounts');
-  const list = ACC_SOFT.map((c) => widths[cols.indexOf(c)]);
-  const budget = avail - btnPx(tableEl) * 2 - ACC_SHARE_MIN;
-  const target = fitWidths(list, budget, ACC_MINS, ACC_SOFT);
-
-  ACC_SOFT.forEach((c, i) => {
-    const v = varOf('accounts', c);
-    if (target) tableEl.style.setProperty(v, target[i] + 'px');
-    else tableEl.style.removeProperty(v);
+  // 节点设置：其它列保持参数宽度，只有「节点名称」列吃剩余。
+  // 不做整表等比压缩，否则拖分区时所有列一起变，用户要的不是这个。
+  ['code', 'seq', 'type', 'cat', 'name'].forEach((c) => {
+    tableEl.style.removeProperty(varOf('accounts', c));
   });
 }
 
@@ -169,14 +158,14 @@ export function fitShareTable(tableEl, id) {
  */
 export function dragMaxWidth(tableEl, startW) {
   if (!tableEl) return 0;
-  const absorb = tableEl.classList.contains('nt-table-accounts') ? 'opening'
+  const absorb = tableEl.classList.contains('nt-table-accounts') ? 'name'
     : (tableEl.classList.contains('nt-table-catq') || tableEl.classList.contains('nt-table-query')) ? 'note'
       : '';
   if (!absorb) return 0;
   const th = tableEl.querySelector('thead .nt-th[data-col="' + absorb + '"]');
   const now = th ? th.getBoundingClientRect().width : 0;
   if (!now) return 0;
-  const floor = absorb === 'opening' ? ACC_SHARE_MIN : NOTE_FLOOR;
+  const floor = absorb === 'name' ? ACC_MINS.name : NOTE_FLOOR;
   return maxDragWidth(startW, now, floor);
 }
 

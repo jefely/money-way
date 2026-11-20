@@ -50,7 +50,7 @@ function noteGap() {
   tr.className = 'nt-gap-row';
   const td = document.createElement('td');
   td.className = 'nt-cell';
-  td.colSpan = 8;
+  td.colSpan = 5;
   tr.appendChild(td);
   return tr;
 }
@@ -68,7 +68,7 @@ function noteHead(ctx, rerender) {
 
   const td = document.createElement('td');
   td.className = 'nt-cell nt-zone-cell';
-  td.colSpan = 7;
+  td.colSpan = 4;
 
   const inner = document.createElement('div');
   inner.className = 'nt-zone-label';
@@ -90,30 +90,12 @@ function noteHead(ctx, rerender) {
 function noteCols() {
   const tr = document.createElement('tr');
   tr.className = 'nt-zone-cols nt-note-cols';
-
-  for (const label of ['简码', '序', '类型', '关键字']) {
+  for (const label of ['简码', '序', '类型', '关键字', '内容']) {
     const td = document.createElement('td');
     td.className = 'nt-cell';
     td.textContent = label;
     tr.appendChild(td);
   }
-
-  const textTd = document.createElement('td');
-  textTd.className = 'nt-cell';
-  textTd.colSpan = 2;
-  textTd.textContent = '内容';
-  tr.appendChild(textTd);
-
-  const upTd = document.createElement('td');
-  upTd.className = 'nt-cell';
-  upTd.textContent = '移';
-  tr.appendChild(upTd);
-
-  const delTd = document.createElement('td');
-  delTd.className = 'nt-cell';
-  delTd.textContent = '删';
-  tr.appendChild(delTd);
-
   return tr;
 }
 
@@ -158,8 +140,7 @@ function noteCells(note, seqText) {
   keyTd.appendChild(keyword);
 
   const textTd = document.createElement('td');
-  textTd.className = 'nt-cell';
-  textTd.colSpan = 2;
+  textTd.className = 'nt-cell nt-note-text-cell';
   const text = document.createElement('input');
   text.className = 'nt-cell-input';
   text.type = 'text';
@@ -317,13 +298,13 @@ function noteRow(ctx, note, index, rerender) {
   });
   delTd.appendChild(del);
 
+  c.textTd.appendChild(up);
+  c.textTd.appendChild(del);
   tr.appendChild(c.codeTd);
   tr.appendChild(c.seqTd);
   tr.appendChild(c.typeTd);
   tr.appendChild(c.keyTd);
   tr.appendChild(c.textTd);
-  tr.appendChild(upTd);
-  tr.appendChild(delTd);
   return tr;
 }
 
@@ -381,7 +362,5 @@ function noteNewRow(ctx, rerender) {
   tr.appendChild(c.keyTd);
   tr.appendChild(c.textTd);
   // 新增行也要占满 8 列：内容(2) + 移(1) + 删(1)
-  tr.appendChild(noteActionTd());
-  tr.appendChild(noteActionTd());
   return tr;
 }

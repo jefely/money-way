@@ -22,6 +22,7 @@ import { updateAccount, removeAccount, addNote, updateNote, removeNote, NOTE_TYP
 import { accountsOfZone, orderBySeq, effectiveSeq, moveWithinType, withUndefinedAccounts, pruneEmptyAccounts } from '../core/account-order.js';
 import { bindTypePicker } from './type-picker.js';
 import { zoneHead } from './table-parts.js';
+import { bindAccountSeqExtras } from './seq-extras.js';
 import { normalizeCode, isValidCode } from '../core/schema.js';
 import { balanceOf } from '../core/balance-calculator.js';
 import { renderNotes } from './note-table.js';
@@ -195,7 +196,6 @@ export function mountAccountTable(ctx, tbody, opts) {
         }
         setCell(tr, 'category', acc.category || '');
         setCell(tr, 'name', acc.name || '');
-        setCell(tr, 'opening', moneyOrBlank(openingOf(state, acc.id)));
 
         bindRow(tr, acc.id);
         frag.appendChild(tr);
@@ -223,25 +223,6 @@ export function mountAccountTable(ctx, tbody, opts) {
   }
 
   function bindRow(tr, id) {
-    const up = tr.querySelector('[data-act="up"]');
-    if (up) {
-      up.addEventListener('click', () => moveUp(id));
-    }
-
-    const del = tr.querySelector('[data-act="del"]');
-    if (del) {
-      del.addEventListener('click', () => {
-        const acc = ctx.getIndex().byId.get(id);
-        const nm = acc ? acc.name : '';
-        // 直接删，不再弹原生 confirm（用户 2026-11）：删除账户可全局撤销，
-        // 多一次确认只是多一次点击。流水仍然保留，断链由校验提示。
-        ctx.setState(removeAccount(ctx.getState(), id));
-        ctx.saveNow();
-        render();
-        ctx.setFooter('已移除「' + nm + '」（流水保留，可撤销）');
-      });
-    }
-
     for (const f of FIELDS) {
       const inp = tr.querySelector('[data-field="' + f + '"]');
       if (!inp) continue;
@@ -270,6 +251,20 @@ export function mountAccountTable(ctx, tbody, opts) {
       }
     }
   }
+
+  /** 直接删节点（原表格 × 按钮的逻辑，现在挪到序号菜单） */
+  function removeAcc(id) {
+    const acc = ctx.getIndex().byId.get(id);
+    const nm = acc ? acc.name : '';
+    // 直接删，不再弹原生 confirm：删除账户可全局撤销，
+    // 多一次确认只是多一次点击。流水仍然保留，断链由校验提示。
+    ctx.setState(removeAccount(ctx.getState(), id));
+    ctx.saveNow();
+    render();
+    ctx.setFooter('已移除「' + nm + '」（流水保留，可撤销）');
+  }
+
+  bindAccountSeqExtras(tbody, grid, moveUp, removeAcc);
 
   /**
    * 上移：与**同一类型**里的前一个账户换位置。

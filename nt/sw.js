@@ -23,7 +23,7 @@
  * 鏂板鏂囦欢璁板緱鍔犺繘鏉ワ紙tools 閲屾湁鐢熸垚鑴氭湰锛夈€?
  * ============================================================
  */
-const CACHE_NAME = 'nt-v1.567';
+const CACHE_NAME = 'nt-v1.568';
 
 const ASSETS = [
   './css/base.css',
@@ -168,6 +168,7 @@ const ASSETS = [
   './js/ui/composer.js',
   './js/ui/datalists.js',
   './js/ui/debug-panel.js',
+  './js/ui/glass-panel.js', './js/ui/liquid-glass.js', './js/ui/seq-extras.js',
   './js/ui/debug-pip.js',
   './js/ui/debug-themes.js',
   './js/ui/export-dialog.js',

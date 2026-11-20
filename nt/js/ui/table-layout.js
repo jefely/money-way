@@ -408,8 +408,8 @@ function startDrag(tableEl, th, downEv, o) {
 function isAbsorbCol(tableEl, th) {
   const dc = th && th.dataset ? th.dataset.col : '';
   if (!dc) return false;
-  // 节点设置表：**期初余额**（金额）列跟着窗口变宽（用户 2026-11 指定）
-  if (tableEl.classList.contains('nt-table-accounts')) return dc === 'opening';
+  // 节点设置表：**节点名称**列吸收剩余宽度（期初列删除后由它替代）
+  if (tableEl.classList.contains('nt-table-accounts')) return dc === 'name';
   // 流水表：**备注**列 —— 它是最长的文本
   if (tableEl.classList.contains('nt-table-flow')) return dc === 'note';
   // 分类列表（详情表）：**备注**列，理由同上

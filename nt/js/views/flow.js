@@ -39,6 +39,7 @@ export function mountFlow(section, ctx) {
   let renderedVer = -1;
 
   const composer = mountComposer(section, ctx, body, () => render(true));
+  if (composer && composer.bar) import('../ui/liquid-glass.js').then((m) => m.installLiquidGlass(composer.bar)).catch(() => {});
   bindPlanRowActions(body, ctx, () => render(true));
 
   bindRowEditing(body, {

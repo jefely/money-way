@@ -7,6 +7,7 @@ import { createThemeButtons, currentTheme, applyTheme, saveThemeSettings, loadTh
 import { createPiPButton } from './debug-pip.js';
 import { layoutTextBar, mergePatch } from './layout-text.js';
 import { resetColWidths } from './table-layout.js';
+import { appendGlassSection } from './glass-panel.js';
 
 const POS_KEY = 'nt_debug_pos';
 
@@ -229,6 +230,8 @@ export function mountDebugPanel(opts) {
       }
       body.appendChild(sec);
     }
+
+    appendGlassSection(body, renderBody);
   }
 
   function buildRow(item) {

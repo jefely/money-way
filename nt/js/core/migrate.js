@@ -49,10 +49,14 @@ function normalizeType(raw) {
 /** 老账户对象 → 新结构 */
 function upgradeAccount(raw) {
   const src = raw || {};
+  // 新结构先看 type；只有 type 为空时才回退到旧的 cat。
+  // 反过来（cat || type）会让还带旧 cat 字段（常是「储蓄/信用」这种分类）
+  // 的账户被 normalizeType 认不出，整批落到资产类 —— 用户报「节点设置类型全资产」。
+  const currentType = String(src.type == null ? '' : src.type).trim();
   return createAccount({
     id: src.id,
     name: src.name,
-    type: normalizeType(src.cat || src.type),
+    type: normalizeType(currentType || src.cat),
     category: src.sub || src.category || '',
     isHidden: !!src.isHidden,
   });

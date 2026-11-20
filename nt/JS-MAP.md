@@ -153,6 +153,7 @@
 | `ui/flow-shell.js` | 流水 ⇄ 账本设置 的横向切换 |
 | `ui/fly-in.js` | 流水 tab → 入账飞入 |
 | `ui/gate.js` | 锁屏 / 首次设密码 |
+| `ui/glass-panel.js` | 液态玻璃参数字段（设置 → 布局底部） |
 | `ui/global-undo.js` | 全局撤销 / 重做的动作与快捷键 |
 | `ui/import-actions.js` | 导入动作（表格 / 文本 / 加密备份） |
 | `ui/import-backup.js` | 备份文件读取（.lz 快照 / 加密备份 / 整本 Excel 备份） |
@@ -169,6 +170,7 @@
 | `ui/inst-table.js` | 分期表（表格内直接交互） |
 | `ui/layout-text.js` | 布局文本导出/导入 |
 | `ui/leave-hooks.js` | 切页时的后台收尾 |
+| `ui/liquid-glass.js` | NT 悬浮输入窗的液态折射（第一版视频做法） |
 | `ui/locate-tx.js` | 从校验跳到出问题的那一笔 |
 | `ui/lv-params.js` | 脉络参数（CSS 变量 → 数字） |
 | `ui/modal.js` | 全局 → 统一弹窗（<dialog>） |
@@ -196,6 +198,7 @@
 | `ui/reset-dialog.js` | 节点模板弹窗里的「重置」区 |
 | `ui/review-tip.js` | 设置页 → 新增序号气泡 |
 | `ui/row-editor.js` | 流水 tab → 行内编辑 / 新增行 |
+| `ui/seq-extras.js` | 节点设置「序」菜单的上移/删除与再次点击收起 |
 | `ui/share-block.js` | 二维码分享区块 |
 | `ui/share-file.js` | 导出加密备份文件 |
 | `ui/stat-fit.js` | 统计小表的字号自适应 |
